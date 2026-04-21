@@ -1,0 +1,122 @@
+# xrat Plan
+
+## Goal
+
+Build a Rust-based TUI Xray client that can ingest subscriptions, validate and store configs, run Xray with a working config, and expose config data through simple HTTP endpoints.
+
+## Assumptions
+
+- Xray is already installed on the system.
+- The app is primarily a local desktop/terminal tool.
+- SQLite is the initial database backend.
+- The HTTP server is intended for local or trusted-network use unless auth is added later.
+
+## Current Status
+
+- Subscription parsing has been ported from Python to Rust.
+- The parser currently supports `vless`, `vmess`, and `ss` links.
+- The codebase is now split into multiple Rust modules.
+- Core dependencies for TUI, async runtime, database, and HTTP server are present in `Cargo.toml`.
+
+## Roadmap
+
+### Phase 1: Subscription Ingestion
+
+- Finalize parsing behavior and verify parity with the original Python script.
+- Normalize parsed nodes consistently before persistence.
+- Support importing from subscription URLs and raw subscription text.
+- Deduplicate configs before saving them.
+
+### Phase 2: Database Persistence
+
+- Add a SQLite schema for configs and subscription sources.
+- Save parsed configs into the database instead of only writing JSON files.
+- Track metadata such as protocol, address, port, remark/name, source URL, and timestamps.
+- Mark configs as active, disabled, or deleted without physically removing rows.
+
+Suggested tables:
+
+- `subscriptions`
+- `configs`
+- `connection_tests`
+- `runtime_sessions`
+
+### Phase 3: Connection Testing
+
+- Implement connectivity checks similar to other clients.
+- Support lightweight TCP reachability checks.
+- Measure real delay/latency using actual proxy traffic, not just socket open time.
+- Save test results in the database with timestamps and per-config history.
+- Keep the latest result cached for fast UI display.
+
+Suggested metrics to store:
+
+- TCP ping success/failure
+- TCP connect time
+- Real delay success/failure
+- Real delay in milliseconds
+- Last checked timestamp
+- Failure reason
+
+### Phase 4: Xray Core Execution
+
+- Generate a runnable Xray config from one selected working node.
+- Launch Xray as a managed child process from Rust.
+- Track running state, selected config, ports, and process metadata.
+- Stop or restart Xray cleanly when switching configs.
+- Save the last known working config and runtime state in the database.
+
+### Phase 5: HTTP API
+
+- Run a lightweight Axum-based HTTP server alongside the app.
+- Expose `/json` to return configs in JSON form.
+- Expose `/b64` to return configs encoded as base64 subscription text.
+- Support a query parameter for returning the top `n` configs sorted by real delay.
+- Support an optional `key` query parameter for simple request authentication.
+- Optionally add endpoints like `/health`, `/configs`, and `/configs/:id` later.
+- Decide whether the server is always on or only started when enabled.
+
+### Phase 6: TUI Application
+
+- Build the main interface with Ratatui.
+- Show subscription sources, config list, test results, and runtime state.
+- Allow importing, refreshing, testing, filtering, sorting, and selecting configs.
+- Allow starting/stopping Xray and switching the active config.
+- Surface logs and recent failures in a minimal diagnostics view.
+
+## Proposed Architecture
+
+- `src/parser.rs`: parse and normalize subscription lines.
+- `src/model.rs`: shared domain types.
+- `src/db/`: database models, queries, and migrations.
+- `src/tester/`: TCP ping and real-delay test logic.
+- `src/xray/`: Xray config generation and process management.
+- `src/server/`: Axum routes and API state.
+- `src/tui/`: Ratatui app state, rendering, and input handling.
+- `src/main.rs`: bootstrap CLI/app mode selection.
+
+## Execution Order
+
+1. Finish persistence layer and store parsed configs in SQLite.
+2. Define schema and migrations for configs, tests, and runtime state.
+3. Add connection testing and save results in the database.
+4. Add Xray runtime management using a selected working config.
+5. Add the Axum server with `/json` and `/b64` endpoints.
+6. Build the TUI around those core capabilities.
+
+## Open Questions
+
+- Should real-delay testing use a fixed target URL or a configurable endpoint?
+- Should `/b64` output include all saved configs or only enabled/healthy ones?
+- Should the `top n` filter use only healthy configs with valid real-delay results?
+- Should the server expose only the latest test result or full test history?
+- Is the optional `key` query parameter enough, or should auth move to headers later?
+- Should Xray be run in global mode, local SOCKS/HTTP mode, or both?
+- Should subscription refresh be manual first, or scheduled from the start?
+
+## Near-Term Next Steps
+
+- Add SQLx migrations for the initial SQLite schema.
+- Introduce a repository layer for configs and test results.
+- Decide the exact shape of the `configs` table.
+- Add a service layer to import parsed nodes directly into SQLite.
