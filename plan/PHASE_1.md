@@ -6,7 +6,7 @@
 
 Phase 1 in `plan/README.md` includes:
 
-- finalize parsing behavior and verify parity with the original Python script
+- finalize parsing behavior for the supported link formats
 - normalize parsed nodes consistently before persistence
 - support importing from subscription URLs and raw subscription text
 - deduplicate configs before saving them
@@ -17,8 +17,8 @@ Phase 1 in `plan/README.md` includes:
 
 1. **Parsing for supported protocols exists**
    - `src/parser.rs` parses `vless`, `vmess`, `ss`, `trojan`, `http`, and `socks5`
-   - `vless`, `vmess`, and `ss` match the current Python reference in `v2p.py`
-   - `trojan`, `http`, and `socks5` have now been added in Rust
+   - `vless`, `vmess`, and `ss` have regression coverage based on the currently expected behavior
+   - `trojan`, `http`, and `socks5` are implemented in Rust and still need the same level of test coverage
 
 2. **Normalization exists**
    - `src/parser.rs` normalizes empty network values to `tcp`
@@ -43,20 +43,17 @@ Phase 1 in `plan/README.md` includes:
    - `src/model.rs` now uses a `Protocol` enum instead of raw protocol strings
    - this reduces invalid protocol states and makes persistence/API work cleaner later
 
-7. **Python parity is largely preserved**
-   - Rust behavior in `src/parser.rs` and `src/decode.rs` closely follows `v2p.py`
-   - module split is cleaner, but functional behavior is substantially the same for the shared protocols
+7. **Supported parser behavior is increasingly locked down**
+   - `src/parser.rs` now includes focused regression tests for `vless`, `vmess`, and `ss`
+   - normalization and dedup behavior are also covered by parser tests
 
 ## Remaining Work For Phase 1
 
-1. **Parity is not yet verified by tests**
-   - implementation looks aligned with `v2p.py`, but there are no parser/decode tests proving parity
-   - Phase 1 says to finalize parsing behavior and verify parity, which is only partially complete without validation coverage
+1. **Decode behavior is not yet verified by tests**
+   - parser regression coverage now exists for the shared protocols, but decode behavior in `src/decode.rs` still lacks focused tests
+   - base64, raw JSON, and raw text fallback should be covered explicitly
 
-2. **Normalization rules are implemented but not documented/locked by tests**
-   - behavior exists in code, but regression protection is missing
-
-3. **Mixed input ingestion needs tests**
+2. **Mixed input ingestion needs tests**
    - file ingestion now supports JSON, base64, plain link lists, and newline-separated URLs
    - this behavior should be locked down with focused tests before Phase 1 is considered complete
 
@@ -72,10 +69,11 @@ Phase 1 is **mostly complete**, but not fully finished.
 - subscription URL ingestion
 - local file ingestion for JSON, base64, plain links, or newline-separated URLs
 - typed `Protocol` enum in the domain model
+- regression tests for core supported parser behavior
 
 ### Left to finish
 
-- add tests to verify parser/decoder parity and normalization behavior
+- add tests for decode behavior
 - add tests for file-based mixed input handling
 
 ## Suggested Completion Criteria
@@ -86,4 +84,4 @@ Phase 1 can be considered complete after:
    - a subscription URL, or
    - raw subscription text / file input
 2. parser and decode behavior is covered by focused tests
-3. parity cases from `v2p.py` are validated for the supported protocols
+3. supported link formats are validated by regression tests

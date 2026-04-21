@@ -13,8 +13,8 @@ Build a Rust-based TUI Xray client that can ingest subscriptions, validate and s
 
 ## Current Status
 
-- Subscription parsing has been ported from Python to Rust.
-- The parser currently supports `vless`, `vmess`, and `ss` links.
+- Subscription parsing is implemented in Rust.
+- The parser currently supports `vless`, `vmess`, `ss`, `trojan`, `http`, and `socks5` links.
 - The codebase is now split into multiple Rust modules.
 - Core dependencies for TUI, async runtime, database, and HTTP server are present in `Cargo.toml`.
 
@@ -22,7 +22,7 @@ Build a Rust-based TUI Xray client that can ingest subscriptions, validate and s
 
 ### Phase 1: Subscription Ingestion
 
-- Finalize parsing behavior and verify parity with the original Python script.
+- Finalize parsing behavior for the supported link formats.
 - Normalize parsed nodes consistently before persistence.
 - Support importing from subscription URLs and raw subscription text.
 - Deduplicate configs before saving them.
