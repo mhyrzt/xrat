@@ -1,7 +1,7 @@
 use url::Url;
 
-use crate::decode::b64_decode_text;
 use crate::model::{Node, Protocol};
+use crate::support::decode::b64_decode_text;
 
 use super::super::support::{empty_to_none, percent_decode};
 

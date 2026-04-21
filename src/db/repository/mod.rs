@@ -8,6 +8,7 @@ use sqlx::SqlitePool;
 use crate::db::model::{
     ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord, ImportSource,
     ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
+    SubscriptionRecord,
 };
 use crate::model::Node;
 
@@ -52,6 +53,12 @@ pub async fn get_active_config(
 
 pub async fn get_subscription_count(pool: &SqlitePool) -> Result<i64, Box<dyn std::error::Error>> {
     subscriptions::get_count(pool).await
+}
+
+pub async fn list_subscriptions(
+    pool: &SqlitePool,
+) -> Result<Vec<SubscriptionRecord>, Box<dyn std::error::Error>> {
+    subscriptions::list(pool).await
 }
 
 pub async fn get_connection_test_count(

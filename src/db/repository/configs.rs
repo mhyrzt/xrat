@@ -84,6 +84,9 @@ pub async fn list(
     if !filter.include_deleted {
         builder.push(" AND is_deleted = 0");
     }
+    if filter.only_deleted {
+        builder.push(" AND is_deleted = 1");
+    }
     if filter.only_enabled {
         builder.push(" AND is_enabled = 1");
     }

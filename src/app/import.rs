@@ -1,8 +1,9 @@
+use crate::app::input::source::read_input;
 use crate::db::ImportSource;
-use crate::decode::decode_or_raw_text;
-use crate::io::read_input;
+use crate::db::SourceKind;
 use crate::model::Node;
 use crate::parser::parse_text;
+use crate::support::decode::decode_or_raw_text;
 
 pub fn load_nodes(input: &str) -> Result<(ImportSource, Vec<Node>), Box<dyn std::error::Error>> {
     let (source, input_data) = read_input(input)?;
@@ -11,6 +12,28 @@ pub fn load_nodes(input: &str) -> Result<(ImportSource, Vec<Node>), Box<dyn std:
     let normalized_text = expand_url_list(&config_text)?;
 
     Ok((source, parse_text(&normalized_text)))
+}
+
+pub fn load_single_node(input: &str) -> Result<(ImportSource, Node), Box<dyn std::error::Error>> {
+    reject_raw_json_config(input)?;
+
+    let mut nodes = parse_text(input).into_iter();
+    let Some(node) = nodes.next() else {
+        return Err("no supported config found in input".into());
+    };
+
+    if nodes.next().is_some() {
+        return Err("add accepts exactly one config URI/text".into());
+    }
+
+    Ok((
+        ImportSource {
+            kind: SourceKind::RawText,
+            value: input.to_string(),
+            name: node.name.clone(),
+        },
+        node,
+    ))
 }
 
 fn reject_raw_json_config(config_text: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -55,4 +78,33 @@ fn looks_like_url(input: &str) -> bool {
         input.split_once("://").map(|(scheme, _)| scheme),
         Some("http" | "https")
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::load_single_node;
+    use crate::db::SourceKind;
+    use crate::model::Protocol;
+
+    #[test]
+    fn parses_single_manual_config_as_raw_text_source() {
+        let (source, node) = load_single_node(
+            "vless://uuid-123@example.com:443?type=ws&security=tls#Example%20Node",
+        )
+        .expect("single config should parse");
+
+        assert_eq!(source.kind, SourceKind::RawText);
+        assert_eq!(node.protocol, Protocol::Vless);
+        assert_eq!(node.address, "example.com");
+    }
+
+    #[test]
+    fn rejects_multiple_configs_for_add() {
+        let err = load_single_node(
+            "vless://uuid-123@example.com:443#One\nss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#Two",
+        )
+        .expect_err("multiple configs should fail");
+
+        assert!(err.to_string().contains("exactly one"));
+    }
 }

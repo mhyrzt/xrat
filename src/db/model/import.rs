@@ -28,3 +28,14 @@ pub struct ImportSummary {
     pub imported_configs: usize,
     pub total_configs: i64,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SubscriptionRecord {
+    pub id: i64,
+    pub source_kind: String,
+    pub source_url: Option<String>,
+    pub name: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub config_count: i64,
+}

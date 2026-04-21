@@ -1,6 +1,6 @@
-use sqlx::SqlitePool;
+use sqlx::{Row, SqlitePool};
 
-use crate::db::model::{ImportSource, SourceKind};
+use crate::db::model::{ImportSource, SourceKind, SubscriptionRecord};
 
 pub async fn insert(
     pool: &SqlitePool,
@@ -28,4 +28,46 @@ pub async fn get_count(pool: &SqlitePool) -> Result<i64, Box<dyn std::error::Err
             .fetch_one(pool)
             .await?,
     )
+}
+
+pub async fn list(
+    pool: &SqlitePool,
+) -> Result<Vec<SubscriptionRecord>, Box<dyn std::error::Error>> {
+    let rows = sqlx::query(
+        r#"
+        SELECT
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at,
+            COUNT(configs.id) AS config_count
+        FROM subscriptions
+        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        GROUP BY
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at
+        ORDER BY subscriptions.id ASC
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| SubscriptionRecord {
+            id: row.get("id"),
+            source_kind: row.get("source_kind"),
+            source_url: row.get("source_url"),
+            name: row.get("name"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            config_count: row.get("config_count"),
+        })
+        .collect())
 }

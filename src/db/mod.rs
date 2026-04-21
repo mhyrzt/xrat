@@ -11,6 +11,7 @@ use sqlx::SqlitePool;
 pub use model::{
     ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord, ImportSource,
     ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SourceKind,
+    SubscriptionRecord,
 };
 
 #[derive(Clone)]
@@ -64,6 +65,12 @@ impl Database {
 
     pub async fn get_subscription_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
         repository::get_subscription_count(&self.pool).await
+    }
+
+    pub async fn list_subscriptions(
+        &self,
+    ) -> Result<Vec<SubscriptionRecord>, Box<dyn std::error::Error>> {
+        repository::list_subscriptions(&self.pool).await
     }
 
     pub async fn get_connection_test_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
@@ -229,6 +236,11 @@ mod tests {
         assert_eq!(db.get_connection_test_count().await.expect("count"), 0);
         assert_eq!(db.get_runtime_session_count().await.expect("count"), 0);
 
+        let subscriptions = db.list_subscriptions().await.expect("subscriptions");
+        assert_eq!(subscriptions.len(), 1);
+        assert_eq!(subscriptions[0].source_kind, "url");
+        assert_eq!(subscriptions[0].config_count, 1);
+
         let _ = std::fs::remove_file(db_path);
     }
 
@@ -295,11 +307,22 @@ mod tests {
             })
             .await
             .expect("list with deleted should succeed");
+        let deleted_only = db
+            .list_configs(&ConfigListFilter {
+                include_deleted: true,
+                only_deleted: true,
+                ..ConfigListFilter::default()
+            })
+            .await
+            .expect("deleted-only list should succeed");
 
         assert_eq!(visible.len(), 1);
         assert_eq!(visible[0].address, "second.example.com");
         assert_eq!(all.len(), 2);
         assert!(all.iter().any(|config| config.is_deleted));
+        assert_eq!(deleted_only.len(), 1);
+        assert!(deleted_only[0].is_deleted);
+        assert_eq!(deleted_only[0].address, "example.com");
 
         let _ = std::fs::remove_file(db_path);
     }

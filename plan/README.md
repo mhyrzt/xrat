@@ -16,6 +16,8 @@ Build a Rust-based TUI Xray client that can ingest subscriptions, validate and s
 - Subscription parsing is implemented in Rust.
 - The parser currently supports `vless`, `vmess`, `ss`, `trojan`, `http`, and `socks5` links.
 - The codebase is now split into multiple Rust modules.
+- The CLI is now command-first and split into dedicated `src/cli/` modules.
+- Command execution is now split into `src/app/commands/` with a thin `src/main.rs`.
 - Core dependencies for TUI, async runtime, database, and HTTP server are present in `Cargo.toml`.
 
 ## Roadmap
@@ -33,6 +35,11 @@ Build a Rust-based TUI Xray client that can ingest subscriptions, validate and s
 - Save parsed configs into the database instead of only writing JSON files.
 - Track metadata such as protocol, address, port, remark/name, source URL, and timestamps.
 - Mark configs as active, disabled, or deleted without physically removing rows.
+- Expose persistence-backed CLI commands such as:
+  - `xrat import <input>`
+  - `xrat add <config-uri>`
+  - `xrat list configs`
+  - `xrat list subscriptions`
 
 Suggested tables:
 
@@ -41,6 +48,26 @@ Suggested tables:
 - `connection_tests`
 - `runtime_sessions`
 
+### Phase 2.5: CLI Foundation
+
+- Move the CLI to a command-first shape: `xrat COMMAND [ARGS] [FLAGS]`.
+- Keep shared/global flags such as `--database` and `--config`.
+- Limit this phase to CLI structure plus commands already supported by existing persistence work.
+- Avoid pulling later-phase commands forward just because the CLI can name them now.
+
+This phase should mainly cover:
+
+- `import`
+- `add`
+- `list`
+
+Recommended structural outcome:
+
+- `src/cli/` for Clap definition/parsing
+- `src/app/commands/` for command behavior
+- `src/app/runtime.rs` for shared runtime/bootstrap context
+- `src/main.rs` as a minimal entrypoint
+
 ### Phase 3: Connection Testing
 
 - Implement connectivity checks similar to other clients.
@@ -48,6 +75,8 @@ Suggested tables:
 - Measure real delay/latency using actual proxy traffic, not just socket open time.
 - Save test results in the database with timestamps and per-config history.
 - Keep the latest result cached for fast UI display.
+- Add CLI commands related to testing once the behavior exists, such as:
+  - `xrat test <id>`
 
 Suggested metrics to store:
 
@@ -65,6 +94,10 @@ Suggested metrics to store:
 - Track running state, selected config, ports, and process metadata.
 - Stop or restart Xray cleanly when switching configs.
 - Save the last known working config and runtime state in the database.
+- Add runtime-oriented CLI commands here, such as:
+  - `xrat connect <id>`
+  - `xrat disconnect`
+  - `xrat status`
 
 ### Phase 5: HTTP API
 
@@ -83,11 +116,23 @@ Suggested metrics to store:
 - Allow importing, refreshing, testing, filtering, sorting, and selecting configs.
 - Allow starting/stopping Xray and switching the active config.
 - Surface logs and recent failures in a minimal diagnostics view.
+- Bring richer config-management actions into the main UX here or in the phase that formalizes config management, such as:
+  - `show`
+  - `select`
+  - `enable`
+  - `disable`
+  - `delete`
+  - `restore`
 
 ## Proposed Architecture
 
-- `src/parser.rs`: parse and normalize subscription lines.
-- `src/model.rs`: shared domain types.
+- `src/parser/`: parse and normalize subscription lines.
+- `src/model/`: shared domain types.
+- `src/cli/`: Clap command/flag definitions and CLI parsing tests.
+- `src/app/commands/`: command handlers for implemented CLI commands.
+- `src/app/runtime.rs`: app bootstrap context and shared runtime paths.
+- `src/app/input/`: input source reading and source classification.
+- `src/support/`: shared helper code such as decoding.
 - `src/db/`: database models, queries, and migrations.
 - `src/tester/`: TCP ping and real-delay test logic.
 - `src/xray/`: Xray config generation and process management.
@@ -116,7 +161,6 @@ Suggested metrics to store:
 
 ## Near-Term Next Steps
 
-- Add SQLx migrations for the initial SQLite schema.
-- Introduce a repository layer for configs and test results.
-- Decide the exact shape of the `configs` table.
-- Add a service layer to import parsed nodes directly into SQLite.
+- Continue improving the Phase 2.5 CLI foundation around `import`, `add`, and `list`.
+- Add detailed read commands only when they clearly fit the active phase.
+- Keep lifecycle, testing, and runtime commands inside their respective phases.

@@ -1,6 +1,7 @@
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ConfigListFilter {
     pub include_deleted: bool,
+    pub only_deleted: bool,
     pub only_enabled: bool,
     pub only_selected: bool,
     pub only_active: bool,

@@ -1,5 +1,5 @@
-use crate::decode::b64_decode_text;
 use crate::model::{Node, Protocol};
+use crate::support::decode::b64_decode_text;
 
 use super::super::support::{optional_string, required_string};
 
