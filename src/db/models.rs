@@ -1,0 +1,30 @@
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SourceKind {
+    Url,
+    File,
+    RawText,
+}
+
+impl SourceKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Url => "url",
+            Self::File => "file",
+            Self::RawText => "raw_text",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ImportSource {
+    pub kind: SourceKind,
+    pub value: String,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct ImportSummary {
+    pub subscription_id: i64,
+    pub imported_configs: usize,
+    pub total_configs: i64,
+}

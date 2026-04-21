@@ -3,12 +3,42 @@ use std::path::Path;
 
 use serde::Serialize;
 
-pub fn read_input(input: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+use crate::db::{ImportSource, SourceKind};
+
+pub fn read_input(input: &str) -> Result<(ImportSource, Vec<u8>), Box<dyn std::error::Error>> {
     if looks_like_url(input) {
-        return fetch_url(input);
+        return Ok((
+            ImportSource {
+                kind: SourceKind::Url,
+                value: input.to_string(),
+                name: None,
+            },
+            fetch_url(input)?,
+        ));
     }
 
-    Ok(fs::read(input)?)
+    let path = Path::new(input);
+    if path.exists() {
+        return Ok((
+            ImportSource {
+                kind: SourceKind::File,
+                value: input.to_string(),
+                name: path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned()),
+            },
+            fs::read(path)?,
+        ));
+    }
+
+    Ok((
+        ImportSource {
+            kind: SourceKind::RawText,
+            value: input.to_string(),
+            name: None,
+        },
+        input.as_bytes().to_vec(),
+    ))
 }
 
 pub fn fetch_url(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {

@@ -5,9 +5,7 @@ pub fn b64_decode_text(data: &str) -> Result<String, Box<dyn std::error::Error>>
     let padded = with_padding(data);
     let decoded = base64::engine::general_purpose::URL_SAFE
         .decode(padded.as_bytes())
-        .or_else(|_| {
-            base64::engine::general_purpose::STANDARD.decode(padded.as_bytes())
-        })?;
+        .or_else(|_| base64::engine::general_purpose::STANDARD.decode(padded.as_bytes()))?;
     Ok(String::from_utf8_lossy(&decoded).into_owned())
 }
 

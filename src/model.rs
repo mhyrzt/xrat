@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -9,6 +10,25 @@ pub enum Protocol {
     Trojan,
     Http,
     Socks5,
+}
+
+impl Protocol {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Vless => "vless",
+            Self::Vmess => "vmess",
+            Self::Ss => "ss",
+            Self::Trojan => "trojan",
+            Self::Http => "http",
+            Self::Socks5 => "socks5",
+        }
+    }
+}
+
+impl fmt::Display for Protocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
@@ -39,6 +59,10 @@ impl Node {
             password: self.password.clone(),
         }
     }
+
+    pub fn dedup_key_string(&self) -> String {
+        self.dedup_key().to_string()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -49,4 +73,19 @@ pub struct NodeDedupKey {
     pub username: Option<String>,
     pub uuid: Option<String>,
     pub password: Option<String>,
+}
+
+impl fmt::Display for NodeDedupKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}|{}|{}|{}|{}|{}",
+            self.protocol,
+            self.address,
+            self.port,
+            self.username.as_deref().unwrap_or_default(),
+            self.uuid.as_deref().unwrap_or_default(),
+            self.password.as_deref().unwrap_or_default()
+        )
+    }
 }

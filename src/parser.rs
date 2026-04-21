@@ -52,14 +52,14 @@ fn parse_line(line: &str) -> Option<Node> {
 
 fn parse_vless(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
     let parsed = Url::parse(line)?;
-    let address = parsed.host_str().ok_or("missing address or port")?.to_string();
+    let address = parsed
+        .host_str()
+        .ok_or("missing address or port")?
+        .to_string();
     let port = parsed.port().ok_or("missing address or port")?;
     let query = parse_query_pairs(parsed.query().unwrap_or_default());
     let fragment = parsed.fragment().map(percent_decode);
-    let path = query
-        .get("path")
-        .map(String::as_str)
-        .unwrap_or_default();
+    let path = query.get("path").map(String::as_str).unwrap_or_default();
 
     Ok(Node {
         protocol: Protocol::Vless,
@@ -107,7 +107,10 @@ fn parse_vmess(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
 
 fn parse_ss(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
     let parsed = Url::parse(line)?;
-    let address = parsed.host_str().ok_or("missing address or port")?.to_string();
+    let address = parsed
+        .host_str()
+        .ok_or("missing address or port")?
+        .to_string();
     let port = parsed.port().ok_or("missing address or port")?;
     let userinfo = parsed.username();
     if userinfo.is_empty() {
@@ -132,20 +135,23 @@ fn parse_ss(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
         sni: None,
         host: None,
         path: None,
-        name: parsed.fragment().map(percent_decode).and_then(empty_to_none),
+        name: parsed
+            .fragment()
+            .map(percent_decode)
+            .and_then(empty_to_none),
     })
 }
 
 fn parse_trojan(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
     let parsed = Url::parse(line)?;
-    let address = parsed.host_str().ok_or("missing address or port")?.to_string();
+    let address = parsed
+        .host_str()
+        .ok_or("missing address or port")?
+        .to_string();
     let port = parsed.port().ok_or("missing address or port")?;
     let query = parse_query_pairs(parsed.query().unwrap_or_default());
     let fragment = parsed.fragment().map(percent_decode);
-    let path = query
-        .get("path")
-        .map(String::as_str)
-        .unwrap_or_default();
+    let path = query.get("path").map(String::as_str).unwrap_or_default();
 
     Ok(Node {
         protocol: Protocol::Trojan,
@@ -172,7 +178,10 @@ fn parse_trojan(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
 
 fn parse_http(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
     let parsed = Url::parse(line)?;
-    let address = parsed.host_str().ok_or("missing address or port")?.to_string();
+    let address = parsed
+        .host_str()
+        .ok_or("missing address or port")?
+        .to_string();
     let port = parsed
         .port_or_known_default()
         .ok_or("missing address or port")?;
@@ -190,13 +199,19 @@ fn parse_http(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
         sni: None,
         host: None,
         path: None,
-        name: parsed.fragment().map(percent_decode).and_then(empty_to_none),
+        name: parsed
+            .fragment()
+            .map(percent_decode)
+            .and_then(empty_to_none),
     })
 }
 
 fn parse_socks5(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
     let parsed = Url::parse(line)?;
-    let address = parsed.host_str().ok_or("missing address or port")?.to_string();
+    let address = parsed
+        .host_str()
+        .ok_or("missing address or port")?
+        .to_string();
     let port = parsed.port().ok_or("missing address or port")?;
 
     Ok(Node {
@@ -212,7 +227,10 @@ fn parse_socks5(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
         sni: None,
         host: None,
         path: None,
-        name: parsed.fragment().map(percent_decode).and_then(empty_to_none),
+        name: parsed
+            .fragment()
+            .map(percent_decode)
+            .and_then(empty_to_none),
     })
 }
 
@@ -254,7 +272,10 @@ fn required_string(
 }
 
 fn optional_string(value: &serde_json::Value, key: &str) -> Option<String> {
-    value.get(key).and_then(|item| item.as_str()).map(ToOwned::to_owned)
+    value
+        .get(key)
+        .and_then(|item| item.as_str())
+        .map(ToOwned::to_owned)
 }
 
 fn username_or_none(url: &Url) -> Option<String> {
@@ -274,11 +295,7 @@ fn percent_decode(value: &str) -> String {
 }
 
 fn empty_to_none(value: String) -> Option<String> {
-    if value.is_empty() {
-        None
-    } else {
-        Some(value)
-    }
+    if value.is_empty() { None } else { Some(value) }
 }
 
 #[cfg(test)]
@@ -342,7 +359,8 @@ mod tests {
 
     #[test]
     fn normalizes_ws_host_and_path() {
-        let input = "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com#Node";
+        let input =
+            "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com#Node";
         let nodes = parse_text(input);
 
         assert_eq!(nodes.len(), 1);
