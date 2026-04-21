@@ -33,7 +33,7 @@ Suggested tables in `plan/README.md`:
 
 3. **Import flow already produces normalized nodes before persistence**
    - `src/main.rs` reads input, decodes it, expands URL lists, parses configs, and imports the result into SQLite
-   - `src/parser.rs` normalizes fields before deduplication, which is a useful prerequisite for stable database inserts
+   - `src/parser/` normalizes fields before deduplication, which is a useful prerequisite for stable database inserts
 
 4. **Subscription source metadata is persisted**
    - `src/io.rs` now classifies input as `url`, `file`, or `raw_text`
@@ -53,11 +53,7 @@ Suggested tables in `plan/README.md`:
    - `src/main.rs` currently rejects raw JSON config input for the SQLite import path
    - Phase 2 persistence is focused on parsed subscription-style nodes right now
 
-2. **Default database path and app-level setup are still missing**
-   - the CLI currently requires the database path to be passed explicitly
-   - app data directory behavior has not been designed yet
-
-3. **CLI commands are not wired to the new DB lifecycle/query methods yet**
+2. **CLI commands are not wired to the new DB lifecycle/query methods yet**
    - the repository now supports config state updates, connection test history, and runtime session state
    - user-facing commands for selection, status, connect, disconnect, and history still need to call those APIs
 
@@ -76,11 +72,12 @@ Phase 2 is **complete for the current intended scope**.
 - subscription source records are now stored
 - config query and lifecycle methods now exist for selection, activation, enable/disable, soft delete, and restore flows
 - `connection_tests` and `runtime_sessions` now have repository-level insert/query/update support
+- the app now resolves its home from `XRAT_PATH` or falls back to `$HOME/.config/xrat`
+- the default app layout now includes `db.sqlite` and `Config.toml`
 - tests cover the current persistence workflows
 
 ### Deferred To Later Work
 
-- add a default database path and app-level DB bootstrap behavior
 - wire the new database methods into actual CLI commands and runtime orchestration
 
 ## Proposed Database Models
@@ -197,6 +194,7 @@ Phase 2 can be considered complete after:
 4. config records include core metadata such as protocol, address, port, name, source reference, and timestamps
 5. configs can be marked active, disabled, or deleted without physical row removal
 6. the current import flow saves to SQLite as the primary persistence path, with JSON export kept only if still intentionally needed
+7. the app resolves a default home/config directory and database path without requiring the user to pass them each run
 
 Status against those criteria:
 
@@ -206,6 +204,7 @@ Status against those criteria:
 - item 4 is implemented through normalized config fields plus source and timestamp metadata
 - item 5 is implemented through persisted config flags plus repository methods for active, enabled, selected, deleted, and restore state changes
 - item 6 is implemented for the intended import path, which is normalized imported outbound/config data rather than full Xray root JSON
+- item 7 is implemented through `src/app/path.rs`, which resolves `XRAT_PATH` or `$HOME/.config/xrat` and ensures `db.sqlite` plus `Config.toml`
 
 Decision note:
 
@@ -215,8 +214,8 @@ Decision note:
 
 ## Suggested Next Steps
 
-1. add a default database location so users do not need to pass the SQLite path every time
-2. wire config query and lifecycle methods into user-facing CLI flows
-3. wire `connection_tests` into a real test runner and expose recent test results in the CLI
-4. wire `runtime_sessions` into connect/disconnect logic and startup recovery behavior
+1. wire config query and lifecycle methods into user-facing CLI flows
+2. wire `connection_tests` into a real test runner and expose recent test results in the CLI
+3. wire `runtime_sessions` into connect/disconnect logic and startup recovery behavior
+4. load and use `Config.toml` for app/runtime settings instead of only creating the file
 5. add more end-to-end tests around CLI behavior once those flows exist

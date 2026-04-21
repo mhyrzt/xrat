@@ -1,3 +1,4 @@
+use xrat::app::path;
 use xrat::cli;
 use xrat::db::Database;
 use xrat::decode::decode_or_raw_text;
@@ -14,6 +15,10 @@ async fn main() {
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = cli::parse();
+    let app_paths = path::ensure_layout()?;
+    let database_path = args
+        .database_path
+        .unwrap_or_else(|| app_paths.database_path.clone());
     let (source, input_data) = read_input(&args.input)?;
     let config_text = decode_or_raw_text(&input_data)?;
     if serde_json::from_str::<serde_json::Value>(&config_text).is_ok() {
@@ -25,13 +30,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let normalized_text = expand_url_list(&config_text)?;
     let nodes = parse_text(&normalized_text);
-    let db = Database::connect(&args.database_path).await?;
+    let db = Database::connect(&database_path).await?;
     let summary = db.import_nodes(&source, &nodes).await?;
 
     println!(
         "Imported {} parsed nodes into {} (subscription #{}, total configs: {})",
         summary.imported_configs,
-        args.database_path.display(),
+        database_path.display(),
         summary.subscription_id,
         summary.total_configs
     );

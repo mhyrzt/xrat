@@ -6,7 +6,8 @@ use clap::Parser;
 #[command(about = "Read a subscription source and persist parsed configs into SQLite.")]
 pub struct Cli {
     pub input: String,
-    pub database_path: PathBuf,
+    #[arg(long)]
+    pub database_path: Option<PathBuf>,
 }
 
 pub fn parse() -> Cli {
