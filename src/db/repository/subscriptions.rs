@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-use crate::db::models::{ImportSource, SourceKind};
+use crate::db::model::{ImportSource, SourceKind};
 
 pub async fn insert(
     pool: &SqlitePool,

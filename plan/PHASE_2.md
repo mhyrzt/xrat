@@ -28,8 +28,8 @@ Suggested tables in `plan/README.md`:
    - `src/main.rs` now persists parsed nodes into SQLite instead of only exporting parsed JSON
 
 2. **The domain model supports stable persistence keys**
-   - `src/model.rs` defines `Node` with protocol, address, port, credentials, transport fields, and optional display name
-   - `src/model.rs` now exposes stable string helpers for `Protocol` and the config dedup key used by the database layer
+   - `src/model/` defines `Node` with protocol, address, port, credentials, transport fields, and optional display name
+   - `src/model/` now exposes stable string helpers for `Protocol` and the config dedup key used by the database layer
 
 3. **Import flow already produces normalized nodes before persistence**
    - `src/main.rs` reads input, decodes it, expands URL lists, parses configs, and imports the result into SQLite
@@ -44,7 +44,7 @@ Suggested tables in `plan/README.md`:
    - `src/db/schema.rs` uses embedded SQLx migrations so schema updates run automatically when the app starts
 
 6. **Initial persistence behavior is covered by tests**
-   - database tests verify subscription creation, config import, upsert behavior, and soft-delete revival
+   - database tests verify subscription creation, config import, config lifecycle updates, connection test history, runtime session updates, and soft-delete revival
    - parser tests still validate normalization and dedup behavior before persistence
 
 ### Not Implemented Yet
@@ -53,21 +53,13 @@ Suggested tables in `plan/README.md`:
    - `src/main.rs` currently rejects raw JSON config input for the SQLite import path
    - Phase 2 persistence is focused on parsed subscription-style nodes right now
 
-2. **`connection_tests` and `runtime_sessions` are present in schema only**
-   - both tables now exist in the initial migration
-   - repository behavior for them is still minimal and only confirms the tables are available
-
-3. **Read/query APIs are still minimal**
-   - the repository currently focuses on import, counting, and a small amount of test support
-   - list, filter, selection, and update flows for configs still need to be added
-
-4. **Lifecycle behavior is only partially implemented**
-   - soft-delete support exists through `is_deleted` and `deleted_at`
-   - broader flows for `is_active`, `is_enabled`, and `is_selected` are not implemented yet
-
-5. **Default database path and app-level setup are still missing**
+2. **Default database path and app-level setup are still missing**
    - the CLI currently requires the database path to be passed explicitly
    - app data directory behavior has not been designed yet
+
+3. **CLI commands are not wired to the new DB lifecycle/query methods yet**
+   - the repository now supports config state updates, connection test history, and runtime session state
+   - user-facing commands for selection, status, connect, disconnect, and history still need to call those APIs
 
 ## Phase 2 Assessment
 
@@ -82,13 +74,14 @@ Phase 2 is **complete for the current intended scope**.
 - `migrations/0001_init.sql` defines the initial schema
 - parsed nodes are now imported into SQLite
 - subscription source records are now stored
-- `connection_tests` and `runtime_sessions` now exist in the schema
-- tests cover the first persistence workflows
+- config query and lifecycle methods now exist for selection, activation, enable/disable, soft delete, and restore flows
+- `connection_tests` and `runtime_sessions` now have repository-level insert/query/update support
+- tests cover the current persistence workflows
 
 ### Deferred To Later Work
 
-- add read/query/update flows for configs beyond import
-- implement broader lifecycle behavior around config flags
+- add a default database path and app-level DB bootstrap behavior
+- wire the new database methods into actual CLI commands and runtime orchestration
 
 ## Proposed Database Models
 
@@ -157,7 +150,7 @@ Flag meanings:
 
 ### `connection_tests`
 
-This table should be introduced now so the database shape for test history exists before the test runner is implemented.
+This table is now implemented at the repository layer so test history can be stored before the real connection test runner is added.
 
 - `id`: integer primary key
 - `config_id`: integer, not null, foreign key to `configs.id`
@@ -176,7 +169,7 @@ Purpose:
 
 ### `runtime_sessions`
 
-This table should also be introduced now so runtime state has a clear persistence model before Xray process management is implemented.
+This table is now implemented at the repository layer so runtime state can be tracked before full Xray process management is wired in.
 
 - `id`: integer primary key
 - `config_id`: integer, nullable foreign key to `configs.id`
@@ -211,7 +204,7 @@ Status against those criteria:
 - item 2 is implemented through persisted `subscriptions` rows
 - item 3 is implemented through SQLite-backed config import with stable dedup keys
 - item 4 is implemented through normalized config fields plus source and timestamp metadata
-- item 5 is implemented for the current scope through persisted config flags and soft-delete fields
+- item 5 is implemented through persisted config flags plus repository methods for active, enabled, selected, deleted, and restore state changes
 - item 6 is implemented for the intended import path, which is normalized imported outbound/config data rather than full Xray root JSON
 
 Decision note:
@@ -222,9 +215,8 @@ Decision note:
 
 ## Suggested Next Steps
 
-1. add config query/list repository methods so persisted configs can be read back and filtered in normal app flows
-2. add config state update methods for selection, activation, enable/disable, soft delete, and restore behavior
-3. add insert/query repository methods for `connection_tests` so test results can be saved and read back later
-4. add insert/update repository methods for `runtime_sessions` so runtime state can be tracked when process management is added
-5. add a default database location so users do not need to pass the SQLite path every time
-6. add more tests around config state transitions and query behavior
+1. add a default database location so users do not need to pass the SQLite path every time
+2. wire config query and lifecycle methods into user-facing CLI flows
+3. wire `connection_tests` into a real test runner and expose recent test results in the CLI
+4. wire `runtime_sessions` into connect/disconnect logic and startup recovery behavior
+5. add more end-to-end tests around CLI behavior once those flows exist
