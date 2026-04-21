@@ -37,13 +37,24 @@ pub fn ensure_layout() -> Result<AppPaths, Box<dyn std::error::Error>> {
     ensure_layout_at(&paths.root_dir)
 }
 
+pub fn ensure_config_file(config_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = config_path.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+
+    if !config_path.exists() {
+        std::fs::write(config_path, DEFAULT_CONFIG_CONTENTS)?;
+    }
+
+    Ok(())
+}
+
 fn ensure_layout_at(root_dir: &Path) -> Result<AppPaths, Box<dyn std::error::Error>> {
     let paths = AppPaths::new(root_dir.to_path_buf());
     std::fs::create_dir_all(&paths.root_dir)?;
-
-    if !paths.config_path.exists() {
-        std::fs::write(&paths.config_path, DEFAULT_CONFIG_CONTENTS)?;
-    }
+    ensure_config_file(&paths.config_path)?;
 
     Ok(paths)
 }
@@ -62,7 +73,7 @@ fn resolve_root_dir_from(
 
 #[cfg(test)]
 mod tests {
-    use super::{AppPaths, ensure_layout_at, resolve_root_dir_from};
+    use super::{AppPaths, ensure_config_file, ensure_layout_at, resolve_root_dir_from};
 
     #[test]
     fn uses_xrat_path_when_present() {
@@ -112,5 +123,27 @@ mod tests {
 
         let _ = std::fs::remove_file(paths.config_path);
         let _ = std::fs::remove_dir(paths.root_dir);
+    }
+
+    #[test]
+    fn ensures_overridden_config_file_parent_and_file_exist() {
+        let root_dir = std::env::temp_dir().join(format!(
+            "xrat-config-override-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        let config_path = root_dir.join("nested").join("custom.toml");
+
+        ensure_config_file(&config_path).expect("config file should be created");
+
+        assert!(config_path.is_file());
+        let config = std::fs::read_to_string(&config_path).expect("config should exist");
+        assert!(config.contains("XRAT configuration"));
+
+        let _ = std::fs::remove_file(&config_path);
+        let _ = std::fs::remove_dir(root_dir.join("nested"));
+        let _ = std::fs::remove_dir(root_dir);
     }
 }
