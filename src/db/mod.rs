@@ -37,6 +37,14 @@ impl Database {
         repository::get_subscription_count(&self.pool).await
     }
 
+    pub async fn get_connection_test_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+        repository::get_connection_test_count(&self.pool).await
+    }
+
+    pub async fn get_runtime_session_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+        repository::get_runtime_session_count(&self.pool).await
+    }
+
     pub async fn get_config_flags(
         &self,
         dedup_key: &str,
@@ -99,6 +107,8 @@ mod tests {
         assert_eq!(summary.total_configs, 1);
         assert_eq!(db.get_subscription_count().await.expect("count"), 1);
         assert_eq!(db.get_config_count().await.expect("count"), 1);
+        assert_eq!(db.get_connection_test_count().await.expect("count"), 0);
+        assert_eq!(db.get_runtime_session_count().await.expect("count"), 0);
 
         let _ = std::fs::remove_file(db_path);
     }

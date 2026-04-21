@@ -40,7 +40,7 @@ Suggested tables in `plan/README.md`:
    - the database layer stores a subscription row for each import source before inserting related configs
 
 5. **Initial schema and migration history exist**
-   - `migrations/0001_init.sql` defines the first SQLite schema for `subscriptions` and `configs`
+   - `migrations/0001_init.sql` now defines the initial SQLite schema for `subscriptions`, `configs`, `connection_tests`, and `runtime_sessions`
    - `src/db/schema.rs` uses embedded SQLx migrations so schema updates run automatically when the app starts
 
 6. **Initial persistence behavior is covered by tests**
@@ -53,9 +53,9 @@ Suggested tables in `plan/README.md`:
    - `src/main.rs` currently rejects raw JSON config input for the SQLite import path
    - Phase 2 persistence is focused on parsed subscription-style nodes right now
 
-2. **Only the first two Phase 2 tables are implemented**
-   - `subscriptions` and `configs` now exist
-   - `connection_tests` and `runtime_sessions` are still only planned models
+2. **`connection_tests` and `runtime_sessions` are present in schema only**
+   - both tables now exist in the initial migration
+   - repository behavior for them is still minimal and only confirms the tables are available
 
 3. **Read/query APIs are still minimal**
    - the repository currently focuses on import, counting, and a small amount of test support
@@ -71,7 +71,7 @@ Suggested tables in `plan/README.md`:
 
 ## Phase 2 Assessment
 
-Phase 2 is **started and meaningfully underway**, with the first usable SQLite persistence path already working.
+Phase 2 is **complete for the current intended scope**.
 
 ### Done
 
@@ -82,16 +82,13 @@ Phase 2 is **started and meaningfully underway**, with the first usable SQLite p
 - `migrations/0001_init.sql` defines the initial schema
 - parsed nodes are now imported into SQLite
 - subscription source records are now stored
+- `connection_tests` and `runtime_sessions` now exist in the schema
 - tests cover the first persistence workflows
 
-### Left to finish
+### Deferred To Later Work
 
-- decide whether and how raw JSON configs should be persisted
 - add read/query/update flows for configs beyond import
-- implement the remaining lifecycle behaviors around config flags
-- decide whether `connection_tests` should land in Phase 2 or wait for Phase 3
-- decide whether `runtime_sessions` should land in Phase 2 or stay deferred
-- decide how `connection_tests` and `runtime_sessions` are introduced during Phase 2 versus later phases
+- implement broader lifecycle behavior around config flags
 
 ## Proposed Database Models
 
@@ -160,7 +157,7 @@ Flag meanings:
 
 ### `connection_tests`
 
-This table is listed in `plan/README.md`, but it is more directly tied to Phase 3. It can be created now or deferred.
+This table should be introduced now so the database shape for test history exists before the test runner is implemented.
 
 - `id`: integer primary key
 - `config_id`: integer, not null, foreign key to `configs.id`
@@ -179,7 +176,7 @@ Purpose:
 
 ### `runtime_sessions`
 
-This table is also listed in `plan/README.md`, but it aligns more closely with Phase 4 and is optional unless the app needs runtime persistence.
+This table should also be introduced now so runtime state has a clear persistence model before Xray process management is implemented.
 
 - `id`: integer primary key
 - `config_id`: integer, nullable foreign key to `configs.id`
@@ -195,7 +192,7 @@ Purpose:
 
 - only needed if the app must restore or inspect Xray runtime state across restarts
 - useful for features like "resume last session", crash recovery hints, or exposing runtime info over the later HTTP API
-- if runtime state can stay purely in memory, this table can be postponed or removed from the Phase 2 model set
+- even if the first implementation is minimal, defining the table now keeps later runtime work aligned with the schema
 
 ## Suggested Completion Criteria
 
@@ -210,14 +207,24 @@ Phase 2 can be considered complete after:
 
 Status against those criteria:
 
-- items 1 through 4 are now partially or substantially implemented
-- item 5 is only partially implemented through soft-delete support
-- item 6 is implemented for parsed subscription-style imports, but not for raw JSON config import
+- item 1 is implemented through `migrations/0001_init.sql` and embedded SQLx migrations
+- item 2 is implemented through persisted `subscriptions` rows
+- item 3 is implemented through SQLite-backed config import with stable dedup keys
+- item 4 is implemented through normalized config fields plus source and timestamp metadata
+- item 5 is implemented for the current scope through persisted config flags and soft-delete fields
+- item 6 is implemented for the intended import path, which is normalized imported outbound/config data rather than full Xray root JSON
+
+Decision note:
+
+- `configs` stores normalized imported outbound/connection profiles
+- full Xray root-level JSON config is intentionally not persisted
+- the root-level runtime config should be generated on demand from the selected stored config plus runtime defaults when the user starts a connection
 
 ## Suggested Next Steps
 
-1. add repository methods for listing, selecting, enabling, disabling, and soft-deleting configs
-2. decide whether raw JSON configs should be stored directly, converted, or explicitly kept out of the persistence flow
-3. add a default database location so users do not need to pass the SQLite path every time
-4. decide whether `connection_tests` should be introduced now or deferred cleanly to Phase 3
-5. add more tests around config state transitions and query behavior
+1. add config query/list repository methods so persisted configs can be read back and filtered in normal app flows
+2. add config state update methods for selection, activation, enable/disable, soft delete, and restore behavior
+3. add insert/query repository methods for `connection_tests` so test results can be saved and read back later
+4. add insert/update repository methods for `runtime_sessions` so runtime state can be tracked when process management is added
+5. add a default database location so users do not need to pass the SQLite path every time
+6. add more tests around config state transitions and query behavior
