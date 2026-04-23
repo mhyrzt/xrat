@@ -1,11 +1,15 @@
+mod import;
 mod line;
 mod normalize;
 mod protocols;
 mod support;
+pub mod xray;
 
 use std::collections::HashSet;
 
 use crate::model::Node;
+
+pub use import::{ImportMode, ImportResult, SubscriptionMetadata, parse_import};
 
 pub fn parse_text(config_text: &str) -> Vec<Node> {
     let mut nodes = Vec::new();

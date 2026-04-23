@@ -10,7 +10,7 @@ pub async fn import_nodes(
 ) -> Result<ImportSummary, Box<dyn std::error::Error>> {
     if !nodes.is_empty() {
         let mut builder = QueryBuilder::new(
-            "INSERT INTO configs (subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name) ",
+            "INSERT INTO configs (subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
         );
 
         builder.push_values(nodes, |mut row, node| {
@@ -28,7 +28,8 @@ pub async fn import_nodes(
                 .push_bind(&node.sni)
                 .push_bind(&node.host)
                 .push_bind(&node.path)
-                .push_bind(&node.name);
+                .push_bind(&node.name)
+                .push_bind(&node.raw_config);
         });
 
         builder.push(
@@ -48,10 +49,9 @@ pub async fn import_nodes(
                 host = excluded.host,
                 path = excluded.path,
                 name = excluded.name,
+                raw_config = excluded.raw_config,
                 imported_at = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP,
-                is_deleted = 0,
-                deleted_at = NULL
+                updated_at = CURRENT_TIMESTAMP
             "#,
         );
 
@@ -78,15 +78,9 @@ pub async fn list(
     filter: &ConfigListFilter,
 ) -> Result<Vec<ConfigRecord>, Box<dyn std::error::Error>> {
     let mut builder = QueryBuilder::new(
-        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, is_active, is_enabled, is_deleted, is_selected, imported_at, created_at, updated_at, deleted_at FROM configs WHERE 1 = 1",
+        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at FROM configs WHERE 1 = 1",
     );
 
-    if !filter.include_deleted {
-        builder.push(" AND is_deleted = 0");
-    }
-    if filter.only_deleted {
-        builder.push(" AND is_deleted = 1");
-    }
     if filter.only_enabled {
         builder.push(" AND is_enabled = 1");
     }
@@ -113,7 +107,7 @@ pub async fn get_by_id(
     id: i64,
 ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
     let row = sqlx::query(
-        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, is_active, is_enabled, is_deleted, is_selected, imported_at, created_at, updated_at, deleted_at FROM configs WHERE id = ?1",
+        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at FROM configs WHERE id = ?1",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -126,7 +120,7 @@ pub async fn get_selected(
     pool: &SqlitePool,
 ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
     let row = sqlx::query(
-        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, is_active, is_enabled, is_deleted, is_selected, imported_at, created_at, updated_at, deleted_at FROM configs WHERE is_selected = 1 AND is_deleted = 0 ORDER BY updated_at DESC, id DESC LIMIT 1",
+        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at FROM configs WHERE is_selected = 1 ORDER BY updated_at DESC, id DESC LIMIT 1",
     )
     .fetch_optional(pool)
     .await?;
@@ -138,7 +132,7 @@ pub async fn get_active(
     pool: &SqlitePool,
 ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
     let row = sqlx::query(
-        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, is_active, is_enabled, is_deleted, is_selected, imported_at, created_at, updated_at, deleted_at FROM configs WHERE is_active = 1 AND is_deleted = 0 ORDER BY updated_at DESC, id DESC LIMIT 1",
+        "SELECT id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at FROM configs WHERE is_active = 1 ORDER BY updated_at DESC, id DESC LIMIT 1",
     )
     .fetch_optional(pool)
     .await?;
@@ -149,95 +143,79 @@ pub async fn get_active(
 pub async fn get_flags(
     pool: &SqlitePool,
     dedup_key: &str,
-) -> Result<(bool, bool, bool, bool), Box<dyn std::error::Error>> {
-    let row = sqlx::query(
-        "SELECT is_active, is_enabled, is_deleted, is_selected FROM configs WHERE dedup_key = ?1",
-    )
-    .bind(dedup_key)
-    .fetch_one(pool)
-    .await?;
+) -> Result<(bool, bool, bool), Box<dyn std::error::Error>> {
+    let row =
+        sqlx::query("SELECT is_active, is_enabled, is_selected FROM configs WHERE dedup_key = ?1")
+            .bind(dedup_key)
+            .fetch_one(pool)
+            .await?;
 
     Ok((
         row.get::<i64, _>(0) != 0,
         row.get::<i64, _>(1) != 0,
         row.get::<i64, _>(2) != 0,
-        row.get::<i64, _>(3) != 0,
     ))
 }
 
-pub async fn mark_deleted(
-    pool: &SqlitePool,
-    dedup_key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn clear_all_selected(pool: &SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query("UPDATE configs SET is_selected = 0, updated_at = CURRENT_TIMESTAMP")
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
+pub async fn mark_selected(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
     sqlx::query(
-        "UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE dedup_key = ?1",
+        "UPDATE configs
+         SET is_selected = 1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?1",
     )
-    .bind(dedup_key)
+    .bind(id)
     .execute(pool)
     .await?;
+
     Ok(())
 }
 
-pub async fn set_selected(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-    let mut tx = pool.begin().await?;
-
-    let selected = sqlx::query(
-        "UPDATE configs SET is_selected = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1 AND is_deleted = 0 AND is_enabled = 1",
+pub async fn clear_all_active(pool: &SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query(
+        "UPDATE configs
+         SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE is_active = 1",
     )
-    .bind(id)
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
 
-    if selected.rows_affected() > 0 {
-        sqlx::query(
-            "UPDATE configs SET is_selected = 0, updated_at = CURRENT_TIMESTAMP WHERE id != ?1 AND is_selected = 1",
-        )
-        .bind(id)
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    tx.commit().await?;
     Ok(())
 }
 
-pub async fn set_active(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-    let mut tx = pool.begin().await?;
-
-    let activated = sqlx::query(
-        "UPDATE configs SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1 AND is_deleted = 0 AND is_enabled = 1",
+pub async fn mark_active(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query(
+        "UPDATE configs
+         SET is_active = 1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?1",
     )
     .bind(id)
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
 
-    if activated.rows_affected() > 0 {
-        sqlx::query(
-            "UPDATE configs SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id != ?1 AND is_active = 1",
-        )
-        .bind(id)
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    tx.commit().await?;
     Ok(())
 }
 
 pub async fn set_enabled(
     pool: &SqlitePool,
     id: i64,
-    is_enabled: bool,
+    enabled: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let enabled_flag = i64::from(is_enabled);
-
+    let enabled_flag = if enabled { 1 } else { 0 };
     sqlx::query(
         "UPDATE configs
          SET is_enabled = ?2,
              is_selected = CASE WHEN ?2 = 0 THEN 0 ELSE is_selected END,
              is_active = CASE WHEN ?2 = 0 THEN 0 ELSE is_active END,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?1 AND is_deleted = 0",
+         WHERE id = ?1",
     )
     .bind(id)
     .bind(enabled_flag)
@@ -247,34 +225,11 @@ pub async fn set_enabled(
     Ok(())
 }
 
-pub async fn soft_delete(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-    sqlx::query(
-        "UPDATE configs
-         SET is_deleted = 1,
-             is_selected = 0,
-             is_active = 0,
-             deleted_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?1",
-    )
-    .bind(id)
-    .execute(pool)
-    .await?;
-
-    Ok(())
-}
-
-pub async fn restore(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-    sqlx::query(
-        "UPDATE configs
-         SET is_deleted = 0,
-             deleted_at = NULL,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?1",
-    )
-    .bind(id)
-    .execute(pool)
-    .await?;
+pub async fn delete(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::query("DELETE FROM configs WHERE id = ?1")
+        .bind(id)
+        .execute(pool)
+        .await?;
 
     Ok(())
 }
@@ -297,13 +252,12 @@ fn map_config_row(row: sqlx::sqlite::SqliteRow) -> ConfigRecord {
         host: row.get("host"),
         path: row.get("path"),
         name: row.get("name"),
+        raw_config: row.get("raw_config"),
         is_active: row.get::<i64, _>("is_active") != 0,
         is_enabled: row.get::<i64, _>("is_enabled") != 0,
-        is_deleted: row.get::<i64, _>("is_deleted") != 0,
         is_selected: row.get::<i64, _>("is_selected") != 0,
         imported_at: row.get("imported_at"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
-        deleted_at: row.get("deleted_at"),
     }
 }

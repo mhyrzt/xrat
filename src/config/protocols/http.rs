@@ -31,5 +31,6 @@ pub fn parse_http(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
             .fragment()
             .map(percent_decode)
             .and_then(empty_to_none),
+        raw_config: line.to_string(),
     })
 }

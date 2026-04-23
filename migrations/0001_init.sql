@@ -24,14 +24,13 @@ CREATE TABLE configs (
     host TEXT,
     path TEXT,
     name TEXT,
+    raw_config TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0, 1)),
     is_enabled INTEGER NOT NULL DEFAULT 1 CHECK (is_enabled IN (0, 1)),
-    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     is_selected INTEGER NOT NULL DEFAULT 0 CHECK (is_selected IN (0, 1)),
     imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TEXT,
     FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
 );
 
@@ -65,7 +64,7 @@ CREATE TABLE runtime_sessions (
 
 CREATE INDEX idx_configs_is_active ON configs(is_active);
 CREATE INDEX idx_configs_is_enabled ON configs(is_enabled);
-CREATE INDEX idx_configs_subscription_deleted ON configs(subscription_id, is_deleted);
+CREATE INDEX idx_configs_subscription_id ON configs(subscription_id);
 CREATE INDEX idx_connection_tests_config_id ON connection_tests(config_id);
 CREATE INDEX idx_connection_tests_tested_at ON connection_tests(tested_at);
 CREATE INDEX idx_runtime_sessions_config_id ON runtime_sessions(config_id);

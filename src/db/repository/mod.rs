@@ -139,29 +139,28 @@ pub async fn mark_runtime_session_stopped(
 pub async fn get_config_flags(
     pool: &SqlitePool,
     dedup_key: &str,
-) -> Result<(bool, bool, bool, bool), Box<dyn std::error::Error>> {
+) -> Result<(bool, bool, bool), Box<dyn std::error::Error>> {
     configs::get_flags(pool, dedup_key).await
 }
 
-pub async fn mark_deleted(
-    pool: &SqlitePool,
-    dedup_key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    configs::mark_deleted(pool, dedup_key).await
+pub async fn delete_config(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    configs::delete(pool, id).await
 }
 
 pub async fn set_selected_config(
     pool: &SqlitePool,
     id: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    configs::set_selected(pool, id).await
+    configs::clear_all_selected(pool).await?;
+    configs::mark_selected(pool, id).await
 }
 
 pub async fn set_active_config(
     pool: &SqlitePool,
     id: i64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    configs::set_active(pool, id).await
+    configs::clear_all_active(pool).await?;
+    configs::mark_active(pool, id).await
 }
 
 pub async fn set_config_enabled(
@@ -170,15 +169,4 @@ pub async fn set_config_enabled(
     is_enabled: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     configs::set_enabled(pool, id, is_enabled).await
-}
-
-pub async fn soft_delete_config(
-    pool: &SqlitePool,
-    id: i64,
-) -> Result<(), Box<dyn std::error::Error>> {
-    configs::soft_delete(pool, id).await
-}
-
-pub async fn restore_config(pool: &SqlitePool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-    configs::restore(pool, id).await
 }

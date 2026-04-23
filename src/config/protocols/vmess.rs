@@ -24,5 +24,6 @@ pub fn parse_vmess(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
         host: optional_string(&data, "host"),
         path: optional_string(&data, "path"),
         name: optional_string(&data, "ps"),
+        raw_config: line.to_string(),
     })
 }

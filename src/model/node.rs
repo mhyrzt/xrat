@@ -17,6 +17,7 @@ pub struct Node {
     pub host: Option<String>,
     pub path: Option<String>,
     pub name: Option<String>,
+    pub raw_config: String,
 }
 
 impl Node {

@@ -147,12 +147,12 @@ impl Database {
     pub async fn get_config_flags(
         &self,
         dedup_key: &str,
-    ) -> Result<(bool, bool, bool, bool), Box<dyn std::error::Error>> {
+    ) -> Result<(bool, bool, bool), Box<dyn std::error::Error>> {
         repository::get_config_flags(&self.pool, dedup_key).await
     }
 
-    pub async fn mark_deleted(&self, dedup_key: &str) -> Result<(), Box<dyn std::error::Error>> {
-        repository::mark_deleted(&self.pool, dedup_key).await
+    pub async fn delete_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+        repository::delete_config(&self.pool, id).await
     }
 
     pub async fn set_selected_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
@@ -169,14 +169,6 @@ impl Database {
         is_enabled: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         repository::set_config_enabled(&self.pool, id, is_enabled).await
-    }
-
-    pub async fn soft_delete_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-        repository::soft_delete_config(&self.pool, id).await
-    }
-
-    pub async fn restore_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
-        repository::restore_config(&self.pool, id).await
     }
 }
 
@@ -211,6 +203,10 @@ mod tests {
             host: Some("cdn.example.com".to_string()),
             path: Some("/socket".to_string()),
             name: Some(name.to_string()),
+            raw_config: format!(
+                "vless://uuid-123@example.com:443?type=ws&security=tls#{}",
+                name
+            ),
         }
     }
 
@@ -245,7 +241,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn upsert_revives_soft_deleted_config_without_creating_duplicates() {
+    async fn upsert_updates_existing_config_without_creating_duplicates() {
         let db_path = test_database_path("xrat-upsert");
         let db = Database::connect(&db_path).await.expect("db should open");
         let source = ImportSource {
@@ -254,75 +250,15 @@ mod tests {
             name: None,
         };
         let node = test_node("first");
-        let dedup_key = node.dedup_key_string();
 
         db.import_nodes(&source, std::slice::from_ref(&node))
             .await
             .expect("first import should succeed");
-        db.mark_deleted(&dedup_key)
-            .await
-            .expect("soft delete should succeed");
         db.import_nodes(&source, &[test_node("updated")])
             .await
             .expect("second import should succeed");
 
         assert_eq!(db.get_config_count().await.expect("count"), 1);
-        assert_eq!(
-            db.get_config_flags(&dedup_key).await.expect("flags"),
-            (false, true, false, false)
-        );
-
-        let _ = std::fs::remove_file(db_path);
-    }
-
-    #[tokio::test]
-    async fn lists_configs_and_hides_deleted_by_default() {
-        let db_path = test_database_path("xrat-list");
-        let db = Database::connect(&db_path).await.expect("db should open");
-        let source = ImportSource {
-            kind: SourceKind::File,
-            value: "sample.txt".to_string(),
-            name: None,
-        };
-        let first = test_node("first");
-        let first_key = first.dedup_key_string();
-        let mut second = test_node("second");
-        second.address = "second.example.com".to_string();
-
-        db.import_nodes(&source, &[first, second])
-            .await
-            .expect("import should succeed");
-        db.mark_deleted(&first_key)
-            .await
-            .expect("delete should succeed");
-
-        let visible = db
-            .list_configs(&ConfigListFilter::default())
-            .await
-            .expect("list should succeed");
-        let all = db
-            .list_configs(&ConfigListFilter {
-                include_deleted: true,
-                ..ConfigListFilter::default()
-            })
-            .await
-            .expect("list with deleted should succeed");
-        let deleted_only = db
-            .list_configs(&ConfigListFilter {
-                include_deleted: true,
-                only_deleted: true,
-                ..ConfigListFilter::default()
-            })
-            .await
-            .expect("deleted-only list should succeed");
-
-        assert_eq!(visible.len(), 1);
-        assert_eq!(visible[0].address, "second.example.com");
-        assert_eq!(all.len(), 2);
-        assert!(all.iter().any(|config| config.is_deleted));
-        assert_eq!(deleted_only.len(), 1);
-        assert!(deleted_only[0].is_deleted);
-        assert_eq!(deleted_only[0].address, "example.com");
 
         let _ = std::fs::remove_file(db_path);
     }
@@ -376,7 +312,6 @@ mod tests {
             .expect("active config should exist");
         let configs = db
             .list_configs(&ConfigListFilter {
-                include_deleted: true,
                 ..ConfigListFilter::default()
             })
             .await
@@ -394,7 +329,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn disabling_and_restoring_configs_updates_normal_visibility() {
+    async fn disabling_configs_clears_selection_and_activation() {
         let db_path = test_database_path("xrat-config-visibility");
         let db = Database::connect(&db_path).await.expect("db should open");
         let source = ImportSource {
@@ -433,32 +368,6 @@ mod tests {
         assert!(!disabled.is_enabled);
         assert!(!disabled.is_selected);
         assert!(!disabled.is_active);
-
-        db.soft_delete_config(config.id)
-            .await
-            .expect("soft delete should succeed");
-        assert!(
-            db.list_configs(&ConfigListFilter::default())
-                .await
-                .expect("visible list should succeed")
-                .is_empty()
-        );
-
-        db.restore_config(config.id)
-            .await
-            .expect("restore should succeed");
-        db.set_config_enabled(config.id, true)
-            .await
-            .expect("re-enable should succeed");
-
-        let restored = db
-            .get_config_by_id(config.id)
-            .await
-            .expect("query should succeed")
-            .expect("config should still exist");
-        assert!(!restored.is_deleted);
-        assert!(restored.deleted_at.is_none());
-        assert!(restored.is_enabled);
 
         let _ = std::fs::remove_file(db_path);
     }

@@ -16,10 +16,6 @@ pub enum ListTarget {
 
 #[derive(Debug, Args)]
 pub struct ListConfigsArgs {
-    #[arg(long = "all", help = "Include deleted configs in the result.")]
-    pub all: bool,
-    #[arg(long = "deleted", help = "Show only deleted configs.")]
-    pub deleted: bool,
     #[arg(long = "enabled-only", help = "Show only enabled configs.")]
     pub enabled_only: bool,
     #[arg(long = "active-only", help = "Show only the active config.")]

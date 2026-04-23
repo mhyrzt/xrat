@@ -72,6 +72,10 @@ Recommended structural outcome:
 
 - Implement connectivity checks similar to other clients.
 - Support lightweight TCP reachability checks.
+- Add the minimal Xray runtime foundation needed for testing:
+  - generate a temporary runnable Xray config from one stored node
+  - launch a short-lived Xray child process for probing
+  - wait for local proxy readiness and clean up processes/files reliably
 - Measure real delay/latency using actual proxy traffic, not just socket open time.
 - Save test results in the database with timestamps and per-config history.
 - Keep the latest result cached for fast UI display.
@@ -89,8 +93,7 @@ Suggested metrics to store:
 
 ### Phase 4: Xray Core Execution
 
-- Generate a runnable Xray config from one selected working node.
-- Launch Xray as a managed child process from Rust.
+- Build on the runtime foundation from Phase 3 to manage a long-lived Xray session.
 - Track running state, selected config, ports, and process metadata.
 - Stop or restart Xray cleanly when switching configs.
 - Save the last known working config and runtime state in the database.
@@ -144,10 +147,11 @@ Suggested metrics to store:
 
 1. Finish persistence layer and store parsed configs in SQLite.
 2. Define schema and migrations for configs, tests, and runtime state.
-3. Add connection testing and save results in the database.
-4. Add Xray runtime management using a selected working config.
-5. Add the Axum server with `/json` and `/b64` endpoints.
-6. Build the TUI around those core capabilities.
+3. Add TCP testing plus the minimal Xray runtime foundation needed for real-delay probes.
+4. Add real-delay testing and persist test history/latest summaries in the database.
+5. Add managed Xray runtime control using the Phase 3 runtime foundation.
+6. Add the Axum server with `/json` and `/b64` endpoints.
+7. Build the TUI around those core capabilities.
 
 ## Open Questions
 

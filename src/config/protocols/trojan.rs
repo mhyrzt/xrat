@@ -35,5 +35,6 @@ pub fn parse_trojan(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
         host: query.get("host").cloned(),
         path: empty_to_none(percent_decode(path)),
         name: fragment.and_then(empty_to_none),
+        raw_config: line.to_string(),
     })
 }

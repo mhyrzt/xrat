@@ -15,3 +15,4 @@ percent-encoding = "2.3"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls"] }
 tokio = { version = "1.0", features = ["full"] }
 url = "2.5"
+serde_path_to_error = "0.1"

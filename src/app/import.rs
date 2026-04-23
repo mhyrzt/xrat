@@ -1,8 +1,8 @@
 use crate::app::input::source::read_input;
+use crate::config::parse_text;
 use crate::db::ImportSource;
 use crate::db::SourceKind;
 use crate::model::Node;
-use crate::parser::parse_text;
 use crate::support::decode::decode_or_raw_text;
 
 pub fn load_nodes(input: &str) -> Result<(ImportSource, Vec<Node>), Box<dyn std::error::Error>> {

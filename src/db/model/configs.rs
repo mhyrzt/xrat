@@ -1,7 +1,5 @@
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ConfigListFilter {
-    pub include_deleted: bool,
-    pub only_deleted: bool,
     pub only_enabled: bool,
     pub only_selected: bool,
     pub only_active: bool,
@@ -26,12 +24,11 @@ pub struct ConfigRecord {
     pub host: Option<String>,
     pub path: Option<String>,
     pub name: Option<String>,
+    pub raw_config: String,
     pub is_active: bool,
     pub is_enabled: bool,
-    pub is_deleted: bool,
     pub is_selected: bool,
     pub imported_at: String,
     pub created_at: String,
     pub updated_at: String,
-    pub deleted_at: Option<String>,
 }

@@ -62,7 +62,6 @@ mod tests {
             "xrat",
             "list",
             "configs",
-            "--all",
             "--enabled-only",
             "--subscription",
             "7",
@@ -71,7 +70,6 @@ mod tests {
         match cli.command {
             Command::List(args) => match args.target {
                 ListTarget::Configs(filters) => {
-                    assert!(filters.all);
                     assert!(filters.enabled_only);
                     assert_eq!(filters.subscription, Some(7));
                 }
