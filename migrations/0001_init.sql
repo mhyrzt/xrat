@@ -37,12 +37,15 @@ CREATE TABLE configs (
 CREATE TABLE connection_tests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     config_id INTEGER NOT NULL,
+    icmp_ok INTEGER CHECK (icmp_ok IN (0, 1)),
+    icmp_ms INTEGER,
     tcp_ok INTEGER CHECK (tcp_ok IN (0, 1)),
     tcp_ms INTEGER,
     real_delay_ok INTEGER CHECK (real_delay_ok IN (0, 1)),
     real_delay_ms INTEGER,
     failure_kind TEXT CHECK (
-        failure_kind IN ('dns', 'timeout', 'refused', 'tls', 'auth', 'process', 'unknown')
+        failure_kind IN ('dns', 'timeout', 'refused', 'unreachable', 'permission_denied', 
+                         'tls', 'auth', 'process', 'proxy', 'unknown')
     ),
     failure_reason TEXT,
     tested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

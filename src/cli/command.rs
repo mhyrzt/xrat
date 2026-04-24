@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-use crate::cli::{AddArgs, ImportArgs, ListArgs};
+use crate::cli::{AddArgs, ImportArgs, ListArgs, TestArgs};
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
@@ -10,4 +10,6 @@ pub enum Command {
     Add(AddArgs),
     #[command(about = "List persisted nodes or subscriptions.")]
     List(ListArgs),
+    #[command(about = "Test connectivity and latency for a stored config.")]
+    Test(TestArgs),
 }

@@ -29,6 +29,7 @@ mod tests {
             Command::Import(args) => assert_eq!(args.input, "https://example.com/sub.txt"),
             Command::Add(_) => panic!("expected import command"),
             Command::List(_) => panic!("expected import command"),
+            Command::Test(_) => panic!("expected import command"),
         }
     }
 
@@ -40,6 +41,7 @@ mod tests {
             Command::Add(args) => assert_eq!(args.input, "vless://example"),
             Command::Import(_) => panic!("expected add command"),
             Command::List(_) => panic!("expected add command"),
+            Command::Test(_) => panic!("expected add command"),
         }
     }
 
@@ -52,7 +54,9 @@ mod tests {
                 ListTarget::Subscriptions(_) => {}
                 ListTarget::Configs(_) => panic!("expected subscriptions target"),
             },
-            Command::Import(_) | Command::Add(_) => panic!("expected list command"),
+            Command::Import(_) | Command::Add(_) | Command::Test(_) => {
+                panic!("expected list command")
+            }
         }
     }
 
@@ -75,7 +79,9 @@ mod tests {
                 }
                 ListTarget::Subscriptions(_) => panic!("expected configs target"),
             },
-            Command::Import(_) | Command::Add(_) => panic!("expected list command"),
+            Command::Import(_) | Command::Add(_) | Command::Test(_) => {
+                panic!("expected list command")
+            }
         }
     }
 }

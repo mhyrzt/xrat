@@ -396,6 +396,8 @@ mod tests {
 
         db.insert_connection_test(&ConnectionTestInsert {
             config_id: config.id,
+            icmp_ok: Some(false),
+            icmp_ms: None,
             tcp_ok: Some(false),
             tcp_ms: None,
             real_delay_ok: None,
@@ -408,6 +410,8 @@ mod tests {
 
         db.insert_connection_test(&ConnectionTestInsert {
             config_id: config.id,
+            icmp_ok: Some(true),
+            icmp_ms: Some(50),
             tcp_ok: Some(true),
             tcp_ms: Some(120),
             real_delay_ok: Some(true),
