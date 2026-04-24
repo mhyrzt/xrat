@@ -2,7 +2,8 @@
 
 ## Goal
 
-Add a real connection-testing layer to XRAT so stored configs can be measured, compared, and surfaced as usable candidates for later runtime selection.
+Add a real connection-testing layer to XRAT so stored configs can be measured,
+compared, and surfaced as usable candidates for later runtime selection.
 
 By the end of this phase, XRAT should be able to:
 
@@ -14,7 +15,9 @@ By the end of this phase, XRAT should be able to:
 - expose this behavior through a focused CLI command such as:
   - `xrat test <id>`
 
-This phase is about validating stored configs. It does include a minimal disposable Xray runtime for probing, but it does not include full long-lived runtime management yet.
+This phase is about validating stored configs. It does include a minimal
+disposable Xray runtime for probing, but it does not include full long-lived
+runtime management yet.
 
 ## Why This Phase Exists
 
@@ -22,7 +25,8 @@ Phase 2 established persistence and Phase 2.5 established a CLI shape.
 
 The next missing capability is confidence.
 
-Right now XRAT can store nodes, list them, and manage their lifecycle state, but it still cannot answer the most important operational questions:
+Right now XRAT can store nodes, list them, and manage their lifecycle state, but
+it still cannot answer the most important operational questions:
 
 - does this config connect at all?
 - how fast is it right now?
@@ -73,9 +77,12 @@ The codebase already has part of the persistence groundwork for this phase:
   - get latest result by config
 - the CLI structure already has room for a future `test` command from Phase 2.5
 
-What is still missing is the actual testing runtime and the command flow that uses it.
+What is still missing is the actual testing runtime and the command flow that
+uses it.
 
-It is also now clear that real-delay testing depends on a small subset of the original Phase 4 work. Because of that, this phase intentionally pulls in only the runtime pieces needed for disposable probe execution.
+It is also now clear that real-delay testing depends on a small subset of the
+original Phase 4 work. Because of that, this phase intentionally pulls in only
+the runtime pieces needed for disposable probe execution.
 
 ## Desired User Experience
 
@@ -144,7 +151,8 @@ Expected output fields:
 
 ## Real-Delay Strategy
 
-The most practical path is to implement real-delay testing with a short-lived Xray subprocess instead of trying to reimplement protocol handshakes in Rust.
+The most practical path is to implement real-delay testing with a short-lived
+Xray subprocess instead of trying to reimplement protocol handshakes in Rust.
 
 Recommended flow:
 
@@ -158,7 +166,8 @@ Recommended flow:
 8. Capture success or classify the failure.
 9. Kill the subprocess and remove temporary files.
 
-This gives Phase 3 a realistic measurement while still keeping Phase 4 focused on long-lived runtime lifecycle management later.
+This gives Phase 3 a realistic measurement while still keeping Phase 4 focused
+on long-lived runtime lifecycle management later.
 
 ## Recommended Target URL Rules
 
@@ -210,11 +219,14 @@ The project already stores full test history in `connection_tests`.
 
 That is good and should remain the source of truth.
 
-However, the roadmap also says the latest result should be cached for fast UI display. The cleanest way to reach that is to add a latest-result summary close to `configs` rather than forcing every future UI/API path to re-scan history.
+However, the roadmap also says the latest result should be cached for fast UI
+display. The cleanest way to reach that is to add a latest-result summary close
+to `configs` rather than forcing every future UI/API path to re-scan history.
 
 Recommended addition in this phase:
 
-- add a migration that stores latest test summary fields on `configs`, for example:
+- add a migration that stores latest test summary fields on `configs`, for
+  example:
   - `last_tcp_ok`
   - `last_tcp_ms`
   - `last_real_delay_ok`
@@ -227,7 +239,8 @@ Alternative:
 
 - keep history only and read latest via `ORDER BY tested_at DESC`
 
-That alternative is acceptable for a first pass, but the cached summary is more aligned with the roadmap and future TUI/API needs.
+That alternative is acceptable for a first pass, but the cached summary is more
+aligned with the roadmap and future TUI/API needs.
 
 ## Recommended Module Layout
 
@@ -269,14 +282,16 @@ CLI wiring should then remain thin:
 
 ## Relationship To Phase 4
 
-Phase 3 intentionally pulls a thin runtime sub-layer forward because real-delay testing depends on it.
+Phase 3 intentionally pulls a thin runtime sub-layer forward because real-delay
+testing depends on it.
 
 The key boundary is:
 
 - Phase 3 uses Xray as a disposable probe runtime
 - Phase 4 uses Xray as a managed long-lived application runtime
 
-So this phase should implement only the reusable runtime primitives needed for testing:
+So this phase should implement only the reusable runtime primitives needed for
+testing:
 
 - generate a temporary Xray config
 - pick a local port
@@ -292,7 +307,8 @@ Phase 4 should then build the full runtime UX on top of those primitives:
 - selected/active session management
 - restart/switch logic
 
-So this phase should build the smallest reusable runtime slice necessary for testing, not the entire runtime system.
+So this phase should build the smallest reusable runtime slice necessary for
+testing, not the entire runtime system.
 
 ## Detailed Implementation Plan
 
@@ -312,7 +328,8 @@ Initial behavior:
   - real-delay status and timing
   - failure reason when relevant
 
-This step should only add argument parsing and command dispatch once the tester service shape is known.
+This step should only add argument parsing and command dispatch once the tester
+service shape is known.
 
 ### Step 2. Introduce tester domain types
 
@@ -324,7 +341,8 @@ Add explicit types for:
 - combined persisted result
 - failure classification
 
-This avoids overloading the DB insert model with runtime-only state and makes testing easier.
+This avoids overloading the DB insert model with runtime-only state and makes
+testing easier.
 
 Example concerns these types should capture:
 
@@ -336,7 +354,8 @@ Example concerns these types should capture:
 
 ### Step 3. Implement TCP testing
 
-Build a standalone async TCP tester using `tokio::net::TcpStream` plus timeout control.
+Build a standalone async TCP tester using `tokio::net::TcpStream` plus timeout
+control.
 
 Behavior:
 
@@ -366,9 +385,11 @@ Recommended sequence:
 - measure request duration
 - stop the child process and clean up temp artifacts
 
-The readiness wait must be explicit. Do not assume the process is ready immediately after spawn.
+The readiness wait must be explicit. Do not assume the process is ready
+immediately after spawn.
 
-This step is the point where Phase 3 deliberately consumes the minimal runtime foundation that would otherwise have been introduced later.
+This step is the point where Phase 3 deliberately consumes the minimal runtime
+foundation that would otherwise have been introduced later.
 
 ### Step 5. Persist history and latest summary together
 
@@ -394,7 +415,8 @@ Useful additions:
 - get test history for one config
 - optionally list configs ordered by latest real delay
 
-Even if the CLI only uses a subset now, these helpers will make the HTTP API and TUI phases easier later.
+Even if the CLI only uses a subset now, these helpers will make the HTTP API and
+TUI phases easier later.
 
 ### Step 7. Add focused tests
 
@@ -405,7 +427,9 @@ Add unit and integration coverage for:
 - repository latest-result behavior
 - CLI parsing for `test`
 
-Where Xray-dependent end-to-end testing is hard locally, keep the subprocess layer small enough that most logic can be tested without launching the real binary.
+Where Xray-dependent end-to-end testing is hard locally, keep the subprocess
+layer small enough that most logic can be tested without launching the real
+binary.
 
 ## Suggested Milestones
 
@@ -457,9 +481,11 @@ Use a temporary SQLite database to verify:
 
 ### Subprocess boundary tests
 
-Abstract the Xray runner so most orchestration can be tested with a fake process adapter.
+Abstract the Xray runner so most orchestration can be tested with a fake process
+adapter.
 
-That keeps tests stable even when the real Xray binary is unavailable in CI or local runs.
+That keeps tests stable even when the real Xray binary is unavailable in CI or
+local runs.
 
 ### Manual verification
 
@@ -476,10 +502,12 @@ Phase 3 can be considered complete when:
 
 1. XRAT exposes `xrat test <id>`
 2. a stored config can be loaded and TCP-tested from the CLI
-3. a real-delay probe runs through actual proxy traffic rather than socket-open timing alone
+3. a real-delay probe runs through actual proxy traffic rather than socket-open
+   timing alone
 4. each run is persisted into `connection_tests`
 5. the latest known result is easy to fetch for later UI/API work
-6. failures are classified and surfaced clearly enough for users to understand what happened
+6. failures are classified and surfaced clearly enough for users to understand
+   what happened
 7. the new code is covered by focused unit/repository/CLI tests
 
 ## Recommended Delivery Order
@@ -488,7 +516,8 @@ To keep risk low, build this phase in the following order:
 
 1. add tester domain types and CLI scaffolding
 2. ship TCP-only testing end to end
-3. add `Node` to temporary Xray config generation plus short-lived process helpers
+3. add `Node` to temporary Xray config generation plus short-lived process
+   helpers
 4. persist results and expose latest-result reads cleanly
 5. add short-lived Xray real-delay probing
 6. harden failure classification and cleanup behavior
@@ -496,10 +525,15 @@ To keep risk low, build this phase in the following order:
 
 ## Open Questions
 
-These should be answered while implementing, but they should not block starting the phase:
+These should be answered while implementing, but they should not block starting
+the phase:
 
 - what exact target URL should the real-delay probe use by default?
-- should latest-result caching live on `configs` or remain query-derived for now?
-- should `xrat test <id>` automatically skip deleted/disabled configs or allow explicit override?
-- should the first version support only one config id, or also `selected` as a convenience target?
-- what timeout defaults feel reasonable for TCP connect, Xray startup, and proxied request time?
+- should latest-result caching live on `configs` or remain query-derived for
+  now?
+- should `xrat test <id>` automatically skip deleted/disabled configs or allow
+  explicit override?
+- should the first version support only one config id, or also `selected` as a
+  convenience target?
+- what timeout defaults feel reasonable for TCP connect, Xray startup, and
+  proxied request time?

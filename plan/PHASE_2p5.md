@@ -2,13 +2,16 @@
 
 ## Goal
 
-Move XRAT from the current single-purpose CLI shape into a subcommand-based CLI that follows:
+Move XRAT from the current single-purpose CLI shape into a subcommand-based CLI
+that follows:
 
 - `xrat COMMAND [ARGS] [FLAGS]`
 
-This phase is about CLI structure and command ergonomics, not full runtime orchestration yet.
+This phase is about CLI structure and command ergonomics, not full runtime
+orchestration yet.
 
-The purpose is to make the app easier to grow while keeping the existing persistence work reusable.
+The purpose is to make the app easier to grow while keeping the existing
+persistence work reusable.
 
 ## Why This Phase Exists
 
@@ -16,7 +19,8 @@ The current CLI is centered around one main flow:
 
 - `xrat <input>`
 
-That was acceptable while the app only imported subscription text into SQLite, but it does not scale well now that the project already has:
+That was acceptable while the app only imported subscription text into SQLite,
+but it does not scale well now that the project already has:
 
 - stored configs
 - config lifecycle flags
@@ -24,7 +28,9 @@ That was acceptable while the app only imported subscription text into SQLite, b
 - runtime session persistence
 - app-level paths and config files
 
-Once the app has multiple user actions such as import, list, select, enable, disable, connect, and disconnect, the CLI should be command-first rather than input-first.
+Once the app has multiple user actions such as import, list, select, enable,
+disable, connect, and disconnect, the CLI should be command-first rather than
+input-first.
 
 ## Scope Boundary
 
@@ -38,9 +44,11 @@ Phase 2.5 should cover:
 - adding basic read/list ergonomics on top of the current database layer
 - separating CLI definition from command execution so bootstrap code stays small
 
-Phase 2.5 should not fully implement commands whose real behavior belongs to later phases.
+Phase 2.5 should not fully implement commands whose real behavior belongs to
+later phases.
 
-Those commands may be named here for direction, but their actual implementation should live with the phase that introduces the underlying capability.
+Those commands may be named here for direction, but their actual implementation
+should live with the phase that introduces the underlying capability.
 
 ## Target CLI Shape
 
@@ -64,7 +72,8 @@ Examples of the long-term command surface:
 - `xrat connect <id>`
 - `xrat disconnect`
 
-This structure makes XRAT behave more like a normal CLI tool and gives each action a clear home.
+This structure makes XRAT behave more like a normal CLI tool and gives each
+action a clear home.
 
 However, not all of these commands belong to Phase 2.5.
 
@@ -110,11 +119,13 @@ Each command should own its own inputs and options.
 Examples:
 
 - `import` should accept the subscription input source
-- `list` may later support filters such as deleted, enabled-only, active-only, or selected-only
+- `list` may later support filters such as deleted, enabled-only, active-only,
+  or selected-only
 - `test` may later support timeout or mode flags
 - `connect` may later support runtime overrides such as ports or profile options
 
-This prevents the top-level CLI from becoming crowded and keeps related options close to the action they affect.
+This prevents the top-level CLI from becoming crowded and keeps related options
+close to the action they affect.
 
 ## Recommended Clap Structure
 
@@ -158,11 +169,13 @@ pub enum Command {
 }
 ```
 
-This does not need to be implemented all at once, but the shape should support that direction from the start.
+This does not need to be implemented all at once, but the shape should support
+that direction from the start.
 
 ## What Belongs In Phase 2.5
 
-Phase 2.5 should focus only on commands backed by persistence work that already exists:
+Phase 2.5 should focus only on commands backed by persistence work that already
+exists:
 
 - `add`
 - `import`
@@ -177,7 +190,8 @@ These commands are enough to establish the CLI shape and prove that:
 
 ## Structural Outcome
 
-Phase 2.5 should leave the codebase with a clear split between command definition and command execution:
+Phase 2.5 should leave the codebase with a clear split between command
+definition and command execution:
 
 - `src/cli/`
   - Clap structs, enums, and parsing tests
@@ -188,20 +202,24 @@ Phase 2.5 should leave the codebase with a clear split between command definitio
 - `src/main.rs`
   - thin entrypoint only
 
-This keeps later phases from turning either `src/cli.rs` or `src/main.rs` into oversized files.
+This keeps later phases from turning either `src/cli.rs` or `src/main.rs` into
+oversized files.
 
 ## Commands Deferred To Their Respective Phases
 
-The commands below should be implemented later, together with the capability they depend on:
+The commands below should be implemented later, together with the capability
+they depend on:
 
 - `show`
-  - may be added soon as a small persistence-oriented command, but it is not required for the CLI restructure itself
+  - may be added soon as a small persistence-oriented command, but it is not
+    required for the CLI restructure itself
 - `select`
 - `enable`
 - `disable`
 - `delete`
 - `restore`
-  - these are config lifecycle commands and can be grouped with the phase where config management UX is formalized
+  - these are config lifecycle commands and can be grouped with the phase where
+    config management UX is formalized
 - `status`
   - should land once runtime/session state is part of normal user flow
 - `test`
@@ -218,7 +236,8 @@ The first command set should focus on already-implemented persistence behavior.
 
 Purpose:
 
-- add one single config directly into storage without treating it as a subscription batch import
+- add one single config directly into storage without treating it as a
+  subscription batch import
 
 This is useful for:
 
@@ -237,7 +256,8 @@ Expected behavior:
 - accept one config URI or one single config line
 - parse it using the same normalization/parser pipeline already used elsewhere
 - persist it into `configs`
-- either create a dedicated non-subscription source record or store it through a manual/raw-text source classification
+- either create a dedicated non-subscription source record or store it through a
+  manual/raw-text source classification
 
 Possible future flags:
 
@@ -278,7 +298,8 @@ Recommended initial CLI shape:
 - allow `nodes` as a short alias for configs
 - treat "configs" here as stored nodes/profiles
 
-This should likely use the current config query methods already present in the database layer.
+This should likely use the current config query methods already present in the
+database layer.
 
 Possible future flags:
 
@@ -305,15 +326,18 @@ Initial implementation now supports:
 
 ### `show`
 
-Useful for inspecting one persisted row in detail, but it is not necessary to complete the command-structure refactor.
+Useful for inspecting one persisted row in detail, but it is not necessary to
+complete the command-structure refactor.
 
 ### `select`
 
-Useful once we formalize config-management UX, especially around chosen/default nodes.
+Useful once we formalize config-management UX, especially around chosen/default
+nodes.
 
 ### `enable` / `disable`
 
-These should arrive with the broader config lifecycle management slice rather than being treated as CLI-structure work.
+These should arrive with the broader config lifecycle management slice rather
+than being treated as CLI-structure work.
 
 ### `delete` / `restore`
 
@@ -345,7 +369,8 @@ This command is especially useful once connect/disconnect behavior is added.
 
 ## Commands Better Added Slightly Later
 
-These fit the new CLI structure well, but they depend on runtime/test execution rather than only persistence.
+These fit the new CLI structure well, but they depend on runtime/test execution
+rather than only persistence.
 
 ### `test`
 
@@ -399,7 +424,8 @@ The following pieces already exist and should now be consumed by the CLI:
 - `runtime_sessions` repository methods
 - app home and default file paths
 
-So Phase 2.5 is not about inventing new storage; it is about exposing the existing storage through a proper user-facing command model.
+So Phase 2.5 is not about inventing new storage; it is about exposing the
+existing storage through a proper user-facing command model.
 
 ## Shared Flags
 
@@ -427,7 +453,8 @@ Default behavior without override:
 - `XRAT_PATH/Config.toml`
 - or `$HOME/.config/xrat/Config.toml`
 
-These flags should be treated as global flags rather than repeated separately in every command.
+These flags should be treated as global flags rather than repeated separately in
+every command.
 
 ## Detailed Implementation Plan
 
@@ -453,7 +480,8 @@ Initial implementation notes:
 - `import` remains the batch/subscription-oriented path
 - `add` is the manual single-config path
 - `add` should reject inputs that expand into zero or multiple configs
-- the runtime/bootstrap path resolution should remain shared regardless of command
+- the runtime/bootstrap path resolution should remain shared regardless of
+  command
 
 ### Step 2. Move current import behavior under `import`
 
@@ -471,9 +499,11 @@ No change in persistence logic should be required beyond command dispatch.
 
 ### Step 3. Add `add`
 
-Use the existing parsing and persistence pipeline, but with a command intended for one config rather than a batch or subscription source.
+Use the existing parsing and persistence pipeline, but with a command intended
+for one config rather than a batch or subscription source.
 
-This gives the app a better manual-entry flow and avoids overloading `import` for both one-off and batch use cases.
+This gives the app a better manual-entry flow and avoids overloading `import`
+for both one-off and batch use cases.
 
 Recommended initial behavior:
 
@@ -487,7 +517,8 @@ Recommended initial behavior:
 
 Use existing DB query methods to show stored configs.
 
-This is likely the first command that makes the new persistence visible to the user.
+This is likely the first command that makes the new persistence visible to the
+user.
 
 ### Step 5. Add lifecycle commands
 
@@ -503,11 +534,13 @@ These are thin CLI wrappers around repository methods that already exist.
 
 ### Step 6. Add `show` and `status`
 
-These improve observability and make the app more usable before full runtime control is added.
+These improve observability and make the app more usable before full runtime
+control is added.
 
 ### Step 7. Add `test`, `connect`, and `disconnect`
 
-These commands should come after the command structure is stable and after runtime behavior is better defined.
+These commands should come after the command structure is stable and after
+runtime behavior is better defined.
 
 ## Suggested Completion Criteria
 
@@ -519,7 +552,8 @@ Phase 2.5 can be considered complete after:
 4. a manual single-config flow is available under `xrat add`
 5. at least one read command such as `list` is available
 6. at least one lifecycle command such as `select` or `enable` is available
-7. help output is clear enough that users can discover commands without reading source code
+7. help output is clear enough that users can discover commands without reading
+   source code
 
 ## Current Execution Order
 
@@ -530,12 +564,14 @@ To keep the rollout small and safe, implementation should start in this order:
 3. add `xrat add <config-uri>`
 4. verify help output, parsing behavior, and database persistence
 5. continue with read commands such as `list`
-6. split CLI definitions and command handlers into folders before more commands are added
+6. split CLI definitions and command handlers into folders before more commands
+   are added
 
 ## Notes
 
 - this phase should avoid overengineering command trees too early
-- a minimal but extensible command layout is better than implementing every planned command immediately
+- a minimal but extensible command layout is better than implementing every
+  planned command immediately
 - command names should stay short and conventional
 - global flags should remain few and focused
 - per-command flags should be added only where they improve actual usage

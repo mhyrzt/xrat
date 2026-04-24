@@ -1,10 +1,12 @@
 # Xray Configuration Types
 
-This module provides Rust types for Xray-core configuration, based on the official [xtls.github.io](https://xtls.github.io) documentation.
+This module provides Rust types for Xray-core configuration, based on the
+official [xtls.github.io](https://xtls.github.io) documentation.
 
 ## Features
 
-- **Complete type coverage**: All major Xray configuration objects (log, api, dns, routing, policy, inbounds, outbounds, transports)
+- **Complete type coverage**: All major Xray configuration objects (log, api,
+  dns, routing, policy, inbounds, outbounds, transports)
 - **Two parsing modes**:
   - **Strict mode**: Rejects unknown fields (useful for validation)
   - **Loose mode**: Allows unknown fields (useful for forward compatibility)
@@ -112,7 +114,8 @@ let config = XrayConfig::from_json_loose(json).unwrap();
 
 ### Protocol Types
 
-- `InboundObject`: Inbound protocol configurations (VLESS, VMess, Trojan, Shadowsocks, etc.)
+- `InboundObject`: Inbound protocol configurations (VLESS, VMess, Trojan,
+  Shadowsocks, etc.)
 - `OutboundObject`: Outbound protocol configurations
 - Protocol-specific settings for each protocol type
 
@@ -137,7 +140,8 @@ let config = XrayConfig::from_json_loose(json).unwrap();
 
 ### Strict Mode
 
-Strict mode uses `#[serde(deny_unknown_fields)]` to reject any JSON fields that don't match the defined types. This is useful for:
+Strict mode uses `#[serde(deny_unknown_fields)]` to reject any JSON fields that
+don't match the defined types. This is useful for:
 
 - Configuration validation
 - Catching typos in field names

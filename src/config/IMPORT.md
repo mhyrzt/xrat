@@ -1,6 +1,7 @@
 # Config Import Module
 
-This module handles importing proxy configurations from various sources and formats.
+This module handles importing proxy configurations from various sources and
+formats.
 
 ## Supported Formats
 
@@ -296,7 +297,7 @@ let clipboard_content = get_clipboard_text();
 let result = parse_import(&clipboard_content, ImportMode::Auto)?;
 
 for node in result.nodes {
-    println!("Found: {} ({}:{})", 
+    println!("Found: {} ({}:{})",
         node.name.unwrap_or_default(),
         node.address,
         node.port
@@ -311,21 +312,21 @@ use xrat::config::fetch_subscription;
 
 async fn update_subscription(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let result = fetch_subscription(url).await?;
-    
+
     println!("Fetched {} nodes", result.nodes.len());
-    
+
     if let Some(meta) = result.metadata {
         if let Some(expire) = meta.expire {
             let days_left = (expire - now()) / 86400;
             println!("Subscription expires in {} days", days_left);
         }
     }
-    
+
     // Save nodes to database
     for node in result.nodes {
         save_node(&node)?;
     }
-    
+
     Ok(())
 }
 ```
@@ -338,15 +339,15 @@ use xrat::config::parse_import;
 fn import_with_validation(input: &str) -> Result<Vec<Node>, String> {
     let result = parse_import(input, ImportMode::Auto)
         .map_err(|e| format!("Parse error: {}", e))?;
-    
+
     if result.nodes.is_empty() {
         return Err("No valid nodes found".to_string());
     }
-    
+
     if !result.errors.is_empty() {
         eprintln!("Warning: {} lines failed to parse", result.errors.len());
     }
-    
+
     Ok(result.nodes)
 }
 ```

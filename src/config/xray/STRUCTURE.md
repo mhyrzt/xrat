@@ -39,7 +39,8 @@ src/config/xray/
 Contains base types used across all modules:
 
 - Type aliases: `Address`, `Cidr`, `DomainMatcher`, `DurationString`, etc.
-- Enums: `Network`, `StreamNetwork`, `Security`, `LogLevel`, `QueryStrategy`, `DomainStrategy`
+- Enums: `Network`, `StreamNetwork`, `Security`, `LogLevel`, `QueryStrategy`,
+  `DomainStrategy`
 - Variant types: `PortValue`, `Int32Range`
 
 ### core/
@@ -47,35 +48,53 @@ Contains base types used across all modules:
 Core Xray configuration objects:
 
 - **api.rs**: API service configuration (`ApiObject`, `ApiServiceName`)
-- **config.rs**: Root configuration type (`XrayConfig`) with strict/loose parsing
-- **dns.rs**: DNS servers and hosts (`DnsObject`, `DnsServerObject`, `DnsHostValue`)
-- **features.rs**: Optional features (`VersionObject`, `StatsObject`, `ReverseObject`, `FakeDnsObject`, `MetricsObject`, `ObservatoryObject`, `BurstObservatoryObject`)
+- **config.rs**: Root configuration type (`XrayConfig`) with strict/loose
+  parsing
+- **dns.rs**: DNS servers and hosts (`DnsObject`, `DnsServerObject`,
+  `DnsHostValue`)
+- **features.rs**: Optional features (`VersionObject`, `StatsObject`,
+  `ReverseObject`, `FakeDnsObject`, `MetricsObject`, `ObservatoryObject`,
+  `BurstObservatoryObject`)
 - **log.rs**: Logging configuration (`LogObject`)
-- **policy.rs**: Connection policies (`PolicyObject`, `LevelPolicyObject`, `SystemPolicyObject`)
-- **routing.rs**: Routing rules and load balancing (`RoutingObject`, `RuleObject`, `BalancerObject`)
+- **policy.rs**: Connection policies (`PolicyObject`, `LevelPolicyObject`,
+  `SystemPolicyObject`)
+- **routing.rs**: Routing rules and load balancing (`RoutingObject`,
+  `RuleObject`, `BalancerObject`)
 - **tests.rs**: Comprehensive test suite for parsing modes
 
 ### protocols/
 
 Protocol-specific configuration:
 
-- **common.rs**: Shared protocol types (`FragmentObject`, `NoiseObject`, `WireguardPeerObject`, `VlessReverse`)
-- **inbounds.rs**: Inbound listener configuration (`InboundObject`, `SniffingObject`)
-- **outbounds.rs**: Outbound proxy configuration (`OutboundObject` enum with variants for each protocol, `MuxObject`, `ProxySettingsObject`)
-- **outbound_settings.rs**: Protocol-specific settings for each outbound type (Blackhole, DNS, Freedom, HTTP, Hysteria, Loopback, Shadowsocks, Socks, Trojan, VLESS, VMess, Wireguard)
+- **common.rs**: Shared protocol types (`FragmentObject`, `NoiseObject`,
+  `WireguardPeerObject`, `VlessReverse`)
+- **inbounds.rs**: Inbound listener configuration (`InboundObject`,
+  `SniffingObject`)
+- **outbounds.rs**: Outbound proxy configuration (`OutboundObject` enum with
+  variants for each protocol, `MuxObject`, `ProxySettingsObject`)
+- **outbound_settings.rs**: Protocol-specific settings for each outbound type
+  (Blackhole, DNS, Freedom, HTTP, Hysteria, Loopback, Shadowsocks, Socks,
+  Trojan, VLESS, VMess, Wireguard)
 
 ### transports/
 
 Transport layer configuration:
 
-- **security.rs**: Security and socket options (`TlsObject`, `RealityObject`, `SockoptObject`, `TlsCertificateObject`, `HappyEyeballsObject`, `CustomSockoptObject`)
-- **streams.rs**: Stream transport types (`StreamSettingsObject`, `WebSocketObject`, `GrpcObject`, `HttpUpgradeObject`, `KcpObject`, `RawObject`, `HysteriaObject`, `XHttpSettingsObject`, `FinalMaskObject`, `TransportObject`)
+- **security.rs**: Security and socket options (`TlsObject`, `RealityObject`,
+  `SockoptObject`, `TlsCertificateObject`, `HappyEyeballsObject`,
+  `CustomSockoptObject`)
+- **streams.rs**: Stream transport types (`StreamSettingsObject`,
+  `WebSocketObject`, `GrpcObject`, `HttpUpgradeObject`, `KcpObject`,
+  `RawObject`, `HysteriaObject`, `XHttpSettingsObject`, `FinalMaskObject`,
+  `TransportObject`)
 
 ## Design Principles
 
 1. **Focused files**: Each file contains related types (typically 50-200 lines)
-2. **Clear separation**: Core, protocols, and transports are in separate directories
-3. **TypeScript alignment**: Structure mirrors the TypeScript types from xtls.github.io
+2. **Clear separation**: Core, protocols, and transports are in separate
+   directories
+3. **TypeScript alignment**: Structure mirrors the TypeScript types from
+   xtls.github.io
 4. **Minimal dependencies**: Each module imports only what it needs
 5. **Testability**: Tests are in a separate file but within the core module
 
@@ -83,7 +102,9 @@ Transport layer configuration:
 
 The module supports two parsing modes:
 
-- **Strict mode** (`XrayConfig::from_json_strict`): Rejects unknown fields using `#[serde(deny_unknown_fields)]`
-- **Loose mode** (`XrayConfig::from_json_loose`): Allows unknown fields for forward compatibility
+- **Strict mode** (`XrayConfig::from_json_strict`): Rejects unknown fields using
+  `#[serde(deny_unknown_fields)]`
+- **Loose mode** (`XrayConfig::from_json_loose`): Allows unknown fields for
+  forward compatibility
 
 See `README.md` for usage examples.

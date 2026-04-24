@@ -2,7 +2,8 @@
 
 ## Goal
 
-Build the long-lived Xray runtime layer for XRAT on top of the temporary probe/runtime foundation introduced in Phase 3.
+Build the long-lived Xray runtime layer for XRAT on top of the temporary
+probe/runtime foundation introduced in Phase 3.
 
 By the end of this phase, XRAT should be able to:
 
@@ -14,9 +15,11 @@ By the end of this phase, XRAT should be able to:
   - `xrat disconnect`
   - `xrat status`
 - track the active session and persist runtime state in SQLite
-- stop, restart, or switch configs cleanly without leaving orphaned processes behind
+- stop, restart, or switch configs cleanly without leaving orphaned processes
+  behind
 
-This phase is about turning Xray from a disposable probe tool into a managed application runtime.
+This phase is about turning Xray from a disposable probe tool into a managed
+application runtime.
 
 ## Why This Phase Exists
 
@@ -31,9 +34,11 @@ But it still does not give the user a real usable proxy session.
 
 Phase 4 exists to answer the next operational question:
 
-- can XRAT take one stored, tested config and actually run it as the user's active Xray instance?
+- can XRAT take one stored, tested config and actually run it as the user's
+  active Xray instance?
 
-This phase turns the project from a config database plus tester into a client that can drive a real local proxy runtime.
+This phase turns the project from a config database plus tester into a client
+that can drive a real local proxy runtime.
 
 ## Dependency On Phase 3
 
@@ -115,7 +120,8 @@ But the minimum useful slice is `connect`, `disconnect`, and `status`.
 
 Phase 4 should assume one primary active runtime session at a time.
 
-That keeps the first implementation simple and matches the normal user expectation for a desktop/local proxy tool.
+That keeps the first implementation simple and matches the normal user
+expectation for a desktop/local proxy tool.
 
 Recommended runtime concepts:
 
@@ -126,18 +132,21 @@ Recommended runtime concepts:
 - runtime session
   - the process lifecycle record for the current or most recent run
 
-A config can be tested many times, but only one config should normally be active at once.
+A config can be tested many times, but only one config should normally be active
+at once.
 
 ## Local Runtime Shape
 
-The managed runtime should use a full local proxy configuration rather than the tiny probe configuration from Phase 3.
+The managed runtime should use a full local proxy configuration rather than the
+tiny probe configuration from Phase 3.
 
 Recommended initial runtime behavior:
 
 - bind local SOCKS and/or HTTP proxy ports on `127.0.0.1`
 - generate a stable runtime config for the chosen node
 - start Xray with that config
-- keep the child process alive until the user disconnects or it exits unexpectedly
+- keep the child process alive until the user disconnects or it exits
+  unexpectedly
 
 Possible first runtime modes:
 
@@ -157,7 +166,8 @@ That keeps platform-specific complexity out of the initial runtime work.
 
 The project already has a `runtime_sessions` table.
 
-Phase 4 should make it the source of truth for runtime history and latest known state.
+Phase 4 should make it the source of truth for runtime history and latest known
+state.
 
 The table should capture at least:
 
@@ -192,9 +202,12 @@ Phase 4 should integrate with the existing config flags in `configs`.
 Recommended behavior:
 
 - `connect <id>` should set that config as active if startup succeeds
-- if another config is active, it should be deactivated during a successful switch
-- disabled or deleted configs should not be connectable unless the product explicitly adds an override later
-- `status` should read both runtime session state and active config state cleanly
+- if another config is active, it should be deactivated during a successful
+  switch
+- disabled or deleted configs should not be connectable unless the product
+  explicitly adds an override later
+- `status` should read both runtime session state and active config state
+  cleanly
 
 This keeps runtime state and config lifecycle state aligned.
 
@@ -230,7 +243,8 @@ Responsibilities:
 
 ### Step 1. Stabilize reusable Xray runtime primitives
 
-Take the temporary process/config helpers introduced for Phase 3 and make sure they can support long-lived sessions.
+Take the temporary process/config helpers introduced for Phase 3 and make sure
+they can support long-lived sessions.
 
 That includes:
 
@@ -252,7 +266,8 @@ Add domain types for:
 - shutdown result
 - process failure details
 
-These types should sit above raw DB rows so CLI and future TUI/API code can consume a stable runtime model.
+These types should sit above raw DB rows so CLI and future TUI/API code can
+consume a stable runtime model.
 
 ### Step 3. Implement `connect`
 
@@ -272,7 +287,8 @@ Recommended behavior:
 - mark the config active
 - print local port details
 
-A later iteration can support `connect selected`, but id-based startup is enough first.
+A later iteration can support `connect selected`, but id-based startup is enough
+first.
 
 ### Step 4. Implement `disconnect`
 
@@ -288,7 +304,8 @@ Recommended behavior:
 - mark session `stopped`
 - clear active runtime state in config/session tables as appropriate
 
-This command should be safe to run even if nothing is active; it should just report that nothing is running.
+This command should be safe to run even if nothing is active; it should just
+report that nothing is running.
 
 ### Step 5. Implement `status`
 
@@ -303,7 +320,8 @@ Recommended output:
 - started time
 - last failure if the most recent session failed
 
-This command should use persisted state plus lightweight runtime checks where appropriate.
+This command should use persisted state plus lightweight runtime checks where
+appropriate.
 
 ### Step 6. Handle switching and unexpected exits
 
@@ -325,19 +343,23 @@ Add coverage for:
 
 - CLI parsing for `connect`, `disconnect`, and `status`
 - runtime session repository updates
-- transition rules between `starting`, `running`, `stopping`, `stopped`, and `failed`
+- transition rules between `starting`, `running`, `stopping`, `stopped`, and
+  `failed`
 - connect rejection for deleted/disabled configs
 - unexpected process exit handling through a fake process adapter where possible
 
-As in Phase 3, keep the subprocess boundary small so most logic is testable without a real Xray binary.
+As in Phase 3, keep the subprocess boundary small so most logic is testable
+without a real Xray binary.
 
 ## Process Management Strategy
 
-A strong implementation detail for this phase is to avoid scattering child-process ownership across the app.
+A strong implementation detail for this phase is to avoid scattering
+child-process ownership across the app.
 
 Recommended rule:
 
-- one runtime service should be responsible for spawning, tracking, and shutting down Xray
+- one runtime service should be responsible for spawning, tracking, and shutting
+  down Xray
 
 That service should:
 
@@ -346,7 +368,8 @@ That service should:
 - persist state transitions immediately
 - capture startup or crash errors in a way `status` and future UI can surface
 
-If the app is restarted while Xray is still running, Phase 4 should at least detect and report the mismatch, even if full re-attachment is deferred.
+If the app is restarted while Xray is still running, Phase 4 should at least
+detect and report the mismatch, even if full re-attachment is deferred.
 
 ## Suggested Command Semantics
 
@@ -407,15 +430,20 @@ Phase 4 can be considered complete when:
 3. runtime session state is persisted in `runtime_sessions`
 4. active config and runtime state stay aligned during normal start/stop flows
 5. switching or shutdown does not leave orphaned Xray processes behind
-6. unexpected startup and runtime failures are surfaced clearly enough for users to diagnose issues
+6. unexpected startup and runtime failures are surfaced clearly enough for users
+   to diagnose issues
 7. the new code is covered by focused CLI, repository, and lifecycle tests
 
 ## Open Questions
 
-These should be resolved while implementing, but they should not block starting the phase:
+These should be resolved while implementing, but they should not block starting
+the phase:
 
-- should the first runtime expose SOCKS, HTTP, mixed inbound, or more than one at once?
-- should `connect <id>` automatically replace an existing running session or require explicit confirmation later?
-- should the app attempt to reattach to an already-running Xray process after restart, or just report a stale session?
+- should the first runtime expose SOCKS, HTTP, mixed inbound, or more than one
+  at once?
+- should `connect <id>` automatically replace an existing running session or
+  require explicit confirmation later?
+- should the app attempt to reattach to an already-running Xray process after
+  restart, or just report a stale session?
 - should `status` be purely DB-driven, or also verify that the PID still exists?
 - which local ports should be fixed by default versus allocated dynamically?

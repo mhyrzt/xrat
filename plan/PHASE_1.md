@@ -2,7 +2,8 @@
 
 ## Scope Reference
 
-`PLAN.md` is not present in the repository root at the moment, so this status is based on `plan/README.md` and the current `src/` implementation.
+`PLAN.md` is not present in the repository root at the moment, so this status is
+based on `plan/README.md` and the current `src/` implementation.
 
 Phase 1 in `plan/README.md` includes:
 
@@ -16,9 +17,12 @@ Phase 1 in `plan/README.md` includes:
 ### Implemented
 
 1. **Parsing for supported protocols exists**
-   - `src/parser.rs` parses `vless`, `vmess`, `ss`, `trojan`, `http`, and `socks5`
-   - `vless`, `vmess`, and `ss` have regression coverage based on the currently expected behavior
-   - `trojan`, `http`, and `socks5` are implemented in Rust and still need the same level of test coverage
+   - `src/parser.rs` parses `vless`, `vmess`, `ss`, `trojan`, `http`, and
+     `socks5`
+   - `vless`, `vmess`, and `ss` have regression coverage based on the currently
+     expected behavior
+   - `trojan`, `http`, and `socks5` are implemented in Rust and still need the
+     same level of test coverage
 
 2. **Normalization exists**
    - `src/parser.rs` normalizes empty network values to `tcp`
@@ -28,11 +32,14 @@ Phase 1 in `plan/README.md` includes:
 
 3. **Deduplication exists**
    - `src/parser.rs` deduplicates nodes using `Node::dedup_key()`
-   - `src/model.rs` defines the dedup key from protocol, address, port, username, uuid, and password
+   - `src/model.rs` defines the dedup key from protocol, address, port,
+     username, uuid, and password
 
 4. **Import from subscription URL exists**
-   - `src/main.rs` and `src/io.rs` support reading from either a URL or a local file
-   - file content can now be raw JSON, base64-encoded subscription text, plain config lines, or newline-separated subscription URLs
+   - `src/main.rs` and `src/io.rs` support reading from either a URL or a local
+     file
+   - file content can now be raw JSON, base64-encoded subscription text, plain
+     config lines, or newline-separated subscription URLs
    - `src/main.rs` expands URL lists before parsing
 
 5. **CLI flow works for URL input**
@@ -41,21 +48,26 @@ Phase 1 in `plan/README.md` includes:
 
 6. **Protocol modeling is now typed**
    - `src/model.rs` now uses a `Protocol` enum instead of raw protocol strings
-   - this reduces invalid protocol states and makes persistence/API work cleaner later
+   - this reduces invalid protocol states and makes persistence/API work cleaner
+     later
 
 7. **Supported parser behavior is increasingly locked down**
-   - `src/parser.rs` now includes focused regression tests for `vless`, `vmess`, and `ss`
+   - `src/parser.rs` now includes focused regression tests for `vless`, `vmess`,
+     and `ss`
    - normalization and dedup behavior are also covered by parser tests
 
 ## Remaining Work For Phase 1
 
 1. **Decode behavior is not yet verified by tests**
-   - parser regression coverage now exists for the shared protocols, but decode behavior in `src/decode.rs` still lacks focused tests
+   - parser regression coverage now exists for the shared protocols, but decode
+     behavior in `src/decode.rs` still lacks focused tests
    - base64, raw JSON, and raw text fallback should be covered explicitly
 
 2. **Mixed input ingestion needs tests**
-   - file ingestion now supports JSON, base64, plain link lists, and newline-separated URLs
-   - this behavior should be locked down with focused tests before Phase 1 is considered complete
+   - file ingestion now supports JSON, base64, plain link lists, and
+     newline-separated URLs
+   - this behavior should be locked down with focused tests before Phase 1 is
+     considered complete
 
 ## Phase 1 Assessment
 
