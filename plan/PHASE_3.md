@@ -537,3 +537,103 @@ the phase:
   convenience target?
 - what timeout defaults feel reasonable for TCP connect, Xray startup, and
   proxied request time?
+
+## Implementation Summary
+
+Phase 3 has been implemented and is now complete. The delivered work validates
+stored configs with layered checks, persists test history, and provides the
+minimal reusable Xray runtime primitives needed by later managed-session work.
+
+### Completed Components
+
+#### Xray module (`src/xray/`)
+
+- `src/xray/config.rs` converts stored `Node` values into runnable Xray JSON.
+- Probe configs use a temporary single local port for short-lived testing.
+- Runtime config generation supports SOCKS and HTTP inbounds for later phases.
+- Supported outbound protocols include `vless`, `vmess`, `trojan`, `ss`,
+  `socks5`, and `http`.
+- Stream settings cover TCP, WebSocket, and gRPC.
+- TLS settings include SNI handling.
+- `src/xray/process.rs` starts Xray as a child process with a temporary config
+  file, waits for port readiness, captures stdout/stderr, tracks the PID, and
+  shuts down/cleans up on drop.
+
+#### Tester module (`src/tester/`)
+
+- ICMP checks wrap the system `ping` command, resolve DNS, measure latency, and
+  classify unreachable, timeout, DNS, and permission-denied failures across
+  Linux, macOS, and Windows.
+- TCP checks use direct async socket connections with configurable timeouts and
+  classify refused, timeout, DNS, and unreachable failures.
+- Real-delay checks start a temporary Xray process, send an HTTP request through
+  the local SOCKS proxy, measure end-to-end latency, and clean up the process
+  automatically.
+- Test orchestration combines ICMP, TCP, and real-delay results with shared
+  failure kinds: `dns`, `timeout`, `refused`, `unreachable`,
+  `permission_denied`, `process`, `proxy`, and `unknown`.
+
+#### CLI command
+
+- `xrat test <id>` tests one stored config by id.
+- `--skip-icmp` skips the ICMP reachability check.
+- `--skip-tcp` skips the TCP connectivity check.
+- `--skip-real-delay` skips the real-delay probe.
+- `--test-url <URL>` overrides the default probe URL
+  `https://www.gstatic.com/generate_204`.
+
+The command flow is:
+
+1. Load the config from SQLite.
+2. Run ICMP unless skipped.
+3. Run TCP unless skipped.
+4. Run real-delay unless skipped and only when TCP succeeded.
+5. Save the combined result to `connection_tests`.
+6. Print a short summary with success/failure indicators.
+
+#### Database updates
+
+- `migrations/0001_init.sql` includes `icmp_ok` and `icmp_ms` on
+  `connection_tests`.
+- The `failure_kind` constraint includes the implemented tester failure kinds.
+- `ConnectionTestInsert` and `ConnectionTestRecord` carry ICMP fields.
+- Repository functions persist and read the expanded test records.
+
+#### Dependencies
+
+- `tempfile` supports temporary Xray config files and directories.
+- `thiserror` supports structured error handling.
+
+### Implemented Test Strategy
+
+The implemented testing path runs from cheapest to most representative:
+
+1. **ICMP**: basic network reachability with a short timeout.
+2. **TCP**: remote port connectivity and connect-time measurement.
+3. **Real-delay**: actual proxied HTTP traffic through a disposable Xray
+   process.
+
+Real-delay is skipped when TCP fails so obviously unreachable configs avoid the
+most expensive probe.
+
+### Usage Examples
+
+```bash
+cargo run -- import subscription.txt
+cargo run -- list configs
+cargo run -- test 1
+cargo run -- test 1 --test-url https://example.com
+cargo run -- test 1 --skip-icmp
+```
+
+### Phase 4 Handoff
+
+Phase 4 can reuse the Xray config generation and process-management primitives
+from this phase to implement long-lived runtime commands:
+
+- `xrat connect <id>`
+- `xrat disconnect`
+- `xrat status`
+
+The remaining distinction is lifecycle scope: Phase 3 uses disposable probe
+processes, while Phase 4 manages persistent sessions.
