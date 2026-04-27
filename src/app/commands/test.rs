@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::cli::TestArgs;
-use crate::db::{ConnectionTestInsert, Database};
+use crate::db::{ConfigRecord, ConnectionTestInsert, Database};
 use crate::model::Node;
 use crate::tester::real_delay::DEFAULT_TEST_URL;
 use crate::tester::{
@@ -20,8 +20,7 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
 
     let config = config.unwrap();
 
-    // Parse the node from raw_config
-    let node: Node = serde_json::from_str(&config.raw_config)?;
+    let node = node_from_record(&config)?;
 
     println!(
         "Testing config #{}: {}",
@@ -34,6 +33,9 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
 
     let mut result = TestResult::default();
     let test_start = Instant::now();
+    let ran_icmp = !args.skip_icmp;
+    let ran_tcp = !args.skip_tcp;
+    let mut ran_real_delay = false;
 
     // ICMP ping test
     if !args.skip_icmp {
@@ -81,6 +83,7 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
 
     // Real-delay test (only if TCP succeeded or was skipped)
     if !args.skip_real_delay && (result.tcp_ok || args.skip_tcp) {
+        ran_real_delay = true;
         print!("Running real-delay test... ");
         let test_url = args.test_url.as_deref().unwrap_or(DEFAULT_TEST_URL);
 
@@ -121,11 +124,11 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
 
     db.insert_connection_test(&ConnectionTestInsert {
         config_id: config.id,
-        icmp_ok: Some(result.icmp_ok),
+        icmp_ok: ran_icmp.then_some(result.icmp_ok),
         icmp_ms: result.icmp_ms.map(|ms| ms as i64),
-        tcp_ok: Some(result.tcp_ok),
+        tcp_ok: ran_tcp.then_some(result.tcp_ok),
         tcp_ms: result.tcp_ms.map(|ms| ms as i64),
-        real_delay_ok: Some(result.real_delay_ok),
+        real_delay_ok: ran_real_delay.then_some(result.real_delay_ok),
         real_delay_ms: result.real_delay_ms.map(|ms| ms as i64),
         failure_kind: failure_kind_str,
         failure_reason: result.failure_reason.clone(),
@@ -136,8 +139,19 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     println!("Test completed in {:.2}s", total_elapsed.as_secs_f64());
 
     // Print summary
-    let overall_success = result.real_delay_ok || (result.tcp_ok && args.skip_real_delay);
-    if overall_success {
+    let overall_success = if ran_real_delay {
+        result.real_delay_ok
+    } else if ran_tcp {
+        result.tcp_ok
+    } else if ran_icmp {
+        result.icmp_ok
+    } else {
+        false
+    };
+
+    if !ran_icmp && !ran_tcp && !ran_real_delay {
+        println!("No tests were run");
+    } else if overall_success {
         println!("✓ Config is working");
         if let Some(ms) = result.real_delay_ms {
             println!("  Real delay: {}ms", ms);
@@ -150,4 +164,73 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     }
 
     Ok(())
+}
+
+fn node_from_record(config: &ConfigRecord) -> Result<Node, Box<dyn std::error::Error>> {
+    let protocol = match config.protocol.as_str() {
+        "vless" => crate::model::Protocol::Vless,
+        "vmess" => crate::model::Protocol::Vmess,
+        "ss" => crate::model::Protocol::Ss,
+        "trojan" => crate::model::Protocol::Trojan,
+        "http" => crate::model::Protocol::Http,
+        "socks5" => crate::model::Protocol::Socks5,
+        other => return Err(format!("unsupported protocol in database: {other}").into()),
+    };
+
+    Ok(Node {
+        protocol,
+        address: config.address.clone(),
+        port: config.port as u16,
+        username: config.username.clone(),
+        uuid: config.uuid.clone(),
+        password: config.password.clone(),
+        method: config.method.clone(),
+        network: config.network.clone(),
+        tls: config.tls.clone(),
+        sni: config.sni.clone(),
+        host: config.host.clone(),
+        path: config.path.clone(),
+        name: config.name.clone(),
+        raw_config: config.raw_config.clone(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rebuilds_node_from_config_record() {
+        let record = ConfigRecord {
+            id: 1,
+            subscription_id: Some(2),
+            dedup_key: "key".to_string(),
+            protocol: "vmess".to_string(),
+            address: "example.com".to_string(),
+            port: 443,
+            username: None,
+            uuid: Some("uuid-123".to_string()),
+            password: None,
+            method: None,
+            network: "ws".to_string(),
+            tls: Some("tls".to_string()),
+            sni: Some("cdn.example.com".to_string()),
+            host: Some("cdn.example.com".to_string()),
+            path: Some("/socket".to_string()),
+            name: Some("node".to_string()),
+            raw_config: "vmess://payload".to_string(),
+            is_active: false,
+            is_enabled: true,
+            is_selected: false,
+            imported_at: "now".to_string(),
+            created_at: "now".to_string(),
+            updated_at: "now".to_string(),
+        };
+
+        let node = node_from_record(&record).expect("config record should rebuild");
+        assert_eq!(node.protocol.as_str(), "vmess");
+        assert_eq!(node.address, "example.com");
+        assert_eq!(node.network, "ws");
+        assert_eq!(node.uuid.as_deref(), Some("uuid-123"));
+    }
 }

@@ -1,80 +1,139 @@
-# Current Work: Phase 3 & 4 Implementation
+# Current Work: Phase 4 Implementation
 
 ## Context
 
-We've completed Phase 1 (subscription parsing), Phase 2 (database persistence), and Phase 2.5 (CLI foundation). The codebase now has:
+We've completed Phase 1 (subscription parsing), Phase 2 (database persistence),
+Phase 2.5 (CLI foundation), and Phase 3 (connection testing). The codebase now
+has:
 
 - Working subscription parser for vless, vmess, ss, trojan, http, socks5
-- SQLite persistence with migrations for configs, subscriptions, connection_tests, runtime_sessions
-- Command-first CLI structure with `import`, `add`, `list` commands
+- SQLite persistence with migrations for configs, subscriptions,
+  connection_tests, runtime_sessions
+- Command-first CLI structure with `import`, `add`, `list`, and `test` commands
+- Connection testing with ICMP, TCP, and real-delay probing
+- Short-lived Xray probe config generation and process management
 - Modular architecture with separated concerns
+
+## Phase 3 Status: Complete
+
+Phase 3 is done.
+
+Implemented:
+
+- `xrat test <id>` command
+- ICMP reachability check
+- TCP connectivity check with explicit DNS classification
+- Real-delay check through a temporary local Xray proxy
+- Probe Xray config generation for stored nodes
+- Short-lived Xray subprocess startup, readiness, and cleanup
+- Persistence of test history in `connection_tests`
+- Focused tests covering CLI parsing, node reconstruction, tester behavior, and
+  process handling
+
+Key outcomes:
+
+- Stored configs can now be validated from the CLI
+- Test runs persist history in SQLite
+- Failures are classified into DB-compatible buckets
+- Sandbox-sensitive probe tests now behave deterministically in restricted
+  environments
 
 ## Current Goal
 
-Implement Phase 3 (Connection Testing) and Phase 4 (Managed Xray Runtime) to give XRAT the ability to:
+Implement Phase 3.5 (local app configuration) before Phase 4 so XRAT has a
+clear runtime configuration surface for file-based settings such as
+`~/.config/xrat/config.toml` and managed geo assets.
 
-1. Test stored configs for connectivity and real latency
-2. Run Xray as a managed long-lived proxy session
+## Phase 3.5: Local App Configuration
 
-## Phase 3: Connection Testing
+### Why This Phase Exists
 
-### What We're Building
+Phase 3 proved that XRAT can test stored configs, but Phase 4 needs stable
+runtime inputs that should not live in SQLite rows or ad hoc CLI flags.
 
-- `xrat test <id>` command to validate stored configs
-- ICMP ping check (fastest, most basic reachability test)
-- TCP reachability check (fast, cheap connectivity test)
-- Real-delay check through actual proxy traffic (not just socket timing)
-- Short-lived Xray subprocess for probing
-- Persist test results in `connection_tests` table
-- Failure classification and clear error reporting
+Before building managed long-lived sessions, we should define:
 
-### Implementation Plan
+- what lives in `config.toml`
+- how local routing and geo policy is stored and consumed
+- which values are user-managed files versus database state
+- how runtime defaults are resolved from disk
 
-1. **Xray config generation** (`src/xray/config.rs`)
-   - Convert stored `Node` to runnable Xray JSON
-   - Support temporary probe configs with ephemeral ports
-   - Handle inbound/outbound generation for all protocols
+This keeps Phase 4 from hardcoding behavior that we will immediately need to
+move into local configuration.
 
-2. **ICMP ping tester** (`src/tester/icmp.rs`)
-   - Send ICMP echo request to target host
-   - Measure round-trip time
-   - Classify failures (unreachable, timeout, permission denied)
+### What We're Going To Discuss
 
-3. **Process management** (`src/xray/process.rs`)
-   - Spawn Xray as child process
-   - Wait for readiness (port listening)
-   - Capture stdout/stderr
-   - Clean shutdown and cleanup
+- `~/.config/xrat/config.toml` as the app-level settings file
+- routing direct/block lists in `config.toml`
+- `[geo]` profiles for local or remotely fetched `geosite.dat` and `geoip.dat`
+- naming and path conventions under the XRAT config directory
+- file creation behavior and default contents
+- how these files feed future Xray runtime generation
 
-3. **TCP tester** (`src/tester/tcp.rs`)
-   - Socket connect with timeout
-   - Measure connect time
-   - Classify failures (DNS, timeout, refused, etc.)
+### Proposed Scope
 
-4. **Real-delay tester** (`src/tester/real_delay.rs`)
-   - Generate temp Xray config for one node
-   - Start short-lived Xray process
-   - Send HTTP request through local proxy
-   - Measure total latency
-   - Teardown process and temp files
+1. **Config file shape**
+   - Define the TOML schema for user-managed runtime settings
+   - Decide which fields belong here versus in SQLite
+   - Add loader and validation behavior later once the schema is agreed
 
-5. **Test orchestration** (`src/tester/mod.rs`)
-   - Coordinate TCP + real-delay tests
-   - Persist results to database
-   - Return structured test outcome
+2. **Routing and geo policy**
+   - Define direct/block route list shape for domains, IPs, geosite, and geoip
+   - Define managed geo profiles with explicit `name`, `geosite`, and `geoip`
+     sources
+   - Allow geo sources to be local files or URLs
 
-6. **CLI command** (`src/cli/test.rs` + `src/app/commands/test.rs`)
-   - Parse `xrat test <id>` command
-   - Load config from database
-   - Run tests and display results
+3. **Runtime path conventions**
+   - Standardize file names under `~/.config/xrat/`
+   - Use `config.toml` as the canonical app config filename
+   - Decide whether `XRAT_PATH` keeps overriding the whole runtime directory
 
-### Key Decisions
+4. **Integration boundary for Phase 4**
+   - Map config file values into generated Xray runtime config
+   - Map direct/block entries into routing rules
+   - Map DNS settings, hosts, and query strategy into generated Xray config
+   - Keep DB-backed config records separate from local machine policy files
 
-- Default test target: Use a lightweight HTTPS endpoint for real-delay (e.g., `https://www.gstatic.com/generate_204`)
-- Timeout defaults: 2s for ICMP, 5s for TCP, 10s for real-delay
-- Test order: ICMP → TCP → Real-delay (fail fast, skip expensive tests if basic connectivity fails)
-- Process cleanup: Always kill child process and remove temp files, even on error
-- Failure classification: DNS, timeout, refused, process, proxy, unknown
+### Candidate `config.toml` Responsibilities
+
+- local inbound settings such as SOCKS, HTTP, and local Shadowsocks
+- runtime log settings
+- runtime sniffing settings
+- default connect behavior and runtime toggles
+- test target URL overrides if we later want them configurable
+- managed geo asset profiles and source URLs/files
+- optional DNS and routing defaults for generated runtime configs
+
+### Current `config.example.toml` Shape
+
+- `[paths]` for `db.sqlite` and optional Xray/V2Ray binary paths
+- `[runtime]` for engine choice and session replacement behavior
+- `[runtime.log]`, `[runtime.socks]`, `[runtime.http]`,
+  `[runtime.shadowsocks]`, and `[runtime.sniffing]`
+- `[routing]`, `[routing.direct]`, and `[routing.block]`
+- `[geo]` plus `[[geo.profiles]]` for managed `geosite.dat` and `geoip.dat`
+  sources
+- `[dns]` and `[dns.hosts]`
+- `[testing.real_delay]`, `[testing.icmp]`, `[testing.download]`, and planned
+  `[testing.tcp]`
+
+### Open Questions
+
+- should missing files be auto-created with defaults?
+- should invalid route or geo entries fail startup, be skipped with warnings, or
+  be reported only on demand?
+- should geo profile files be fetched only on demand or proactively when
+  `auto_update` is enabled?
+- should planned test config fields stay in the schema before `xrat test`
+  consumes `config.toml`?
+
+### Success Criteria
+
+- XRAT has a documented local config file story before Phase 4 runtime work
+- the ownership boundary between SQLite state and local disk config is clear
+- `config.toml` has an agreed first-pass format
+- local geo asset behavior has an agreed first-pass format
+- Phase 4 can consume these files without rethinking the runtime surface
 
 ## Phase 4: Managed Xray Runtime
 
@@ -89,21 +148,20 @@ Implement Phase 3 (Connection Testing) and Phase 4 (Managed Xray Runtime) to giv
 
 ### Implementation Plan
 
-1. **Runtime config generation** (extend `src/xray/config.rs`)
-   - Generate full runtime configs (not just probe configs)
-   - Support SOCKS + HTTP inbounds on fixed/configurable ports
-   - Handle routing and DNS settings
+1. **Runtime config generation** (`src/xray/config.rs`)
+   - Extend config generation beyond probe mode
+   - Support SOCKS and optional HTTP local inbounds
+   - Reuse stored node fields for runnable Xray sessions
 
 2. **Runtime manager** (`src/xray/runtime.rs`)
-   - Track active session state
-   - Manage long-lived Xray process
-   - Handle startup, shutdown, switching
-   - Persist session state to database
+   - Start and stop long-lived Xray processes
+   - Track process id and listening ports
+   - Handle startup failure and cleanup
 
-3. **Session repository** (extend `src/db/repository/runtime_sessions.rs`)
-   - Insert/update session records
-   - Track status transitions (starting → running → stopped/failed)
-   - Query active session
+3. **Session repository flow** (`src/db/repository/runtime_sessions.rs`)
+   - Insert runtime session rows
+   - Track status transitions
+   - Load latest and currently running sessions
 
 4. **CLI commands**
    - `src/cli/connect.rs` + `src/app/commands/connect.rs`
@@ -112,44 +170,34 @@ Implement Phase 3 (Connection Testing) and Phase 4 (Managed Xray Runtime) to giv
 
 ### Key Decisions
 
-- Single active session model (one config running at a time)
-- Default ports: SOCKS on 1080, HTTP on 8080 (configurable later)
+- Single active session model
+- Default ports: SOCKS on 1080, HTTP on 8080
 - Session states: starting, running, stopping, stopped, failed
-- Auto-replace: `connect` stops existing session before starting new one
-- PID tracking: Store process ID for status verification
+- `connect` replaces an existing active session cleanly
+- Runtime state is persisted and also verified against process reality where
+  useful
 
 ## Delivery Order
 
-### Phase 3 Steps
+### Phase 3.5 Steps
 
-1. Create `src/xray/` module structure
-2. Implement Xray config generation for single nodes
-3. Implement ICMP ping tester
-4. Implement process spawning and management
-5. Implement TCP connectivity tester
-6. Implement real-delay tester with temp Xray runtime
-7. Wire up `xrat test <id>` command
-8. Add tests for tester and persistence
+1. Use `config.toml` as the canonical app config filename
+2. Define the first-pass TOML schema
+3. Define routing direct/block and geo profile formats
+4. Decide file creation and validation behavior
+5. Feed those decisions into Phase 4 runtime work
 
 ### Phase 4 Steps
 
-1. Extend config generation for full runtime configs
-2. Implement runtime session manager
-3. Implement `xrat connect <id>` command
-4. Implement `xrat disconnect` command
-5. Implement `xrat status` command
-6. Add session state persistence
-7. Add tests for runtime lifecycle
+1. Extend Xray config generation for runtime sessions
+2. Add runtime process manager
+3. Implement `xrat connect <id>`
+4. Implement `xrat disconnect`
+5. Implement `xrat status`
+6. Persist runtime lifecycle transitions
+7. Add focused tests for runtime lifecycle
 
 ## Success Criteria
-
-### Phase 3 Complete When
-
-- `xrat test <id>` runs ICMP, TCP, and real-delay checks
-- Results are persisted in `connection_tests`
-- Failures are classified and reported clearly
-- Temp Xray processes are cleaned up properly
-- Tests cover tester logic and persistence
 
 ### Phase 4 Complete When
 
@@ -157,19 +205,23 @@ Implement Phase 3 (Connection Testing) and Phase 4 (Managed Xray Runtime) to giv
 - `xrat disconnect` stops the session cleanly
 - `xrat status` shows current runtime state
 - Session state is persisted in `runtime_sessions`
-- No orphaned Xray processes after shutdown
-- Tests cover runtime lifecycle
+- No orphaned Xray processes remain after shutdown
+- Tests cover runtime lifecycle behavior
 
 ## Next Actions
 
-Starting with Phase 3:
+Starting with Phase 3.5:
 
-1. Create `src/xray/` module with config generation
-2. Implement ICMP ping tester
-3. Implement basic Xray JSON structure for outbounds
-4. Add process spawning helpers
-5. Build TCP tester
-6. Build real-delay tester
-7. Wire up CLI command
+1. Use `config.toml` as the canonical app config filename
+2. Implement an app config loader for the first-pass `config.toml` schema
+3. Migrate `Config.toml` to canonical lowercase `config.toml`
+4. Decide how strict XRAT should be when parsing route and geo entries
+5. Use the loaded config to drive Phase 4 runtime implementation
 
-Let's begin!
+Then move into Phase 4:
+
+1. Extend runtime config generation in `src/xray/config.rs`
+2. Add long-lived process management in `src/xray/runtime.rs`
+3. Wire `connect`, `disconnect`, and `status` through CLI and app layers
+4. Persist runtime state transitions in SQLite
+5. Add focused runtime lifecycle tests

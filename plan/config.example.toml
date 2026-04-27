@@ -1,0 +1,118 @@
+[paths]
+database = "db.sqlite"
+# optional
+# xray = "/usr/local/bin/xray" 
+# v2ray = "/usr/local/bin/v2ray"
+
+
+[runtime]
+engine = "xray"
+replace_active_session = true
+
+[runtime.log]
+enabled = true
+mask = "none"     # maskAddress: "quarter" | "half" | "full" | "none"
+dir = "logs"      # relative to config folder or absolute
+dns_log = false
+level = "warning" # "debug" | "info" | "warning" | "error" 
+keep = true
+
+[runtime.socks]
+enabled = true
+host = "0.0.0.0"
+port = 1080
+udp = true
+auth = { enabled = true, username = "xrat", password = "P@$$w0rD" }
+
+[runtime.http]
+enabled = false
+host = "0.0.0.0"
+port = 8080
+
+[runtime.shadowsocks]
+enabled = false
+host = "0.0.0.0"
+port = 1081
+method = "aes-128-gcm"
+password = "change-me"
+network = "tcp,udp"
+
+[runtime.sniffing]
+enabled = true
+dest_override = ["http", "tls", "quic"]
+route_only = true
+metadata_only = false
+domains_excluded = []
+ips_excluded = []
+
+[routing]
+domain_strategy = "IPIfNonMatch" # "AsIs" | "IPIfNonMatch" | "IPOnDemand"
+
+# Custom geo assets managed by XRAT. Each profile can point at local files or
+# URLs that XRAT may fetch later. If save_dir is omitted, XRAT stores fetched
+# files under CONFIG_PATH/geo/PROFILE_NAME/{geosite.dat,geoip.dat}.
+[geo]
+auto_update = false
+update_interval_hours = 168
+# save_dir = "geo/"
+
+[[geo.profiles]]
+name = "default"
+geosite = "https://example.com/geosite.dat"
+geoip = "https://example.com/geoip.dat"
+
+[[geo.profiles]]
+name = "local"
+geosite = "geo/local/geosite.dat"
+geoip = "geo/local/geoip.dat"
+
+# Client-side route lists managed by XRAT.
+# Keep exact domains/IPs separate from geo aliases so XRAT can validate and
+# expand/translate them later without mixing syntaxes in one list.
+[routing.direct]
+domain = []
+ip = []
+geosite = []
+geoip = []
+
+[routing.block]
+domain = []
+ip = []
+geosite = []
+geoip = []
+
+[dns]
+# Xray DNS queryStrategy. Supported values: "UseIP", "UseIPv4", "UseIPv6", "UseSystem", "default"
+query_strategy = "UseSystem"
+# DNS servers used in generated Xray runtime config.
+servers = [
+    "8.8.8.8",
+    "https://1.1.1.1/dns-query",
+    "https+local://dns.google/dns-query",
+    "quic+local://127.0.0.1:5053",        # e.g. adguard home with quic enabled
+    "http+local://127.0.0.1:53",          # e.g. dnscrypt-proxy
+]
+use_system_hosts = true
+disable_cache = false
+disable_fallback = false
+enable_parallel_query = true
+
+[dns.hosts]
+"domain:example.test" = "127.0.0.1"
+"domain:lan.test" = ["192.168.1.10", "192.168.1.11"]
+
+
+[testing.real_delay]
+url = "https://www.google.com/generate_204"
+timeout = 10_000                            # ms
+
+[testing.icmp]
+timeout = 3000
+
+[testing.download]
+url = "https://cachefly.cachefly.net/50mb.test"
+timeout = 30_000                                # ms
+
+[testing.tcp]
+# Planned: not consumed until config loading is wired into `xrat test`.
+timeout = 5000 # ms

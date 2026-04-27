@@ -140,7 +140,12 @@ fn parse_ping_latency(output: &str) -> Option<u32> {
 fn classify_ping_failure(output: &str) -> (FailureKind, String) {
     let lower = output.to_lowercase();
 
-    if lower.contains("unreachable") || lower.contains("no route") {
+    if lower.contains("operation not permitted") || lower.contains("permission denied") {
+        (
+            FailureKind::PermissionDenied,
+            "ICMP ping requires additional permissions".to_string(),
+        )
+    } else if lower.contains("unreachable") || lower.contains("no route") {
         (FailureKind::Unreachable, "Host unreachable".to_string())
     } else if lower.contains("timeout") || lower.contains("timed out") {
         (FailureKind::Timeout, "Ping timeout".to_string())
@@ -158,6 +163,10 @@ mod tests {
     #[tokio::test]
     async fn test_icmp_ping_localhost() {
         let result = icmp_ping("127.0.0.1", Duration::from_secs(2)).await;
+        if matches!(result.failure_kind, Some(FailureKind::PermissionDenied)) {
+            return;
+        }
+
         assert!(result.success);
         assert!(result.latency_ms.is_some());
     }
@@ -180,5 +189,12 @@ mod tests {
 
         let output = "64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=12.5 ms";
         assert_eq!(parse_ping_latency(output), Some(13));
+    }
+
+    #[test]
+    fn classifies_permission_denied_output() {
+        let (kind, reason) = classify_ping_failure("ping: socket: Operation not permitted");
+        assert_eq!(kind, FailureKind::PermissionDenied);
+        assert_eq!(reason, "ICMP ping requires additional permissions");
     }
 }

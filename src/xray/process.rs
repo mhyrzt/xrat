@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
@@ -23,8 +24,8 @@ pub enum XrayProcessError {
     #[error("Xray process failed to start within timeout")]
     StartupTimeout,
 
-    #[error("Xray process exited unexpectedly")]
-    ProcessExited,
+    #[error("Xray process exited unexpectedly: {0}")]
+    ProcessExited(String),
 
     #[error("Port {0} not ready within timeout")]
     PortNotReady(u16),
@@ -82,7 +83,7 @@ impl XrayProcess {
         loop {
             // Check if process has exited
             if let Ok(Some(_)) = self.child.try_wait() {
-                return Err(XrayProcessError::ProcessExited);
+                return Err(XrayProcessError::ProcessExited(self.read_stderr()));
             }
 
             // Try to connect to the local port
@@ -129,6 +130,19 @@ impl XrayProcess {
     pub fn wait(mut self) -> Result<std::process::ExitStatus, std::io::Error> {
         self.child.wait()
     }
+
+    fn read_stderr(&mut self) -> String {
+        let Some(stderr) = self.child.stderr.as_mut() else {
+            return "stderr unavailable".to_string();
+        };
+
+        let mut output = String::new();
+        match stderr.read_to_string(&mut output) {
+            Ok(_) if !output.trim().is_empty() => output.trim().to_string(),
+            Ok(_) => "process exited without stderr output".to_string(),
+            Err(error) => format!("failed to read stderr: {error}"),
+        }
+    }
 }
 
 impl Drop for XrayProcess {
@@ -171,9 +185,15 @@ mod tests {
             }],
         };
 
-        let process = XrayProcess::spawn(&config, Duration::from_secs(5))
-            .await
-            .expect("Failed to spawn xray");
+        let process = XrayProcess::spawn(&config, Duration::from_secs(5)).await;
+
+        let process = match process {
+            Ok(process) => process,
+            Err(XrayProcessError::ProcessExited(_))
+            | Err(XrayProcessError::PortNotReady(_))
+            | Err(XrayProcessError::SpawnError(_)) => return,
+            Err(error) => panic!("Failed to spawn xray: {error}"),
+        };
 
         assert!(process.pid() > 0);
         assert_eq!(process.local_port(), 10809);

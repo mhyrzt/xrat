@@ -84,4 +84,32 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn parses_test_subcommand_flags() {
+        let cli = Cli::parse_from([
+            "xrat",
+            "test",
+            "42",
+            "--skip-icmp",
+            "--skip-real-delay",
+            "--test-url",
+            "https://example.com/generate_204",
+        ]);
+
+        match cli.command {
+            Command::Test(args) => {
+                assert_eq!(args.id, 42);
+                assert!(args.skip_icmp);
+                assert!(args.skip_real_delay);
+                assert_eq!(
+                    args.test_url.as_deref(),
+                    Some("https://example.com/generate_204")
+                );
+            }
+            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+                panic!("expected test command")
+            }
+        }
+    }
 }

@@ -146,7 +146,7 @@ fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {
         XrayProcessError::StartupTimeout => {
             (FailureKind::Timeout, "Xray startup timeout".to_string())
         }
-        XrayProcessError::ProcessExited => (
+        XrayProcessError::ProcessExited(_) => (
             FailureKind::Process,
             "Xray process exited unexpectedly".to_string(),
         ),
@@ -161,6 +161,13 @@ fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {
 fn classify_request_error(error: &reqwest::Error) -> (FailureKind, String) {
     if error.is_timeout() {
         (FailureKind::Timeout, "Request timeout".to_string())
+    } else if error.to_string().to_lowercase().contains("tls") {
+        (FailureKind::Tls, format!("TLS handshake failed: {}", error))
+    } else if error.to_string().to_lowercase().contains("407") {
+        (
+            FailureKind::Auth,
+            format!("Proxy authentication failed: {}", error),
+        )
     } else if error.is_connect() {
         (
             FailureKind::Proxy,
@@ -180,7 +187,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_find_available_port() {
-        let port = find_available_port().await.unwrap();
+        let port = match find_available_port().await {
+            Ok(port) => port,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
+            Err(error) => panic!("unexpected error: {error}"),
+        };
         assert!(port > 0);
     }
 
