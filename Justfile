@@ -1,6 +1,6 @@
 # xrat Justfile
 
-default:
+_default:
     @just --list
 
 # Build the project
@@ -10,6 +10,18 @@ build:
 # Build in release mode
 release:
     cargo build --release
+
+# Install xrat with cargo from this checkout
+install:
+    cargo install --path .
+
+# Install xrat with cargo from this checkout, replacing an existing binary
+reinstall:
+    cargo install --path . --force
+
+# Remove the cargo-installed xrat binary
+uninstall:
+    cargo uninstall xrat
 
 # Run tests quietly
 test:
