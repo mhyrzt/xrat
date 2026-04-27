@@ -11,7 +11,11 @@ mod tests {
             "--database",
             "/tmp/db.sqlite",
             "--config",
-            "/tmp/Config.toml",
+            "/tmp/config.toml",
+            "--xray",
+            "/opt/xray/xray",
+            "--v2ray",
+            "/opt/v2ray/v2ray",
             "import",
             "https://example.com/sub.txt",
         ]);
@@ -22,7 +26,15 @@ mod tests {
         );
         assert_eq!(
             cli.config.as_deref(),
-            Some(std::path::Path::new("/tmp/Config.toml"))
+            Some(std::path::Path::new("/tmp/config.toml"))
+        );
+        assert_eq!(
+            cli.xray.as_deref(),
+            Some(std::path::Path::new("/opt/xray/xray"))
+        );
+        assert_eq!(
+            cli.v2ray.as_deref(),
+            Some(std::path::Path::new("/opt/v2ray/v2ray"))
         );
 
         match cli.command {
@@ -95,6 +107,12 @@ mod tests {
             "--skip-real-delay",
             "--test-url",
             "https://example.com/generate_204",
+            "--icmp-timeout",
+            "3500",
+            "--tcp-timeout",
+            "4500",
+            "--real-delay-timeout",
+            "5500",
         ]);
 
         match cli.command {
@@ -106,6 +124,9 @@ mod tests {
                     args.test_url.as_deref(),
                     Some("https://example.com/generate_204")
                 );
+                assert_eq!(args.icmp_timeout_ms, Some(3500));
+                assert_eq!(args.tcp_timeout_ms, Some(4500));
+                assert_eq!(args.real_delay_timeout_ms, Some(5500));
             }
             Command::Import(_) | Command::Add(_) | Command::List(_) => {
                 panic!("expected test command")

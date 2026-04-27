@@ -1,4 +1,5 @@
 use reqwest::Proxy;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crate::model::Node;
@@ -21,6 +22,7 @@ pub const DEFAULT_TEST_URL: &str = "https://www.gstatic.com/generate_204";
 pub async fn real_delay_check(
     node: &Node,
     test_url: &str,
+    xray_binary_path: &Path,
     xray_startup_timeout: Duration,
     request_timeout: Duration,
 ) -> RealDelayResult {
@@ -51,18 +53,20 @@ pub async fn real_delay_check(
     };
 
     // Spawn Xray process
-    let process = match XrayProcess::spawn(&config, xray_startup_timeout).await {
-        Ok(proc) => proc,
-        Err(e) => {
-            let (kind, reason) = classify_xray_error(&e);
-            return RealDelayResult {
-                success: false,
-                latency_ms: None,
-                failure_kind: Some(kind),
-                failure_reason: Some(reason),
-            };
-        }
-    };
+    let process =
+        match XrayProcess::spawn_with_binary(xray_binary_path, &config, xray_startup_timeout).await
+        {
+            Ok(proc) => proc,
+            Err(e) => {
+                let (kind, reason) = classify_xray_error(&e);
+                return RealDelayResult {
+                    success: false,
+                    latency_ms: None,
+                    failure_kind: Some(kind),
+                    failure_reason: Some(reason),
+                };
+            }
+        };
 
     // Make HTTP request through the proxy
     let result = make_proxied_request(local_port, test_url, request_timeout).await;
@@ -218,6 +222,7 @@ mod tests {
         let result = real_delay_check(
             &node,
             DEFAULT_TEST_URL,
+            Path::new("xray"),
             Duration::from_secs(5),
             Duration::from_secs(10),
         )

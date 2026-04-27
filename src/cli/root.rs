@@ -16,9 +16,21 @@ pub struct Cli {
     #[arg(
         long = "config",
         global = true,
-        help = "Override the config file path. Defaults to XRAT_PATH/Config.toml or $HOME/.config/xrat/Config.toml."
+        help = "Override the config file path. Defaults to XRAT_PATH/config.toml or $HOME/.config/xrat/config.toml."
     )]
     pub config: Option<PathBuf>,
+    #[arg(
+        long = "xray",
+        global = true,
+        help = "Override the Xray binary path. Defaults to [paths].xray in config.toml or xray."
+    )]
+    pub xray: Option<PathBuf>,
+    #[arg(
+        long = "v2ray",
+        global = true,
+        help = "Override the V2Ray binary path. Defaults to [paths].v2ray in config.toml or v2ray."
+    )]
+    pub v2ray: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
 }

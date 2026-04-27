@@ -1,6 +1,6 @@
 use std::io::Read;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 use tempfile::NamedTempFile;
@@ -43,6 +43,15 @@ impl XrayProcess {
         config: &XrayConfig,
         startup_timeout: Duration,
     ) -> Result<Self, XrayProcessError> {
+        Self::spawn_with_binary(Path::new("xray"), config, startup_timeout).await
+    }
+
+    /// Spawn a new Xray-compatible process with an explicit binary path.
+    pub async fn spawn_with_binary(
+        binary_path: &Path,
+        config: &XrayConfig,
+        startup_timeout: Duration,
+    ) -> Result<Self, XrayProcessError> {
         // Create temp config file
         let mut temp_file = NamedTempFile::new()?;
         let config_json = serde_json::to_string_pretty(config)?;
@@ -53,7 +62,7 @@ impl XrayProcess {
         let local_port = config.inbounds.first().map(|i| i.port).unwrap_or(0);
 
         // Spawn xray process
-        let child = Command::new("xray")
+        let child = Command::new(binary_path)
             .arg("run")
             .arg("-c")
             .arg(&config_path)

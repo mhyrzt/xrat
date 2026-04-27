@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 const APP_DIR_NAME: &str = "xrat";
 const XRAT_PATH_ENV: &str = "XRAT_PATH";
 const DB_FILE_NAME: &str = "db.sqlite";
-const CONFIG_FILE_NAME: &str = "Config.toml";
-const DEFAULT_CONFIG_CONTENTS: &str = "# XRAT configuration\n";
+const CONFIG_FILE_NAME: &str = "config.toml";
+const DEFAULT_CONFIG_CONTENTS: &str = "# XRAT configuration\n\n";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AppPaths {
@@ -112,7 +112,7 @@ mod tests {
             AppPaths {
                 root_dir: root_dir.clone(),
                 database_path: root_dir.join("db.sqlite"),
-                config_path: root_dir.join("Config.toml"),
+                config_path: root_dir.join("config.toml"),
             }
         );
         assert!(paths.root_dir.is_dir());

@@ -14,6 +14,6 @@ pub async fn run(
         Command::Import(args) => import::run(context, &args.input).await,
         Command::Add(args) => add::run(context, &args.input).await,
         Command::List(args) => list::run(context, args).await,
-        Command::Test(args) => test::run(args, &context.db).await,
+        Command::Test(args) => test::run(args, context).await,
     }
 }

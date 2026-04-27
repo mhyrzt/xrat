@@ -22,7 +22,8 @@ enabled = true
 host = "0.0.0.0"
 port = 1080
 udp = true
-auth = { enabled = true, username = "xrat", password = "P@$$w0rD" }
+# password accepts either a literal string or { env = "XRAT_SOCKS_PASSWORD" }.
+auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 
 [runtime.http]
 enabled = false
@@ -34,7 +35,8 @@ enabled = false
 host = "0.0.0.0"
 port = 1081
 method = "aes-128-gcm"
-password = "change-me"
+# password accepts either a literal string or { env = "XRAT_SHADOWSOCKS_PASSWORD" }.
+password = { env = "XRAT_SHADOWSOCKS_PASSWORD" }
 network = "tcp,udp"
 
 [runtime.sniffing]

@@ -5,20 +5,21 @@ edition = "2024"
 
 [dependencies]
 axum = "0.8.9"
-base64 = "0.22"
-clap = { version = "4.5", features = ["derive"] }
+base64 = "0.22.1"
+clap = { version = "4.6.1", features = ["derive"] }
 ratatui = "0.30.0"
-reqwest = { version = "0.13.2", default-features = false, features = [
+reqwest = { version = "0.13.3", default-features = false, features = [
     "blocking",
     "rustls",
 ] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-percent-encoding = "2.3"
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls"] }
-tokio = { version = "1.0", features = ["full"] }
-url = "2.5"
-serde_path_to_error = "0.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+percent-encoding = "2.3.2"
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls"] }
+tokio = { version = "1.52.1", features = ["full"] }
+url = "2.5.8"
+serde_path_to_error = "0.1.20"
 uuid = { version = "1.23.1", features = ["v4"] }
-tempfile = "3.0"
+tempfile = "3.27.0"
 thiserror = "2.0.18"
+toml = "1.1.2"

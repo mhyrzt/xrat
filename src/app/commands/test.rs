@@ -1,17 +1,20 @@
-use std::time::Instant;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
+use crate::app::config::AppConfig;
+use crate::app::runtime::{AppContext, RuntimePaths};
 use crate::cli::TestArgs;
-use crate::db::{ConfigRecord, ConnectionTestInsert, Database};
+use crate::db::{ConfigRecord, ConnectionTestInsert};
 use crate::model::Node;
-use crate::tester::real_delay::DEFAULT_TEST_URL;
 use crate::tester::{
-    DEFAULT_ICMP_TIMEOUT, DEFAULT_REAL_DELAY_TIMEOUT, DEFAULT_TCP_TIMEOUT,
     DEFAULT_XRAY_STARTUP_TIMEOUT, TestResult, icmp_ping, real_delay_check, tcp_check,
 };
 
-pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(args: &TestArgs, context: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths);
+
     // Load config from database
-    let config = db.get_config_by_id(args.id).await?;
+    let config = context.db.get_config_by_id(args.id).await?;
 
     if config.is_none() {
         eprintln!("Config with id {} not found", args.id);
@@ -40,7 +43,7 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     // ICMP ping test
     if !args.skip_icmp {
         print!("Running ICMP ping... ");
-        let icmp_result = icmp_ping(&config.address, DEFAULT_ICMP_TIMEOUT).await;
+        let icmp_result = icmp_ping(&config.address, settings.icmp_timeout).await;
 
         result.icmp_ok = icmp_result.success;
         result.icmp_ms = icmp_result.latency_ms;
@@ -62,7 +65,7 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     // TCP connectivity test
     if !args.skip_tcp {
         print!("Running TCP check... ");
-        let tcp_result = tcp_check(&config.address, config.port as u16, DEFAULT_TCP_TIMEOUT).await;
+        let tcp_result = tcp_check(&config.address, config.port as u16, settings.tcp_timeout).await;
 
         result.tcp_ok = tcp_result.success;
         result.tcp_ms = tcp_result.latency_ms;
@@ -85,13 +88,13 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     if !args.skip_real_delay && (result.tcp_ok || args.skip_tcp) {
         ran_real_delay = true;
         print!("Running real-delay test... ");
-        let test_url = args.test_url.as_deref().unwrap_or(DEFAULT_TEST_URL);
 
         let real_delay_result = real_delay_check(
             &node,
-            test_url,
+            &settings.real_delay_url,
+            &settings.xray_binary_path,
             DEFAULT_XRAY_STARTUP_TIMEOUT,
-            DEFAULT_REAL_DELAY_TIMEOUT,
+            settings.real_delay_timeout,
         )
         .await;
 
@@ -122,18 +125,20 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     // Save result to database
     let failure_kind_str = result.failure_kind.as_ref().map(|k| k.as_str().to_string());
 
-    db.insert_connection_test(&ConnectionTestInsert {
-        config_id: config.id,
-        icmp_ok: ran_icmp.then_some(result.icmp_ok),
-        icmp_ms: result.icmp_ms.map(|ms| ms as i64),
-        tcp_ok: ran_tcp.then_some(result.tcp_ok),
-        tcp_ms: result.tcp_ms.map(|ms| ms as i64),
-        real_delay_ok: ran_real_delay.then_some(result.real_delay_ok),
-        real_delay_ms: result.real_delay_ms.map(|ms| ms as i64),
-        failure_kind: failure_kind_str,
-        failure_reason: result.failure_reason.clone(),
-    })
-    .await?;
+    context
+        .db
+        .insert_connection_test(&ConnectionTestInsert {
+            config_id: config.id,
+            icmp_ok: ran_icmp.then_some(result.icmp_ok),
+            icmp_ms: result.icmp_ms.map(|ms| ms as i64),
+            tcp_ok: ran_tcp.then_some(result.tcp_ok),
+            tcp_ms: result.tcp_ms.map(|ms| ms as i64),
+            real_delay_ok: ran_real_delay.then_some(result.real_delay_ok),
+            real_delay_ms: result.real_delay_ms.map(|ms| ms as i64),
+            failure_kind: failure_kind_str,
+            failure_reason: result.failure_reason.clone(),
+        })
+        .await?;
 
     println!();
     println!("Test completed in {:.2}s", total_elapsed.as_secs_f64());
@@ -164,6 +169,49 @@ pub async fn run(args: &TestArgs, db: &Database) -> Result<(), Box<dyn std::erro
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedTestSettings {
+    real_delay_url: String,
+    xray_binary_path: PathBuf,
+    icmp_timeout: Duration,
+    tcp_timeout: Duration,
+    real_delay_timeout: Duration,
+}
+
+fn resolve_test_settings(
+    args: &TestArgs,
+    app_config: &AppConfig,
+    runtime_paths: &RuntimePaths,
+) -> ResolvedTestSettings {
+    ResolvedTestSettings {
+        real_delay_url: args
+            .test_url
+            .clone()
+            .unwrap_or_else(|| app_config.testing.real_delay.url.clone()),
+        xray_binary_path: resolve_engine_binary_path(app_config, runtime_paths),
+        icmp_timeout: Duration::from_millis(
+            args.icmp_timeout_ms
+                .unwrap_or(app_config.testing.icmp.timeout),
+        ),
+        tcp_timeout: Duration::from_millis(
+            args.tcp_timeout_ms
+                .unwrap_or(app_config.testing.tcp.timeout),
+        ),
+        real_delay_timeout: Duration::from_millis(
+            args.real_delay_timeout_ms
+                .unwrap_or(app_config.testing.real_delay.timeout),
+        ),
+    }
+}
+
+fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePaths) -> PathBuf {
+    match app_config.runtime.engine.as_str() {
+        "v2ray" => runtime_paths.v2ray_path.clone(),
+        "xray" => runtime_paths.xray_path.clone(),
+        other => PathBuf::from(other),
+    }
 }
 
 fn node_from_record(config: &ConfigRecord) -> Result<Node, Box<dyn std::error::Error>> {
@@ -198,6 +246,8 @@ fn node_from_record(config: &ConfigRecord) -> Result<Node, Box<dyn std::error::E
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::config::{AppConfig, TestingSettings};
+    use crate::cli::TestArgs;
 
     #[test]
     fn rebuilds_node_from_config_record() {
@@ -232,5 +282,125 @@ mod tests {
         assert_eq!(node.address, "example.com");
         assert_eq!(node.network, "ws");
         assert_eq!(node.uuid.as_deref(), Some("uuid-123"));
+    }
+
+    #[test]
+    fn resolves_test_settings_from_app_config() {
+        let app_config = AppConfig {
+            testing: TestingSettings {
+                real_delay: crate::app::config::RealDelayTestSettings {
+                    url: "https://example.test/204".to_string(),
+                    timeout: 12_000,
+                },
+                icmp: crate::app::config::TimeoutSettings { timeout: 2500 },
+                tcp: crate::app::config::TimeoutSettings { timeout: 4500 },
+                ..TestingSettings::default()
+            },
+            ..AppConfig::default()
+        };
+        let args = TestArgs {
+            id: 1,
+            skip_icmp: false,
+            skip_tcp: false,
+            skip_real_delay: false,
+            test_url: None,
+            icmp_timeout_ms: None,
+            tcp_timeout_ms: None,
+            real_delay_timeout_ms: None,
+        };
+
+        let runtime_paths = test_runtime_paths();
+        let settings = resolve_test_settings(&args, &app_config, &runtime_paths);
+
+        assert_eq!(settings.real_delay_url, "https://example.test/204");
+        assert_eq!(settings.xray_binary_path, PathBuf::from("xray"));
+        assert_eq!(settings.icmp_timeout, Duration::from_millis(2500));
+        assert_eq!(settings.tcp_timeout, Duration::from_millis(4500));
+        assert_eq!(settings.real_delay_timeout, Duration::from_millis(12_000));
+    }
+
+    #[test]
+    fn cli_test_settings_override_app_config() {
+        let app_config = AppConfig {
+            testing: TestingSettings {
+                real_delay: crate::app::config::RealDelayTestSettings {
+                    url: "https://example.test/204".to_string(),
+                    timeout: 12_000,
+                },
+                icmp: crate::app::config::TimeoutSettings { timeout: 2500 },
+                tcp: crate::app::config::TimeoutSettings { timeout: 4500 },
+                ..TestingSettings::default()
+            },
+            ..AppConfig::default()
+        };
+        let args = TestArgs {
+            id: 1,
+            skip_icmp: false,
+            skip_tcp: false,
+            skip_real_delay: false,
+            test_url: Some("https://override.test/204".to_string()),
+            icmp_timeout_ms: Some(3000),
+            tcp_timeout_ms: Some(5000),
+            real_delay_timeout_ms: Some(15_000),
+        };
+
+        let runtime_paths = test_runtime_paths();
+        let settings = resolve_test_settings(&args, &app_config, &runtime_paths);
+
+        assert_eq!(settings.real_delay_url, "https://override.test/204");
+        assert_eq!(settings.icmp_timeout, Duration::from_millis(3000));
+        assert_eq!(settings.tcp_timeout, Duration::from_millis(5000));
+        assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
+    }
+
+    #[test]
+    fn resolves_xray_binary_from_runtime_paths() {
+        let app_config = AppConfig::default();
+        let runtime_paths = crate::app::runtime::RuntimePaths {
+            database_path: "/tmp/xrat/db.sqlite".into(),
+            config_path: "/tmp/xrat/config.toml".into(),
+            xray_path: "/tmp/xrat/bin/xray".into(),
+            v2ray_path: "/tmp/xrat/bin/v2ray".into(),
+        };
+
+        let resolved = resolve_engine_binary_path(&app_config, &runtime_paths);
+
+        assert_eq!(resolved, PathBuf::from("/tmp/xrat/bin/xray"));
+    }
+
+    #[test]
+    fn resolves_v2ray_binary_when_engine_is_v2ray() {
+        let app_config = AppConfig {
+            paths: crate::app::config::PathSettings {
+                xray: Some("bin/xray".into()),
+                v2ray: Some("/opt/v2ray/v2ray".into()),
+                ..Default::default()
+            },
+            runtime: crate::app::config::RuntimeSettings {
+                engine: "v2ray".to_string(),
+                ..Default::default()
+            },
+            ..AppConfig::default()
+        };
+
+        let runtime_paths = crate::app::runtime::RuntimePaths {
+            database_path: "/tmp/xrat/db.sqlite".into(),
+            config_path: "/tmp/xrat/config.toml".into(),
+            xray_path: "/tmp/xrat/bin/xray".into(),
+            v2ray_path: "/opt/v2ray/v2ray".into(),
+        };
+
+        let resolved = resolve_engine_binary_path(&app_config, &runtime_paths);
+
+        assert_eq!(resolved, PathBuf::from("/opt/v2ray/v2ray"));
+    }
+
+    fn test_runtime_paths() -> crate::app::runtime::RuntimePaths {
+        crate::app::runtime::RuntimePaths {
+            database_path: "/tmp/xrat/db.sqlite".into(),
+            config_path: "/tmp/xrat/config.toml".into(),
+            xray_path: "xray".into(),
+            v2ray_path: "v2ray".into(),
+        }
     }
 }
