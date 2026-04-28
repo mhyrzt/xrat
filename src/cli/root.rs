@@ -10,7 +10,7 @@ pub struct Cli {
     #[arg(
         long = "database",
         global = true,
-        help = "Override the SQLite database path. Defaults to XRAT_PATH/db.sqlite or $HOME/.config/xrat/db.sqlite."
+        help = "Override the SQLite database path. Defaults to [database.sqlite].path, XRAT_PATH/db.sqlite, or $HOME/.config/xrat/db.sqlite."
     )]
     pub database: Option<PathBuf>,
     #[arg(

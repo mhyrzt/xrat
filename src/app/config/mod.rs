@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+mod database;
 pub(crate) mod defaults;
 mod dns;
 mod geo;
@@ -12,6 +13,9 @@ mod runtime;
 mod secret;
 mod testing;
 
+pub use database::{
+    DatabaseBackend, DatabaseSettings, PostgresDatabaseSettings, SqliteDatabaseSettings,
+};
 pub use dns::{DnsHostValue, DnsSettings};
 pub use geo::{GeoProfile, GeoSettings};
 pub use parser::ParserSettings;
@@ -28,6 +32,7 @@ pub use testing::{DownloadTestSettings, RealDelayTestSettings, TestingSettings, 
 #[serde(default)]
 pub struct AppConfig {
     pub paths: PathSettings,
+    pub database: DatabaseSettings,
     pub runtime: RuntimeSettings,
     pub routing: RoutingSettings,
     pub geo: GeoSettings,
@@ -57,7 +62,9 @@ pub fn resolve_config_path(base_path: &Path, configured_path: &Path) -> PathBuf 
 
 #[cfg(test)]
 mod tests {
-    use super::{AppConfig, DnsHostValue, SecretString, load, resolve_config_path};
+    use super::{
+        AppConfig, DatabaseBackend, DnsHostValue, SecretString, load, resolve_config_path,
+    };
 
     #[test]
     fn parses_minimal_config_with_defaults() {
@@ -83,6 +90,11 @@ mod tests {
                 .expect("example config should parse");
 
         assert_eq!(config.paths.database.as_deref(), Some("db.sqlite".as_ref()));
+        assert_eq!(config.database.backend, DatabaseBackend::Sqlite);
+        assert_eq!(
+            config.database.sqlite.path.as_deref(),
+            Some("db.sqlite".as_ref())
+        );
         assert_eq!(config.runtime.engine, "xray");
         assert_eq!(config.runtime.socks.auth.username.as_deref(), Some("xrat"));
         assert_eq!(

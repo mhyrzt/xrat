@@ -5,6 +5,8 @@ use crate::app::config::AppConfig;
 use crate::app::config::defaults;
 use crate::app::runtime::{AppContext, RuntimePaths};
 use crate::cli::TestArgs;
+#[cfg(test)]
+use crate::db::DatabaseConnectionConfig;
 use crate::db::{ConfigRecord, ConnectionTestInsert};
 use crate::model::Node;
 use crate::tester::{TestResult, icmp_ping, real_delay_check, tcp_check};
@@ -359,7 +361,11 @@ mod tests {
     fn resolves_xray_binary_from_runtime_paths() {
         let app_config = AppConfig::default();
         let runtime_paths = crate::app::runtime::RuntimePaths {
+            database_config: DatabaseConnectionConfig::Sqlite {
+                path: "/tmp/xrat/db.sqlite".into(),
+            },
             database_path: "/tmp/xrat/db.sqlite".into(),
+            database_label: "/tmp/xrat/db.sqlite".to_string(),
             config_path: "/tmp/xrat/config.toml".into(),
             xray_path: "/tmp/xrat/bin/xray".into(),
             v2ray_path: "/tmp/xrat/bin/v2ray".into(),
@@ -386,7 +392,11 @@ mod tests {
         };
 
         let runtime_paths = crate::app::runtime::RuntimePaths {
+            database_config: DatabaseConnectionConfig::Sqlite {
+                path: "/tmp/xrat/db.sqlite".into(),
+            },
             database_path: "/tmp/xrat/db.sqlite".into(),
+            database_label: "/tmp/xrat/db.sqlite".to_string(),
             config_path: "/tmp/xrat/config.toml".into(),
             xray_path: "/tmp/xrat/bin/xray".into(),
             v2ray_path: "/opt/v2ray/v2ray".into(),
@@ -399,7 +409,11 @@ mod tests {
 
     fn test_runtime_paths() -> crate::app::runtime::RuntimePaths {
         crate::app::runtime::RuntimePaths {
+            database_config: DatabaseConnectionConfig::Sqlite {
+                path: "/tmp/xrat/db.sqlite".into(),
+            },
             database_path: "/tmp/xrat/db.sqlite".into(),
+            database_label: "/tmp/xrat/db.sqlite".to_string(),
             config_path: "/tmp/xrat/config.toml".into(),
             xray_path: "xray".into(),
             v2ray_path: "v2ray".into(),

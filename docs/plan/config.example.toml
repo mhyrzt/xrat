@@ -1,8 +1,25 @@
 [paths]
+# Deprecated compatibility alias for [database.sqlite].path.
 database = "db.sqlite"
 # optional
 # xray = "/usr/local/bin/xray" 
 # v2ray = "/usr/local/bin/v2ray"
+
+[database]
+backend = "sqlite" # sqlite | postgres
+
+[database.sqlite]
+path = "db.sqlite"
+
+[database.postgres]
+user = { env = "XRAT_POSTGRES_USER" }
+password = { env = "XRAT_POSTGRES_PASSWORD" }
+host = "localhost"
+port = 5432
+db_name = "xrat"
+max_connections = 10
+min_connections = 1
+connect_timeout_secs = 10
 
 
 [runtime]

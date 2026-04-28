@@ -6,7 +6,7 @@ pub async fn run(context: &AppContext, input: &str) -> Result<(), Box<dyn std::e
 
     println!(
         "Added 1 config into {} using config {} (source: {}, total configs: {})",
-        context.runtime_paths.database_path.display(),
+        context.runtime_paths.database_label,
         context.runtime_paths.config_path.display(),
         source.kind.as_str(),
         summary.total_configs

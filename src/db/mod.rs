@@ -4,6 +4,7 @@ mod model;
 mod repository;
 mod schema;
 
+pub use connection::DatabaseConnectionConfig;
 pub use database::Database;
 pub use model::{
     ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord, ImportSource,

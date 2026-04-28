@@ -1,0 +1,118 @@
+use sqlx::{ColumnIndex, Database, Decode, Row, Type};
+
+use crate::db::model::{
+    ConfigRecord, ConnectionTestRecord, RuntimeSessionRecord, RuntimeSessionStatus,
+    SubscriptionRecord,
+};
+
+pub fn map_config_row<R>(row: R) -> ConfigRecord
+where
+    R: Row,
+    for<'a> &'a str: ColumnIndex<R>,
+    i64: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    String: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<String>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    R::Database: Database,
+{
+    ConfigRecord {
+        id: row.get("id"),
+        subscription_id: row.get("subscription_id"),
+        dedup_key: row.get("dedup_key"),
+        protocol: row.get("protocol"),
+        address: row.get("address"),
+        port: row.get("port"),
+        username: row.get("username"),
+        uuid: row.get("uuid"),
+        password: row.get("password"),
+        method: row.get("method"),
+        network: row.get("network"),
+        tls: row.get("tls"),
+        sni: row.get("sni"),
+        host: row.get("host"),
+        path: row.get("path"),
+        name: row.get("name"),
+        raw_config: row.get("raw_config"),
+        is_active: row.get::<i64, _>("is_active") != 0,
+        is_enabled: row.get::<i64, _>("is_enabled") != 0,
+        is_selected: row.get::<i64, _>("is_selected") != 0,
+        imported_at: row.get("imported_at"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    }
+}
+
+pub fn map_connection_test_row<R>(row: R) -> ConnectionTestRecord
+where
+    R: Row,
+    for<'a> &'a str: ColumnIndex<R>,
+    i64: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<i64>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    String: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<String>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    R::Database: Database,
+{
+    ConnectionTestRecord {
+        id: row.get("id"),
+        config_id: row.get("config_id"),
+        icmp_ok: row.get::<Option<i64>, _>("icmp_ok").map(|value| value != 0),
+        icmp_ms: row.get("icmp_ms"),
+        tcp_ok: row.get::<Option<i64>, _>("tcp_ok").map(|value| value != 0),
+        tcp_ms: row.get("tcp_ms"),
+        real_delay_ok: row
+            .get::<Option<i64>, _>("real_delay_ok")
+            .map(|value| value != 0),
+        real_delay_ms: row.get("real_delay_ms"),
+        failure_kind: row.get("failure_kind"),
+        failure_reason: row.get("failure_reason"),
+        tested_at: row.get("tested_at"),
+    }
+}
+
+pub fn map_runtime_session_row<R>(
+    row: R,
+) -> Result<RuntimeSessionRecord, Box<dyn std::error::Error>>
+where
+    R: Row,
+    for<'a> &'a str: ColumnIndex<R>,
+    i64: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<i64>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    String: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<String>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    R::Database: Database,
+{
+    let status_value: String = row.get("status");
+    let status = RuntimeSessionStatus::from_str(&status_value)
+        .ok_or_else(|| format!("invalid runtime session status: {status_value}"))?;
+
+    Ok(RuntimeSessionRecord {
+        id: row.get("id"),
+        config_id: row.get("config_id"),
+        status,
+        mixed_port: row.get("mixed_port"),
+        process_id: row.get("process_id"),
+        started_at: row.get("started_at"),
+        stopped_at: row.get("stopped_at"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+    })
+}
+
+pub fn map_subscription_row<R>(row: R) -> SubscriptionRecord
+where
+    R: Row,
+    for<'a> &'a str: ColumnIndex<R>,
+    i64: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    String: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<String>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    R::Database: Database,
+{
+    SubscriptionRecord {
+        id: row.get("id"),
+        source_kind: row.get("source_kind"),
+        source_url: row.get("source_url"),
+        name: row.get("name"),
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
+        config_count: row.get("config_count"),
+    }
+}

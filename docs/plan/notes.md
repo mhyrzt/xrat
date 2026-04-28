@@ -61,40 +61,39 @@ Important constraints:
 
 ## Database Backend Support
 
-### PostgreSQL
+### PostgreSQL Real-Backend Verification
 
-- Add support for PostgreSQL connections.
-- `config.toml` should support selecting the database backend.
+- PostgreSQL config shape, pool creation, migrations, and repository dispatch are
+  implemented.
+- Before treating PostgreSQL support as production-ready, test against a real
+  PostgreSQL server.
 
-Suggested configuration:
+Suggested verification:
 
 ```toml
 [database]
-backend = "sqlite" # sqlite | postgres
-
-[database.sqlite]
-path = "data/app.db"
+backend = "postgres"
 
 [database.postgres]
-url = "postgres://user:password@localhost:5432/database"
+user = { env = "XRAT_POSTGRES_USER" }
+password = { env = "XRAT_POSTGRES_PASSWORD" }
+host = "localhost"
+port = 5432
+db_name = "xrat"
 max_connections = 10
 min_connections = 1
 connect_timeout_secs = 10
 ```
 
-This will require changes in:
+Exercise at least:
 
-- database abstraction layer
-- migrations
-- configuration
-- dependencies
-- repository implementations if they are currently SQLite-specific
+- schema migration on an empty database
+- `import` / `add` upserts
+- `list configs` and `list subscriptions`
+- selection, activation, enable/disable, and delete state changes
+- connection test insertion and latest-history reads
+- runtime session insert/update/stop reads
 
-Suggested dependency changes:
-
-- If using `sqlx`, enable both SQLite and PostgreSQL features.
-- Make sure migrations are compatible with both databases or separated by
-  backend.
 
 ## Tester Improvements
 
@@ -204,4 +203,4 @@ test_url = "https://speed.cloudflare.com/__down?bytes=10485760"
 2. Add parallel bulk testing with configurable concurrency.
 3. Add structured test result output such as TSV/JSON.
 4. Improve node deduplication key by using a stable hash-based approach.
-5. Add PostgreSQL support.
+5. Verify PostgreSQL support against a real PostgreSQL server.

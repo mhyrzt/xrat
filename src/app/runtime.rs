@@ -1,9 +1,12 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
-use crate::app::config::{self, AppConfig};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+
+use crate::app::config::{self, AppConfig, DatabaseBackend};
 use crate::app::path;
 use crate::cli;
-use crate::db::Database;
+use crate::db::{Database, DatabaseConnectionConfig};
 
 #[derive(Clone)]
 pub struct AppContext {
@@ -14,7 +17,9 @@ pub struct AppContext {
 
 #[derive(Clone)]
 pub struct RuntimePaths {
+    pub database_config: DatabaseConnectionConfig,
     pub database_path: PathBuf,
+    pub database_label: String,
     pub config_path: PathBuf,
     pub xray_path: PathBuf,
     pub v2ray_path: PathBuf,
@@ -23,7 +28,7 @@ pub struct RuntimePaths {
 impl AppContext {
     pub async fn build(args: &cli::Cli) -> Result<Self, Box<dyn std::error::Error>> {
         let (runtime_paths, app_config) = resolve_runtime(args)?;
-        let db = Database::connect(&runtime_paths.database_path).await?;
+        let db = Database::connect(&runtime_paths.database_config).await?;
 
         Ok(Self {
             db,
@@ -44,17 +49,13 @@ fn resolve_runtime(
 
     path::ensure_config_file(&config_path)?;
     let app_config = config::load(&config_path)?;
-    let database_path = args
-        .database
-        .clone()
-        .or_else(|| {
-            app_config
-                .paths
-                .database
-                .as_deref()
-                .map(|path| config::resolve_config_path(&config_path, path))
-        })
-        .unwrap_or_else(|| app_paths.database_path.clone());
+    let database_config =
+        resolve_database_config(args, &app_config, &config_path, &app_paths.database_path)?;
+    let database_path = match &database_config {
+        DatabaseConnectionConfig::Sqlite { path } => path.clone(),
+        DatabaseConnectionConfig::Postgres { .. } => app_paths.database_path.clone(),
+    };
+    let database_label = database_config.label();
     let xray_path = resolve_binary_path(
         &config_path,
         args.xray.as_ref(),
@@ -70,13 +71,72 @@ fn resolve_runtime(
 
     Ok((
         RuntimePaths {
+            database_config,
             database_path,
+            database_label,
             config_path,
             xray_path,
             v2ray_path,
         },
         app_config,
     ))
+}
+
+fn resolve_database_config(
+    args: &cli::Cli,
+    app_config: &AppConfig,
+    config_path: &std::path::Path,
+    default_sqlite_path: &std::path::Path,
+) -> Result<DatabaseConnectionConfig, Box<dyn std::error::Error>> {
+    if let Some(cli_database) = &args.database {
+        return Ok(DatabaseConnectionConfig::Sqlite {
+            path: cli_database.clone(),
+        });
+    }
+
+    match app_config.database.backend {
+        DatabaseBackend::Sqlite => {
+            let path = app_config
+                .database
+                .sqlite
+                .path
+                .as_deref()
+                .or(app_config.paths.database.as_deref())
+                .map(|path| config::resolve_config_path(config_path, path))
+                .unwrap_or_else(|| default_sqlite_path.to_path_buf());
+
+            Ok(DatabaseConnectionConfig::Sqlite { path })
+        }
+        DatabaseBackend::Postgres => {
+            let postgres = &app_config.database.postgres;
+            let user = postgres.user.resolve()?;
+            let password = postgres.password.resolve()?;
+            if user.is_empty() {
+                return Err(
+                    "[database.postgres].user is required when backend = \"postgres\"".into(),
+                );
+            }
+            if postgres.db_name.is_empty() {
+                return Err(
+                    "[database.postgres].db_name is required when backend = \"postgres\"".into(),
+                );
+            }
+            let user = utf8_percent_encode(&user, NON_ALPHANUMERIC).to_string();
+            let password = utf8_percent_encode(&password, NON_ALPHANUMERIC).to_string();
+            let db_name = utf8_percent_encode(&postgres.db_name, NON_ALPHANUMERIC).to_string();
+            let url = format!(
+                "postgres://{user}:{password}@{}:{}/{db_name}",
+                postgres.host, postgres.port
+            );
+
+            Ok(DatabaseConnectionConfig::Postgres {
+                url,
+                max_connections: postgres.max_connections,
+                min_connections: postgres.min_connections,
+                connect_timeout: Duration::from_secs(postgres.connect_timeout_secs),
+            })
+        }
+    }
 }
 
 fn resolve_binary_path(
@@ -129,6 +189,52 @@ mod tests {
         );
         assert_eq!(runtime_paths.xray_path, PathBuf::from("xray"));
         assert_eq!(runtime_paths.v2ray_path, PathBuf::from("v2ray"));
+
+        let _ = std::fs::remove_file(config_path);
+        let _ = std::fs::remove_dir(root_dir);
+    }
+
+    #[test]
+    fn resolves_postgres_database_from_config_file() {
+        let root_dir = std::env::temp_dir().join(format!(
+            "xrat-runtime-config-postgres-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        let config_path = root_dir.join("config.toml");
+        std::fs::create_dir_all(&root_dir).expect("temp dir should be created");
+        std::fs::write(
+            &config_path,
+            "[database]\nbackend = \"postgres\"\n\n[database.postgres]\nuser = \"xrat user\"\npassword = \"secret/pass\"\nhost = \"db.local\"\nport = 5544\ndb_name = \"xrat db\"\n",
+        )
+        .expect("config should be written");
+
+        let cli = Cli::parse_from([
+            "xrat",
+            "--config",
+            config_path.to_str().unwrap(),
+            "list",
+            "configs",
+        ]);
+        let (runtime_paths, _) = resolve_runtime(&cli).expect("runtime paths should resolve");
+
+        match runtime_paths.database_config {
+            crate::db::DatabaseConnectionConfig::Postgres { url, .. } => {
+                assert_eq!(
+                    url,
+                    "postgres://xrat%20user:secret%2Fpass@db.local:5544/xrat%20db"
+                );
+            }
+            crate::db::DatabaseConnectionConfig::Sqlite { .. } => {
+                panic!("expected postgres config")
+            }
+        }
+        assert_eq!(
+            runtime_paths.database_label,
+            "postgres://xrat%20user:<redacted>@db.local:5544/xrat%20db"
+        );
 
         let _ = std::fs::remove_file(config_path);
         let _ = std::fs::remove_dir(root_dir);

@@ -115,6 +115,26 @@ bf30bc5 refactor: split repository facade module
 - Moved untagged range value enums into `src/config/xray/shared/ranges.rs`.
 - Kept existing imports available through `src/config/xray/shared/mod.rs`.
 
+### Database Backend Support
+
+- Added a first PostgreSQL backend slice alongside SQLite.
+- Added `[database]`, `[database.sqlite]`, and `[database.postgres]` app config
+  sections.
+- Kept the legacy `[paths].database` SQLite path as a compatibility alias.
+- Configured PostgreSQL using separate `user`, `password`, `host`, `port`, and
+  `db_name` fields instead of a raw URL.
+- Allowed PostgreSQL `user` and `password` to use the existing secret/env value
+  format.
+- Enabled SQLx's PostgreSQL feature and added a `DatabaseConnectionConfig` plus
+  backend-dispatched pool enum.
+- Added PostgreSQL migrations under `migrations/postgres/`.
+- Updated repository functions to dispatch across SQLite and PostgreSQL pools.
+- Added shared row-mapping helpers for backend-neutral record mapping.
+- Redacted PostgreSQL passwords in user-facing database labels.
+
+Carry-forward note: PostgreSQL compiles and the SQLite suite still passes, but
+this still needs verification against a real PostgreSQL server.
+
 ## Validation
 
 Each implementation commit was validated with:
@@ -124,10 +144,10 @@ cargo fmt
 cargo test -q
 ```
 
-The last validation run reported 75 passing tests.
+The last validation run reported 78 passing tests.
 
 ## Carry Forward
 
-The remaining notes are kept in `docs/plan/notes.md`. The next recommended
-cleanup target is stronger error types for modules that still return
-`Box<dyn std::error::Error>` widely.
+The remaining notes are kept in `docs/plan/notes.md`. Near-term carry-forward
+items are real PostgreSQL backend verification, stronger error types, node
+deduplication hashing, and tester workflow improvements.

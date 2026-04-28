@@ -1,12 +1,9 @@
-use std::path::Path;
 #[cfg(test)]
 use std::path::PathBuf;
 #[cfg(test)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sqlx::SqlitePool;
-
-use crate::db::connection;
+use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
 use crate::db::model::{
     ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord, ImportSource,
     ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
@@ -16,13 +13,25 @@ use crate::db::repository;
 
 #[derive(Clone)]
 pub struct Database {
-    pool: SqlitePool,
+    pool: DbPool,
 }
 
 impl Database {
-    pub async fn connect(database_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
-        let pool = connection::connect(database_path).await?;
+    pub async fn connect(
+        config: &DatabaseConnectionConfig,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let pool = connection::connect(config).await?;
         Ok(Self { pool })
+    }
+
+    #[cfg(test)]
+    async fn connect_sqlite(
+        database_path: &std::path::Path,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        Self::connect(&DatabaseConnectionConfig::Sqlite {
+            path: database_path.to_path_buf(),
+        })
+        .await
     }
 
     pub async fn import_nodes(
@@ -215,7 +224,9 @@ mod tests {
     #[tokio::test]
     async fn imports_nodes_and_creates_subscription() {
         let db_path = test_database_path("xrat-import");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::Url,
             value: "https://example.com/sub".to_string(),
@@ -245,7 +256,9 @@ mod tests {
     #[tokio::test]
     async fn upsert_updates_existing_config_without_creating_duplicates() {
         let db_path = test_database_path("xrat-upsert");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::File,
             value: "sample.txt".to_string(),
@@ -268,7 +281,9 @@ mod tests {
     #[tokio::test]
     async fn config_selection_and_activation_are_exclusive() {
         let db_path = test_database_path("xrat-config-state");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::File,
             value: "sample.txt".to_string(),
@@ -333,7 +348,9 @@ mod tests {
     #[tokio::test]
     async fn disabling_configs_clears_selection_and_activation() {
         let db_path = test_database_path("xrat-config-visibility");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::File,
             value: "sample.txt".to_string(),
@@ -377,7 +394,9 @@ mod tests {
     #[tokio::test]
     async fn stores_and_reads_connection_test_history() {
         let db_path = test_database_path("xrat-connection-tests");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::File,
             value: "sample.txt".to_string(),
@@ -449,7 +468,9 @@ mod tests {
     #[tokio::test]
     async fn stores_and_updates_runtime_sessions() {
         let db_path = test_database_path("xrat-runtime-sessions");
-        let db = Database::connect(&db_path).await.expect("db should open");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
         let source = ImportSource {
             kind: SourceKind::File,
             value: "sample.txt".to_string(),

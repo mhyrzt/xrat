@@ -7,7 +7,7 @@ pub async fn run(context: &AppContext, input: &str) -> Result<(), Box<dyn std::e
     println!(
         "Imported {} parsed nodes into {} using config {} (subscription #{}, total configs: {})",
         summary.imported_configs,
-        context.runtime_paths.database_path.display(),
+        context.runtime_paths.database_label,
         context.runtime_paths.config_path.display(),
         summary.subscription_id,
         summary.total_configs
