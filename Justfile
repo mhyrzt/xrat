@@ -27,15 +27,19 @@ uninstall:
 test:
     cargo test -q
 
-# Format Rust code and markdown
+# Format Rust code, markdown, and SQL
 fmt:
     cargo fmt
     prettier --write "**/*.md"
+    sqlfluff format --dialect sqlite migrations/sqlite/*.sql
+    sqlfluff format --dialect postgres migrations/postgres/*.sql
 
 # Check formatting without writing (CI)
 fmt-check:
     cargo fmt --check
     prettier --check "**/*.md"
+    sqlfluff lint --rules layout --dialect sqlite migrations/sqlite/*.sql
+    sqlfluff lint --rules layout --dialect postgres migrations/postgres/*.sql
 
 # Run clippy lints (CI)
 lint:

@@ -41,8 +41,8 @@ Important constraints:
 
 ### PostgreSQL Real-Backend Testing
 
-- PostgreSQL config shape, pool creation, migrations, and repository dispatch are
-  implemented.
+- PostgreSQL config shape, pool creation, migrations, and repository dispatch
+  are implemented.
 - Before treating PostgreSQL support as production-ready, test against a real
   PostgreSQL server.
 

@@ -49,7 +49,7 @@ Suggested tables in `plan/README.md`:
      inserting related configs
 
 5. **Initial schema and migration history exist**
-   - `migrations/0001_init.sql` now defines the initial SQLite schema for
+   - `migrations/sqlite/0001_init.sql` now defines the initial SQLite schema for
      `subscriptions`, `configs`, `connection_tests`, and `runtime_sessions`
    - `src/db/schema.rs` uses embedded SQLx migrations so schema updates run
      automatically when the app starts
@@ -84,7 +84,7 @@ Phase 2 is **complete for the current intended scope**.
 - parsed nodes already have a structured Rust model
 - normalization and deduplication happen before any future persistence step
 - `src/db/` exists with a modular database layer
-- `migrations/0001_init.sql` defines the initial schema
+- `migrations/sqlite/0001_init.sql` defines the initial schema
 - parsed nodes are now imported into SQLite
 - subscription source records are now stored
 - config query and lifecycle methods now exist for selection, activation,
@@ -238,8 +238,8 @@ Phase 2 can be considered complete after:
 
 Status against those criteria:
 
-- item 1 is implemented through `migrations/0001_init.sql` and embedded SQLx
-  migrations
+- item 1 is implemented through `migrations/sqlite/0001_init.sql` and embedded
+  SQLx migrations
 - item 2 is implemented through persisted `subscriptions` rows
 - item 3 is implemented through SQLite-backed config import with stable dedup
   keys

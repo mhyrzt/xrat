@@ -40,8 +40,8 @@ Key outcomes:
 
 ## Current Goal
 
-Implement Phase 3.5 (local app configuration) before Phase 4 so XRAT has a
-clear runtime configuration surface for file-based settings such as
+Implement Phase 3.5 (local app configuration) before Phase 4 so XRAT has a clear
+runtime configuration surface for file-based settings such as
 `~/.config/xrat/config.toml` and managed geo assets.
 
 ## Phase 3.5: Local App Configuration
@@ -108,8 +108,8 @@ move into local configuration.
 
 - `[paths]` for `db.sqlite` and optional Xray/V2Ray binary paths
 - `[runtime]` for engine choice and session replacement behavior
-- `[runtime.log]`, `[runtime.socks]`, `[runtime.http]`,
-  `[runtime.shadowsocks]`, and `[runtime.sniffing]`
+- `[runtime.log]`, `[runtime.socks]`, `[runtime.http]`, `[runtime.shadowsocks]`,
+  and `[runtime.sniffing]`
 - `[routing]`, `[routing.direct]`, and `[routing.block]`
 - `[geo]` plus `[[geo.profiles]]` for managed `geosite.dat` and `geoip.dat`
   sources

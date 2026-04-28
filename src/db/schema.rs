@@ -1,6 +1,6 @@
 use sqlx::{PgPool, SqlitePool};
 
-static SQLITE_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+static SQLITE_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/sqlite");
 static POSTGRES_MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/postgres");
 
 pub async fn init_sqlite(pool: &SqlitePool) -> crate::db::Result<()> {

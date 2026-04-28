@@ -275,8 +275,8 @@ Once implementation starts, likely touchpoints are:
   - `src/app/config.rs`
   - or `src/support/config.rs`
 
-There may also be a dedicated route/geo parser module if validation becomes
-more than simple config deserialization.
+There may also be a dedicated route/geo parser module if validation becomes more
+than simple config deserialization.
 
 ## Suggested Delivery Order
 

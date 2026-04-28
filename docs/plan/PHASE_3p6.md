@@ -41,8 +41,8 @@ Related commit:
 ### Tester Defaults
 
 - Centralized tester-related defaults in `src/app/config/defaults.rs`.
-- Renamed the previous raw-identifier constants module to `defaults` for
-  clearer naming.
+- Renamed the previous raw-identifier constants module to `defaults` for clearer
+  naming.
 - Moved real-delay test URL and timeout defaults out of tester modules.
 - Moved Xray startup timeout default into the app config defaults module.
 
@@ -111,8 +111,7 @@ Related commit:
 
 ### Database Module Facade
 
-- Split the `Database` facade out of `src/db/mod.rs` into
-  `src/db/database.rs`.
+- Split the `Database` facade out of `src/db/mod.rs` into `src/db/database.rs`.
 - Reduced `src/db/mod.rs` to module declarations and public re-exports.
 - Moved database facade tests with the facade implementation.
 

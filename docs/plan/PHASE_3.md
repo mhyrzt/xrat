@@ -69,7 +69,7 @@ Those belong to later phases.
 
 The codebase already has part of the persistence groundwork for this phase:
 
-- `connection_tests` table exists in `migrations/0001_init.sql`
+- `connection_tests` table exists in `migrations/sqlite/0001_init.sql`
 - `src/db/model/connection_tests.rs` already defines insert and record models
 - `src/db/repository/connection_tests.rs` already supports:
   - insert
@@ -593,7 +593,7 @@ The command flow is:
 
 #### Database updates
 
-- `migrations/0001_init.sql` includes `icmp_ok` and `icmp_ms` on
+- `migrations/sqlite/0001_init.sql` includes `icmp_ok` and `icmp_ms` on
   `connection_tests`.
 - The `failure_kind` constraint includes the implemented tester failure kinds.
 - `ConnectionTestInsert` and `ConnectionTestRecord` carry ICMP fields.

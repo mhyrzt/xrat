@@ -1,7 +1,9 @@
 CREATE TABLE subscriptions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source_url TEXT,
-    source_kind TEXT NOT NULL CHECK (source_kind IN ('url', 'file', 'raw_text')),
+    source_kind TEXT NOT NULL CHECK (
+        source_kind IN ('url', 'file', 'raw_text')
+    ),
     name TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -31,7 +33,7 @@ CREATE TABLE configs (
     imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions (id)
 );
 
 CREATE TABLE connection_tests (
@@ -44,31 +46,35 @@ CREATE TABLE connection_tests (
     real_delay_ok INTEGER CHECK (real_delay_ok IN (0, 1)),
     real_delay_ms INTEGER,
     failure_kind TEXT CHECK (
-        failure_kind IN ('dns', 'timeout', 'refused', 'unreachable', 'permission_denied', 
-                         'tls', 'auth', 'process', 'proxy', 'unknown')
+        failure_kind IN (
+            'dns', 'timeout', 'refused', 'unreachable', 'permission_denied',
+            'tls', 'auth', 'process', 'proxy', 'unknown'
+        )
     ),
     failure_reason TEXT,
     tested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (config_id) REFERENCES configs(id)
+    FOREIGN KEY (config_id) REFERENCES configs (id)
 );
 
 CREATE TABLE runtime_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     config_id INTEGER,
-    status TEXT NOT NULL CHECK (status IN ('starting', 'running', 'stopping', 'stopped', 'failed')),
+    status TEXT NOT NULL CHECK (
+        status IN ('starting', 'running', 'stopping', 'stopped', 'failed')
+    ),
     mixed_port INTEGER,
     process_id INTEGER,
     started_at TEXT,
     stopped_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (config_id) REFERENCES configs(id)
+    FOREIGN KEY (config_id) REFERENCES configs (id)
 );
 
-CREATE INDEX idx_configs_is_active ON configs(is_active);
-CREATE INDEX idx_configs_is_enabled ON configs(is_enabled);
-CREATE INDEX idx_configs_subscription_id ON configs(subscription_id);
-CREATE INDEX idx_connection_tests_config_id ON connection_tests(config_id);
-CREATE INDEX idx_connection_tests_tested_at ON connection_tests(tested_at);
-CREATE INDEX idx_runtime_sessions_config_id ON runtime_sessions(config_id);
-CREATE INDEX idx_runtime_sessions_status ON runtime_sessions(status);
+CREATE INDEX idx_configs_is_active ON configs (is_active);
+CREATE INDEX idx_configs_is_enabled ON configs (is_enabled);
+CREATE INDEX idx_configs_subscription_id ON configs (subscription_id);
+CREATE INDEX idx_connection_tests_config_id ON connection_tests (config_id);
+CREATE INDEX idx_connection_tests_tested_at ON connection_tests (tested_at);
+CREATE INDEX idx_runtime_sessions_config_id ON runtime_sessions (config_id);
+CREATE INDEX idx_runtime_sessions_status ON runtime_sessions (status);
