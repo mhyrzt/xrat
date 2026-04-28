@@ -47,7 +47,7 @@
   - network type
   - TLS/security options
   - path/SNI/ALPN/etc. if they affect uniqueness
-
+  - or even based on raw config string
 - Important:
   - Make sure the hash algorithm and input format are stable across versions.
   - Consider whether collisions are acceptable. If not, store both the hash and the original normalized fields required for verification.
@@ -87,12 +87,12 @@
 
 ## `src/db/mod.rs`
 
-- `src/db/mod.rs` is too large for a module entry file.
+- [x] `src/db/mod.rs` was too large for a module entry file.
 
-- Keep `mod.rs` focused on:
-  - module declarations
-  - public re-exports
-  - high-level initialization functions only
+- [x] Keep `mod.rs` focused on:
+  - [x] module declarations
+  - [x] public re-exports
+  - [x] high-level initialization functions only
 
 ## `src/db/repository/mod.rs`
 
@@ -278,7 +278,7 @@
 1. Replace `println!`/`eprintln!` with `tracing`.
 2. Split large modules:
    - `src/xray/config.rs`
-   - `src/db/mod.rs`
+   - [done] `src/db/mod.rs`
    - `src/db/repository/mod.rs`
    - `src/config/shared.rs`
 3. Introduce stronger error types instead of widespread `Box<dyn Error>`.
