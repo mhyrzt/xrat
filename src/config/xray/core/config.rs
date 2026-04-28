@@ -115,7 +115,9 @@ impl XrayConfig {
     ) -> Result<Self, Box<dyn std::error::Error>> {
         match mode {
             crate::config::xray::ParseMode::Strict => Self::from_json_strict(json),
-            crate::config::xray::ParseMode::Loose => {
+            crate::config::xray::ParseMode::Lenient
+            | crate::config::xray::ParseMode::Auto
+            | crate::config::xray::ParseMode::Loose => {
                 Self::from_json_loose(json).map_err(|e| e.into())
             }
         }

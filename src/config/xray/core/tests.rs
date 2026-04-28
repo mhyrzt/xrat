@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::config::xray::ParseMode;
 
     #[test]
     fn test_parse_minimal_config_loose() {
@@ -50,6 +51,19 @@ mod tests {
 
         let result = XrayConfig::from_json_strict(json);
         assert!(result.is_err(), "Strict mode should reject unknown fields");
+    }
+
+    #[test]
+    fn test_parse_mode_controls_unknown_fields() {
+        let json = r#"{
+            "inbounds": [],
+            "outbounds": [],
+            "unknownField": "allowed outside strict mode"
+        }"#;
+
+        assert!(XrayConfig::from_json_with_mode(json, ParseMode::Strict).is_err());
+        assert!(XrayConfig::from_json_with_mode(json, ParseMode::Lenient).is_ok());
+        assert!(XrayConfig::from_json_with_mode(json, ParseMode::Auto).is_ok());
     }
 
     #[test]

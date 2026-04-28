@@ -50,6 +50,10 @@ ips_excluded = []
 [routing]
 domain_strategy = "IPIfNonMatch" # "AsIs" | "IPIfNonMatch" | "IPOnDemand"
 
+[parser]
+# Controls Xray JSON schema validation, not subscription/share-link imports.
+parse_mode = "strict" # "strict" | "lenient" | "auto"
+
 # Custom geo assets managed by XRAT. Each profile can point at local files or
 # URLs that XRAT may fetch later. If save_dir is omitted, XRAT stores fetched
 # files under CONFIG_PATH/geo/PROFILE_NAME/{geosite.dat,geoip.dat}.

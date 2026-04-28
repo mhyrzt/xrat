@@ -5,6 +5,7 @@ use serde::Deserialize;
 mod r#const;
 mod dns;
 mod geo;
+mod parser;
 mod paths;
 mod routing;
 mod runtime;
@@ -13,6 +14,7 @@ mod testing;
 
 pub use dns::{DnsHostValue, DnsSettings};
 pub use geo::{GeoProfile, GeoSettings};
+pub use parser::ParserSettings;
 pub use paths::PathSettings;
 pub use routing::{RouteList, RoutingSettings};
 pub use runtime::{
@@ -30,6 +32,7 @@ pub struct AppConfig {
     pub routing: RoutingSettings,
     pub geo: GeoSettings,
     pub dns: DnsSettings,
+    pub parser: ParserSettings,
     pub testing: TestingSettings,
 }
 
@@ -67,12 +70,17 @@ mod tests {
             config.testing.real_delay.url,
             crate::tester::real_delay::DEFAULT_TEST_URL
         );
+        assert_eq!(
+            config.parser.parse_mode,
+            crate::config::xray::ParseMode::Strict
+        );
     }
 
     #[test]
     fn parses_example_config() {
-        let config: AppConfig = toml::from_str(include_str!("../../../plan/config.example.toml"))
-            .expect("example config should parse");
+        let config: AppConfig =
+            toml::from_str(include_str!("../../../docs/plan/config.example.toml"))
+                .expect("example config should parse");
 
         assert_eq!(config.paths.database.as_deref(), Some("db.sqlite".as_ref()));
         assert_eq!(config.runtime.engine, "xray");
@@ -97,6 +105,21 @@ mod tests {
             Some(&DnsHostValue::One("127.0.0.1".to_string()))
         );
         assert_eq!(config.testing.tcp.timeout, 5000);
+        assert_eq!(
+            config.parser.parse_mode,
+            crate::config::xray::ParseMode::Strict
+        );
+    }
+
+    #[test]
+    fn parses_parser_settings() {
+        let config: AppConfig =
+            toml::from_str("[parser]\nparse_mode = \"lenient\"\n").expect("config should parse");
+
+        assert_eq!(
+            config.parser.parse_mode,
+            crate::config::xray::ParseMode::Lenient
+        );
     }
 
     #[test]

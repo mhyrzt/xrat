@@ -6,8 +6,6 @@ This document describes the organization of the Xray configuration types module.
 
 ```txt
 src/config/xray/
-├── README.md              # Usage documentation
-├── STRUCTURE.md           # This file
 ├── mod.rs                 # Module exports
 ├── shared.rs              # Shared types and enums
 ├── core/                  # Core configuration types
@@ -31,6 +29,8 @@ src/config/xray/
     ├── security.rs       # TLS, Reality, sockopt
     └── streams.rs        # WebSocket, gRPC, HTTP, etc.
 ```
+
+Usage documentation lives under `docs/config/xray/`.
 
 ## Module Organization
 

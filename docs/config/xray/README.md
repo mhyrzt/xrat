@@ -7,9 +7,10 @@ official [xtls.github.io](https://xtls.github.io) documentation.
 
 - **Complete type coverage**: All major Xray configuration objects (log, api,
   dns, routing, policy, inbounds, outbounds, transports)
-- **Two parsing modes**:
+- **Config parsing modes**:
   - **Strict mode**: Rejects unknown fields (useful for validation)
-  - **Loose mode**: Allows unknown fields (useful for forward compatibility)
+  - **Lenient mode**: Allows unknown fields (useful for forward compatibility)
+  - **Auto mode**: Currently behaves like lenient mode
 - **Serde integration**: Full serialization and deserialization support
 - **Type safety**: Enums for protocol types, networks, security modes, etc.
 
@@ -20,7 +21,7 @@ official [xtls.github.io](https://xtls.github.io) documentation.
 ```rust
 use xrat::config::xray::XrayConfig;
 
-// Parse in loose mode (allows unknown fields)
+// Parse in lenient/loose mode (allows unknown fields)
 let config = XrayConfig::from_json_loose(json_str)?;
 
 // Parse in strict mode (rejects unknown fields)
@@ -38,6 +39,9 @@ use xrat::config::xray::{XrayConfig, ParseMode};
 let mode = ParseMode::Strict;
 let config = XrayConfig::from_json_with_mode(json_str, mode)?;
 ```
+
+`ParseMode` controls Xray JSON schema tolerance only. It does not change
+subscription/share-link import behavior.
 
 ### Example Configuration
 
@@ -147,9 +151,9 @@ don't match the defined types. This is useful for:
 - Catching typos in field names
 - Ensuring compatibility with a specific Xray version
 
-### Loose Mode
+### Lenient Mode
 
-Loose mode allows unknown fields to be silently ignored. This is useful for:
+Lenient mode allows unknown fields to be silently ignored. This is useful for:
 
 - Forward compatibility with newer Xray versions
 - Working with configurations that have custom extensions
