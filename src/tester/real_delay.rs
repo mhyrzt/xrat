@@ -15,9 +15,6 @@ pub struct RealDelayResult {
     pub failure_reason: Option<String>,
 }
 
-/// Default test target URL
-pub const DEFAULT_TEST_URL: &str = "https://www.gstatic.com/generate_204";
-
 /// Perform real-delay check through actual proxy traffic
 pub async fn real_delay_check(
     node: &Node,
@@ -221,7 +218,7 @@ mod tests {
 
         let result = real_delay_check(
             &node,
-            DEFAULT_TEST_URL,
+            crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL,
             Path::new("xray"),
             Duration::from_secs(5),
             Duration::from_secs(10),

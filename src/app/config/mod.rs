@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-mod r#const;
+pub(crate) mod defaults;
 mod dns;
 mod geo;
 mod parser;
@@ -68,7 +68,7 @@ mod tests {
         assert_eq!(config.testing.icmp.timeout, 3000);
         assert_eq!(
             config.testing.real_delay.url,
-            crate::tester::real_delay::DEFAULT_TEST_URL
+            crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL
         );
         assert_eq!(
             config.parser.parse_mode,

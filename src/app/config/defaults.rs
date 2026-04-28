@@ -39,5 +39,8 @@ pub const DEFAULT_DNS_ENABLE_PARALLEL_QUERY: bool = true;
 
 pub const DEFAULT_ICMP_TIMEOUT_MS: u64 = 3000;
 pub const DEFAULT_TCP_TIMEOUT_MS: u64 = 5000;
+pub const DEFAULT_REAL_DELAY_TEST_URL: &str = "https://www.gstatic.com/generate_204";
+pub const DEFAULT_REAL_DELAY_TIMEOUT_MS: u64 = 10_000;
+pub const DEFAULT_XRAY_STARTUP_TIMEOUT_MS: u64 = 5000;
 pub const DEFAULT_DOWNLOAD_TEST_URL: &str = "https://cachefly.cachefly.net/50mb.test";
 pub const DEFAULT_DOWNLOAD_TIMEOUT_MS: u64 = 30_000;

@@ -6,8 +6,6 @@ pub use icmp::{IcmpResult, icmp_ping};
 pub use real_delay::{RealDelayResult, real_delay_check};
 pub use tcp::{TcpResult, tcp_check};
 
-use std::time::Duration;
-
 /// Test failure classification
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FailureKind {
@@ -67,9 +65,3 @@ impl Default for TestResult {
         }
     }
 }
-
-/// Default timeouts for testing
-pub const DEFAULT_ICMP_TIMEOUT: Duration = Duration::from_secs(2);
-pub const DEFAULT_TCP_TIMEOUT: Duration = Duration::from_secs(5);
-pub const DEFAULT_REAL_DELAY_TIMEOUT: Duration = Duration::from_secs(10);
-pub const DEFAULT_XRAY_STARTUP_TIMEOUT: Duration = Duration::from_secs(5);

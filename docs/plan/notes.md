@@ -142,12 +142,12 @@
   - In the real delay tester file, move the existing constant to:
 
     ```text
-    src/app/config/const.rs
+    src/app/config/defaults.rs
     ```
 
 - Also review the tester module for other hardcoded values that should be centralized.
 
-- Examples of values that may belong in `app/config/const.rs`:
+- Examples of values that may belong in `app/config/defaults.rs`:
   - default timeout durations
   - default test URLs
   - default retry counts
@@ -291,7 +291,7 @@
 3. Introduce stronger error types instead of widespread `Box<dyn Error>`.
 4. Move documentation files from `src/config` to root-level `docs/`.
 5. Add `ParseMode` support to `config.toml`.
-6. Move tester constants into `src/app/config/const.rs`.
+6. Move tester constants into `src/app/config/defaults.rs`.
 7. Add PostgreSQL support.
 8. Improve node deduplication key by using a stable hash-based approach.
 9. Add parallel bulk testing with configurable concurrency.

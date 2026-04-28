@@ -2,13 +2,12 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use crate::app::config::AppConfig;
+use crate::app::config::defaults;
 use crate::app::runtime::{AppContext, RuntimePaths};
 use crate::cli::TestArgs;
 use crate::db::{ConfigRecord, ConnectionTestInsert};
 use crate::model::Node;
-use crate::tester::{
-    DEFAULT_XRAY_STARTUP_TIMEOUT, TestResult, icmp_ping, real_delay_check, tcp_check,
-};
+use crate::tester::{TestResult, icmp_ping, real_delay_check, tcp_check};
 
 pub async fn run(args: &TestArgs, context: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths);
@@ -93,7 +92,7 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> Result<(), Box<dyn st
             &node,
             &settings.real_delay_url,
             &settings.xray_binary_path,
-            DEFAULT_XRAY_STARTUP_TIMEOUT,
+            settings.xray_startup_timeout,
             settings.real_delay_timeout,
         )
         .await;
@@ -177,6 +176,7 @@ struct ResolvedTestSettings {
     xray_binary_path: PathBuf,
     icmp_timeout: Duration,
     tcp_timeout: Duration,
+    xray_startup_timeout: Duration,
     real_delay_timeout: Duration,
 }
 
@@ -199,6 +199,7 @@ fn resolve_test_settings(
             args.tcp_timeout_ms
                 .unwrap_or(app_config.testing.tcp.timeout),
         ),
+        xray_startup_timeout: Duration::from_millis(defaults::DEFAULT_XRAY_STARTUP_TIMEOUT_MS),
         real_delay_timeout: Duration::from_millis(
             args.real_delay_timeout_ms
                 .unwrap_or(app_config.testing.real_delay.timeout),
@@ -316,6 +317,7 @@ mod tests {
         assert_eq!(settings.xray_binary_path, PathBuf::from("xray"));
         assert_eq!(settings.icmp_timeout, Duration::from_millis(2500));
         assert_eq!(settings.tcp_timeout, Duration::from_millis(4500));
+        assert_eq!(settings.xray_startup_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(12_000));
     }
 

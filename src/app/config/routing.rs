@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::r#const as defaults;
+use super::defaults;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(default)]

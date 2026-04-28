@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::r#const as defaults;
+use super::defaults;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -49,8 +49,8 @@ impl Default for TestingSettings {
 impl Default for RealDelayTestSettings {
     fn default() -> Self {
         Self {
-            url: crate::tester::real_delay::DEFAULT_TEST_URL.to_string(),
-            timeout: crate::tester::DEFAULT_REAL_DELAY_TIMEOUT.as_millis() as u64,
+            url: defaults::DEFAULT_REAL_DELAY_TEST_URL.to_string(),
+            timeout: defaults::DEFAULT_REAL_DELAY_TIMEOUT_MS,
         }
     }
 }
