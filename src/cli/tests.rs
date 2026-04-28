@@ -2,7 +2,7 @@
 mod tests {
     use clap::Parser;
 
-    use crate::cli::{Cli, Command, ListTarget};
+    use crate::cli::{Cli, Command, ListTarget, TestFormat, TestSortBy};
 
     #[test]
     fn parses_import_subcommand_with_global_flags() {
@@ -117,7 +117,7 @@ mod tests {
 
         match cli.command {
             Command::Test(args) => {
-                assert_eq!(args.id, 42);
+                assert_eq!(args.id, Some(42));
                 assert!(args.skip_icmp);
                 assert!(args.skip_real_delay);
                 assert_eq!(
@@ -127,6 +127,45 @@ mod tests {
                 assert_eq!(args.icmp_timeout_ms, Some(3500));
                 assert_eq!(args.tcp_timeout_ms, Some(4500));
                 assert_eq!(args.real_delay_timeout_ms, Some(5500));
+            }
+            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+                panic!("expected test command")
+            }
+        }
+    }
+
+    #[test]
+    fn parses_bulk_test_flags() {
+        let cli = Cli::parse_from([
+            "xrat",
+            "test",
+            "--enabled-only",
+            "--subscription",
+            "9",
+            "--concurrency",
+            "0",
+            "--format",
+            "json",
+            "--output",
+            "/tmp/results.json",
+            "--sort-by",
+            "real-delay",
+            "--no-progress",
+        ]);
+
+        match cli.command {
+            Command::Test(args) => {
+                assert_eq!(args.id, None);
+                assert!(args.enabled_only);
+                assert_eq!(args.subscription, Some(9));
+                assert_eq!(args.concurrency, Some(0));
+                assert!(matches!(args.format, TestFormat::Json));
+                assert_eq!(
+                    args.output.as_deref(),
+                    Some(std::path::Path::new("/tmp/results.json"))
+                );
+                assert!(matches!(args.sort_by, TestSortBy::RealDelay));
+                assert!(args.no_progress);
             }
             Command::Import(_) | Command::Add(_) | Command::List(_) => {
                 panic!("expected test command")

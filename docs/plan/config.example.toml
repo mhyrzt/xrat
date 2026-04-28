@@ -125,17 +125,24 @@ enable_parallel_query = true
 "domain:lan.test" = ["192.168.1.10", "192.168.1.11"]
 
 
+[testing]
+concurrency = 0 # 0 = auto; positive values set exact bulk test concurrency
+
 [testing.real_delay]
+enabled = true
 url = "https://www.google.com/generate_204"
-timeout = 10_000                            # ms
+timeout = 10_000 # ms
 
 [testing.icmp]
+enabled = true
 timeout = 3000
+attempts = 3
 
 [testing.download]
+enabled = false
 url = "https://cachefly.cachefly.net/50mb.test"
-timeout = 30_000                                # ms
+timeout = 30_000 # ms
 
 [testing.tcp]
-# Planned: not consumed until config loading is wired into `xrat test`.
+enabled = true
 timeout = 5000 # ms

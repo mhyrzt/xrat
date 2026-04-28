@@ -1,95 +1,209 @@
+use std::cmp::Ordering;
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+
+use indicatif::{ProgressBar, ProgressStyle};
+use serde::Serialize;
+use tokio::task::JoinSet;
 
 use crate::app::AppError;
 use crate::app::config::AppConfig;
 use crate::app::config::defaults;
 use crate::app::runtime::{AppContext, RuntimePaths};
-use crate::cli::TestArgs;
+use crate::cli::{TestArgs, TestFormat, TestSortBy};
 #[cfg(test)]
 use crate::db::DatabaseConnectionConfig;
-use crate::db::{ConfigRecord, ConnectionTestInsert};
+use crate::db::{ConfigRecord, ConnectionTestInsert, Database};
 use crate::model::Node;
-use crate::tester::{TestResult, icmp_ping, real_delay_check, tcp_check};
+use crate::tester::{FailureKind, TestResult, icmp_ping, real_delay_check, tcp_check};
 
 pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()> {
-    let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths);
+    let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
 
-    // Load config from database
-    let config = context.db.get_config_by_id(args.id).await?;
+    if let Some(config_id) = args.id {
+        run_single(args, context, settings, config_id).await
+    } else {
+        run_bulk(args, context, settings).await
+    }
+}
 
-    if config.is_none() {
-        tracing::warn!(config_id = args.id, "config not found");
+async fn run_single(
+    _args: &TestArgs,
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    config_id: i64,
+) -> crate::app::Result<()> {
+    let config = context.db.get_config_by_id(config_id).await?;
+
+    let Some(config) = config else {
+        tracing::warn!(config_id, "config not found");
+        return Ok(());
+    };
+
+    print_single_header(&config);
+    let output = test_and_record_config(context.db.clone(), config, settings, true).await?;
+    print_single_summary(&output);
+
+    Ok(())
+}
+
+async fn run_bulk(
+    args: &TestArgs,
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+) -> crate::app::Result<()> {
+    let configs = context.db.list_configs(&args.config_filter()).await?;
+
+    if configs.is_empty() {
+        tracing::info!("no configs found for requested test filters");
+        write_results(args, &[])?;
         return Ok(());
     }
 
-    let config = config.unwrap();
+    let total = configs.len();
+    let concurrency = resolve_concurrency(settings.concurrency)?;
+    let progress = bulk_progress_bar(total, !args.no_progress);
+    let mut next_config = configs.into_iter();
+    let mut join_set = JoinSet::new();
+    let mut completed = 0usize;
+    let mut failed = 0usize;
+    let mut outputs = Vec::with_capacity(total);
 
+    for _ in 0..concurrency {
+        let Some(config) = next_config.next() else {
+            break;
+        };
+        spawn_config_test(&mut join_set, context.db.clone(), config, settings.clone());
+    }
+
+    while let Some(joined) = join_set.join_next().await {
+        let output = joined??;
+        completed += 1;
+        if output.status != TestStatus::Ok {
+            failed += 1;
+        }
+        outputs.push(output);
+        update_bulk_progress(&progress, completed, failed);
+
+        if let Some(config) = next_config.next() {
+            spawn_config_test(&mut join_set, context.db.clone(), config, settings.clone());
+        }
+    }
+    finish_bulk_progress(progress, completed, failed);
+
+    sort_results(&mut outputs, args.sort_by);
+    write_results(args, &outputs)?;
+
+    Ok(())
+}
+
+fn bulk_progress_bar(total: usize, enabled: bool) -> Option<ProgressBar> {
+    if !enabled {
+        return None;
+    }
+
+    let progress = ProgressBar::new(total as u64);
+    let style = ProgressStyle::with_template(
+        "{spinner:.green} testing [{bar:32.cyan/blue}] {pos}/{len} failed:{msg}",
+    )
+    .unwrap_or_else(|_| ProgressStyle::default_bar())
+    .progress_chars("=>-");
+    progress.set_style(style);
+    progress.set_message("0");
+
+    Some(progress)
+}
+
+fn update_bulk_progress(progress: &Option<ProgressBar>, completed: usize, failed: usize) {
+    if let Some(progress) = progress {
+        progress.set_position(completed as u64);
+        progress.set_message(failed.to_string());
+    }
+}
+
+fn finish_bulk_progress(progress: Option<ProgressBar>, completed: usize, failed: usize) {
+    if let Some(progress) = progress {
+        progress.finish_with_message(format!("done: {completed} tested, {failed} failed"));
+    }
+}
+
+fn spawn_config_test(
+    join_set: &mut JoinSet<crate::app::Result<TestOutputRow>>,
+    db: Database,
+    config: ConfigRecord,
+    settings: ResolvedTestSettings,
+) {
+    join_set.spawn(async move { test_and_record_config(db, config, settings, false).await });
+}
+
+async fn test_and_record_config(
+    db: Database,
+    config: ConfigRecord,
+    settings: ResolvedTestSettings,
+    print_progress: bool,
+) -> crate::app::Result<TestOutputRow> {
     let node = node_from_record(&config)?;
-
-    println!(
-        "Testing config #{}: {}",
-        config.id,
-        config.name.as_deref().unwrap_or("unnamed")
-    );
-    println!("  Protocol: {}", config.protocol);
-    println!("  Address: {}:{}", config.address, config.port);
-    println!();
-
     let mut result = TestResult::default();
     let test_start = Instant::now();
-    let ran_icmp = !args.skip_icmp;
-    let ran_tcp = !args.skip_tcp;
     let mut ran_real_delay = false;
 
-    // ICMP ping test
-    if !args.skip_icmp {
-        print!("Running ICMP ping... ");
+    if settings.run_icmp {
+        if print_progress {
+            print!("Running ICMP ping... ");
+            std::io::stdout().flush()?;
+        }
         let icmp_result = icmp_ping(&config.address, settings.icmp_timeout).await;
+        let failure_reason = icmp_result.failure_reason.clone();
 
         result.icmp_ok = icmp_result.success;
         result.icmp_ms = icmp_result.latency_ms;
+        merge_failure(
+            &mut result,
+            icmp_result.failure_kind,
+            icmp_result.failure_reason,
+        );
 
-        if icmp_result.success {
-            println!("✓ {}ms", icmp_result.latency_ms.unwrap());
-        } else {
-            println!(
-                "✗ {}",
-                icmp_result.failure_reason.as_deref().unwrap_or("failed")
+        if print_progress {
+            print_stage_result(
+                icmp_result.success,
+                icmp_result.latency_ms,
+                failure_reason.as_deref(),
             );
-            if result.failure_kind.is_none() {
-                result.failure_kind = icmp_result.failure_kind;
-                result.failure_reason = icmp_result.failure_reason;
-            }
         }
     }
 
-    // TCP connectivity test
-    if !args.skip_tcp {
-        print!("Running TCP check... ");
+    if settings.run_tcp {
+        if print_progress {
+            print!("Running TCP check... ");
+            std::io::stdout().flush()?;
+        }
         let tcp_result = tcp_check(&config.address, config.port as u16, settings.tcp_timeout).await;
+        let failure_reason = tcp_result.failure_reason.clone();
 
         result.tcp_ok = tcp_result.success;
         result.tcp_ms = tcp_result.latency_ms;
+        merge_failure(
+            &mut result,
+            tcp_result.failure_kind,
+            tcp_result.failure_reason,
+        );
 
-        if tcp_result.success {
-            println!("✓ {}ms", tcp_result.latency_ms.unwrap());
-        } else {
-            println!(
-                "✗ {}",
-                tcp_result.failure_reason.as_deref().unwrap_or("failed")
+        if print_progress {
+            print_stage_result(
+                tcp_result.success,
+                tcp_result.latency_ms,
+                failure_reason.as_deref(),
             );
-            if result.failure_kind.is_none() {
-                result.failure_kind = tcp_result.failure_kind;
-                result.failure_reason = tcp_result.failure_reason;
-            }
         }
     }
 
-    // Real-delay test (only if TCP succeeded or was skipped)
-    if !args.skip_real_delay && (result.tcp_ok || args.skip_tcp) {
+    if settings.run_real_delay && (result.tcp_ok || !settings.run_tcp) {
         ran_real_delay = true;
-        print!("Running real-delay test... ");
+        if print_progress {
+            print!("Running real-delay test... ");
+            std::io::stdout().flush()?;
+        }
 
         let real_delay_result = real_delay_check(
             &node,
@@ -99,78 +213,191 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()
             settings.real_delay_timeout,
         )
         .await;
+        let failure_reason = real_delay_result.failure_reason.clone();
 
         result.real_delay_ok = real_delay_result.success;
         result.real_delay_ms = real_delay_result.latency_ms;
+        merge_failure(
+            &mut result,
+            real_delay_result.failure_kind,
+            real_delay_result.failure_reason,
+        );
 
-        if real_delay_result.success {
-            println!("✓ {}ms", real_delay_result.latency_ms.unwrap());
-        } else {
-            println!(
-                "✗ {}",
-                real_delay_result
-                    .failure_reason
-                    .as_deref()
-                    .unwrap_or("failed")
+        if print_progress {
+            print_stage_result(
+                real_delay_result.success,
+                real_delay_result.latency_ms,
+                failure_reason.as_deref(),
             );
-            if result.failure_kind.is_none() {
-                result.failure_kind = real_delay_result.failure_kind;
-                result.failure_reason = real_delay_result.failure_reason;
-            }
         }
-    } else if !args.skip_real_delay {
+    } else if settings.run_real_delay && print_progress {
         println!("Skipping real-delay test (TCP check failed)");
     }
 
-    let total_elapsed = test_start.elapsed();
-
-    // Save result to database
-    let failure_kind_str = result.failure_kind.as_ref().map(|k| k.as_str().to_string());
-
-    context
-        .db
-        .insert_connection_test(&ConnectionTestInsert {
-            config_id: config.id,
-            icmp_ok: ran_icmp.then_some(result.icmp_ok),
-            icmp_ms: result.icmp_ms.map(|ms| ms as i64),
-            tcp_ok: ran_tcp.then_some(result.tcp_ok),
-            tcp_ms: result.tcp_ms.map(|ms| ms as i64),
-            real_delay_ok: ran_real_delay.then_some(result.real_delay_ok),
-            real_delay_ms: result.real_delay_ms.map(|ms| ms as i64),
-            failure_kind: failure_kind_str,
-            failure_reason: result.failure_reason.clone(),
-        })
+    let elapsed = test_start.elapsed();
+    let output = TestOutputRow::from_parts(&config, &result, &settings, ran_real_delay, elapsed);
+    db.insert_connection_test(&output.connection_test_insert())
         .await?;
 
-    println!();
-    println!("Test completed in {:.2}s", total_elapsed.as_secs_f64());
+    Ok(output)
+}
 
-    // Print summary
-    let overall_success = if ran_real_delay {
-        result.real_delay_ok
-    } else if ran_tcp {
-        result.tcp_ok
-    } else if ran_icmp {
-        result.icmp_ok
+fn merge_failure(
+    result: &mut TestResult,
+    failure_kind: Option<FailureKind>,
+    failure_reason: Option<String>,
+) {
+    if !matches!(result.failure_kind, None) {
+        return;
+    }
+
+    result.failure_kind = failure_kind;
+    result.failure_reason = failure_reason;
+}
+
+fn print_stage_result(success: bool, latency_ms: Option<u32>, failure_reason: Option<&str>) {
+    if success {
+        println!("OK {}ms", latency_ms.unwrap_or_default());
     } else {
-        false
+        println!("FAIL {}", failure_reason.unwrap_or("failed"));
+    }
+}
+
+fn print_single_header(config: &ConfigRecord) {
+    println!(
+        "Testing config #{}: {}",
+        config.id,
+        config.name.as_deref().unwrap_or("unnamed")
+    );
+    println!("  Protocol: {}", config.protocol);
+    println!("  Address: {}:{}", config.address, config.port);
+    println!();
+}
+
+fn print_single_summary(output: &TestOutputRow) {
+    println!();
+    println!("Test completed in {:.2}s", output.elapsed_secs);
+
+    match output.status {
+        TestStatus::Skipped => println!("No tests were run"),
+        TestStatus::Ok => {
+            println!("OK Config is working");
+            if let Some(ms) = output.real_delay_ms {
+                println!("  Real delay: {ms}ms");
+            }
+        }
+        TestStatus::Failed => {
+            println!("FAIL Config failed");
+            if let Some(reason) = &output.error {
+                println!("  Reason: {reason}");
+            }
+        }
+    }
+}
+
+fn write_results(args: &TestArgs, outputs: &[TestOutputRow]) -> crate::app::Result<()> {
+    let data = match args.format {
+        TestFormat::Tsv => format_tsv(outputs),
+        TestFormat::Json => serde_json::to_string_pretty(outputs)?,
     };
 
-    if !ran_icmp && !ran_tcp && !ran_real_delay {
-        println!("No tests were run");
-    } else if overall_success {
-        println!("✓ Config is working");
-        if let Some(ms) = result.real_delay_ms {
-            println!("  Real delay: {}ms", ms);
-        }
+    if let Some(path) = &args.output {
+        std::fs::write(path, data)?;
     } else {
-        println!("✗ Config failed");
-        if let Some(reason) = &result.failure_reason {
-            println!("  Reason: {}", reason);
-        }
+        println!("{data}");
     }
 
     Ok(())
+}
+
+fn format_tsv(outputs: &[TestOutputRow]) -> String {
+    let mut lines = Vec::with_capacity(outputs.len() + 1);
+    lines.push(
+        "id\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tstatus\terror"
+            .to_string(),
+    );
+
+    for output in outputs {
+        lines.push(format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            output.id,
+            tsv_cell(output.name.as_deref()),
+            output.protocol,
+            output.address,
+            output.port,
+            optional_number(output.icmp_ms),
+            optional_number(output.real_delay_ms),
+            output
+                .download_mbps
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_default(),
+            output.status.as_str(),
+            tsv_cell(output.error.as_deref()),
+        ));
+    }
+
+    lines.join("\n")
+}
+
+fn tsv_cell(value: Option<&str>) -> String {
+    value.unwrap_or_default().replace(['\t', '\r', '\n'], " ")
+}
+
+fn optional_number(value: Option<u32>) -> String {
+    value.map(|value| value.to_string()).unwrap_or_default()
+}
+
+fn sort_results(outputs: &mut [TestOutputRow], sort_by: TestSortBy) {
+    outputs
+        .sort_by(|left, right| compare_results(left, right, sort_by).then(left.id.cmp(&right.id)));
+}
+
+fn compare_results(left: &TestOutputRow, right: &TestOutputRow, sort_by: TestSortBy) -> Ordering {
+    match sort_by {
+        TestSortBy::Status => left.status.cmp(&right.status),
+        TestSortBy::Icmp => compare_optional_u32(left.icmp_ms, right.icmp_ms),
+        TestSortBy::RealDelay => compare_optional_u32(left.real_delay_ms, right.real_delay_ms),
+        TestSortBy::DownloadSpeed => {
+            compare_optional_f64_desc(left.download_mbps, right.download_mbps)
+        }
+        TestSortBy::Protocol => left.protocol.cmp(&right.protocol),
+        TestSortBy::Address => left.address.cmp(&right.address),
+    }
+}
+
+fn compare_optional_u32(left: Option<u32>, right: Option<u32>) -> Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => left.cmp(&right),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => Ordering::Equal,
+    }
+}
+
+fn compare_optional_f64_desc(left: Option<f64>, right: Option<f64>) -> Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => right.partial_cmp(&left).unwrap_or(Ordering::Equal),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => Ordering::Equal,
+    }
+}
+
+fn resolve_concurrency(value: i32) -> crate::app::Result<usize> {
+    if value < 0 {
+        return Err(AppError::InvalidArgument(
+            "test concurrency must be 0 or greater".to_string(),
+        ));
+    }
+
+    if value > 0 {
+        return Ok(value as usize);
+    }
+
+    let parallelism = std::thread::available_parallelism()
+        .map(|value| value.get())
+        .unwrap_or(1);
+    Ok(parallelism.clamp(1, 8))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -181,14 +408,25 @@ struct ResolvedTestSettings {
     tcp_timeout: Duration,
     xray_startup_timeout: Duration,
     real_delay_timeout: Duration,
+    run_icmp: bool,
+    run_tcp: bool,
+    run_real_delay: bool,
+    concurrency: i32,
 }
 
 fn resolve_test_settings(
     args: &TestArgs,
     app_config: &AppConfig,
     runtime_paths: &RuntimePaths,
-) -> ResolvedTestSettings {
-    ResolvedTestSettings {
+) -> crate::app::Result<ResolvedTestSettings> {
+    let concurrency = args.concurrency.unwrap_or(app_config.testing.concurrency);
+    if concurrency < 0 {
+        return Err(AppError::InvalidArgument(
+            "test concurrency must be 0 or greater".to_string(),
+        ));
+    }
+
+    Ok(ResolvedTestSettings {
         real_delay_url: args
             .test_url
             .clone()
@@ -207,7 +445,11 @@ fn resolve_test_settings(
             args.real_delay_timeout_ms
                 .unwrap_or(app_config.testing.real_delay.timeout),
         ),
-    }
+        run_icmp: app_config.testing.icmp.enabled && !args.skip_icmp,
+        run_tcp: app_config.testing.tcp.enabled && !args.skip_tcp,
+        run_real_delay: app_config.testing.real_delay.enabled && !args.skip_real_delay,
+        concurrency,
+    })
 }
 
 fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePaths) -> PathBuf {
@@ -215,6 +457,132 @@ fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePat
         "v2ray" => runtime_paths.v2ray_path.clone(),
         "xray" => runtime_paths.xray_path.clone(),
         other => PathBuf::from(other),
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct TestOutputRow {
+    id: i64,
+    name: Option<String>,
+    protocol: String,
+    address: String,
+    port: i64,
+    icmp_ms: Option<u32>,
+    real_delay_ms: Option<u32>,
+    download_mbps: Option<f64>,
+    status: TestStatus,
+    error: Option<String>,
+    #[serde(skip_serializing)]
+    tcp_ms: Option<u32>,
+    #[serde(skip_serializing)]
+    ran_icmp: bool,
+    #[serde(skip_serializing)]
+    ran_tcp: bool,
+    #[serde(skip_serializing)]
+    ran_real_delay: bool,
+    #[serde(skip_serializing)]
+    icmp_ok: bool,
+    #[serde(skip_serializing)]
+    tcp_ok: bool,
+    #[serde(skip_serializing)]
+    real_delay_ok: bool,
+    #[serde(skip_serializing)]
+    failure_kind: Option<String>,
+    #[serde(skip_serializing)]
+    elapsed_secs: f64,
+}
+
+impl TestOutputRow {
+    fn from_parts(
+        config: &ConfigRecord,
+        result: &TestResult,
+        settings: &ResolvedTestSettings,
+        ran_real_delay: bool,
+        elapsed: Duration,
+    ) -> Self {
+        let status = overall_status(result, settings.run_icmp, settings.run_tcp, ran_real_delay);
+
+        Self {
+            id: config.id,
+            name: config.name.clone(),
+            protocol: config.protocol.clone(),
+            address: config.address.clone(),
+            port: config.port,
+            icmp_ms: result.icmp_ms,
+            real_delay_ms: result.real_delay_ms,
+            download_mbps: None,
+            status,
+            error: result.failure_reason.clone(),
+            tcp_ms: result.tcp_ms,
+            ran_icmp: settings.run_icmp,
+            ran_tcp: settings.run_tcp,
+            ran_real_delay,
+            icmp_ok: result.icmp_ok,
+            tcp_ok: result.tcp_ok,
+            real_delay_ok: result.real_delay_ok,
+            failure_kind: result
+                .failure_kind
+                .as_ref()
+                .map(|kind| kind.as_str().to_string()),
+            elapsed_secs: elapsed.as_secs_f64(),
+        }
+    }
+
+    fn connection_test_insert(&self) -> ConnectionTestInsert {
+        ConnectionTestInsert {
+            config_id: self.id,
+            icmp_ok: self.ran_icmp.then_some(self.icmp_ok),
+            icmp_ms: self.icmp_ms.map(i64::from),
+            tcp_ok: self.ran_tcp.then_some(self.tcp_ok),
+            tcp_ms: self.tcp_ms.map(i64::from),
+            real_delay_ok: self.ran_real_delay.then_some(self.real_delay_ok),
+            real_delay_ms: self.real_delay_ms.map(i64::from),
+            failure_kind: self.failure_kind.clone(),
+            failure_reason: self.error.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum TestStatus {
+    Ok,
+    Failed,
+    Skipped,
+}
+
+impl TestStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+        }
+    }
+}
+
+fn overall_status(
+    result: &TestResult,
+    ran_icmp: bool,
+    ran_tcp: bool,
+    ran_real_delay: bool,
+) -> TestStatus {
+    if !ran_icmp && !ran_tcp && !ran_real_delay {
+        return TestStatus::Skipped;
+    }
+
+    let success = if ran_real_delay {
+        result.real_delay_ok
+    } else if ran_tcp {
+        result.tcp_ok
+    } else {
+        result.icmp_ok
+    };
+
+    if success {
+        TestStatus::Ok
+    } else {
+        TestStatus::Failed
     }
 }
 
@@ -293,28 +661,27 @@ mod tests {
         let app_config = AppConfig {
             testing: TestingSettings {
                 real_delay: crate::app::config::RealDelayTestSettings {
+                    enabled: true,
                     url: "https://example.test/204".to_string(),
                     timeout: 12_000,
                 },
-                icmp: crate::app::config::TimeoutSettings { timeout: 2500 },
-                tcp: crate::app::config::TimeoutSettings { timeout: 4500 },
+                icmp: crate::app::config::IcmpTestSettings {
+                    enabled: true,
+                    attempts: 3,
+                    timeout: 2500,
+                },
+                tcp: crate::app::config::TcpTestSettings {
+                    enabled: true,
+                    timeout: 4500,
+                },
                 ..TestingSettings::default()
             },
             ..AppConfig::default()
         };
-        let args = TestArgs {
-            id: 1,
-            skip_icmp: false,
-            skip_tcp: false,
-            skip_real_delay: false,
-            test_url: None,
-            icmp_timeout_ms: None,
-            tcp_timeout_ms: None,
-            real_delay_timeout_ms: None,
-        };
+        let args = test_args(Some(1));
 
         let runtime_paths = test_runtime_paths();
-        let settings = resolve_test_settings(&args, &app_config, &runtime_paths);
+        let settings = resolve_test_settings(&args, &app_config, &runtime_paths).expect("settings");
 
         assert_eq!(settings.real_delay_url, "https://example.test/204");
         assert_eq!(settings.xray_binary_path, PathBuf::from("xray"));
@@ -329,33 +696,46 @@ mod tests {
         let app_config = AppConfig {
             testing: TestingSettings {
                 real_delay: crate::app::config::RealDelayTestSettings {
+                    enabled: true,
                     url: "https://example.test/204".to_string(),
                     timeout: 12_000,
                 },
-                icmp: crate::app::config::TimeoutSettings { timeout: 2500 },
-                tcp: crate::app::config::TimeoutSettings { timeout: 4500 },
+                icmp: crate::app::config::IcmpTestSettings {
+                    enabled: true,
+                    attempts: 3,
+                    timeout: 2500,
+                },
+                tcp: crate::app::config::TcpTestSettings {
+                    enabled: true,
+                    timeout: 4500,
+                },
                 ..TestingSettings::default()
             },
             ..AppConfig::default()
         };
         let args = TestArgs {
-            id: 1,
-            skip_icmp: false,
-            skip_tcp: false,
-            skip_real_delay: false,
             test_url: Some("https://override.test/204".to_string()),
             icmp_timeout_ms: Some(3000),
             tcp_timeout_ms: Some(5000),
             real_delay_timeout_ms: Some(15_000),
+            ..test_args(Some(1))
         };
 
         let runtime_paths = test_runtime_paths();
-        let settings = resolve_test_settings(&args, &app_config, &runtime_paths);
+        let settings = resolve_test_settings(&args, &app_config, &runtime_paths).expect("settings");
 
         assert_eq!(settings.real_delay_url, "https://override.test/204");
         assert_eq!(settings.icmp_timeout, Duration::from_millis(3000));
         assert_eq!(settings.tcp_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
+    }
+
+    #[test]
+    fn resolves_configured_test_concurrency() {
+        assert_eq!(resolve_concurrency(1).expect("positive concurrency"), 1);
+        assert_eq!(resolve_concurrency(16).expect("positive concurrency"), 16);
+        assert!(resolve_concurrency(-1).is_err());
+        assert!(resolve_concurrency(0).expect("auto concurrency") >= 1);
     }
 
     #[test]
@@ -418,6 +798,28 @@ mod tests {
             config_path: "/tmp/xrat/config.toml".into(),
             xray_path: "xray".into(),
             v2ray_path: "v2ray".into(),
+        }
+    }
+
+    fn test_args(id: Option<i64>) -> TestArgs {
+        TestArgs {
+            id,
+            enabled_only: false,
+            active_only: false,
+            selected_only: false,
+            subscription: None,
+            skip_icmp: false,
+            skip_tcp: false,
+            skip_real_delay: false,
+            test_url: None,
+            icmp_timeout_ms: None,
+            tcp_timeout_ms: None,
+            real_delay_timeout_ms: None,
+            concurrency: None,
+            format: crate::cli::TestFormat::Tsv,
+            output: None,
+            sort_by: crate::cli::TestSortBy::Status,
+            no_progress: false,
         }
     }
 }

@@ -11,7 +11,7 @@ pub use command::Command;
 pub use import::ImportArgs;
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use root::Cli;
-pub use test::TestArgs;
+pub use test::{TestArgs, TestFormat, TestSortBy};
 
 use clap::Parser;
 

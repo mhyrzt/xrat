@@ -1,9 +1,28 @@
-use clap::Args;
+use std::path::PathBuf;
+
+use clap::{Args, ValueEnum};
+
+use crate::db::ConfigListFilter;
 
 #[derive(Debug, Clone, Args)]
 pub struct TestArgs {
     #[arg(help = "Config ID to test.")]
-    pub id: i64,
+    pub id: Option<i64>,
+
+    #[arg(long = "enabled-only", help = "Bulk test only enabled configs.")]
+    pub enabled_only: bool,
+
+    #[arg(long = "active-only", help = "Bulk test only the active config.")]
+    pub active_only: bool,
+
+    #[arg(long = "selected-only", help = "Bulk test only the selected config.")]
+    pub selected_only: bool,
+
+    #[arg(
+        long = "subscription",
+        help = "Bulk test only configs from one subscription id."
+    )]
+    pub subscription: Option<i64>,
 
     #[arg(long = "skip-icmp", help = "Skip ICMP ping test.")]
     pub skip_icmp: bool,
@@ -37,4 +56,73 @@ pub struct TestArgs {
         help = "Override the real-delay request timeout in milliseconds."
     )]
     pub real_delay_timeout_ms: Option<u64>,
+
+    #[arg(long = "concurrency", help = "Bulk test concurrency. 0 means auto.")]
+    pub concurrency: Option<i32>,
+
+    #[arg(long = "format", default_value_t, help = "Bulk result output format.")]
+    pub format: TestFormat,
+
+    #[arg(
+        long = "output",
+        help = "Write bulk results to a file instead of stdout."
+    )]
+    pub output: Option<PathBuf>,
+
+    #[arg(long = "sort-by", default_value_t, help = "Sort bulk results.")]
+    pub sort_by: TestSortBy,
+
+    #[arg(long = "no-progress", help = "Disable bulk progress output.")]
+    pub no_progress: bool,
+}
+
+impl TestArgs {
+    pub fn config_filter(&self) -> ConfigListFilter {
+        ConfigListFilter {
+            only_enabled: self.enabled_only,
+            only_selected: self.selected_only,
+            only_active: self.active_only,
+            subscription_id: self.subscription,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+pub enum TestFormat {
+    #[default]
+    Tsv,
+    Json,
+}
+
+impl std::fmt::Display for TestFormat {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Tsv => formatter.write_str("tsv"),
+            Self::Json => formatter.write_str("json"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+pub enum TestSortBy {
+    #[default]
+    Status,
+    Icmp,
+    RealDelay,
+    DownloadSpeed,
+    Protocol,
+    Address,
+}
+
+impl std::fmt::Display for TestSortBy {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Status => formatter.write_str("status"),
+            Self::Icmp => formatter.write_str("icmp"),
+            Self::RealDelay => formatter.write_str("real-delay"),
+            Self::DownloadSpeed => formatter.write_str("download-speed"),
+            Self::Protocol => formatter.write_str("protocol"),
+            Self::Address => formatter.write_str("address"),
+        }
+    }
 }

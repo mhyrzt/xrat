@@ -74,6 +74,41 @@ Related commit:
 2bcd1d1 refactor: add tracing diagnostics
 ```
 
+### Tester Bulk Execution and Output
+
+- Refactored `xrat test` so one-config testing returns a structured result
+  before printing or persisting.
+- Kept `xrat test <id>` working with human-friendly single-config output.
+- Made the config ID optional so `xrat test` without an ID runs bulk tests.
+- Added bulk filters matching `list configs`:
+  - `--enabled-only`
+  - `--selected-only`
+  - `--active-only`
+  - `--subscription <id>`
+- Persisted one connection test row for each tested config.
+- Added bounded bulk concurrency using Tokio tasks already in the dependency
+  tree.
+- Added `[testing] concurrency = 0` and `--concurrency <n>`:
+  - `0` means auto and is the default.
+  - Positive values set exact bounded concurrency.
+  - Negative values are invalid.
+  - Auto resolves at runtime with a floor of `1` and upper cap of `8`.
+- Added structured bulk output:
+  - `--format {tsv,json}`
+  - `--output <filename>`
+  - `--sort-by {status,icmp,real-delay,download-speed,protocol,address}`
+  - `--no-progress`
+- Added `indicatif` progress bars for bulk tests.
+- Kept stdout pipe-friendly by writing bulk progress to stderr.
+- Added stage enablement config:
+  - `[testing.icmp].enabled`
+  - `[testing.icmp].attempts`
+  - `[testing.real_delay].enabled`
+  - `[testing.download].enabled`
+  - `[testing.tcp].enabled`
+- Updated `docs/plan/config.example.toml` with the new tester config shape.
+- Left actual download-speed checks and download Mbps persistence for follow-up.
+
 ### Database Module Facade
 
 - Split the `Database` facade out of `src/db/mod.rs` into

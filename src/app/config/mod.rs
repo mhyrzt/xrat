@@ -26,7 +26,9 @@ pub use runtime::{
     SniffingSettings, SocksSettings,
 };
 pub use secret::{SecretError, SecretString};
-pub use testing::{DownloadTestSettings, RealDelayTestSettings, TestingSettings, TimeoutSettings};
+pub use testing::{
+    DownloadTestSettings, IcmpTestSettings, RealDelayTestSettings, TcpTestSettings, TestingSettings,
+};
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -72,6 +74,9 @@ mod tests {
 
         assert_eq!(config.runtime.engine, "xray");
         assert_eq!(config.runtime.socks.port, 1080);
+        assert_eq!(config.testing.concurrency, 0);
+        assert!(config.testing.icmp.enabled);
+        assert_eq!(config.testing.icmp.attempts, 3);
         assert_eq!(config.testing.icmp.timeout, 3000);
         assert_eq!(
             config.testing.real_delay.url,
@@ -116,6 +121,12 @@ mod tests {
             config.dns.hosts.get("domain:example.test"),
             Some(&DnsHostValue::One("127.0.0.1".to_string()))
         );
+        assert_eq!(config.testing.concurrency, 0);
+        assert!(config.testing.real_delay.enabled);
+        assert!(config.testing.icmp.enabled);
+        assert_eq!(config.testing.icmp.attempts, 3);
+        assert!(!config.testing.download.enabled);
+        assert!(config.testing.tcp.enabled);
         assert_eq!(config.testing.tcp.timeout, 5000);
         assert_eq!(
             config.parser.parse_mode,

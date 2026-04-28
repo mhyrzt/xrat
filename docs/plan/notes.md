@@ -74,69 +74,11 @@ Exercise at least:
 
 ## Tester Improvements
 
-### Parallel Testing
-
-- Current implementation appears to test configurations one by one.
-- This will be too slow when testing all configs stored in the database.
-- Add parallelization for bulk testing.
-
-Suggested configuration:
-
-```toml
-[tester]
-concurrency = 16 # i32 or auto, default to auto
-```
-
-Implementation options:
-
-- Use `tokio::task`.
-- Use `futures::stream::FuturesUnordered`.
-- Use `buffer_unordered(concurrency)` for controlled parallelism.
-
-Testing should support bounded concurrency to avoid:
-
-- excessive system resource usage
-- too many open sockets
-- rate limits
-- unstable benchmark results
-
-### Progress Display
-
-- Consider using `indicatif` for progress display during bulk tests.
-- Show total configs, completed count, failed count, and average/remaining time
-  if useful.
-- Progress output should be disabled or adjusted when stdout is intended for
-  machine-readable output.
-
 ### Test Result Output
 
-- After testing, print results in a structured and pipe-friendly format.
-- TSV is a good default because it is human-readable and easy to pipe into
-  tools like `sort`, `awk`, and `cut`.
-
-Suggested TSV columns:
-
-```text
-id name protocol address port icmp_ms real_delay_ms download_mbps status error
-```
-
-Suggested CLI flags:
-
-```text
---format {csv,tsv,json}
---ouptput filename
---sort-by {real-delay, download-speed, icmp}
---no-progress
-```
-
-Results should be sortable by:
-
-- status
-- ICMP latency
-- real delay
-- download speed
-- protocol
-- address
+- Consider adding CSV only if there is a clear consumer for it.
+- `download_mbps` is present in TSV/JSON output but remains empty until download
+  speed testing is implemented.
 
 ### Connection Testing Flow
 
@@ -146,36 +88,29 @@ Results should be sortable by:
 ICMP -> Real Delay -> Download Speed
 ```
 
-- ICMP and download speed tests should be configurable and optionally disabled.
-
-Suggested configuration:
-
-```toml
-[tester.icmp]
-enabled = true
-timeout_ms = 1000
-attempts = 3
-
-[tester.real_delay]
-enabled = true
-timeout_ms = 5000
-test_url = "https://www.gstatic.com/generate_204"
-
-[tester.download_speed]
-enabled = false
-timeout_ms = 10000
-test_url = "https://speed.cloudflare.com/__down?bytes=10485760"
-```
-
-- The test runner should skip disabled stages cleanly.
+- Current code still uses TCP as an internal gate before real-delay.
+- Revisit whether TCP should remain part of persisted test state or become an
+  implementation detail of real-delay testing.
 - If a required earlier stage fails, behavior should be configurable:
   - continue testing remaining stages
   - skip remaining stages
   - mark node as failed
 
+### Download Speed Testing
+
+- Add `src/tester/download.rs` for download-speed checks.
+- Use the configured URL and timeout.
+- Return download Mbps plus the same failure classification style used by ICMP,
+  TCP, and real-delay checks.
+- Decide whether download speed should be persisted:
+  - If persisted, add a migration and DB model/repository changes.
+  - If not persisted in the first pass, keep it output-only and document that
+    persistence is pending.
+- Keep this as a focused follow-up if it makes the first bulk-testing change too
+  large.
+
 ## Suggested Refactoring Priorities
 
-1. Add parallel bulk testing with configurable concurrency.
-2. Add structured test result output such as TSV/JSON.
-3. Improve node deduplication key by using a stable hash-based approach.
-4. Verify PostgreSQL support against a real PostgreSQL server.
+1. Add download-speed testing and decide whether to persist download Mbps.
+2. Improve node deduplication key by using a stable hash-based approach.
+3. Verify PostgreSQL support against a real PostgreSQL server.

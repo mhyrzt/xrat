@@ -10,6 +10,6 @@ pub enum Command {
     Add(AddArgs),
     #[command(about = "List persisted nodes or subscriptions.")]
     List(ListArgs),
-    #[command(about = "Test connectivity and latency for a stored config.")]
+    #[command(about = "Test connectivity and latency for stored configs.")]
     Test(TestArgs),
 }

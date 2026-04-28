@@ -43,6 +43,12 @@ pub enum AppError {
 
     #[error("unsupported protocol in database: {0}")]
     UnsupportedProtocol(String),
+
+    #[error("invalid argument: {0}")]
+    InvalidArgument(String),
+
+    #[error("background task failed")]
+    TaskJoin(#[from] tokio::task::JoinError),
 }
 
 pub type Result<T> = std::result::Result<T, AppError>;

@@ -38,6 +38,10 @@ pub const DEFAULT_DNS_DISABLE_FALLBACK: bool = false;
 pub const DEFAULT_DNS_ENABLE_PARALLEL_QUERY: bool = true;
 
 pub const DEFAULT_ICMP_TIMEOUT_MS: u64 = 3000;
+pub const DEFAULT_TESTING_CONCURRENCY: i32 = 0;
+pub const DEFAULT_TEST_STAGE_ENABLED: bool = true;
+pub const DEFAULT_DOWNLOAD_TEST_ENABLED: bool = false;
+pub const DEFAULT_ICMP_ATTEMPTS: u32 = 3;
 pub const DEFAULT_TCP_TIMEOUT_MS: u64 = 5000;
 pub const DEFAULT_REAL_DELAY_TEST_URL: &str = "https://www.gstatic.com/generate_204";
 pub const DEFAULT_REAL_DELAY_TIMEOUT_MS: u64 = 10_000;
