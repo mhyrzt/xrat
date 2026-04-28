@@ -1,3 +1,4 @@
+mod error;
 mod import;
 mod line;
 mod normalize;
@@ -9,6 +10,7 @@ use std::collections::HashSet;
 
 use crate::model::Node;
 
+pub use error::ConfigParseError;
 pub use import::{ImportMode, ImportResult, SubscriptionMetadata, parse_import};
 
 pub fn parse_text(config_text: &str) -> Vec<Node> {

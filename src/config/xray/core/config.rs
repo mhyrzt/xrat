@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use super::{
     ApiObject, BurstObservatoryObject, DnsObject, FakeDnsObject, LogObject, MetricsObject,
@@ -6,6 +7,12 @@ use super::{
 };
 use crate::config::xray::protocols::{InboundObject, OutboundObject};
 use crate::config::xray::transports::TransportObject;
+
+#[derive(Debug, Error)]
+pub enum XrayConfigError {
+    #[error("invalid Xray JSON")]
+    Json(#[from] serde_json::Error),
+}
 
 /// Main Xray configuration object
 ///
@@ -93,33 +100,31 @@ impl From<XrayConfigStrict> for XrayConfig {
 
 impl XrayConfig {
     /// Parse from JSON string in strict mode (rejects unknown fields)
-    pub fn from_json_strict(json: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_json_strict(json: &str) -> Result<Self, XrayConfigError> {
         let strict: XrayConfigStrict = serde_json::from_str(json)?;
         Ok(strict.into())
     }
 
     /// Parse from JSON string in loose mode (allows unknown fields)
-    pub fn from_json_loose(json: &str) -> Result<Self, serde_json::Error> {
-        serde_json::from_str(json)
+    pub fn from_json_loose(json: &str) -> Result<Self, XrayConfigError> {
+        Ok(serde_json::from_str(json)?)
     }
 
     /// Serialize to JSON string
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string_pretty(self)
+    pub fn to_json(&self) -> Result<String, XrayConfigError> {
+        Ok(serde_json::to_string_pretty(self)?)
     }
 
     /// Parse from JSON with specified mode
     pub fn from_json_with_mode(
         json: &str,
         mode: crate::config::xray::ParseMode,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self, XrayConfigError> {
         match mode {
             crate::config::xray::ParseMode::Strict => Self::from_json_strict(json),
             crate::config::xray::ParseMode::Lenient
             | crate::config::xray::ParseMode::Auto
-            | crate::config::xray::ParseMode::Loose => {
-                Self::from_json_loose(json).map_err(|e| e.into())
-            }
+            | crate::config::xray::ParseMode::Loose => Self::from_json_loose(json),
         }
     }
 }

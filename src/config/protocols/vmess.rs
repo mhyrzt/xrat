@@ -1,9 +1,10 @@
+use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 use crate::support::decode::b64_decode_text;
 
 use super::super::support::{optional_string, required_string};
 
-pub fn parse_vmess(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
+pub fn parse_vmess(line: &str) -> Result<Node, ConfigParseError> {
     let payload = line.trim_start_matches("vmess://");
     let data: serde_json::Value = serde_json::from_str(&b64_decode_text(payload)?)?;
 

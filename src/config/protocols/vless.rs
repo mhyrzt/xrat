@@ -1,16 +1,19 @@
 use url::Url;
 
+use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::support::{empty_to_none, parse_query_pairs, percent_decode, username_or_none};
 
-pub fn parse_vless(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
+pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;
     let address = parsed
         .host_str()
-        .ok_or("missing address or port")?
+        .ok_or(ConfigParseError::MissingAddressOrPort)?
         .to_string();
-    let port = parsed.port().ok_or("missing address or port")?;
+    let port = parsed
+        .port()
+        .ok_or(ConfigParseError::MissingAddressOrPort)?;
     let query = parse_query_pairs(parsed.query().unwrap_or_default());
     let fragment = parsed.fragment().map(percent_decode);
     let path = query.get("path").map(String::as_str).unwrap_or_default();

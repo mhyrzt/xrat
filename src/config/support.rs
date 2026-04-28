@@ -1,6 +1,8 @@
 use percent_encoding::percent_decode_str;
 use url::{Url, form_urlencoded};
 
+use super::ConfigParseError;
+
 pub fn parse_query_pairs(query: &str) -> std::collections::HashMap<String, String> {
     form_urlencoded::parse(query.as_bytes())
         .into_owned()
@@ -9,10 +11,12 @@ pub fn parse_query_pairs(query: &str) -> std::collections::HashMap<String, Strin
 
 pub fn required_string(
     value: &serde_json::Value,
-    key: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    optional_string(value, key)
-        .ok_or_else(|| format!("missing required {key} field in vmess JSON").into())
+    key: &'static str,
+) -> Result<String, ConfigParseError> {
+    optional_string(value, key).ok_or(ConfigParseError::MissingRequiredField {
+        context: "vmess JSON",
+        key,
+    })
 }
 
 pub fn optional_string(value: &serde_json::Value, key: &str) -> Option<String> {

@@ -1,8 +1,19 @@
-use super::{ImportResult, SubscriptionMetadata};
+use thiserror::Error;
 
-pub async fn fetch_subscription(url: &str) -> Result<ImportResult, Box<dyn std::error::Error>> {
-    use reqwest;
+use super::{ImportParseError, ImportResult, SubscriptionMetadata};
+use crate::support::decode::DecodeError;
 
+#[derive(Debug, Error)]
+pub enum SubscriptionFetchError {
+    #[error("invalid subscription URL")]
+    Decode(#[from] DecodeError),
+    #[error("request failed")]
+    Request(#[from] reqwest::Error),
+    #[error("subscription content could not be parsed")]
+    Parse(#[from] ImportParseError),
+}
+
+pub async fn fetch_subscription(url: &str) -> Result<ImportResult, SubscriptionFetchError> {
     let url = normalize_subscription_url(url)?;
     let response = reqwest::get(&url).await?;
 
@@ -41,7 +52,7 @@ pub async fn fetch_subscription(url: &str) -> Result<ImportResult, Box<dyn std::
     Ok(result)
 }
 
-fn normalize_subscription_url(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn normalize_subscription_url(url: &str) -> Result<String, DecodeError> {
     let url = url.trim();
 
     if url.starts_with("sub://") {

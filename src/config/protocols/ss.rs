@@ -1,26 +1,29 @@
 use url::Url;
 
+use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 use crate::support::decode::b64_decode_text;
 
 use super::super::support::{empty_to_none, percent_decode};
 
-pub fn parse_ss(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
+pub fn parse_ss(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;
     let address = parsed
         .host_str()
-        .ok_or("missing address or port")?
+        .ok_or(ConfigParseError::MissingAddressOrPort)?
         .to_string();
-    let port = parsed.port().ok_or("missing address or port")?;
+    let port = parsed
+        .port()
+        .ok_or(ConfigParseError::MissingAddressOrPort)?;
     let userinfo = parsed.username();
     if userinfo.is_empty() {
-        return Err("missing base64 userinfo".into());
+        return Err(ConfigParseError::MissingBase64Userinfo);
     }
 
     let decoded = b64_decode_text(userinfo)?;
     let (method, password) = decoded
         .split_once(':')
-        .ok_or("invalid Shadowsocks userinfo format")?;
+        .ok_or(ConfigParseError::InvalidShadowsocksUserinfo)?;
 
     Ok(Node {
         protocol: Protocol::Ss,

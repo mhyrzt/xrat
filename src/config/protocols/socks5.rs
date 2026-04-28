@@ -1,16 +1,19 @@
 use url::Url;
 
+use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::support::{empty_to_none, password_or_none, percent_decode, username_or_none};
 
-pub fn parse_socks5(line: &str) -> Result<Node, Box<dyn std::error::Error>> {
+pub fn parse_socks5(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;
     let address = parsed
         .host_str()
-        .ok_or("missing address or port")?
+        .ok_or(ConfigParseError::MissingAddressOrPort)?
         .to_string();
-    let port = parsed.port().ok_or("missing address or port")?;
+    let port = parsed
+        .port()
+        .ok_or(ConfigParseError::MissingAddressOrPort)?;
 
     Ok(Node {
         protocol: Protocol::Socks5,

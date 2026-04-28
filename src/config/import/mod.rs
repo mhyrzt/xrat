@@ -1,9 +1,12 @@
 mod detect;
+mod error;
 mod parsers;
 #[allow(dead_code)]
 mod subscription;
 
 use crate::model::Node;
+
+pub use error::ImportParseError;
 
 #[derive(Debug)]
 pub struct ImportResult {
@@ -31,10 +34,7 @@ pub enum ImportMode {
     XrayJson,
 }
 
-pub fn parse_import(
-    input: &str,
-    mode: ImportMode,
-) -> Result<ImportResult, Box<dyn std::error::Error>> {
+pub fn parse_import(input: &str, mode: ImportMode) -> Result<ImportResult, ImportParseError> {
     let input = input.trim();
 
     if input.is_empty() {

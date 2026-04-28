@@ -59,16 +59,16 @@ Important constraints:
 - Consider whether collisions are acceptable. If not, store both the hash and
   the original normalized fields required for verification.
 
-## Database Backend Support
+## Verification
 
-### PostgreSQL Real-Backend Verification
+### PostgreSQL Real-Backend Testing
 
 - PostgreSQL config shape, pool creation, migrations, and repository dispatch are
   implemented.
 - Before treating PostgreSQL support as production-ready, test against a real
   PostgreSQL server.
 
-Suggested verification:
+Suggested configuration:
 
 ```toml
 [database]
@@ -93,7 +93,6 @@ Exercise at least:
 - selection, activation, enable/disable, and delete state changes
 - connection test insertion and latest-history reads
 - runtime session insert/update/stop reads
-
 
 ## Tester Improvements
 
@@ -146,10 +145,9 @@ id name protocol address port icmp_ms real_delay_ms download_mbps status error
 Suggested CLI flags:
 
 ```text
---output tsv
---output json
---sort-by real-delay
---sort-by download-speed
+--format {csv,tsv,json}
+--ouptput filename
+--sort-by {real-delay, download-speed, icmp}
 --no-progress
 ```
 
