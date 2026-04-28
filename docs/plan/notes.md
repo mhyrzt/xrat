@@ -6,14 +6,6 @@ larger phase 4 items. Completed phase 3.6 cleanup work is summarized in
 
 ## General
 
-### Error Handling
-
-- Avoid excessive use of `Box<dyn std::error::Error>`.
-- Prefer concrete error types where possible.
-- Consider introducing module-specific error enums using `thiserror`.
-- Use `anyhow` only at application boundaries if needed, not throughout
-  library/domain code.
-
 ### Console Output and Logging
 
 - Tracing is now initialized and internal `eprintln!` diagnostics have been
@@ -197,8 +189,7 @@ test_url = "https://speed.cloudflare.com/__down?bytes=10485760"
 
 ## Suggested Refactoring Priorities
 
-1. Introduce stronger error types instead of widespread `Box<dyn Error>`.
-2. Add parallel bulk testing with configurable concurrency.
-3. Add structured test result output such as TSV/JSON.
-4. Improve node deduplication key by using a stable hash-based approach.
-5. Verify PostgreSQL support against a real PostgreSQL server.
+1. Add parallel bulk testing with configurable concurrency.
+2. Add structured test result output such as TSV/JSON.
+3. Improve node deduplication key by using a stable hash-based approach.
+4. Verify PostgreSQL support against a real PostgreSQL server.

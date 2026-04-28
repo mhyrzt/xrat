@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::db::{ImportSource, SourceKind};
 
-pub fn read_input(input: &str) -> Result<(ImportSource, Vec<u8>), Box<dyn std::error::Error>> {
+pub fn read_input(input: &str) -> crate::app::Result<(ImportSource, Vec<u8>)> {
     if looks_like_url(input) {
         return Ok((
             ImportSource {
@@ -41,15 +41,12 @@ pub fn read_input(input: &str) -> Result<(ImportSource, Vec<u8>), Box<dyn std::e
     ))
 }
 
-pub fn fetch_url(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn fetch_url(url: &str) -> crate::app::Result<Vec<u8>> {
     let response = reqwest::blocking::get(url)?.error_for_status()?;
     Ok(response.bytes()?.to_vec())
 }
 
-pub fn save_json<T: Serialize>(
-    output_path: &Path,
-    value: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_json<T: Serialize>(output_path: &Path, value: &T) -> crate::app::Result<()> {
     if let Some(parent) = output_path.parent() {
         fs::create_dir_all(parent)?;
     }

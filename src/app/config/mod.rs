@@ -41,7 +41,7 @@ pub struct AppConfig {
     pub testing: TestingSettings,
 }
 
-pub fn load(config_path: &Path) -> Result<AppConfig, Box<dyn std::error::Error>> {
+pub fn load(config_path: &Path) -> crate::app::Result<AppConfig> {
     let contents = std::fs::read_to_string(config_path)?;
     let config = toml::from_str(&contents)?;
 

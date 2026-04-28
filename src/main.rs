@@ -11,7 +11,7 @@ async fn main() {
     }
 }
 
-async fn run() -> Result<(), Box<dyn std::error::Error>> {
+async fn run() -> xrat::app::Result<()> {
     let args = cli::parse();
     let context = AppContext::build(&args).await?;
     commands::run(&context, &args.command).await?;

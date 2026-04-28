@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 
+use crate::app::AppError;
 use crate::app::config::{self, AppConfig, DatabaseBackend};
 use crate::app::path;
 use crate::cli;
@@ -26,7 +27,7 @@ pub struct RuntimePaths {
 }
 
 impl AppContext {
-    pub async fn build(args: &cli::Cli) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn build(args: &cli::Cli) -> crate::app::Result<Self> {
         let (runtime_paths, app_config) = resolve_runtime(args)?;
         let db = Database::connect(&runtime_paths.database_config).await?;
 
@@ -38,9 +39,7 @@ impl AppContext {
     }
 }
 
-fn resolve_runtime(
-    args: &cli::Cli,
-) -> Result<(RuntimePaths, AppConfig), Box<dyn std::error::Error>> {
+fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, AppConfig)> {
     let app_paths = path::ensure_layout()?;
     let config_path = args
         .config
@@ -87,7 +86,7 @@ fn resolve_database_config(
     app_config: &AppConfig,
     config_path: &std::path::Path,
     default_sqlite_path: &std::path::Path,
-) -> Result<DatabaseConnectionConfig, Box<dyn std::error::Error>> {
+) -> crate::app::Result<DatabaseConnectionConfig> {
     if let Some(cli_database) = &args.database {
         return Ok(DatabaseConnectionConfig::Sqlite {
             path: cli_database.clone(),
@@ -112,14 +111,10 @@ fn resolve_database_config(
             let user = postgres.user.resolve()?;
             let password = postgres.password.resolve()?;
             if user.is_empty() {
-                return Err(
-                    "[database.postgres].user is required when backend = \"postgres\"".into(),
-                );
+                return Err(AppError::MissingPostgresUser);
             }
             if postgres.db_name.is_empty() {
-                return Err(
-                    "[database.postgres].db_name is required when backend = \"postgres\"".into(),
-                );
+                return Err(AppError::MissingPostgresDatabaseName);
             }
             let user = utf8_percent_encode(&user, NON_ALPHANUMERIC).to_string();
             let password = utf8_percent_encode(&password, NON_ALPHANUMERIC).to_string();

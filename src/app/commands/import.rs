@@ -1,6 +1,6 @@
 use crate::app::{import, runtime::AppContext};
 
-pub async fn run(context: &AppContext, input: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(context: &AppContext, input: &str) -> crate::app::Result<()> {
     let (source, nodes) = import::load_nodes(input)?;
     let summary = context.db.import_nodes(&source, &nodes).await?;
 

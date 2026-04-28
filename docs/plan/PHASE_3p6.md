@@ -135,6 +135,33 @@ bf30bc5 refactor: split repository facade module
 Carry-forward note: PostgreSQL compiles and the SQLite suite still passes, but
 this still needs verification against a real PostgreSQL server.
 
+### Concrete Error Types
+
+- Added `src/db/error.rs` with a concrete `DbError` enum and DB-local
+  `Result<T>` alias.
+- Replaced DB-layer `Box<dyn std::error::Error>` return types with
+  `crate::db::Result<T>`.
+- Preserved SQLx, migration, and filesystem error propagation through
+  `thiserror` variants.
+- Converted invalid runtime-session status row mapping into a typed
+  `DbError::InvalidRuntimeSessionStatus` variant.
+- Added `src/app/error.rs` with a concrete `AppError` enum and app-local
+  `Result<T>` alias.
+- Replaced app-layer and `src/main.rs` boxed error return types with
+  `crate::app::Result<T>` / `xrat::app::Result<T>`.
+- Converted stringly application failures into typed variants for import
+  validation, path resolution, PostgreSQL config validation, and unsupported
+  protocol reconstruction.
+
+Related commit:
+
+```text
+9f27cc5 refactor: add concrete db error type
+```
+
+App-layer error refactor is complete locally and should be committed with this
+documentation update.
+
 ## Validation
 
 Each implementation commit was validated with:
@@ -144,10 +171,10 @@ cargo fmt
 cargo test -q
 ```
 
-The last validation run reported 78 passing tests.
+The last validation run reported 83 passing tests.
 
 ## Carry Forward
 
 The remaining notes are kept in `docs/plan/notes.md`. Near-term carry-forward
-items are real PostgreSQL backend verification, stronger error types, node
-deduplication hashing, and tester workflow improvements.
+items are real PostgreSQL backend verification, node deduplication hashing, and
+tester workflow improvements.

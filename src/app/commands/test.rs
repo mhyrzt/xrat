@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use crate::app::AppError;
 use crate::app::config::AppConfig;
 use crate::app::config::defaults;
 use crate::app::runtime::{AppContext, RuntimePaths};
@@ -11,7 +12,7 @@ use crate::db::{ConfigRecord, ConnectionTestInsert};
 use crate::model::Node;
 use crate::tester::{TestResult, icmp_ping, real_delay_check, tcp_check};
 
-pub async fn run(args: &TestArgs, context: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()> {
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths);
 
     // Load config from database
@@ -217,7 +218,7 @@ fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePat
     }
 }
 
-fn node_from_record(config: &ConfigRecord) -> Result<Node, Box<dyn std::error::Error>> {
+fn node_from_record(config: &ConfigRecord) -> crate::app::Result<Node> {
     let protocol = match config.protocol.as_str() {
         "vless" => crate::model::Protocol::Vless,
         "vmess" => crate::model::Protocol::Vmess,
@@ -225,7 +226,7 @@ fn node_from_record(config: &ConfigRecord) -> Result<Node, Box<dyn std::error::E
         "trojan" => crate::model::Protocol::Trojan,
         "http" => crate::model::Protocol::Http,
         "socks5" => crate::model::Protocol::Socks5,
-        other => return Err(format!("unsupported protocol in database: {other}").into()),
+        other => return Err(AppError::UnsupportedProtocol(other.to_string())),
     };
 
     Ok(Node {

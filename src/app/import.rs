@@ -1,3 +1,4 @@
+use crate::app::AppError;
 use crate::app::input::source::read_input;
 use crate::config::parse_text;
 use crate::db::ImportSource;
@@ -5,7 +6,7 @@ use crate::db::SourceKind;
 use crate::model::Node;
 use crate::support::decode::decode_or_raw_text;
 
-pub fn load_nodes(input: &str) -> Result<(ImportSource, Vec<Node>), Box<dyn std::error::Error>> {
+pub fn load_nodes(input: &str) -> crate::app::Result<(ImportSource, Vec<Node>)> {
     let (source, input_data) = read_input(input)?;
     let config_text = decode_or_raw_text(&input_data)?;
     reject_raw_json_config(&config_text)?;
@@ -14,16 +15,16 @@ pub fn load_nodes(input: &str) -> Result<(ImportSource, Vec<Node>), Box<dyn std:
     Ok((source, parse_text(&normalized_text)))
 }
 
-pub fn load_single_node(input: &str) -> Result<(ImportSource, Node), Box<dyn std::error::Error>> {
+pub fn load_single_node(input: &str) -> crate::app::Result<(ImportSource, Node)> {
     reject_raw_json_config(input)?;
 
     let mut nodes = parse_text(input).into_iter();
     let Some(node) = nodes.next() else {
-        return Err("no supported config found in input".into());
+        return Err(AppError::NoSupportedConfig);
     };
 
     if nodes.next().is_some() {
-        return Err("add accepts exactly one config URI/text".into());
+        return Err(AppError::MultipleConfigsForAdd);
     }
 
     Ok((
@@ -36,18 +37,15 @@ pub fn load_single_node(input: &str) -> Result<(ImportSource, Node), Box<dyn std
     ))
 }
 
-fn reject_raw_json_config(config_text: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn reject_raw_json_config(config_text: &str) -> crate::app::Result<()> {
     if serde_json::from_str::<serde_json::Value>(config_text).is_ok() {
-        return Err(
-            "raw JSON config import is not persisted yet; provide subscription links/text instead"
-                .into(),
-        );
+        return Err(AppError::RawJsonImportUnsupported);
     }
 
     Ok(())
 }
 
-fn expand_url_list(input: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn expand_url_list(input: &str) -> crate::app::Result<String> {
     let mut collected = Vec::new();
     let mut saw_url = false;
 

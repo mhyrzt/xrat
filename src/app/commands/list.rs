@@ -2,10 +2,7 @@ use crate::app::runtime::AppContext;
 use crate::cli::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget};
 use crate::db::ConfigListFilter;
 
-pub async fn run(
-    context: &AppContext,
-    command: &ListArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result<()> {
     match &command.target {
         ListTarget::Configs(filters) => print_configs(context, filters).await?,
         ListTarget::Subscriptions(filters) => print_subscriptions(context, filters).await?,
@@ -14,10 +11,7 @@ pub async fn run(
     Ok(())
 }
 
-async fn print_configs(
-    context: &AppContext,
-    filters: &ListConfigsArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate::app::Result<()> {
     let filter = build_config_list_filter(filters);
     let configs = context.db.list_configs(&filter).await?;
 
@@ -48,7 +42,7 @@ async fn print_configs(
 async fn print_subscriptions(
     context: &AppContext,
     filters: &ListSubscriptionsArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> crate::app::Result<()> {
     let mut subscriptions = context.db.list_subscriptions().await?;
     if let Some(kind) = &filters.kind {
         subscriptions.retain(|subscription| subscription.source_kind == kind.as_str());
