@@ -133,4 +133,17 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn parses_global_logging_flags() {
+        let verbose_cli = Cli::parse_from(["xrat", "-vv", "list", "configs"]);
+        assert_eq!(verbose_cli.verbose, 2);
+        assert!(!verbose_cli.quiet);
+        assert_eq!(verbose_cli.default_log_filter(), "debug");
+
+        let quiet_cli = Cli::parse_from(["xrat", "--quiet", "-vvv", "list", "configs"]);
+        assert_eq!(quiet_cli.verbose, 3);
+        assert!(quiet_cli.quiet);
+        assert_eq!(quiet_cli.default_log_filter(), "error");
+    }
 }

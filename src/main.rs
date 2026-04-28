@@ -3,25 +3,25 @@ use xrat::cli;
 
 #[tokio::main]
 async fn main() {
-    init_tracing();
+    let args = cli::parse();
+    init_tracing(&args);
 
-    if let Err(err) = run().await {
+    if let Err(err) = run(&args).await {
         tracing::error!(error = %err, "command failed");
         std::process::exit(1);
     }
 }
 
-async fn run() -> xrat::app::Result<()> {
-    let args = cli::parse();
+async fn run(args: &cli::Cli) -> xrat::app::Result<()> {
     let context = AppContext::build(&args).await?;
     commands::run(&context, &args.command).await?;
 
     Ok(())
 }
 
-fn init_tracing() {
+fn init_tracing(args: &cli::Cli) {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(args.default_log_filter()));
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)

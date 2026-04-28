@@ -4,20 +4,6 @@ This file tracks remaining cleanup and improvement work before moving into the
 larger phase 4 items. Completed phase 3.6 cleanup work is summarized in
 `docs/plan/PHASE_3p6.md`.
 
-## General
-
-### Console Output and Logging
-
-- Tracing is now initialized and internal `eprintln!` diagnostics have been
-  migrated.
-- Continue to reserve stdout for intentional CLI output only.
-- Audit future output changes with these level guidelines:
-  - `trace!` for very detailed internal flow
-  - `debug!` for debugging information
-  - `info!` for normal operational messages
-  - `warn!` for recoverable issues
-  - `error!` for failures
-
 ## Node Deduplication
 
 ### `src/model/node_dedup_key`

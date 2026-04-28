@@ -1,12 +1,27 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 
 use crate::cli::Command;
 
 #[derive(Debug, Parser)]
 #[command(about = "Manage XRAT configs and persisted app state.")]
 pub struct Cli {
+    #[arg(
+        short = 'v',
+        long = "verbose",
+        global = true,
+        action = ArgAction::Count,
+        help = "Increase diagnostic logging verbosity. Repeat for debug/trace output."
+    )]
+    pub verbose: u8,
+    #[arg(
+        short = 'q',
+        long = "quiet",
+        global = true,
+        help = "Show only error diagnostics unless RUST_LOG is set."
+    )]
+    pub quiet: bool,
     #[arg(
         long = "database",
         global = true,
@@ -33,4 +48,19 @@ pub struct Cli {
     pub v2ray: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
+}
+
+impl Cli {
+    pub fn default_log_filter(&self) -> &'static str {
+        if self.quiet {
+            return "error";
+        }
+
+        match self.verbose {
+            0 => "warn",
+            1 => "info",
+            2 => "debug",
+            _ => "trace",
+        }
+    }
 }

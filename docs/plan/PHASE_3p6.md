@@ -59,6 +59,14 @@ f020432 refactor: centralize tester defaults
 - Replaced all `eprintln!` diagnostics with tracing macros.
 - Kept intentional CLI stdout output as `println!`.
 - Default log filtering is `warn`, with `RUST_LOG` override support.
+- Added global `--verbose`/`-v` and `--quiet`/`-q` flags for CLI-driven
+  diagnostics.
+- Documented the ongoing logging level guidelines:
+  - `trace!` for very detailed internal flow
+  - `debug!` for debugging information
+  - `info!` for normal operational messages
+  - `warn!` for recoverable issues
+  - `error!` for failures
 
 Related commit:
 
