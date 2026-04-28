@@ -11,7 +11,7 @@ pub async fn import_nodes(
     pool: &DbPool,
     subscription_id: i64,
     nodes: &[Node],
-) -> Result<ImportSummary, Box<dyn std::error::Error>> {
+) -> crate::db::Result<ImportSummary> {
     if !nodes.is_empty() {
         match pool {
             DbPool::Sqlite(pool) => {
@@ -110,7 +110,7 @@ where
     );
 }
 
-pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>> {
+pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM configs")
             .fetch_one(pool)
@@ -124,7 +124,7 @@ pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>>
 pub async fn list(
     pool: &DbPool,
     filter: &ConfigListFilter,
-) -> Result<Vec<ConfigRecord>, Box<dyn std::error::Error>> {
+) -> crate::db::Result<Vec<ConfigRecord>> {
     match pool {
         DbPool::Sqlite(pool) => {
             let mut builder = QueryBuilder::<Sqlite>::new(format!(
@@ -166,10 +166,7 @@ where
     builder.push(" ORDER BY id ASC");
 }
 
-pub async fn get_by_id(
-    pool: &DbPool,
-    id: i64,
-) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<ConfigRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(&format!(
             "SELECT {CONFIG_COLUMNS} FROM configs WHERE id = ?1"
@@ -188,20 +185,18 @@ pub async fn get_by_id(
     }
 }
 
-pub async fn get_selected(
-    pool: &DbPool,
-) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+pub async fn get_selected(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>> {
     get_one_ordered(pool, "is_selected = 1").await
 }
 
-pub async fn get_active(pool: &DbPool) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+pub async fn get_active(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>> {
     get_one_ordered(pool, "is_active = 1").await
 }
 
 async fn get_one_ordered(
     pool: &DbPool,
     condition: &str,
-) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+) -> crate::db::Result<Option<ConfigRecord>> {
     let sql = format!(
         "SELECT {CONFIG_COLUMNS} FROM configs WHERE {condition} ORDER BY updated_at DESC, id DESC LIMIT 1"
     );
@@ -217,10 +212,7 @@ async fn get_one_ordered(
     }
 }
 
-pub async fn get_flags(
-    pool: &DbPool,
-    dedup_key: &str,
-) -> Result<(bool, bool, bool), Box<dyn std::error::Error>> {
+pub async fn get_flags(pool: &DbPool, dedup_key: &str) -> crate::db::Result<(bool, bool, bool)> {
     match pool {
         DbPool::Sqlite(pool) => {
             let row: (i64, i64, i64) = sqlx::query_as(
@@ -243,7 +235,7 @@ pub async fn get_flags(
     }
 }
 
-pub async fn clear_all_selected(pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn clear_all_selected(pool: &DbPool) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(_) => {
             execute_no_bind(
@@ -262,7 +254,7 @@ pub async fn clear_all_selected(pool: &DbPool) -> Result<(), Box<dyn std::error:
     }
 }
 
-pub async fn mark_selected(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn mark_selected(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     execute_id(
         pool,
         "UPDATE configs SET is_selected = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
@@ -272,7 +264,7 @@ pub async fn mark_selected(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::er
     .await
 }
 
-pub async fn clear_all_active(pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn clear_all_active(pool: &DbPool) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(_) => {
             execute_no_bind(
@@ -291,7 +283,7 @@ pub async fn clear_all_active(pool: &DbPool) -> Result<(), Box<dyn std::error::E
     }
 }
 
-pub async fn mark_active(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn mark_active(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     execute_id(
         pool,
         "UPDATE configs SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
@@ -301,11 +293,7 @@ pub async fn mark_active(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::erro
     .await
 }
 
-pub async fn set_enabled(
-    pool: &DbPool,
-    id: i64,
-    enabled: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set_enabled(pool: &DbPool, id: i64, enabled: bool) -> crate::db::Result<()> {
     let enabled_flag = if enabled { 1 } else { 0 };
     match pool {
         DbPool::Sqlite(pool) => {
@@ -320,7 +308,7 @@ pub async fn set_enabled(
     Ok(())
 }
 
-pub async fn delete(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     execute_id(
         pool,
         "DELETE FROM configs WHERE id = ?1",
@@ -330,7 +318,7 @@ pub async fn delete(pool: &DbPool, id: i64) -> Result<(), Box<dyn std::error::Er
     .await
 }
 
-async fn execute_no_bind(pool: &DbPool, sql: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn execute_no_bind(pool: &DbPool, sql: &str) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(pool) => {
             sqlx::query(sql).execute(pool).await?;
@@ -347,7 +335,7 @@ async fn execute_id(
     sqlite_sql: &str,
     postgres_sql: &str,
     id: i64,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(pool) => {
             sqlx::query(sqlite_sql).bind(id).execute(pool).await?;

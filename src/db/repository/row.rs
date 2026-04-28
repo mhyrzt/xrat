@@ -1,5 +1,6 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
+use crate::db::DbError;
 use crate::db::model::{
     ConfigRecord, ConnectionTestRecord, RuntimeSessionRecord, RuntimeSessionStatus,
     SubscriptionRecord,
@@ -68,9 +69,7 @@ where
     }
 }
 
-pub fn map_runtime_session_row<R>(
-    row: R,
-) -> Result<RuntimeSessionRecord, Box<dyn std::error::Error>>
+pub fn map_runtime_session_row<R>(row: R) -> crate::db::Result<RuntimeSessionRecord>
 where
     R: Row,
     for<'a> &'a str: ColumnIndex<R>,
@@ -82,7 +81,7 @@ where
 {
     let status_value: String = row.get("status");
     let status = RuntimeSessionStatus::from_str(&status_value)
-        .ok_or_else(|| format!("invalid runtime session status: {status_value}"))?;
+        .ok_or_else(|| DbError::InvalidRuntimeSessionStatus(status_value.clone()))?;
 
     Ok(RuntimeSessionRecord {
         id: row.get("id"),

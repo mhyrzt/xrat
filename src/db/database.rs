@@ -17,17 +17,13 @@ pub struct Database {
 }
 
 impl Database {
-    pub async fn connect(
-        config: &DatabaseConnectionConfig,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn connect(config: &DatabaseConnectionConfig) -> crate::db::Result<Self> {
         let pool = connection::connect(config).await?;
         Ok(Self { pool })
     }
 
     #[cfg(test)]
-    async fn connect_sqlite(
-        database_path: &std::path::Path,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    async fn connect_sqlite(database_path: &std::path::Path) -> crate::db::Result<Self> {
         Self::connect(&DatabaseConnectionConfig::Sqlite {
             path: database_path.to_path_buf(),
         })
@@ -38,95 +34,86 @@ impl Database {
         &self,
         source: &ImportSource,
         nodes: &[crate::model::Node],
-    ) -> Result<ImportSummary, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<ImportSummary> {
         repository::import_nodes(&self.pool, source, nodes).await
     }
 
-    pub async fn get_config_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+    pub async fn get_config_count(&self) -> crate::db::Result<i64> {
         repository::get_config_count(&self.pool).await
     }
 
     pub async fn list_configs(
         &self,
         filter: &ConfigListFilter,
-    ) -> Result<Vec<ConfigRecord>, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<Vec<ConfigRecord>> {
         repository::list_configs(&self.pool, filter).await
     }
 
-    pub async fn get_config_by_id(
-        &self,
-        id: i64,
-    ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+    pub async fn get_config_by_id(&self, id: i64) -> crate::db::Result<Option<ConfigRecord>> {
         repository::get_config_by_id(&self.pool, id).await
     }
 
-    pub async fn get_selected_config(
-        &self,
-    ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+    pub async fn get_selected_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
         repository::get_selected_config(&self.pool).await
     }
 
-    pub async fn get_active_config(
-        &self,
-    ) -> Result<Option<ConfigRecord>, Box<dyn std::error::Error>> {
+    pub async fn get_active_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
         repository::get_active_config(&self.pool).await
     }
 
-    pub async fn get_subscription_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+    pub async fn get_subscription_count(&self) -> crate::db::Result<i64> {
         repository::get_subscription_count(&self.pool).await
     }
 
-    pub async fn list_subscriptions(
-        &self,
-    ) -> Result<Vec<SubscriptionRecord>, Box<dyn std::error::Error>> {
+    pub async fn list_subscriptions(&self) -> crate::db::Result<Vec<SubscriptionRecord>> {
         repository::list_subscriptions(&self.pool).await
     }
 
-    pub async fn get_connection_test_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+    pub async fn get_connection_test_count(&self) -> crate::db::Result<i64> {
         repository::get_connection_test_count(&self.pool).await
     }
 
     pub async fn insert_connection_test(
         &self,
         test: &ConnectionTestInsert,
-    ) -> Result<i64, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<i64> {
         repository::insert_connection_test(&self.pool, test).await
     }
 
     pub async fn list_connection_tests(
         &self,
         config_id: i64,
-    ) -> Result<Vec<ConnectionTestRecord>, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<Vec<ConnectionTestRecord>> {
         repository::list_connection_tests(&self.pool, config_id).await
     }
 
     pub async fn get_latest_connection_test(
         &self,
         config_id: i64,
-    ) -> Result<Option<ConnectionTestRecord>, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<Option<ConnectionTestRecord>> {
         repository::get_latest_connection_test(&self.pool, config_id).await
     }
 
-    pub async fn get_runtime_session_count(&self) -> Result<i64, Box<dyn std::error::Error>> {
+    pub async fn get_runtime_session_count(&self) -> crate::db::Result<i64> {
         repository::get_runtime_session_count(&self.pool).await
     }
 
     pub async fn insert_runtime_session(
         &self,
         session: &RuntimeSessionInsert,
-    ) -> Result<i64, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<i64> {
         repository::insert_runtime_session(&self.pool, session).await
     }
 
     pub async fn get_latest_runtime_session(
         &self,
-    ) -> Result<Option<RuntimeSessionRecord>, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<Option<RuntimeSessionRecord>> {
         repository::get_latest_runtime_session(&self.pool).await
     }
 
     pub async fn get_running_runtime_session(
         &self,
-    ) -> Result<Option<RuntimeSessionRecord>, Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<Option<RuntimeSessionRecord>> {
         repository::get_running_runtime_session(&self.pool).await
     }
 
@@ -138,7 +125,7 @@ impl Database {
         mixed_port: Option<i64>,
         started_at: Option<&str>,
         stopped_at: Option<&str>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<()> {
         repository::update_runtime_session_state(
             &self.pool, session_id, status, process_id, mixed_port, started_at, stopped_at,
         )
@@ -149,34 +136,27 @@ impl Database {
         &self,
         session_id: i64,
         stopped_at: Option<&str>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> crate::db::Result<()> {
         repository::mark_runtime_session_stopped(&self.pool, session_id, stopped_at).await
     }
 
-    pub async fn get_config_flags(
-        &self,
-        dedup_key: &str,
-    ) -> Result<(bool, bool, bool), Box<dyn std::error::Error>> {
+    pub async fn get_config_flags(&self, dedup_key: &str) -> crate::db::Result<(bool, bool, bool)> {
         repository::get_config_flags(&self.pool, dedup_key).await
     }
 
-    pub async fn delete_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn delete_config(&self, id: i64) -> crate::db::Result<()> {
         repository::delete_config(&self.pool, id).await
     }
 
-    pub async fn set_selected_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn set_selected_config(&self, id: i64) -> crate::db::Result<()> {
         repository::set_selected_config(&self.pool, id).await
     }
 
-    pub async fn set_active_config(&self, id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn set_active_config(&self, id: i64) -> crate::db::Result<()> {
         repository::set_active_config(&self.pool, id).await
     }
 
-    pub async fn set_config_enabled(
-        &self,
-        id: i64,
-        is_enabled: bool,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn set_config_enabled(&self, id: i64, is_enabled: bool) -> crate::db::Result<()> {
         repository::set_config_enabled(&self.pool, id, is_enabled).await
     }
 }

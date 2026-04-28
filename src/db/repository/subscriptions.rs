@@ -4,10 +4,7 @@ use super::row::map_subscription_row;
 use crate::db::connection::DbPool;
 use crate::db::model::{ImportSource, SourceKind, SubscriptionRecord};
 
-pub async fn insert(
-    pool: &DbPool,
-    source: &ImportSource,
-) -> Result<i64, Box<dyn std::error::Error>> {
+pub async fn insert(pool: &DbPool, source: &ImportSource) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => {
             let mut builder = QueryBuilder::<Sqlite>::new(
@@ -43,7 +40,7 @@ where
         .push_bind(source.name.as_deref());
 }
 
-pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>> {
+pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM subscriptions",
@@ -58,7 +55,7 @@ pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>>
     }
 }
 
-pub async fn list(pool: &DbPool) -> Result<Vec<SubscriptionRecord>, Box<dyn std::error::Error>> {
+pub async fn list(pool: &DbPool) -> crate::db::Result<Vec<SubscriptionRecord>> {
     const SQL: &str = r#"
         SELECT
             subscriptions.id,

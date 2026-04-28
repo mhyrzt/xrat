@@ -35,9 +35,7 @@ pub enum DbPool {
     Postgres(PgPool),
 }
 
-pub async fn connect(
-    config: &DatabaseConnectionConfig,
-) -> Result<DbPool, Box<dyn std::error::Error>> {
+pub async fn connect(config: &DatabaseConnectionConfig) -> crate::db::Result<DbPool> {
     match config {
         DatabaseConnectionConfig::Sqlite { path } => connect_sqlite(path).await,
         DatabaseConnectionConfig::Postgres {
@@ -49,7 +47,7 @@ pub async fn connect(
     }
 }
 
-async fn connect_sqlite(database_path: &Path) -> Result<DbPool, Box<dyn std::error::Error>> {
+async fn connect_sqlite(database_path: &Path) -> crate::db::Result<DbPool> {
     if let Some(parent) = database_path.parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent)?;
@@ -73,7 +71,7 @@ async fn connect_postgres(
     max_connections: u32,
     min_connections: u32,
     connect_timeout: Duration,
-) -> Result<DbPool, Box<dyn std::error::Error>> {
+) -> crate::db::Result<DbPool> {
     let pool = PgPoolOptions::new()
         .max_connections(max_connections)
         .min_connections(min_connections)

@@ -2,7 +2,7 @@ use super::row::map_connection_test_row;
 use crate::db::connection::DbPool;
 use crate::db::model::{ConnectionTestInsert, ConnectionTestRecord};
 
-pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>> {
+pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM connection_tests",
@@ -17,10 +17,7 @@ pub async fn get_count(pool: &DbPool) -> Result<i64, Box<dyn std::error::Error>>
     }
 }
 
-pub async fn insert(
-    pool: &DbPool,
-    test: &ConnectionTestInsert,
-) -> Result<i64, Box<dyn std::error::Error>> {
+pub async fn insert(pool: &DbPool, test: &ConnectionTestInsert) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar(
             "INSERT INTO connection_tests (config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, failure_kind, failure_reason)
@@ -58,7 +55,7 @@ pub async fn insert(
 pub async fn list_by_config(
     pool: &DbPool,
     config_id: i64,
-) -> Result<Vec<ConnectionTestRecord>, Box<dyn std::error::Error>> {
+) -> crate::db::Result<Vec<ConnectionTestRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(
             "SELECT id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC",
@@ -72,7 +69,7 @@ pub async fn list_by_config(
 pub async fn get_latest_by_config(
     pool: &DbPool,
     config_id: i64,
-) -> Result<Option<ConnectionTestRecord>, Box<dyn std::error::Error>> {
+) -> crate::db::Result<Option<ConnectionTestRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(
             "SELECT id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC LIMIT 1",
