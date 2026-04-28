@@ -96,23 +96,23 @@
 
 ## `src/db/repository/mod.rs`
 
-- `src/db/repository/mod.rs` is too large.
+- [x] `src/db/repository/mod.rs` was too large.
 
-- Split repository code into separate files by domain/entity.
+- [x] Split repository code into separate files by domain/entity.
 
-- Suggested structure:
+- Current structure:
 
   ```text
   src/db/repository/
     mod.rs
-    node.rs
-    node_test.rs
-    subscription.rs
-    profile.rs
-    common.rs
+    facade.rs
+    configs.rs
+    connection_tests.rs
+    runtime_sessions.rs
+    subscriptions.rs
   ```
 
-- `mod.rs` should only contain module declarations and re-exports.
+- [x] `mod.rs` only contains module declarations and re-exports.
 
 ## `src/config`
 
@@ -279,7 +279,7 @@
 2. Split large modules:
    - `src/xray/config.rs`
    - [done] `src/db/mod.rs`
-   - `src/db/repository/mod.rs`
+   - [done] `src/db/repository/mod.rs`
    - `src/config/shared.rs`
 3. Introduce stronger error types instead of widespread `Box<dyn Error>`.
 4. [done] Move documentation files from `src/config` to root-level `docs/`.
