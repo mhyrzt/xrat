@@ -24,7 +24,7 @@ pub fn parse_line(line: &str) -> Option<Node> {
         Ok(node) => Some(node),
         Err(err) => {
             let preview: String = line.chars().take(80).collect();
-            eprintln!("[ERROR] Failed to parse line: {preview} ... Reason: {err}");
+            tracing::warn!(%preview, error = %err, "failed to parse config line");
             None
         }
     }

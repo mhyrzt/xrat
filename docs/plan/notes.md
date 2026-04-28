@@ -8,7 +8,8 @@
   - Use `anyhow` only at application boundaries if needed, not throughout library/domain code.
 
 - Replace `println!` / `eprintln!` with proper logging.
-  - Use the `tracing` crate for structured logging.
+  - [x] Add and initialize the `tracing` crate for structured logging.
+  - [x] Replace internal parser/process diagnostics with tracing.
   - Audit the codebase and replace direct console output where appropriate.
   - Reserve stdout for intentional CLI output only.
   - Use log levels consistently:
@@ -18,14 +19,12 @@
     - `warn!` for recoverable issues
     - `error!` for failures
 
-
 ## `src/xray/config.rs`
 
 - This file is too large and should be split into smaller modules.
 - Remove unnecessary comments.
 - The code should be self-explanatory through clear naming and smaller functions/types.
 - Keep comments only where they explain non-obvious behavior, external constraints, or protocol-specific details.
-
 
 ## `src/model/node_dedup_key`
 
@@ -52,7 +51,6 @@
 - Important:
   - Make sure the hash algorithm and input format are stable across versions.
   - Consider whether collisions are acceptable. If not, store both the hash and the original normalized fields required for verification.
-
 
 ## `src/db`
 
@@ -87,7 +85,6 @@
   - If using `sqlx`, enable both SQLite and PostgreSQL features.
   - Make sure migrations are compatible with both databases or are separated by backend.
 
-
 ## `src/db/mod.rs`
 
 - `src/db/mod.rs` is too large for a module entry file.
@@ -96,7 +93,6 @@
   - module declarations
   - public re-exports
   - high-level initialization functions only
-
 
 ## `src/db/repository/mod.rs`
 
@@ -118,17 +114,16 @@
 
 - `mod.rs` should only contain module declarations and re-exports.
 
-
 ## `src/config`
 
-- There are too many `.md` files inside `src/config`.
-- Move documentation files to a root-level `docs/` directory.
-- Source directories should mainly contain source code, not documentation.
-
+- [x] There were too many `.md` files inside `src/config`.
+- [x] Moved documentation files to a root-level `docs/` directory.
+- [x] Source directories now mainly contain source code, not documentation.
 
 ## `config.toml`
 
-- Add a configuration field for `ParseMode`.
+- [x] Add a configuration field for `ParseMode`.
+- [x] `ParseMode` controls Xray JSON schema tolerance, not subscription import behavior.
 
 ## `src/config/shared.rs`
 
@@ -136,27 +131,26 @@
 
 ## `src/tester`
 
-- Move hardcoded constants from tester modules into application configuration constants.
+- [x] Move hardcoded constants from tester modules into application configuration constants.
 
 - Specifically:
-  - In the real delay tester file, move the existing constant to:
+  - [x] In the real delay tester file, move the existing constant to:
 
     ```text
     src/app/config/defaults.rs
     ```
 
-- Also review the tester module for other hardcoded values that should be centralized.
+- [x] Also reviewed the tester module for other hardcoded values that should be centralized.
 
 - Examples of values that may belong in `app/config/defaults.rs`:
-  - default timeout durations
-  - default test URLs
+  - [x] default timeout durations
+  - [x] default test URLs
   - default retry counts
   - default buffer sizes
   - default concurrency limits
   - default ICMP settings
   - default real-delay settings
   - default download-speed settings
-
 
 ## `src/app/commands/test.rs`
 
@@ -182,7 +176,6 @@
   - too many open sockets
   - rate limits
   - unstable benchmark results
-
 
 ### Progress Display
 
@@ -212,14 +205,14 @@
 - Suggested TSV columns:
 
   ```text
-  id	name	protocol	address	port	icmp_ms	real_delay_ms	download_mbps	status	error
+  id name protocol address port icmp_ms real_delay_ms download_mbps status error
   ```
 
 - Example output:
 
   ```text
-  12	node-a	vmess	example.com	443	45	210	18.4	ok	
-  17	node-b	trojan	example.org	443		0	0	failed	timeout
+  12 node-a vmess example.com 443 45 210 18.4 ok 
+  17 node-b trojan example.org 443  0 0 failed timeout
   ```
 
 - Results should be sortable by:
@@ -289,11 +282,10 @@
    - `src/db/repository/mod.rs`
    - `src/config/shared.rs`
 3. Introduce stronger error types instead of widespread `Box<dyn Error>`.
-4. Move documentation files from `src/config` to root-level `docs/`.
-5. Add `ParseMode` support to `config.toml`.
-6. Move tester constants into `src/app/config/defaults.rs`.
+4. [done] Move documentation files from `src/config` to root-level `docs/`.
+5. [done] Add `ParseMode` support to `config.toml`.
+6. [done] Move tester constants into `src/app/config/defaults.rs`.
 7. Add PostgreSQL support.
 8. Improve node deduplication key by using a stable hash-based approach.
 9. Add parallel bulk testing with configurable concurrency.
 10. Add structured test result output such as TSV/JSON.
-```

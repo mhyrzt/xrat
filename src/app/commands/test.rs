@@ -16,7 +16,7 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> Result<(), Box<dyn st
     let config = context.db.get_config_by_id(args.id).await?;
 
     if config.is_none() {
-        eprintln!("Config with id {} not found", args.id);
+        tracing::warn!(config_id = args.id, "config not found");
         return Ok(());
     }
 

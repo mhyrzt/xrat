@@ -171,7 +171,7 @@ mod tests {
         // This test requires xray to be installed
         // Skip if xray is not available
         if Command::new("xray").arg("version").output().is_err() {
-            eprintln!("Skipping test: xray not found");
+            tracing::warn!("skipping test: xray not found");
             return;
         }
 
