@@ -127,6 +127,10 @@ enable_parallel_query = true
 
 [testing]
 concurrency = 0 # 0 = auto; positive values set exact bulk test concurrency
+# Ordered user-facing stages. TCP is an internal gate before real_delay when enabled.
+order = ["icmp", "real_delay", "download"]
+# "continue" | "skip_remaining" | "mark_failed"
+failure_policy = "continue"
 
 [testing.real_delay]
 enabled = true

@@ -8,8 +8,8 @@ use serde::Serialize;
 use tokio::task::JoinSet;
 
 use crate::app::AppError;
-use crate::app::config::AppConfig;
 use crate::app::config::defaults;
+use crate::app::config::{AppConfig, ConnectionTestStage, TestFailurePolicy};
 use crate::app::runtime::{AppContext, RuntimePaths};
 use crate::cli::{TestArgs, TestFormat, TestSortBy};
 #[cfg(test)]
@@ -146,100 +146,152 @@ async fn test_and_record_config(
     let node = node_from_record(&config)?;
     let mut result = TestResult::default();
     let test_start = Instant::now();
+    let mut ran_icmp = false;
+    let mut ran_tcp = false;
     let mut ran_real_delay = false;
 
-    if settings.run_icmp {
-        if print_progress {
-            print!("Running ICMP ping... ");
-            std::io::stdout().flush()?;
+    for stage in &settings.stage_order {
+        match stage {
+            ConnectionTestStage::Icmp if settings.run_icmp => {
+                ran_icmp = true;
+                run_icmp_stage(&config, &settings, &mut result, print_progress).await?;
+                if !result.icmp_ok && settings.failure_policy.halts_after_failure() {
+                    break;
+                }
+            }
+            ConnectionTestStage::RealDelay if settings.run_real_delay => {
+                if settings.run_tcp && !ran_tcp {
+                    ran_tcp = true;
+                    run_tcp_gate(&config, &settings, &mut result, print_progress).await?;
+                }
+
+                if result.tcp_ok || !settings.run_tcp {
+                    ran_real_delay = true;
+                    run_real_delay_stage(&node, &settings, &mut result, print_progress).await?;
+                    if !result.real_delay_ok && settings.failure_policy.halts_after_failure() {
+                        break;
+                    }
+                } else if print_progress {
+                    println!("Skipping real-delay test (TCP check failed)");
+                }
+
+                if settings.run_tcp
+                    && !result.tcp_ok
+                    && settings.failure_policy.halts_after_failure()
+                {
+                    break;
+                }
+            }
+            ConnectionTestStage::Download if settings.run_download => {
+                tracing::debug!("download speed test is enabled but not implemented yet");
+            }
+            _ => {}
         }
-        let icmp_result = icmp_ping(&config.address, settings.icmp_timeout).await;
-        let failure_reason = icmp_result.failure_reason.clone();
-
-        result.icmp_ok = icmp_result.success;
-        result.icmp_ms = icmp_result.latency_ms;
-        merge_failure(
-            &mut result,
-            icmp_result.failure_kind,
-            icmp_result.failure_reason,
-        );
-
-        if print_progress {
-            print_stage_result(
-                icmp_result.success,
-                icmp_result.latency_ms,
-                failure_reason.as_deref(),
-            );
-        }
-    }
-
-    if settings.run_tcp {
-        if print_progress {
-            print!("Running TCP check... ");
-            std::io::stdout().flush()?;
-        }
-        let tcp_result = tcp_check(&config.address, config.port as u16, settings.tcp_timeout).await;
-        let failure_reason = tcp_result.failure_reason.clone();
-
-        result.tcp_ok = tcp_result.success;
-        result.tcp_ms = tcp_result.latency_ms;
-        merge_failure(
-            &mut result,
-            tcp_result.failure_kind,
-            tcp_result.failure_reason,
-        );
-
-        if print_progress {
-            print_stage_result(
-                tcp_result.success,
-                tcp_result.latency_ms,
-                failure_reason.as_deref(),
-            );
-        }
-    }
-
-    if settings.run_real_delay && (result.tcp_ok || !settings.run_tcp) {
-        ran_real_delay = true;
-        if print_progress {
-            print!("Running real-delay test... ");
-            std::io::stdout().flush()?;
-        }
-
-        let real_delay_result = real_delay_check(
-            &node,
-            &settings.real_delay_url,
-            &settings.xray_binary_path,
-            settings.xray_startup_timeout,
-            settings.real_delay_timeout,
-        )
-        .await;
-        let failure_reason = real_delay_result.failure_reason.clone();
-
-        result.real_delay_ok = real_delay_result.success;
-        result.real_delay_ms = real_delay_result.latency_ms;
-        merge_failure(
-            &mut result,
-            real_delay_result.failure_kind,
-            real_delay_result.failure_reason,
-        );
-
-        if print_progress {
-            print_stage_result(
-                real_delay_result.success,
-                real_delay_result.latency_ms,
-                failure_reason.as_deref(),
-            );
-        }
-    } else if settings.run_real_delay && print_progress {
-        println!("Skipping real-delay test (TCP check failed)");
     }
 
     let elapsed = test_start.elapsed();
-    let output = TestOutputRow::from_parts(&config, &result, &settings, ran_real_delay, elapsed);
+    let output =
+        TestOutputRow::from_parts(&config, &result, ran_icmp, ran_tcp, ran_real_delay, elapsed);
     db.insert_connection_test(&output.connection_test_insert())
         .await?;
 
     Ok(output)
+}
+
+async fn run_icmp_stage(
+    config: &ConfigRecord,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+    print_progress: bool,
+) -> crate::app::Result<()> {
+    if print_progress {
+        print!("Running ICMP ping... ");
+        std::io::stdout().flush()?;
+    }
+    let icmp_result = icmp_ping(&config.address, settings.icmp_timeout).await;
+    let failure_reason = icmp_result.failure_reason.clone();
+
+    result.icmp_ok = icmp_result.success;
+    result.icmp_ms = icmp_result.latency_ms;
+    merge_failure(result, icmp_result.failure_kind, icmp_result.failure_reason);
+
+    if print_progress {
+        print_stage_result(
+            icmp_result.success,
+            icmp_result.latency_ms,
+            failure_reason.as_deref(),
+        );
+    }
+
+    Ok(())
+}
+
+async fn run_tcp_gate(
+    config: &ConfigRecord,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+    print_progress: bool,
+) -> crate::app::Result<()> {
+    if print_progress {
+        print!("Running TCP check... ");
+        std::io::stdout().flush()?;
+    }
+    let tcp_result = tcp_check(&config.address, config.port as u16, settings.tcp_timeout).await;
+    let failure_reason = tcp_result.failure_reason.clone();
+
+    result.tcp_ok = tcp_result.success;
+    result.tcp_ms = tcp_result.latency_ms;
+    merge_failure(result, tcp_result.failure_kind, tcp_result.failure_reason);
+
+    if print_progress {
+        print_stage_result(
+            tcp_result.success,
+            tcp_result.latency_ms,
+            failure_reason.as_deref(),
+        );
+    }
+
+    Ok(())
+}
+
+async fn run_real_delay_stage(
+    node: &Node,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+    print_progress: bool,
+) -> crate::app::Result<()> {
+    if print_progress {
+        print!("Running real-delay test... ");
+        std::io::stdout().flush()?;
+    }
+
+    let real_delay_result = real_delay_check(
+        node,
+        &settings.real_delay_url,
+        &settings.xray_binary_path,
+        settings.xray_startup_timeout,
+        settings.real_delay_timeout,
+    )
+    .await;
+    let failure_reason = real_delay_result.failure_reason.clone();
+
+    result.real_delay_ok = real_delay_result.success;
+    result.real_delay_ms = real_delay_result.latency_ms;
+    merge_failure(
+        result,
+        real_delay_result.failure_kind,
+        real_delay_result.failure_reason,
+    );
+
+    if print_progress {
+        print_stage_result(
+            real_delay_result.success,
+            real_delay_result.latency_ms,
+            failure_reason.as_deref(),
+        );
+    }
+
+    Ok(())
 }
 
 fn merge_failure(
@@ -402,6 +454,8 @@ fn resolve_concurrency(value: i32) -> crate::app::Result<usize> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ResolvedTestSettings {
+    stage_order: Vec<ConnectionTestStage>,
+    failure_policy: TestFailurePolicy,
     real_delay_url: String,
     xray_binary_path: PathBuf,
     icmp_timeout: Duration,
@@ -411,6 +465,7 @@ struct ResolvedTestSettings {
     run_icmp: bool,
     run_tcp: bool,
     run_real_delay: bool,
+    run_download: bool,
     concurrency: i32,
 }
 
@@ -425,8 +480,11 @@ fn resolve_test_settings(
             "test concurrency must be 0 or greater".to_string(),
         ));
     }
+    validate_test_stage_order(&app_config.testing.order)?;
 
     Ok(ResolvedTestSettings {
+        stage_order: app_config.testing.order.clone(),
+        failure_policy: app_config.testing.failure_policy,
         real_delay_url: args
             .test_url
             .clone()
@@ -448,8 +506,38 @@ fn resolve_test_settings(
         run_icmp: app_config.testing.icmp.enabled && !args.skip_icmp,
         run_tcp: app_config.testing.tcp.enabled && !args.skip_tcp,
         run_real_delay: app_config.testing.real_delay.enabled && !args.skip_real_delay,
+        run_download: app_config.testing.download.enabled,
         concurrency,
     })
+}
+
+fn validate_test_stage_order(order: &[ConnectionTestStage]) -> crate::app::Result<()> {
+    let mut seen = Vec::with_capacity(order.len());
+    for stage in order {
+        if seen.contains(stage) {
+            return Err(AppError::InvalidArgument(format!(
+                "duplicate test stage in [testing].order: {}",
+                test_stage_name(*stage)
+            )));
+        }
+        seen.push(*stage);
+    }
+
+    Ok(())
+}
+
+fn test_stage_name(stage: ConnectionTestStage) -> &'static str {
+    match stage {
+        ConnectionTestStage::Icmp => "icmp",
+        ConnectionTestStage::RealDelay => "real_delay",
+        ConnectionTestStage::Download => "download",
+    }
+}
+
+impl TestFailurePolicy {
+    fn halts_after_failure(self) -> bool {
+        matches!(self, Self::SkipRemaining | Self::MarkFailed)
+    }
 }
 
 fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePaths) -> PathBuf {
@@ -496,11 +584,12 @@ impl TestOutputRow {
     fn from_parts(
         config: &ConfigRecord,
         result: &TestResult,
-        settings: &ResolvedTestSettings,
+        ran_icmp: bool,
+        ran_tcp: bool,
         ran_real_delay: bool,
         elapsed: Duration,
     ) -> Self {
-        let status = overall_status(result, settings.run_icmp, settings.run_tcp, ran_real_delay);
+        let status = overall_status(result, ran_icmp, ran_tcp, ran_real_delay);
 
         Self {
             id: config.id,
@@ -514,8 +603,8 @@ impl TestOutputRow {
             status,
             error: result.failure_reason.clone(),
             tcp_ms: result.tcp_ms,
-            ran_icmp: settings.run_icmp,
-            ran_tcp: settings.run_tcp,
+            ran_icmp,
+            ran_tcp,
             ran_real_delay,
             icmp_ok: result.icmp_ok,
             tcp_ok: result.tcp_ok,
@@ -689,6 +778,15 @@ mod tests {
         assert_eq!(settings.tcp_timeout, Duration::from_millis(4500));
         assert_eq!(settings.xray_startup_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(12_000));
+        assert_eq!(
+            settings.stage_order,
+            vec![
+                ConnectionTestStage::Icmp,
+                ConnectionTestStage::RealDelay,
+                ConnectionTestStage::Download,
+            ]
+        );
+        assert_eq!(settings.failure_policy, TestFailurePolicy::Continue);
     }
 
     #[test]
@@ -728,6 +826,63 @@ mod tests {
         assert_eq!(settings.icmp_timeout, Duration::from_millis(3000));
         assert_eq!(settings.tcp_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
+    }
+
+    #[test]
+    fn resolves_custom_test_stage_order() {
+        let app_config = AppConfig {
+            testing: TestingSettings {
+                order: vec![ConnectionTestStage::RealDelay, ConnectionTestStage::Icmp],
+                ..TestingSettings::default()
+            },
+            ..AppConfig::default()
+        };
+        let runtime_paths = test_runtime_paths();
+
+        let settings = resolve_test_settings(&test_args(Some(1)), &app_config, &runtime_paths)
+            .expect("settings");
+
+        assert_eq!(
+            settings.stage_order,
+            vec![ConnectionTestStage::RealDelay, ConnectionTestStage::Icmp]
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_test_stage_order_entries() {
+        let app_config = AppConfig {
+            testing: TestingSettings {
+                order: vec![ConnectionTestStage::Icmp, ConnectionTestStage::Icmp],
+                ..TestingSettings::default()
+            },
+            ..AppConfig::default()
+        };
+        let runtime_paths = test_runtime_paths();
+
+        let error = resolve_test_settings(&test_args(Some(1)), &app_config, &runtime_paths)
+            .expect_err("duplicate stage should fail");
+
+        assert!(error.to_string().contains("duplicate test stage"));
+    }
+
+    #[test]
+    fn resolves_configured_failure_policy() {
+        let app_config = AppConfig {
+            testing: TestingSettings {
+                failure_policy: TestFailurePolicy::SkipRemaining,
+                ..TestingSettings::default()
+            },
+            ..AppConfig::default()
+        };
+        let runtime_paths = test_runtime_paths();
+
+        let settings = resolve_test_settings(&test_args(Some(1)), &app_config, &runtime_paths)
+            .expect("settings");
+
+        assert_eq!(settings.failure_policy, TestFailurePolicy::SkipRemaining);
+        assert!(settings.failure_policy.halts_after_failure());
+        assert!(TestFailurePolicy::MarkFailed.halts_after_failure());
+        assert!(!TestFailurePolicy::Continue.halts_after_failure());
     }
 
     #[test]

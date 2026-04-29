@@ -27,7 +27,8 @@ pub use runtime::{
 };
 pub use secret::{SecretError, SecretString};
 pub use testing::{
-    DownloadTestSettings, IcmpTestSettings, RealDelayTestSettings, TcpTestSettings, TestingSettings,
+    ConnectionTestStage, DownloadTestSettings, IcmpTestSettings, RealDelayTestSettings,
+    TcpTestSettings, TestFailurePolicy, TestingSettings,
 };
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
@@ -65,7 +66,8 @@ pub fn resolve_config_path(base_path: &Path, configured_path: &Path) -> PathBuf 
 #[cfg(test)]
 mod tests {
     use super::{
-        AppConfig, DatabaseBackend, DnsHostValue, SecretString, load, resolve_config_path,
+        AppConfig, ConnectionTestStage, DatabaseBackend, DnsHostValue, SecretString,
+        TestFailurePolicy, load, resolve_config_path,
     };
 
     #[test]
@@ -75,6 +77,15 @@ mod tests {
         assert_eq!(config.runtime.engine, "xray");
         assert_eq!(config.runtime.socks.port, 1080);
         assert_eq!(config.testing.concurrency, 0);
+        assert_eq!(
+            config.testing.order,
+            vec![
+                ConnectionTestStage::Icmp,
+                ConnectionTestStage::RealDelay,
+                ConnectionTestStage::Download,
+            ]
+        );
+        assert_eq!(config.testing.failure_policy, TestFailurePolicy::Continue);
         assert!(config.testing.icmp.enabled);
         assert_eq!(config.testing.icmp.attempts, 3);
         assert_eq!(config.testing.icmp.timeout, 3000);
@@ -122,6 +133,15 @@ mod tests {
             Some(&DnsHostValue::One("127.0.0.1".to_string()))
         );
         assert_eq!(config.testing.concurrency, 0);
+        assert_eq!(
+            config.testing.order,
+            vec![
+                ConnectionTestStage::Icmp,
+                ConnectionTestStage::RealDelay,
+                ConnectionTestStage::Download,
+            ]
+        );
+        assert_eq!(config.testing.failure_policy, TestFailurePolicy::Continue);
         assert!(config.testing.real_delay.enabled);
         assert!(config.testing.icmp.enabled);
         assert_eq!(config.testing.icmp.attempts, 3);

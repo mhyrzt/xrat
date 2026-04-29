@@ -80,22 +80,6 @@ Exercise at least:
 - `download_mbps` is present in TSV/JSON output but remains empty until download
   speed testing is implemented.
 
-### Connection Testing Flow
-
-- The connection testing pipeline should support the following steps:
-
-```text
-ICMP -> Real Delay -> Download Speed
-```
-
-- Current code still uses TCP as an internal gate before real-delay.
-- Revisit whether TCP should remain part of persisted test state or become an
-  implementation detail of real-delay testing.
-- If a required earlier stage fails, behavior should be configurable:
-  - continue testing remaining stages
-  - skip remaining stages
-  - mark node as failed
-
 ### Download Speed Testing
 
 - Add `src/tester/download.rs` for download-speed checks.

@@ -109,6 +109,25 @@ Related commit:
 - Updated `docs/plan/config.example.toml` with the new tester config shape.
 - Left actual download-speed checks and download Mbps persistence for follow-up.
 
+### Configurable Connection Test Flow
+
+- Added `[testing].order` to configure the user-facing connection test stage
+  order.
+- Added `[testing].failure_policy` to control what happens after a failed stage:
+  - `continue` keeps testing later configured stages.
+  - `skip_remaining` stops testing after the failure.
+  - `mark_failed` stops testing and records the node as failed.
+- Defaulted the ordered flow to:
+
+```text
+ICMP -> Real Delay -> Download Speed
+```
+
+- Kept TCP as an internal gate that runs immediately before real-delay when TCP
+  checks are enabled.
+- Left TCP persistence in place for now so existing connection-test history and
+  repository behavior stay compatible.
+
 ### Database Module Facade
 
 - Split the `Database` facade out of `src/db/mod.rs` into `src/db/database.rs`.
