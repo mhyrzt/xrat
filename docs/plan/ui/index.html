@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XRAT TUI Facilitator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="terminal-shell" aria-label="XRAT terminal UI prototype">
+      <section class="screen-frame">
+        <header class="top-bar">
+          <div class="brand-block">
+            <span class="brand-mark">XR</span>
+            <div>
+              <h1>XRAT Control Deck</h1>
+              <p>SQLite-backed proxy manager · Ratatui layout prototype</p>
+            </div>
+          </div>
+          <div class="runtime-pill" aria-label="Runtime status">
+            <span class="pulse"></span>
+            <span>xray running</span>
+            <strong>127.0.0.1:10808</strong>
+          </div>
+        </header>
+
+        <div class="workspace-grid">
+          <aside class="sidebar panel" aria-label="Navigation and filters">
+            <div class="panel-title">Modes</div>
+            <nav class="mode-list" aria-label="XRAT modes">
+              <a class="mode-item active" href="#configs"><span>01</span>Configs</a>
+              <a class="mode-item" href="#subscriptions"><span>02</span>Subscriptions</a>
+              <a class="mode-item" href="#testing"><span>03</span>Testing</a>
+              <a class="mode-item" href="#runtime"><span>04</span>Runtime</a>
+            </nav>
+
+            <div class="filter-card">
+              <div class="panel-title">Filters</div>
+              <label><input type="checkbox" checked /> enabled-only</label>
+              <label><input type="checkbox" /> selected-only</label>
+              <label><input type="checkbox" /> active-only</label>
+              <label><input type="checkbox" /> subscription: 12</label>
+            </div>
+
+            <div class="stat-stack" aria-label="Config counts">
+              <div><span>Total</span><strong>248</strong></div>
+              <div><span>Enabled</span><strong>221</strong></div>
+              <div><span>Selected</span><strong>18</strong></div>
+              <div><span>Failed</span><strong>07</strong></div>
+            </div>
+          </aside>
+
+          <section class="main-panel panel" id="configs" aria-label="Config table">
+            <div class="section-head">
+              <div>
+                <div class="panel-title">List Configs</div>
+                <h2>Fast lane candidates</h2>
+              </div>
+              <div class="command-line">xrat list configs --enabled-only --sort real-delay</div>
+            </div>
+
+            <div class="table-wrap" role="region" aria-label="Stored configs table" tabindex="0">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Proto</th>
+                    <th>Address</th>
+                    <th>Net</th>
+                    <th>ICMP</th>
+                    <th>Delay</th>
+                    <th>Flags</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="selected-row">
+                    <td>184</td>
+                    <td>Zurich · Relay A</td>
+                    <td><span class="tag vless">vless</span></td>
+                    <td>edge-zrh.example.net:443</td>
+                    <td>ws+tls</td>
+                    <td class="good">42ms</td>
+                    <td class="great">118ms</td>
+                    <td><span class="flag selected">selected</span><span class="flag active">active</span></td>
+                  </tr>
+                  <tr>
+                    <td>209</td>
+                    <td>Tokyo cold path</td>
+                    <td><span class="tag vmess">vmess</span></td>
+                    <td>jp-02.example.org:8443</td>
+                    <td>grpc+tls</td>
+                    <td class="good">61ms</td>
+                    <td class="great">151ms</td>
+                    <td><span class="flag enabled">enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>117</td>
+                    <td>Amsterdam shadow</td>
+                    <td><span class="tag ss">ss</span></td>
+                    <td>ams-gw.example.net:8388</td>
+                    <td>tcp</td>
+                    <td class="warn">139ms</td>
+                    <td class="good">260ms</td>
+                    <td><span class="flag enabled">enabled</span></td>
+                  </tr>
+                  <tr class="muted-row">
+                    <td>066</td>
+                    <td>Berlin stale import</td>
+                    <td><span class="tag trojan">trojan</span></td>
+                    <td>de-old.example.com:443</td>
+                    <td>tcp+tls</td>
+                    <td>—</td>
+                    <td class="bad">failed</td>
+                    <td><span class="flag disabled">disabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>231</td>
+                    <td>SF worker 7</td>
+                    <td><span class="tag vless">vless</span></td>
+                    <td>us-west.example.dev:443</td>
+                    <td>ws+tls</td>
+                    <td class="good">36ms</td>
+                    <td class="good">203ms</td>
+                    <td><span class="flag enabled">enabled</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="detail-panel panel" aria-label="Selected config details">
+            <div class="panel-title">Selected Node</div>
+            <h2>Zurich · Relay A</h2>
+            <div class="health-ring" aria-label="Health score 94 percent">
+              <span>94</span>
+              <small>score</small>
+            </div>
+            <dl class="detail-list">
+              <div><dt>Protocol</dt><dd>vless</dd></div>
+              <div><dt>Transport</dt><dd>ws / tls</dd></div>
+              <div><dt>SNI</dt><dd>front.example.net</dd></div>
+              <div><dt>Host</dt><dd>cdn.example.net</dd></div>
+              <div><dt>Subscription</dt><dd>#12 daily-feed</dd></div>
+              <div><dt>Last test</dt><dd>real-delay 118ms</dd></div>
+            </dl>
+            <div class="action-grid" aria-label="Available actions">
+              <button>Enter activate</button>
+              <button>T test</button>
+              <button>I import</button>
+              <button>/ search</button>
+            </div>
+          </aside>
+        </div>
+
+        <section class="lower-grid" aria-label="Testing and import panels">
+          <article class="panel test-panel" id="testing">
+            <div class="section-head compact">
+              <div>
+                <div class="panel-title">Bulk Test</div>
+                <h2>Pipeline progress</h2>
+              </div>
+              <span class="tiny-status">concurrency 8</span>
+            </div>
+            <div class="progress-block">
+              <div class="progress-meta"><span>icmp → tcp gate → real-delay</span><strong>176 / 248</strong></div>
+              <div class="progress-track"><span style="width: 71%"></span></div>
+              <div class="progress-meta subdued"><span>failed 7</span><span>ETA 00:34</span></div>
+            </div>
+            <div class="log-window" aria-label="Test log">
+              <p><span>184</span> OK real-delay=118ms tcp=31ms</p>
+              <p><span>066</span> FAIL tls handshake timeout</p>
+              <p><span>231</span> OK real-delay=203ms tcp=28ms</p>
+            </div>
+          </article>
+
+          <article class="panel import-panel">
+            <div class="panel-title">Import Drawer</div>
+            <h2>Add subscription or single URI</h2>
+            <div class="input-mock">https://provider.example/sub/base64.txt</div>
+            <div class="import-summary">
+              <div><strong>42</strong><span>new</span></div>
+              <div><strong>19</strong><span>updated</span></div>
+              <div><strong>03</strong><span>skipped</span></div>
+            </div>
+            <p>Prototype target: modal/drawer for <code>import</code> and <code>add</code>, with parse feedback before persistence.</p>
+          </article>
+
+          <article class="panel subscription-panel" id="subscriptions">
+            <div class="panel-title">Subscriptions</div>
+            <div class="subscription-row"><span>#12</span><strong>daily-feed</strong><em>url · 168 configs</em></div>
+            <div class="subscription-row"><span>#13</span><strong>manual lab</strong><em>raw_text · 21 configs</em></div>
+            <div class="subscription-row"><span>#14</span><strong>vendor-file</strong><em>file · 59 configs</em></div>
+          </article>
+        </section>
+
+        <footer class="key-bar" aria-label="Keyboard shortcuts">
+          <span><kbd>q</kbd> quit</span>
+          <span><kbd>j/k</kbd> move</span>
+          <span><kbd>enter</kbd> activate</span>
+          <span><kbd>space</kbd> select</span>
+          <span><kbd>t</kbd> test</span>
+          <span><kbd>i</kbd> import</span>
+          <span><kbd>/</kbd> search</span>
+        </footer>
+      </section>
+    </main>
+  </body>
+</html>
