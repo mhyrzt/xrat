@@ -29,6 +29,12 @@ impl Node {
             username: self.username.clone(),
             uuid: self.uuid.clone(),
             password: self.password.clone(),
+            method: self.method.clone(),
+            network: self.network.clone(),
+            tls: self.tls.clone(),
+            sni: self.sni.clone(),
+            host: self.host.clone(),
+            path: self.path.clone(),
         }
     }
 

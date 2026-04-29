@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: docker.arvancloud.ir/postgres:17-alpine
+    environment:
+      POSTGRES_USER: xrat
+      POSTGRES_PASSWORD: xrat
+      POSTGRES_DB: xrat
+    ports:
+      - "54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xrat -d xrat"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

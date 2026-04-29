@@ -27,6 +27,22 @@ uninstall:
 test:
     cargo test -q
 
+# Start the local PostgreSQL verification database
+postgres-up:
+    docker compose up -d postgres
+
+# Stop the local PostgreSQL verification database
+postgres-down:
+    docker compose down
+
+# Stop the local PostgreSQL verification database and remove its volume
+postgres-clean:
+    docker compose down -v
+
+# Run the PostgreSQL real-backend verification test
+test-postgres:
+    XRAT_POSTGRES_TEST_URL=postgres://xrat:xrat@localhost:54329/xrat cargo test -q verifies_postgres_backend_when_url_is_set -- --nocapture
+
 # Format Rust code, markdown, and SQL
 fmt:
     cargo fmt

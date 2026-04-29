@@ -1,6 +1,8 @@
 #[cfg(test)]
 use std::path::PathBuf;
 #[cfg(test)]
+use std::time::Duration;
+#[cfg(test)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
@@ -28,6 +30,43 @@ impl Database {
             path: database_path.to_path_buf(),
         })
         .await
+    }
+
+    #[cfg(test)]
+    async fn connect_postgres_url(url: String) -> crate::db::Result<Self> {
+        Self::connect(&DatabaseConnectionConfig::Postgres {
+            url,
+            max_connections: 5,
+            min_connections: 0,
+            connect_timeout: Duration::from_secs(10),
+        })
+        .await
+    }
+
+    #[cfg(test)]
+    async fn clear_for_test(&self) -> crate::db::Result<()> {
+        match &self.pool {
+            DbPool::Sqlite(pool) => {
+                sqlx::query("DELETE FROM runtime_sessions")
+                    .execute(pool)
+                    .await?;
+                sqlx::query("DELETE FROM connection_tests")
+                    .execute(pool)
+                    .await?;
+                sqlx::query("DELETE FROM configs").execute(pool).await?;
+                sqlx::query("DELETE FROM subscriptions")
+                    .execute(pool)
+                    .await?;
+            }
+            DbPool::Postgres(pool) => {
+                sqlx::query(
+                    "TRUNCATE runtime_sessions, connection_tests, configs, subscriptions RESTART IDENTITY CASCADE",
+                )
+                .execute(pool)
+                .await?;
+            }
+        }
+        Ok(())
     }
 
     pub async fn import_nodes(
@@ -528,5 +567,168 @@ mod tests {
         );
 
         let _ = std::fs::remove_file(db_path);
+    }
+
+    #[tokio::test]
+    async fn verifies_postgres_backend_when_url_is_set() {
+        let Ok(url) = std::env::var("XRAT_POSTGRES_TEST_URL") else {
+            eprintln!("skipping PostgreSQL verification; set XRAT_POSTGRES_TEST_URL to run it");
+            return;
+        };
+        let db = Database::connect_postgres_url(url)
+            .await
+            .expect("postgres db should open");
+
+        db.clear_for_test().await.expect("postgres should clear");
+        verify_database_backend(&db).await;
+        db.clear_for_test().await.expect("postgres should clear");
+    }
+
+    async fn verify_database_backend(db: &Database) {
+        let source = ImportSource {
+            kind: SourceKind::Url,
+            value: "https://example.com/sub".to_string(),
+            name: Some("Example".to_string()),
+        };
+        let first = test_node("first");
+        let mut second = test_node("second");
+        second.address = "second.example.com".to_string();
+        second.uuid = Some("uuid-456".to_string());
+        second.raw_config =
+            "vless://uuid-456@second.example.com:443?type=ws&security=tls#second".to_string();
+
+        let summary = db
+            .import_nodes(&source, &[first, second])
+            .await
+            .expect("import should succeed");
+        assert_eq!(summary.imported_configs, 2);
+        assert_eq!(summary.total_configs, 2);
+        assert_eq!(db.get_subscription_count().await.expect("count"), 1);
+        assert_eq!(db.get_config_count().await.expect("count"), 2);
+
+        let subscriptions = db.list_subscriptions().await.expect("subscriptions");
+        assert_eq!(subscriptions.len(), 1);
+        assert_eq!(subscriptions[0].source_kind, "url");
+        assert_eq!(subscriptions[0].config_count, 2);
+
+        let configs = db
+            .list_configs(&ConfigListFilter::default())
+            .await
+            .expect("configs should load");
+        let first_id = configs[0].id;
+        let second_id = configs[1].id;
+
+        db.set_selected_config(first_id)
+            .await
+            .expect("select first should succeed");
+        db.set_selected_config(second_id)
+            .await
+            .expect("select second should succeed");
+        db.set_active_config(first_id)
+            .await
+            .expect("activate first should succeed");
+        db.set_active_config(second_id)
+            .await
+            .expect("activate second should succeed");
+
+        let selected = db
+            .get_selected_config()
+            .await
+            .expect("selected query should succeed")
+            .expect("selected config should exist");
+        let active = db
+            .get_active_config()
+            .await
+            .expect("active query should succeed")
+            .expect("active config should exist");
+        assert_eq!(selected.id, second_id);
+        assert_eq!(active.id, second_id);
+
+        db.set_config_enabled(second_id, false)
+            .await
+            .expect("disable should succeed");
+        let enabled_configs = db
+            .list_configs(&ConfigListFilter {
+                only_enabled: true,
+                ..ConfigListFilter::default()
+            })
+            .await
+            .expect("enabled configs should load");
+        assert_eq!(enabled_configs.len(), 1);
+        assert!(db.get_selected_config().await.expect("selected").is_none());
+        assert!(db.get_active_config().await.expect("active").is_none());
+
+        db.set_config_enabled(second_id, true)
+            .await
+            .expect("enable should succeed");
+        db.delete_config(first_id)
+            .await
+            .expect("delete should succeed");
+        assert!(
+            db.get_config_by_id(first_id)
+                .await
+                .expect("deleted query should succeed")
+                .is_none()
+        );
+
+        db.insert_connection_test(&ConnectionTestInsert {
+            config_id: second_id,
+            icmp_ok: Some(true),
+            icmp_ms: Some(50),
+            tcp_ok: Some(true),
+            tcp_ms: Some(120),
+            real_delay_ok: Some(true),
+            real_delay_ms: Some(240),
+            download_mbps: Some(42.5),
+            failure_kind: None,
+            failure_reason: None,
+        })
+        .await
+        .expect("connection test insert should succeed");
+        let latest_test = db
+            .get_latest_connection_test(second_id)
+            .await
+            .expect("latest test should load")
+            .expect("latest test should exist");
+        assert_eq!(db.get_connection_test_count().await.expect("count"), 1);
+        assert_eq!(latest_test.download_mbps, Some(42.5));
+
+        let session_id = db
+            .insert_runtime_session(&RuntimeSessionInsert {
+                config_id: Some(second_id),
+                status: RuntimeSessionStatus::Starting,
+                mixed_port: Some(10808),
+                process_id: None,
+                started_at: Some("2025-01-01T10:00:00Z".to_string()),
+                stopped_at: None,
+            })
+            .await
+            .expect("runtime session insert should succeed");
+        db.update_runtime_session_state(
+            session_id,
+            RuntimeSessionStatus::Running,
+            Some(4242),
+            Some(10808),
+            None,
+            None,
+        )
+        .await
+        .expect("runtime session update should succeed");
+        db.mark_runtime_session_stopped(session_id, Some("2025-01-01T10:05:00Z"))
+            .await
+            .expect("runtime session stop should succeed");
+
+        let latest_session = db
+            .get_latest_runtime_session()
+            .await
+            .expect("latest session should load")
+            .expect("latest session should exist");
+        assert_eq!(db.get_runtime_session_count().await.expect("count"), 1);
+        assert_eq!(latest_session.status, RuntimeSessionStatus::Stopped);
+        assert_eq!(latest_session.process_id, Some(4242));
+        assert_eq!(
+            latest_session.stopped_at.as_deref(),
+            Some("2025-01-01T10:05:00Z")
+        );
     }
 }

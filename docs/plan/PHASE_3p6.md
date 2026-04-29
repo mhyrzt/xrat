@@ -141,6 +141,24 @@ ICMP -> Real Delay -> Download Speed
 - Populated `download_mbps` in TSV/CSV/JSON output when download testing runs.
 - Persisted `download_mbps` in `connection_tests` for SQLite and PostgreSQL.
 
+### Node Deduplication Identity
+
+- Kept `configs.dedup_key` as the stable import/upsert identity.
+- Replaced the previous ad-hoc pipe-joined key with a versioned, length-prefixed
+  canonical text format.
+- Expanded identity fields to include runtime-affecting transport and security
+  settings:
+  - method
+  - network
+  - TLS/security
+  - SNI
+  - host
+  - path
+- Left display-only fields such as node name out of the deduplication identity.
+- Kept the database schema unchanged by continuing to store the key as `TEXT`.
+- Added SQLite and PostgreSQL migrations to rewrite existing config keys into
+  the canonical format.
+
 ### Database Module Facade
 
 - Split the `Database` facade out of `src/db/mod.rs` into `src/db/database.rs`.
@@ -206,8 +224,22 @@ bf30bc5 refactor: split repository facade module
 - Added shared row-mapping helpers for backend-neutral record mapping.
 - Redacted PostgreSQL passwords in user-facing database labels.
 
-Carry-forward note: PostgreSQL compiles and the SQLite suite still passes, but
-this still needs verification against a real PostgreSQL server.
+### PostgreSQL Real-Backend Verification
+
+- Added `docker-compose.yml` with a PostgreSQL-only verification database.
+- Added Justfile helpers:
+  - `just postgres-up`
+  - `just postgres-down`
+  - `just postgres-clean`
+  - `just test-postgres`
+- Added a PostgreSQL verification test gated by `XRAT_POSTGRES_TEST_URL`.
+- Verified against a real PostgreSQL backend:
+  - schema migrations on an empty database
+  - import/upsert behavior
+  - config and subscription listing
+  - selection, activation, enable/disable, and delete state changes
+  - connection test insertion and latest-history reads
+  - runtime session insert/update/stop reads
 
 ### Concrete Error Types
 
@@ -245,10 +277,8 @@ cargo fmt
 cargo test -q
 ```
 
-The last validation run reported 83 passing tests.
+The last validation run reported 97 passing tests.
 
 ## Carry Forward
 
-The remaining notes are kept in `docs/plan/notes.md`. Near-term carry-forward
-items are real PostgreSQL backend verification, node deduplication hashing, and
-tester workflow improvements.
+The remaining notes are kept in `docs/plan/notes.md`.
