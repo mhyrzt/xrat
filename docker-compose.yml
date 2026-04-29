@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: docker.arvancloud.ir/postgres:17-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: xrat
       POSTGRES_PASSWORD: xrat
