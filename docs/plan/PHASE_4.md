@@ -505,6 +505,11 @@ surface:
   `configs.is_selected`
 - added PID-based status checks and stale-session reporting for the first status
   slice
+- moved shared runtime lifecycle checks behind a command-level service helper
+- hardened disconnect with graceful terminate, bounded wait, and force-kill
+  fallback
+- reconciled stale `starting`, `running`, and `stopping` sessions before
+  connect/status so active config state does not stay stuck on dead processes
 - kept `runtime_sessions.mixed_port` as the first-slice primary local readiness
   port instead of adding explicit inbound columns yet
 

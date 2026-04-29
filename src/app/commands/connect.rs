@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use crate::app::runtime::AppContext;
 use crate::app::{AppError, config::defaults};
@@ -21,16 +21,25 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
         )));
     }
 
-    if let Some(session) = context.db.get_running_runtime_session().await? {
-        if context.app_config.runtime.replace_active_session {
-            super::disconnect::disconnect_active(context).await?;
-        } else {
+    match super::runtime_lifecycle::active_session_state(context).await? {
+        super::runtime_lifecycle::ActiveSessionState::Running(session) => {
+            if !context.app_config.runtime.replace_active_session {
+                tracing::warn!(
+                    session_id = session.id,
+                    "active runtime session blocks connect"
+                );
+                return Err(AppError::RuntimeSessionAlreadyActive);
+            }
+
+            super::runtime_lifecycle::stop_active_session(context).await?;
+        }
+        super::runtime_lifecycle::ActiveSessionState::Stale(session) => {
             tracing::warn!(
                 session_id = session.id,
-                "active runtime session blocks connect"
+                "stale runtime session was reconciled before connect"
             );
-            return Err(AppError::RuntimeSessionAlreadyActive);
         }
+        super::runtime_lifecycle::ActiveSessionState::None => {}
     }
 
     let launch = resolve_launch(context, &config)?;
@@ -67,7 +76,7 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
                     None,
                     None,
                     None,
-                    Some(&now_string()),
+                    Some(&super::runtime_lifecycle::now_string()),
                 )
                 .await?;
             return Err(error);
@@ -81,7 +90,7 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
             RuntimeSessionStatus::Running,
             Some(i64::from(process.pid)),
             Some(i64::from(process.ready_port)),
-            Some(&now_string()),
+            Some(&super::runtime_lifecycle::now_string()),
             None,
         )
         .await?;
@@ -184,13 +193,6 @@ fn node_from_record(config: &ConfigRecord) -> crate::app::Result<Node> {
         name: config.name.clone(),
         raw_config: config.raw_config.clone(),
     })
-}
-
-fn now_string() -> String {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs().to_string())
-        .unwrap_or_else(|_| "0".to_string())
 }
 
 fn connect_host_for_bind_host(host: &str) -> String {

@@ -4,6 +4,7 @@ use crate::db::RuntimeSessionStatus;
 use crate::xray::runtime as xray_runtime;
 
 pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result<()> {
+    let active_state = super::runtime_lifecycle::active_session_state(context).await?;
     let latest = context.db.get_latest_runtime_session().await?;
     let active = context.db.get_active_config().await?;
     let selected = context.db.get_selected_config().await?;
@@ -21,7 +22,12 @@ pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result
         .process_id
         .map(xray_runtime::process_is_running)
         .unwrap_or(false);
-    let status = if matches!(session.status, RuntimeSessionStatus::Running) && !pid_running {
+    let status = if matches!(
+        active_state,
+        super::runtime_lifecycle::ActiveSessionState::Stale(_)
+    ) {
+        "stale reconciled"
+    } else if matches!(session.status, RuntimeSessionStatus::Running) && !pid_running {
         "stale"
     } else {
         session.status.as_str()

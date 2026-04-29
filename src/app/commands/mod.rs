@@ -3,6 +3,7 @@ mod connect;
 mod disconnect;
 mod import;
 mod list;
+mod runtime_lifecycle;
 mod status;
 mod test;
 
