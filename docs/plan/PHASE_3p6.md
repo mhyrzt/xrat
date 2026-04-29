@@ -128,6 +128,19 @@ ICMP -> Real Delay -> Download Speed
 - Left TCP persistence in place for now so existing connection-test history and
   repository behavior stay compatible.
 
+### Download Speed Testing
+
+- Added `src/tester/download.rs` for download speed checks through the generated
+  Xray probe proxy.
+- Download checks use `[testing.download].url` and `[testing.download].timeout`.
+- Added CLI overrides:
+  - `--skip-download`
+  - `--download-url <url>`
+  - `--download-timeout <ms>`
+- Added CSV bulk output via `--format csv`.
+- Populated `download_mbps` in TSV/CSV/JSON output when download testing runs.
+- Persisted `download_mbps` in `connection_tests` for SQLite and PostgreSQL.
+
 ### Database Module Facade
 
 - Split the `Database` facade out of `src/db/mod.rs` into `src/db/database.rs`.

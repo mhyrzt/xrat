@@ -16,7 +16,9 @@ use crate::cli::{TestArgs, TestFormat, TestSortBy};
 use crate::db::DatabaseConnectionConfig;
 use crate::db::{ConfigRecord, ConnectionTestInsert, Database};
 use crate::model::Node;
-use crate::tester::{FailureKind, TestResult, icmp_ping, real_delay_check, tcp_check};
+use crate::tester::{
+    FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
+};
 
 pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()> {
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
@@ -149,6 +151,7 @@ async fn test_and_record_config(
     let mut ran_icmp = false;
     let mut ran_tcp = false;
     let mut ran_real_delay = false;
+    let mut ran_download = false;
 
     for stage in &settings.stage_order {
         match stage {
@@ -183,15 +186,26 @@ async fn test_and_record_config(
                 }
             }
             ConnectionTestStage::Download if settings.run_download => {
-                tracing::debug!("download speed test is enabled but not implemented yet");
+                ran_download = true;
+                run_download_stage(&node, &settings, &mut result, print_progress).await?;
+                if !result.download_ok && settings.failure_policy.halts_after_failure() {
+                    break;
+                }
             }
             _ => {}
         }
     }
 
     let elapsed = test_start.elapsed();
-    let output =
-        TestOutputRow::from_parts(&config, &result, ran_icmp, ran_tcp, ran_real_delay, elapsed);
+    let output = TestOutputRow::from_parts(
+        &config,
+        &result,
+        ran_icmp,
+        ran_tcp,
+        ran_real_delay,
+        ran_download,
+        elapsed,
+    );
     db.insert_connection_test(&output.connection_test_insert())
         .await?;
 
@@ -294,6 +308,46 @@ async fn run_real_delay_stage(
     Ok(())
 }
 
+async fn run_download_stage(
+    node: &Node,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+    print_progress: bool,
+) -> crate::app::Result<()> {
+    if print_progress {
+        print!("Running download speed test... ");
+        std::io::stdout().flush()?;
+    }
+
+    let download_result = download_speed_check(
+        node,
+        &settings.download_url,
+        &settings.xray_binary_path,
+        settings.xray_startup_timeout,
+        settings.download_timeout,
+    )
+    .await;
+    let failure_reason = download_result.failure_reason.clone();
+
+    result.download_ok = download_result.success;
+    result.download_mbps = download_result.mbps;
+    merge_failure(
+        result,
+        download_result.failure_kind,
+        download_result.failure_reason,
+    );
+
+    if print_progress {
+        print_download_result(
+            download_result.success,
+            download_result.mbps,
+            failure_reason.as_deref(),
+        );
+    }
+
+    Ok(())
+}
+
 fn merge_failure(
     result: &mut TestResult,
     failure_kind: Option<FailureKind>,
@@ -305,6 +359,14 @@ fn merge_failure(
 
     result.failure_kind = failure_kind;
     result.failure_reason = failure_reason;
+}
+
+fn print_download_result(success: bool, mbps: Option<f64>, failure_reason: Option<&str>) {
+    if success {
+        println!("OK {:.2} Mbps", mbps.unwrap_or_default());
+    } else {
+        println!("FAIL {}", failure_reason.unwrap_or("failed"));
+    }
 }
 
 fn print_stage_result(success: bool, latency_ms: Option<u32>, failure_reason: Option<&str>) {
@@ -337,6 +399,9 @@ fn print_single_summary(output: &TestOutputRow) {
             if let Some(ms) = output.real_delay_ms {
                 println!("  Real delay: {ms}ms");
             }
+            if let Some(mbps) = output.download_mbps {
+                println!("  Download speed: {mbps:.2} Mbps");
+            }
         }
         TestStatus::Failed => {
             println!("FAIL Config failed");
@@ -350,6 +415,7 @@ fn print_single_summary(output: &TestOutputRow) {
 fn write_results(args: &TestArgs, outputs: &[TestOutputRow]) -> crate::app::Result<()> {
     let data = match args.format {
         TestFormat::Tsv => format_tsv(outputs),
+        TestFormat::Csv => format_csv(outputs),
         TestFormat::Json => serde_json::to_string_pretty(outputs)?,
     };
 
@@ -391,12 +457,53 @@ fn format_tsv(outputs: &[TestOutputRow]) -> String {
     lines.join("\n")
 }
 
+fn format_csv(outputs: &[TestOutputRow]) -> String {
+    let mut lines = Vec::with_capacity(outputs.len() + 1);
+    lines.push(
+        "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,status,error"
+            .to_string(),
+    );
+
+    for output in outputs {
+        lines.push(
+            [
+                output.id.to_string(),
+                csv_cell(output.name.as_deref()),
+                csv_cell(Some(&output.protocol)),
+                csv_cell(Some(&output.address)),
+                output.port.to_string(),
+                optional_number(output.icmp_ms),
+                optional_number(output.real_delay_ms),
+                optional_float(output.download_mbps),
+                output.status.as_str().to_string(),
+                csv_cell(output.error.as_deref()),
+            ]
+            .join(","),
+        );
+    }
+
+    lines.join("\n")
+}
+
 fn tsv_cell(value: Option<&str>) -> String {
     value.unwrap_or_default().replace(['\t', '\r', '\n'], " ")
 }
 
+fn csv_cell(value: Option<&str>) -> String {
+    let value = value.unwrap_or_default();
+    if value.contains(&[',', '"', '\r', '\n'][..]) {
+        format!("\"{}\"", value.replace('"', "\"\""))
+    } else {
+        value.to_string()
+    }
+}
+
 fn optional_number(value: Option<u32>) -> String {
     value.map(|value| value.to_string()).unwrap_or_default()
+}
+
+fn optional_float(value: Option<f64>) -> String {
+    value.map(|value| format!("{value:.2}")).unwrap_or_default()
 }
 
 fn sort_results(outputs: &mut [TestOutputRow], sort_by: TestSortBy) {
@@ -457,11 +564,13 @@ struct ResolvedTestSettings {
     stage_order: Vec<ConnectionTestStage>,
     failure_policy: TestFailurePolicy,
     real_delay_url: String,
+    download_url: String,
     xray_binary_path: PathBuf,
     icmp_timeout: Duration,
     tcp_timeout: Duration,
     xray_startup_timeout: Duration,
     real_delay_timeout: Duration,
+    download_timeout: Duration,
     run_icmp: bool,
     run_tcp: bool,
     run_real_delay: bool,
@@ -489,6 +598,10 @@ fn resolve_test_settings(
             .test_url
             .clone()
             .unwrap_or_else(|| app_config.testing.real_delay.url.clone()),
+        download_url: args
+            .download_url
+            .clone()
+            .unwrap_or_else(|| app_config.testing.download.url.clone()),
         xray_binary_path: resolve_engine_binary_path(app_config, runtime_paths),
         icmp_timeout: Duration::from_millis(
             args.icmp_timeout_ms
@@ -503,10 +616,14 @@ fn resolve_test_settings(
             args.real_delay_timeout_ms
                 .unwrap_or(app_config.testing.real_delay.timeout),
         ),
+        download_timeout: Duration::from_millis(
+            args.download_timeout_ms
+                .unwrap_or(app_config.testing.download.timeout),
+        ),
         run_icmp: app_config.testing.icmp.enabled && !args.skip_icmp,
         run_tcp: app_config.testing.tcp.enabled && !args.skip_tcp,
         run_real_delay: app_config.testing.real_delay.enabled && !args.skip_real_delay,
-        run_download: app_config.testing.download.enabled,
+        run_download: app_config.testing.download.enabled && !args.skip_download,
         concurrency,
     })
 }
@@ -587,9 +704,10 @@ impl TestOutputRow {
         ran_icmp: bool,
         ran_tcp: bool,
         ran_real_delay: bool,
+        ran_download: bool,
         elapsed: Duration,
     ) -> Self {
-        let status = overall_status(result, ran_icmp, ran_tcp, ran_real_delay);
+        let status = overall_status(result, ran_icmp, ran_tcp, ran_real_delay, ran_download);
 
         Self {
             id: config.id,
@@ -599,7 +717,7 @@ impl TestOutputRow {
             port: config.port,
             icmp_ms: result.icmp_ms,
             real_delay_ms: result.real_delay_ms,
-            download_mbps: None,
+            download_mbps: result.download_mbps,
             status,
             error: result.failure_reason.clone(),
             tcp_ms: result.tcp_ms,
@@ -626,6 +744,7 @@ impl TestOutputRow {
             tcp_ms: self.tcp_ms.map(i64::from),
             real_delay_ok: self.ran_real_delay.then_some(self.real_delay_ok),
             real_delay_ms: self.real_delay_ms.map(i64::from),
+            download_mbps: self.download_mbps,
             failure_kind: self.failure_kind.clone(),
             failure_reason: self.error.clone(),
         }
@@ -655,12 +774,15 @@ fn overall_status(
     ran_icmp: bool,
     ran_tcp: bool,
     ran_real_delay: bool,
+    ran_download: bool,
 ) -> TestStatus {
-    if !ran_icmp && !ran_tcp && !ran_real_delay {
+    if !ran_icmp && !ran_tcp && !ran_real_delay && !ran_download {
         return TestStatus::Skipped;
     }
 
-    let success = if ran_real_delay {
+    let success = if ran_download {
+        result.download_ok
+    } else if ran_real_delay {
         result.real_delay_ok
     } else if ran_tcp {
         result.tcp_ok
@@ -754,6 +876,11 @@ mod tests {
                     url: "https://example.test/204".to_string(),
                     timeout: 12_000,
                 },
+                download: crate::app::config::DownloadTestSettings {
+                    enabled: true,
+                    url: "https://example.test/10mb.test".to_string(),
+                    timeout: 40_000,
+                },
                 icmp: crate::app::config::IcmpTestSettings {
                     enabled: true,
                     attempts: 3,
@@ -773,11 +900,13 @@ mod tests {
         let settings = resolve_test_settings(&args, &app_config, &runtime_paths).expect("settings");
 
         assert_eq!(settings.real_delay_url, "https://example.test/204");
+        assert_eq!(settings.download_url, "https://example.test/10mb.test");
         assert_eq!(settings.xray_binary_path, PathBuf::from("xray"));
         assert_eq!(settings.icmp_timeout, Duration::from_millis(2500));
         assert_eq!(settings.tcp_timeout, Duration::from_millis(4500));
         assert_eq!(settings.xray_startup_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(12_000));
+        assert_eq!(settings.download_timeout, Duration::from_millis(40_000));
         assert_eq!(
             settings.stage_order,
             vec![
@@ -813,9 +942,11 @@ mod tests {
         };
         let args = TestArgs {
             test_url: Some("https://override.test/204".to_string()),
+            download_url: Some("https://override.test/10mb.test".to_string()),
             icmp_timeout_ms: Some(3000),
             tcp_timeout_ms: Some(5000),
             real_delay_timeout_ms: Some(15_000),
+            download_timeout_ms: Some(45_000),
             ..test_args(Some(1))
         };
 
@@ -823,9 +954,11 @@ mod tests {
         let settings = resolve_test_settings(&args, &app_config, &runtime_paths).expect("settings");
 
         assert_eq!(settings.real_delay_url, "https://override.test/204");
+        assert_eq!(settings.download_url, "https://override.test/10mb.test");
         assert_eq!(settings.icmp_timeout, Duration::from_millis(3000));
         assert_eq!(settings.tcp_timeout, Duration::from_millis(5000));
         assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
+        assert_eq!(settings.download_timeout, Duration::from_millis(45_000));
     }
 
     #[test]
@@ -883,6 +1016,38 @@ mod tests {
         assert!(settings.failure_policy.halts_after_failure());
         assert!(TestFailurePolicy::MarkFailed.halts_after_failure());
         assert!(!TestFailurePolicy::Continue.halts_after_failure());
+    }
+
+    #[test]
+    fn formats_csv_results_with_download_speed() {
+        let output = TestOutputRow {
+            id: 7,
+            name: Some("node, one".to_string()),
+            protocol: "vless".to_string(),
+            address: "example.com".to_string(),
+            port: 443,
+            icmp_ms: Some(12),
+            real_delay_ms: Some(123),
+            download_mbps: Some(45.678),
+            status: TestStatus::Ok,
+            error: None,
+            tcp_ms: Some(25),
+            ran_icmp: true,
+            ran_tcp: true,
+            ran_real_delay: true,
+            icmp_ok: true,
+            tcp_ok: true,
+            real_delay_ok: true,
+            failure_kind: None,
+            elapsed_secs: 1.0,
+        };
+
+        let csv = format_csv(&[output]);
+
+        assert!(csv.starts_with(
+            "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,status,error\n"
+        ));
+        assert!(csv.contains("7,\"node, one\",vless,example.com,443,12,123,45.68,ok,"));
     }
 
     #[test]
@@ -966,10 +1131,13 @@ mod tests {
             skip_icmp: false,
             skip_tcp: false,
             skip_real_delay: false,
+            skip_download: false,
             test_url: None,
+            download_url: None,
             icmp_timeout_ms: None,
             tcp_timeout_ms: None,
             real_delay_timeout_ms: None,
+            download_timeout_ms: None,
             concurrency: None,
             format: crate::cli::TestFormat::Tsv,
             output: None,

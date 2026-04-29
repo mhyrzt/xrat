@@ -105,14 +105,19 @@ mod tests {
             "42",
             "--skip-icmp",
             "--skip-real-delay",
+            "--skip-download",
             "--test-url",
             "https://example.com/generate_204",
+            "--download-url",
+            "https://example.com/10mb.test",
             "--icmp-timeout",
             "3500",
             "--tcp-timeout",
             "4500",
             "--real-delay-timeout",
             "5500",
+            "--download-timeout",
+            "6500",
         ]);
 
         match cli.command {
@@ -120,13 +125,19 @@ mod tests {
                 assert_eq!(args.id, Some(42));
                 assert!(args.skip_icmp);
                 assert!(args.skip_real_delay);
+                assert!(args.skip_download);
                 assert_eq!(
                     args.test_url.as_deref(),
                     Some("https://example.com/generate_204")
                 );
+                assert_eq!(
+                    args.download_url.as_deref(),
+                    Some("https://example.com/10mb.test")
+                );
                 assert_eq!(args.icmp_timeout_ms, Some(3500));
                 assert_eq!(args.tcp_timeout_ms, Some(4500));
                 assert_eq!(args.real_delay_timeout_ms, Some(5500));
+                assert_eq!(args.download_timeout_ms, Some(6500));
             }
             Command::Import(_) | Command::Add(_) | Command::List(_) => {
                 panic!("expected test command")
@@ -145,7 +156,7 @@ mod tests {
             "--concurrency",
             "0",
             "--format",
-            "json",
+            "csv",
             "--output",
             "/tmp/results.json",
             "--sort-by",
@@ -159,7 +170,7 @@ mod tests {
                 assert!(args.enabled_only);
                 assert_eq!(args.subscription, Some(9));
                 assert_eq!(args.concurrency, Some(0));
-                assert!(matches!(args.format, TestFormat::Json));
+                assert!(matches!(args.format, TestFormat::Csv));
                 assert_eq!(
                     args.output.as_deref(),
                     Some(std::path::Path::new("/tmp/results.json"))
@@ -167,6 +178,18 @@ mod tests {
                 assert!(matches!(args.sort_by, TestSortBy::RealDelay));
                 assert!(args.no_progress);
             }
+            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+                panic!("expected test command")
+            }
+        }
+    }
+
+    #[test]
+    fn parses_csv_test_format() {
+        let cli = Cli::parse_from(["xrat", "test", "--format", "csv"]);
+
+        match cli.command {
+            Command::Test(args) => assert!(matches!(args.format, TestFormat::Csv)),
             Command::Import(_) | Command::Add(_) | Command::List(_) => {
                 panic!("expected test command")
             }

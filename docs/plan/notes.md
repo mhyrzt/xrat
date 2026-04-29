@@ -72,29 +72,7 @@ Exercise at least:
 - connection test insertion and latest-history reads
 - runtime session insert/update/stop reads
 
-## Tester Improvements
-
-### Test Result Output
-
-- Consider adding CSV only if there is a clear consumer for it.
-- `download_mbps` is present in TSV/JSON output but remains empty until download
-  speed testing is implemented.
-
-### Download Speed Testing
-
-- Add `src/tester/download.rs` for download-speed checks.
-- Use the configured URL and timeout.
-- Return download Mbps plus the same failure classification style used by ICMP,
-  TCP, and real-delay checks.
-- Decide whether download speed should be persisted:
-  - If persisted, add a migration and DB model/repository changes.
-  - If not persisted in the first pass, keep it output-only and document that
-    persistence is pending.
-- Keep this as a focused follow-up if it makes the first bulk-testing change too
-  large.
-
 ## Suggested Refactoring Priorities
 
-1. Add download-speed testing and decide whether to persist download Mbps.
-2. Improve node deduplication key by using a stable hash-based approach.
-3. Verify PostgreSQL support against a real PostgreSQL server.
+1. Improve node deduplication key by using a stable hash-based approach.
+2. Verify PostgreSQL support against a real PostgreSQL server.

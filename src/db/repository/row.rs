@@ -48,6 +48,7 @@ where
     for<'a> &'a str: ColumnIndex<R>,
     i64: for<'r> Decode<'r, R::Database> + Type<R::Database>,
     Option<i64>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
+    Option<f64>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
     String: for<'r> Decode<'r, R::Database> + Type<R::Database>,
     Option<String>: for<'r> Decode<'r, R::Database> + Type<R::Database>,
     R::Database: Database,
@@ -63,6 +64,7 @@ where
             .get::<Option<i64>, _>("real_delay_ok")
             .map(|value| value != 0),
         real_delay_ms: row.get("real_delay_ms"),
+        download_mbps: row.get("download_mbps"),
         failure_kind: row.get("failure_kind"),
         failure_reason: row.get("failure_reason"),
         tested_at: row.get("tested_at"),

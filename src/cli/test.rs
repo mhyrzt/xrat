@@ -33,11 +33,20 @@ pub struct TestArgs {
     #[arg(long = "skip-real-delay", help = "Skip real-delay test.")]
     pub skip_real_delay: bool,
 
+    #[arg(long = "skip-download", help = "Skip download speed test.")]
+    pub skip_download: bool,
+
     #[arg(
         long = "test-url",
         help = "Override the URL used for real-delay checks."
     )]
     pub test_url: Option<String>,
+
+    #[arg(
+        long = "download-url",
+        help = "Override the URL used for download speed checks."
+    )]
+    pub download_url: Option<String>,
 
     #[arg(
         long = "icmp-timeout",
@@ -56,6 +65,12 @@ pub struct TestArgs {
         help = "Override the real-delay request timeout in milliseconds."
     )]
     pub real_delay_timeout_ms: Option<u64>,
+
+    #[arg(
+        long = "download-timeout",
+        help = "Override the download speed request timeout in milliseconds."
+    )]
+    pub download_timeout_ms: Option<u64>,
 
     #[arg(long = "concurrency", help = "Bulk test concurrency. 0 means auto.")]
     pub concurrency: Option<i32>,
@@ -91,6 +106,7 @@ impl TestArgs {
 pub enum TestFormat {
     #[default]
     Tsv,
+    Csv,
     Json,
 }
 
@@ -98,6 +114,7 @@ impl std::fmt::Display for TestFormat {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Tsv => formatter.write_str("tsv"),
+            Self::Csv => formatter.write_str("csv"),
             Self::Json => formatter.write_str("json"),
         }
     }

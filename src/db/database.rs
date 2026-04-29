@@ -403,6 +403,7 @@ mod tests {
             tcp_ms: None,
             real_delay_ok: None,
             real_delay_ms: None,
+            download_mbps: None,
             failure_kind: Some("timeout".to_string()),
             failure_reason: Some("tcp handshake timed out".to_string()),
         })
@@ -417,6 +418,7 @@ mod tests {
             tcp_ms: Some(120),
             real_delay_ok: Some(true),
             real_delay_ms: Some(240),
+            download_mbps: Some(42.5),
             failure_kind: None,
             failure_reason: None,
         })
@@ -440,6 +442,7 @@ mod tests {
         assert_eq!(latest.tcp_ms, Some(120));
         assert_eq!(latest.real_delay_ok, Some(true));
         assert_eq!(latest.real_delay_ms, Some(240));
+        assert_eq!(latest.download_mbps, Some(42.5));
         assert_eq!(latest.failure_kind, None);
 
         let _ = std::fs::remove_file(db_path);

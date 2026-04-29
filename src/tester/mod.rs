@@ -1,7 +1,9 @@
+pub mod download;
 pub mod icmp;
 pub mod real_delay;
 pub mod tcp;
 
+pub use download::{DownloadResult, download_speed_check};
 pub use icmp::{IcmpResult, icmp_ping};
 pub use real_delay::{RealDelayResult, real_delay_check};
 pub use tcp::{TcpResult, tcp_check};
@@ -47,6 +49,8 @@ pub struct TestResult {
     pub tcp_ms: Option<u32>,
     pub real_delay_ok: bool,
     pub real_delay_ms: Option<u32>,
+    pub download_ok: bool,
+    pub download_mbps: Option<f64>,
     pub failure_kind: Option<FailureKind>,
     pub failure_reason: Option<String>,
 }
@@ -60,6 +64,8 @@ impl Default for TestResult {
             tcp_ms: None,
             real_delay_ok: false,
             real_delay_ms: None,
+            download_ok: false,
+            download_mbps: None,
             failure_kind: None,
             failure_reason: None,
         }
