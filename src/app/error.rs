@@ -61,7 +61,9 @@ pub enum AppError {
     )]
     RuntimeSessionAlreadyActive,
 
-    #[error("no local runtime inbound is enabled; enable [runtime.socks] or [runtime.http]")]
+    #[error(
+        "no local runtime inbound is enabled; enable [runtime.socks], [runtime.http], or [runtime.shadowsocks]"
+    )]
     NoRuntimeInboundEnabled,
 
     #[error("background task failed")]

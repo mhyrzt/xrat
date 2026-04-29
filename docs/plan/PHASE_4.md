@@ -175,14 +175,15 @@ Possible first runtime modes:
 
 - SOCKS only
 - HTTP only
+- Shadowsocks only
 - both SOCKS and HTTP
+- any enabled combination of SOCKS, HTTP, and Shadowsocks
 - mixed inbound if that matches the intended Xray setup
 
 A good first product choice is:
 
-- start with SOCKS plus optional HTTP, matching the current config generator
+- start with configured SOCKS, HTTP, and Shadowsocks inbounds
 - avoid global/TUN mode in this phase
-- defer Shadowsocks inbound generation unless it falls out naturally
 
 That keeps platform-specific complexity out of the initial runtime work.
 
@@ -205,12 +206,12 @@ The table should capture at least:
 
 Current schema note:
 
-- `runtime_sessions` currently has one `mixed_port` column.
-- Phase 4 can either treat that column as the primary local runtime port for the
-  first slice or add a migration for explicit `socks_port`, `http_port`, and
-  future inbound columns.
-- If multiple inbounds are exposed in the first release, prefer an explicit
-  migration rather than overloading `mixed_port` with ambiguous meaning.
+- Phase 4 uses explicit nullable host/port columns for SOCKS, HTTP, and
+  Shadowsocks inbounds so persisted status reflects the launched session shape.
+- The earlier `mixed_port` column is removed by migration and should not be used
+  by runtime code.
+- If arbitrary custom inbounds are added later, a separate JSON inbound summary
+  can be added without overloading the fixed inbound columns.
 
 Recommended session states:
 
@@ -479,8 +480,8 @@ Possible future flags:
 
 To keep risk low, build this phase in the following order:
 
-1. audit `runtime_sessions.mixed_port` and decide whether to migrate to explicit
-   inbound port columns
+1. migrate `runtime_sessions` to explicit inbound port columns and remove
+   `mixed_port`
 2. stabilize shared Xray config/process helpers around `[runtime]` settings
 3. define runtime session domain/service types
 4. ship `connect <id>` end to end
@@ -510,8 +511,11 @@ surface:
   fallback
 - reconciled stale `starting`, `running`, and `stopping` sessions before
   connect/status so active config state does not stay stuck on dead processes
-- kept `runtime_sessions.mixed_port` as the first-slice primary local readiness
-  port instead of adding explicit inbound columns yet
+- added explicit nullable runtime session columns for SOCKS, HTTP, and
+  Shadowsocks inbound host/port values and removed the old `mixed_port` column
+- persisted the launched runtime inbound shape in `runtime_sessions` so `status`
+  reports the session that was actually started instead of rereading mutable
+  current config defaults
 
 ## Completion Criteria
 
@@ -533,13 +537,8 @@ Phase 4 can be considered complete when:
 These should be resolved while implementing, but they should not block starting
 the phase:
 
-- should the first runtime expose SOCKS, HTTP, mixed inbound, or more than one
-  at once?
-- should the current `mixed_port` column be kept as the primary local port, or
-  replaced with explicit inbound port columns?
 - should the app attempt to reattach to an already-running Xray process after
   restart, or just report a stale session?
-- should `status` be purely DB-driven, or also verify that the PID still exists?
 - which local ports should be fixed by default versus allocated dynamically?
-- should Phase 4 add Shadowsocks inbound support or leave it configured but
-  unused until a later runtime expansion?
+- should runtime status eventually verify each persisted inbound port, not just
+  the saved process id?

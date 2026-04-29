@@ -161,12 +161,11 @@ impl Database {
         session_id: i64,
         status: RuntimeSessionStatus,
         process_id: Option<i64>,
-        mixed_port: Option<i64>,
         started_at: Option<&str>,
         stopped_at: Option<&str>,
     ) -> crate::db::Result<()> {
         repository::update_runtime_session_state(
-            &self.pool, session_id, status, process_id, mixed_port, started_at, stopped_at,
+            &self.pool, session_id, status, process_id, started_at, stopped_at,
         )
         .await
     }
@@ -519,7 +518,12 @@ mod tests {
             .insert_runtime_session(&RuntimeSessionInsert {
                 config_id: Some(config.id),
                 status: RuntimeSessionStatus::Starting,
-                mixed_port: Some(10808),
+                socks_host: Some("127.0.0.1".to_string()),
+                socks_port: Some(10808),
+                http_host: Some("127.0.0.1".to_string()),
+                http_port: Some(18080),
+                shadowsocks_host: Some("127.0.0.1".to_string()),
+                shadowsocks_port: Some(1081),
                 process_id: None,
                 started_at: Some("2025-01-01T10:00:00Z".to_string()),
                 stopped_at: None,
@@ -534,13 +538,17 @@ mod tests {
             .expect("running session should exist");
         assert_eq!(running.id, session_id);
         assert_eq!(running.status, RuntimeSessionStatus::Starting);
-        assert_eq!(running.mixed_port, Some(10808));
+        assert_eq!(running.socks_host.as_deref(), Some("127.0.0.1"));
+        assert_eq!(running.socks_port, Some(10808));
+        assert_eq!(running.http_host.as_deref(), Some("127.0.0.1"));
+        assert_eq!(running.http_port, Some(18080));
+        assert_eq!(running.shadowsocks_host.as_deref(), Some("127.0.0.1"));
+        assert_eq!(running.shadowsocks_port, Some(1081));
 
         db.update_runtime_session_state(
             session_id,
             RuntimeSessionStatus::Running,
             Some(4242),
-            Some(10808),
             None,
             None,
         )
@@ -561,7 +569,6 @@ mod tests {
         assert_eq!(latest.id, session_id);
         assert_eq!(latest.status, RuntimeSessionStatus::Stopped);
         assert_eq!(latest.process_id, Some(4242));
-        assert_eq!(latest.mixed_port, Some(10808));
         assert_eq!(latest.stopped_at.as_deref(), Some("2025-01-01T10:05:00Z"));
         assert!(
             db.get_running_runtime_session()
@@ -701,7 +708,12 @@ mod tests {
             .insert_runtime_session(&RuntimeSessionInsert {
                 config_id: Some(second_id),
                 status: RuntimeSessionStatus::Starting,
-                mixed_port: Some(10808),
+                socks_host: Some("127.0.0.1".to_string()),
+                socks_port: Some(10808),
+                http_host: Some("127.0.0.1".to_string()),
+                http_port: Some(18080),
+                shadowsocks_host: Some("127.0.0.1".to_string()),
+                shadowsocks_port: Some(1081),
                 process_id: None,
                 started_at: Some("2025-01-01T10:00:00Z".to_string()),
                 stopped_at: None,
@@ -712,7 +724,6 @@ mod tests {
             session_id,
             RuntimeSessionStatus::Running,
             Some(4242),
-            Some(10808),
             None,
             None,
         )
@@ -730,6 +741,9 @@ mod tests {
         assert_eq!(db.get_runtime_session_count().await.expect("count"), 1);
         assert_eq!(latest_session.status, RuntimeSessionStatus::Stopped);
         assert_eq!(latest_session.process_id, Some(4242));
+        assert_eq!(latest_session.socks_port, Some(10808));
+        assert_eq!(latest_session.http_port, Some(18080));
+        assert_eq!(latest_session.shadowsocks_port, Some(1081));
         assert_eq!(
             latest_session.stopped_at.as_deref(),
             Some("2025-01-01T10:05:00Z")

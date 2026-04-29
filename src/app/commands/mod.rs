@@ -4,6 +4,7 @@ mod disconnect;
 mod import;
 mod list;
 mod runtime_lifecycle;
+mod runtime_output;
 mod status;
 mod test;
 

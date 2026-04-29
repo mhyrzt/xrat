@@ -44,9 +44,13 @@ pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result
     if let Some(selected) = selected {
         println!("Selected config: {}", selected.id);
     }
-    if let Some(port) = session.mixed_port {
-        println!("Local port: {port}");
-    }
+    print_inbound("SOCKS", session.socks_host.as_deref(), session.socks_port);
+    print_inbound("HTTP", session.http_host.as_deref(), session.http_port);
+    print_inbound(
+        "Shadowsocks",
+        session.shadowsocks_host.as_deref(),
+        session.shadowsocks_port,
+    );
     if let Some(pid) = session.process_id {
         println!(
             "PID: {pid} ({})",
@@ -66,4 +70,16 @@ pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result
     println!("Database: {}", context.runtime_paths.database_label);
 
     Ok(())
+}
+
+fn print_inbound(label: &str, host: Option<&str>, port: Option<i64>) {
+    if let Some(port) = port {
+        let endpoint = u16::try_from(port)
+            .ok()
+            .map(|port| {
+                super::runtime_output::format_inbound_endpoint(host.unwrap_or("unknown"), port)
+            })
+            .unwrap_or_else(|| format!("{}:{port}", host.unwrap_or("unknown")));
+        println!("{label}: {endpoint}");
+    }
 }

@@ -5,6 +5,7 @@ use crate::app::{AppError, config::defaults};
 use crate::cli::ConnectArgs;
 use crate::db::{ConfigRecord, RuntimeSessionInsert, RuntimeSessionStatus};
 use crate::model::{Node, Protocol};
+use crate::xray::config::Inbound;
 use crate::xray::{generate_runtime_config_for_inbounds, runtime as xray_runtime};
 
 pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result<()> {
@@ -48,7 +49,18 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
         .insert_runtime_session(&RuntimeSessionInsert {
             config_id: Some(config.id),
             status: RuntimeSessionStatus::Starting,
-            mixed_port: Some(i64::from(launch.ready_port)),
+            socks_host: launch.socks.as_ref().map(|inbound| inbound.host.clone()),
+            socks_port: launch.socks.as_ref().map(|inbound| i64::from(inbound.port)),
+            http_host: launch.http.as_ref().map(|inbound| inbound.host.clone()),
+            http_port: launch.http.as_ref().map(|inbound| i64::from(inbound.port)),
+            shadowsocks_host: launch
+                .shadowsocks
+                .as_ref()
+                .map(|inbound| inbound.host.clone()),
+            shadowsocks_port: launch
+                .shadowsocks
+                .as_ref()
+                .map(|inbound| i64::from(inbound.port)),
             process_id: None,
             started_at: None,
             stopped_at: None,
@@ -75,7 +87,6 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
                     RuntimeSessionStatus::Failed,
                     None,
                     None,
-                    None,
                     Some(&super::runtime_lifecycle::now_string()),
                 )
                 .await?;
@@ -89,7 +100,6 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
             session_id,
             RuntimeSessionStatus::Running,
             Some(i64::from(process.pid)),
-            Some(i64::from(process.ready_port)),
             Some(&super::runtime_lifecycle::now_string()),
             None,
         )
@@ -100,11 +110,23 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
     if let Some(name) = &config.name {
         println!("Name: {name}");
     }
-    if let Some(port) = launch.socks_port {
-        println!("SOCKS: {}:{port}", context.app_config.runtime.socks.host);
+    if let Some(inbound) = &launch.socks {
+        println!(
+            "SOCKS: {}",
+            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
+        );
     }
-    if let Some(port) = launch.http_port {
-        println!("HTTP: {}:{port}", context.app_config.runtime.http.host);
+    if let Some(inbound) = &launch.http {
+        println!(
+            "HTTP: {}",
+            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
+        );
+    }
+    if let Some(inbound) = &launch.shadowsocks {
+        println!(
+            "Shadowsocks: {}",
+            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
+        );
     }
     println!("PID: {}", process.pid);
     println!("Runtime config: {}", process.paths.config_path.display());
@@ -117,8 +139,15 @@ struct ResolvedLaunch {
     config: crate::xray::XrayConfig,
     ready_host: String,
     ready_port: u16,
-    socks_port: Option<u16>,
-    http_port: Option<u16>,
+    socks: Option<ResolvedInbound>,
+    http: Option<ResolvedInbound>,
+    shadowsocks: Option<ResolvedInbound>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ResolvedInbound {
+    host: String,
+    port: u16,
 }
 
 fn resolve_launch(
@@ -135,18 +164,45 @@ fn resolve_launch(
         .http
         .enabled
         .then_some((runtime.http.host.as_str(), runtime.http.port));
+    let shadowsocks = if runtime.shadowsocks.enabled {
+        Some((
+            runtime.shadowsocks.host.as_str(),
+            runtime.shadowsocks.port,
+            runtime.shadowsocks.method.as_str(),
+            runtime.shadowsocks.password.resolve()?,
+            runtime.shadowsocks.network.as_str(),
+        ))
+    } else {
+        None
+    };
 
-    if socks.is_none() && http.is_none() {
+    if socks.is_none() && http.is_none() && shadowsocks.is_none() {
         return Err(AppError::NoRuntimeInboundEnabled);
     }
 
     let node = node_from_record(config)?;
-    let xray_config = generate_runtime_config_for_inbounds(&node, socks, http)
+    let mut xray_config = generate_runtime_config_for_inbounds(&node, socks, http)
         .map_err(AppError::InvalidArgument)?;
+    if let Some((host, port, method, password, network)) = &shadowsocks {
+        xray_config.inbounds.push(Inbound {
+            tag: "shadowsocks-in".to_string(),
+            port: *port,
+            listen: (*host).to_string(),
+            protocol: "shadowsocks".to_string(),
+            settings: Some(serde_json::json!({
+                "method": method,
+                "password": password,
+                "network": network
+            })),
+        });
+    }
+
     let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
         (connect_host_for_bind_host(host), port)
     } else if let Some((host, port)) = http {
         (connect_host_for_bind_host(host), port)
+    } else if let Some((host, port, _, _, _)) = &shadowsocks {
+        (connect_host_for_bind_host(host), *port)
     } else {
         unreachable!("validated at least one inbound")
     };
@@ -161,8 +217,18 @@ fn resolve_launch(
         config: xray_config,
         ready_host,
         ready_port,
-        socks_port: socks.map(|(_, port, _)| port),
-        http_port: http.map(|(_, port)| port),
+        socks: socks.map(|(host, port, _)| ResolvedInbound {
+            host: host.to_string(),
+            port,
+        }),
+        http: http.map(|(host, port)| ResolvedInbound {
+            host: host.to_string(),
+            port,
+        }),
+        shadowsocks: shadowsocks.map(|(host, port, _, _, _)| ResolvedInbound {
+            host: host.to_string(),
+            port,
+        }),
     })
 }
 

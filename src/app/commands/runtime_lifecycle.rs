@@ -34,14 +34,7 @@ pub async fn stop_active_session(context: &AppContext) -> crate::app::Result<boo
 
     context
         .db
-        .update_runtime_session_state(
-            session.id,
-            RuntimeSessionStatus::Stopping,
-            None,
-            None,
-            None,
-            None,
-        )
+        .update_runtime_session_state(session.id, RuntimeSessionStatus::Stopping, None, None, None)
         .await?;
 
     if let Some(pid) = session.process_id {
@@ -81,14 +74,7 @@ pub async fn mark_session_stale(
 
     context
         .db
-        .update_runtime_session_state(
-            session.id,
-            terminal_status,
-            None,
-            None,
-            None,
-            Some(&now_string()),
-        )
+        .update_runtime_session_state(session.id, terminal_status, None, None, Some(&now_string()))
         .await?;
     context.db.clear_active_config().await?;
     Ok(())
@@ -145,7 +131,12 @@ mod tests {
             .insert_runtime_session(&RuntimeSessionInsert {
                 config_id: Some(config.id),
                 status: RuntimeSessionStatus::Running,
-                mixed_port: Some(1080),
+                socks_host: Some("127.0.0.1".to_string()),
+                socks_port: Some(1080),
+                http_host: None,
+                http_port: None,
+                shadowsocks_host: None,
+                shadowsocks_port: None,
                 process_id: Some(0),
                 started_at: Some("1".to_string()),
                 stopped_at: None,

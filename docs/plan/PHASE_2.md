@@ -204,7 +204,7 @@ tracked before full Xray process management is wired in.
 - `config_id`: integer, nullable foreign key to `configs.id`
 - `status`: enum with values such as `starting`, `running`, `stopping`,
   `stopped`, or `failed`
-- `mixed_port`: integer, nullable
+- explicit nullable inbound host/port fields for SOCKS, HTTP, and Shadowsocks
 - `process_id`: integer, nullable
 - `started_at`: datetime, nullable
 - `stopped_at`: datetime, nullable
