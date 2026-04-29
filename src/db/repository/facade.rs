@@ -102,9 +102,18 @@ pub async fn update_runtime_session_state(
     process_id: Option<i64>,
     started_at: Option<&str>,
     stopped_at: Option<&str>,
+    failure_reason: Option<&str>,
 ) -> crate::db::Result<()> {
-    runtime_sessions::update_state(pool, session_id, status, process_id, started_at, stopped_at)
-        .await
+    runtime_sessions::update_state(
+        pool,
+        session_id,
+        status,
+        process_id,
+        started_at,
+        stopped_at,
+        failure_reason,
+    )
+    .await
 }
 
 pub async fn mark_runtime_session_stopped(

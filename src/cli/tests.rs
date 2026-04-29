@@ -229,17 +229,26 @@ mod tests {
 
     #[test]
     fn parses_runtime_commands() {
-        let connect = Cli::parse_from(["xrat", "connect", "42"]);
+        let connect = Cli::parse_from(["xrat", "connect", "42", "--json"]);
         match connect.command {
-            Command::Connect(args) => assert_eq!(args.id, 42),
+            Command::Connect(args) => {
+                assert_eq!(args.id, 42);
+                assert!(args.json);
+            }
             _ => panic!("expected connect command"),
         }
 
-        let disconnect = Cli::parse_from(["xrat", "disconnect"]);
-        assert!(matches!(disconnect.command, Command::Disconnect(_)));
+        let disconnect = Cli::parse_from(["xrat", "disconnect", "--json"]);
+        match disconnect.command {
+            Command::Disconnect(args) => assert!(args.json),
+            _ => panic!("expected disconnect command"),
+        }
 
-        let status = Cli::parse_from(["xrat", "status"]);
-        assert!(matches!(status.command, Command::Status(_)));
+        let status = Cli::parse_from(["xrat", "status", "--json"]);
+        match status.command {
+            Command::Status(args) => assert!(args.json),
+            _ => panic!("expected status command"),
+        }
     }
 
     #[test]

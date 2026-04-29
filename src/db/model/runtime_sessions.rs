@@ -41,6 +41,7 @@ pub struct RuntimeSessionInsert {
     pub shadowsocks_host: Option<String>,
     pub shadowsocks_port: Option<i64>,
     pub process_id: Option<i64>,
+    pub failure_reason: Option<String>,
     pub started_at: Option<String>,
     pub stopped_at: Option<String>,
 }
@@ -57,6 +58,7 @@ pub struct RuntimeSessionRecord {
     pub shadowsocks_host: Option<String>,
     pub shadowsocks_port: Option<i64>,
     pub process_id: Option<i64>,
+    pub failure_reason: Option<String>,
     pub started_at: Option<String>,
     pub stopped_at: Option<String>,
     pub created_at: String,

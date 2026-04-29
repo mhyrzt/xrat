@@ -163,9 +163,16 @@ impl Database {
         process_id: Option<i64>,
         started_at: Option<&str>,
         stopped_at: Option<&str>,
+        failure_reason: Option<&str>,
     ) -> crate::db::Result<()> {
         repository::update_runtime_session_state(
-            &self.pool, session_id, status, process_id, started_at, stopped_at,
+            &self.pool,
+            session_id,
+            status,
+            process_id,
+            started_at,
+            stopped_at,
+            failure_reason,
         )
         .await
     }
@@ -525,6 +532,7 @@ mod tests {
                 shadowsocks_host: Some("127.0.0.1".to_string()),
                 shadowsocks_port: Some(1081),
                 process_id: None,
+                failure_reason: None,
                 started_at: Some("2025-01-01T10:00:00Z".to_string()),
                 stopped_at: None,
             })
@@ -549,6 +557,7 @@ mod tests {
             session_id,
             RuntimeSessionStatus::Running,
             Some(4242),
+            None,
             None,
             None,
         )
@@ -715,6 +724,7 @@ mod tests {
                 shadowsocks_host: Some("127.0.0.1".to_string()),
                 shadowsocks_port: Some(1081),
                 process_id: None,
+                failure_reason: None,
                 started_at: Some("2025-01-01T10:00:00Z".to_string()),
                 stopped_at: None,
             })
@@ -724,6 +734,7 @@ mod tests {
             session_id,
             RuntimeSessionStatus::Running,
             Some(4242),
+            None,
             None,
             None,
         )

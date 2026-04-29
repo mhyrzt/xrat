@@ -96,6 +96,7 @@ where
         shadowsocks_host: row.get("shadowsocks_host"),
         shadowsocks_port: row.get("shadowsocks_port"),
         process_id: row.get("process_id"),
+        failure_reason: row.get("failure_reason"),
         started_at: row.get("started_at"),
         stopped_at: row.get("stopped_at"),
         created_at: row.get("created_at"),

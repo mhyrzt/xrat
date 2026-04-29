@@ -200,6 +200,7 @@ The table should capture at least:
 - status
 - local port information
 - process id if known
+- XRAT-owned failure reason if known
 - started time
 - stopped time
 - updated time
@@ -210,6 +211,10 @@ Current schema note:
   Shadowsocks inbounds so persisted status reflects the launched session shape.
 - The earlier `mixed_port` column is removed by migration and should not be used
   by runtime code.
+- Phase 4 stores a short `failure_reason` owned by XRAT for lifecycle failures
+  such as startup failure or stale PID reconciliation. Xray/V2Ray still owns the
+  detailed runtime log files; the database reason should be a concise summary,
+  not a copy of external logs.
 - If arbitrary custom inbounds are added later, a separate JSON inbound summary
   can be added without overloading the fixed inbound columns.
 
@@ -240,6 +245,13 @@ Recommended behavior:
   switch
 - disabled or deleted configs should not be connectable unless the product
   explicitly adds an override later
+- if the config record is deleted after a runtime has started, the existing
+  Xray/V2Ray process should keep running from the generated runtime config file;
+  `status` should continue to show the persisted session and label the session
+  config as missing/deleted instead of rereading mutable config state
+- future delete/disable commands should either refuse to remove the active
+  config until `disconnect` succeeds or require an explicit force path that also
+  stops the runtime
 - `status` should read both runtime session state and active config state
   cleanly
 
@@ -275,7 +287,7 @@ Responsibilities:
 
 ## Detailed Implementation Plan
 
-### Step 1. Stabilize reusable Xray runtime primitives
+### Step 1. Stabilize reusable Xray runtime primitives - Done
 
 Take the process/config helpers introduced for Phase 3 and make sure they can
 support long-lived sessions.
@@ -301,7 +313,7 @@ Important refactor:
 - make `XrayProcess` readiness checks work with the primary inbound selected for
   the managed runtime
 
-### Step 2. Define runtime session service types
+### Step 2. Define runtime session service types - Done
 
 Add domain types for:
 
@@ -317,7 +329,7 @@ consume a stable runtime model.
 They should also translate lower-level errors into the existing concrete
 `AppError`/`DbError` style rather than introducing boxed errors.
 
-### Step 3. Implement `connect`
+### Step 3. Implement `connect` - Done
 
 Add `xrat connect <id>`.
 
@@ -339,7 +351,7 @@ Recommended behavior:
 A later iteration can support `connect selected`, but id-based startup is enough
 first.
 
-### Step 4. Implement `disconnect`
+### Step 4. Implement `disconnect` - Done
 
 Add `xrat disconnect`.
 
@@ -357,7 +369,7 @@ Recommended behavior:
 This command should be safe to run even if nothing is active; it should just
 report that nothing is running.
 
-### Step 5. Implement `status`
+### Step 5. Implement `status` - Done
 
 Add `xrat status`.
 
@@ -375,7 +387,7 @@ Recommended output:
 This command should use persisted state plus lightweight runtime checks where
 appropriate.
 
-### Step 6. Handle switching and unexpected exits
+### Step 6. Handle switching and unexpected exits - Mostly done
 
 After basic connect/disconnect/status works, harden runtime lifecycle behavior.
 
@@ -391,7 +403,7 @@ Important cases:
 
 The runtime service should classify these clearly and keep the DB state honest.
 
-### Step 7. Add focused tests
+### Step 7. Add focused tests - Partially done
 
 Add coverage for:
 
@@ -433,6 +445,10 @@ For the first implementation, avoid relying on in-memory child ownership alone.
 The CLI process may exit after `connect`, so `disconnect` and `status` need to
 work from persisted session data plus OS-level process checks.
 
+Continuous monitoring after the CLI exits is intentionally deferred to Phase
+4.5. Phase 4 reconciles runtime exits on the next `status`, `connect`, or
+`disconnect` command instead of running a background daemon/watcher.
+
 ## Suggested Command Semantics
 
 ### `xrat connect <id>`
@@ -441,19 +457,18 @@ Purpose:
 
 - run one stored config as the active local proxy session
 
+Implemented flags:
+
+- `--json`
+
 Possible future flags:
 
 - `--socks-port <port>`
 - `--http-port <port>`
-- `--mixed-port <port>`
 - `--replace`
 - `--background`
-- `--json`
 
-The first iteration does not need all of these.
-
-Initial behavior should read default ports and replacement policy from
-`[runtime]`.
+Initial behavior reads default ports and replacement policy from `[runtime]`.
 
 ### `xrat disconnect`
 
@@ -461,10 +476,13 @@ Purpose:
 
 - stop the current managed runtime session
 
+Implemented flags:
+
+- `--json`
+
 Possible future flags:
 
 - `--force`
-- `--json`
 
 ### `xrat status`
 
@@ -472,7 +490,7 @@ Purpose:
 
 - show current runtime state and active config at a glance
 
-Possible future flags:
+Implemented flags:
 
 - `--json`
 
@@ -492,6 +510,8 @@ To keep risk low, build this phase in the following order:
 
 ## Implementation Progress
 
+Estimated completion: 90%.
+
 Initial Phase 4 work has started with the minimum managed runtime command
 surface:
 
@@ -506,7 +526,7 @@ surface:
   `configs.is_selected`
 - added PID-based status checks and stale-session reporting for the first status
   slice
-- moved shared runtime lifecycle checks behind a command-level service helper
+- moved shared runtime lifecycle checks behind a reusable `RuntimeService`
 - hardened disconnect with graceful terminate, bounded wait, and force-kill
   fallback
 - reconciled stale `starting`, `running`, and `stopping` sessions before
@@ -516,29 +536,50 @@ surface:
 - persisted the launched runtime inbound shape in `runtime_sessions` so `status`
   reports the session that was actually started instead of rereading mutable
   current config defaults
+- included SOCKS, HTTP, and Shadowsocks runtime inbounds in managed runtime
+  generation and status output
+- removed the obsolete mixed inbound path from managed runtime planning and code
+- added host-machine address display when an inbound binds to `0.0.0.0`
+- extracted managed runtime orchestration into `RuntimeService` with reusable
+  connect, disconnect, status, endpoint, and status snapshot types for future
+  TUI/API use
+- added local inbound liveness checks to `status`, including per-inbound
+  reachable/unreachable output and a `degraded` runtime status when the process
+  is alive but an expected local listener is closed
+- added a concise `runtime_sessions.failure_reason` field for XRAT-owned
+  lifecycle summaries while leaving detailed Xray/V2Ray logs in their generated
+  log files
+- added `--json` output for `connect`, `disconnect`, and `status` so future
+  TUI/API/script callers can consume structured runtime results
+- documented that deleting a config after startup does not invalidate the
+  already-generated runtime config; status should report the session config as
+  missing/deleted when the DB row is gone
+- deferred continuous daemon/background watcher behavior to Phase 4.5
+
+Remaining Phase 4 work:
+
+- add fake-Xray lifecycle tests for connect, disconnect, replacement, stale PID,
+  and startup failure behavior
 
 ## Completion Criteria
 
 Phase 4 can be considered complete when:
 
-1. XRAT exposes `xrat connect <id>`, `xrat disconnect`, and `xrat status`
-2. one stored config can be launched as a managed local Xray runtime
-3. runtime session state is persisted in `runtime_sessions` for SQLite and
-   PostgreSQL
-4. active config and runtime state stay aligned during normal start/stop flows
-5. switching or shutdown does not leave orphaned Xray processes behind
-6. unexpected startup and runtime failures are surfaced clearly enough for users
-   to diagnose issues
-7. the new code is covered by focused CLI, repository, and lifecycle tests
-8. generated runtime config respects the relevant `[runtime]` settings
+1. [x] XRAT exposes `xrat connect <id>`, `xrat disconnect`, and `xrat status`
+2. [x] one stored config can be launched as a managed local Xray runtime
+3. [x] runtime session state is persisted in `runtime_sessions` for SQLite and
+       PostgreSQL
+4. [x] active config and runtime state stay aligned during normal start/stop
+       flows
+5. [x] switching or shutdown does not leave orphaned Xray processes behind
+6. [x] unexpected startup and runtime failures are surfaced clearly enough for
+       users to diagnose issues
+7. [ ] the new code is covered by focused CLI, repository, and lifecycle tests
+8. [x] generated runtime config respects the relevant `[runtime]` settings
 
 ## Open Questions
 
 These should be resolved while implementing, but they should not block starting
 the phase:
 
-- should the app attempt to reattach to an already-running Xray process after
-  restart, or just report a stale session?
 - which local ports should be fixed by default versus allocated dynamically?
-- should runtime status eventually verify each persisted inbound port, not just
-  the saved process id?

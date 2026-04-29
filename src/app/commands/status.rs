@@ -1,60 +1,46 @@
 use crate::app::runtime::AppContext;
+use crate::app::runtime_service::{RuntimeEndpointHealth, RuntimeService};
 use crate::cli::StatusArgs;
-use crate::db::RuntimeSessionStatus;
-use crate::xray::runtime as xray_runtime;
 
-pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result<()> {
-    let active_state = super::runtime_lifecycle::active_session_state(context).await?;
-    let latest = context.db.get_latest_runtime_session().await?;
-    let active = context.db.get_active_config().await?;
-    let selected = context.db.get_selected_config().await?;
+pub async fn run(context: &AppContext, args: &StatusArgs) -> crate::app::Result<()> {
+    let snapshot = RuntimeService::new(context).status().await?;
 
-    let Some(session) = latest else {
-        println!("Runtime: stopped");
-        if let Some(selected) = selected {
+    if args.json {
+        print_json_status(&snapshot)?;
+        return Ok(());
+    }
+
+    let Some(session) = snapshot.session else {
+        println!("Runtime: {}", snapshot.status.as_str());
+        if let Some(selected) = snapshot.selected_config {
             println!("Selected config: {}", selected.id);
         }
-        println!("Database: {}", context.runtime_paths.database_label);
+        println!("Database: {}", snapshot.database_label);
         return Ok(());
     };
 
-    let pid_running = session
-        .process_id
-        .map(xray_runtime::process_is_running)
-        .unwrap_or(false);
-    let status = if matches!(
-        active_state,
-        super::runtime_lifecycle::ActiveSessionState::Stale(_)
-    ) {
-        "stale reconciled"
-    } else if matches!(session.status, RuntimeSessionStatus::Running) && !pid_running {
-        "stale"
-    } else {
-        session.status.as_str()
-    };
-
-    println!("Runtime: {status}");
+    println!("Runtime: {}", snapshot.status.as_str());
     println!("Session: {}", session.id);
     if let Some(config_id) = session.config_id {
-        println!("Session config: {config_id}");
+        if snapshot.session_config.is_some() {
+            println!("Session config: {config_id}");
+        } else {
+            println!("Session config: {config_id} (missing/deleted)");
+        }
     }
-    if let Some(active) = active {
+    if let Some(active) = snapshot.active_config {
         println!("Active config: {}", active.id);
     }
-    if let Some(selected) = selected {
+    if let Some(selected) = snapshot.selected_config {
         println!("Selected config: {}", selected.id);
     }
-    print_inbound("SOCKS", session.socks_host.as_deref(), session.socks_port);
-    print_inbound("HTTP", session.http_host.as_deref(), session.http_port);
-    print_inbound(
-        "Shadowsocks",
-        session.shadowsocks_host.as_deref(),
-        session.shadowsocks_port,
-    );
+    print_inbound("SOCKS", snapshot.inbound_health.socks.as_ref());
+    print_inbound("HTTP", snapshot.inbound_health.http.as_ref());
+    print_inbound("Shadowsocks", snapshot.inbound_health.shadowsocks.as_ref());
     if let Some(pid) = session.process_id {
         println!(
             "PID: {pid} ({})",
-            if pid_running {
+            if snapshot.pid_running {
                 "running"
             } else {
                 "not running"
@@ -67,19 +53,79 @@ pub async fn run(context: &AppContext, _args: &StatusArgs) -> crate::app::Result
     if let Some(stopped_at) = session.stopped_at {
         println!("Stopped: {stopped_at}");
     }
-    println!("Database: {}", context.runtime_paths.database_label);
+    if let Some(reason) = session.failure_reason {
+        println!("Failure: {reason}");
+    }
+    println!("Database: {}", snapshot.database_label);
 
     Ok(())
 }
 
-fn print_inbound(label: &str, host: Option<&str>, port: Option<i64>) {
-    if let Some(port) = port {
-        let endpoint = u16::try_from(port)
-            .ok()
-            .map(|port| {
-                super::runtime_output::format_inbound_endpoint(host.unwrap_or("unknown"), port)
+fn print_json_status(
+    snapshot: &crate::app::runtime_service::RuntimeStatusSnapshot,
+) -> crate::app::Result<()> {
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "runtime": snapshot.status.as_str(),
+            "session": snapshot.session.as_ref().map(|session| serde_json::json!({
+                "id": session.id,
+                "config_id": session.config_id,
+                "config_missing": session.config_id.is_some() && snapshot.session_config.is_none(),
+                "status": session.status.as_str(),
+                "process_id": session.process_id,
+                "pid_running": snapshot.pid_running,
+                "failure_reason": &session.failure_reason,
+                "started_at": &session.started_at,
+                "stopped_at": &session.stopped_at,
+                "created_at": &session.created_at,
+                "updated_at": &session.updated_at,
+            })),
+            "session_config": snapshot.session_config.as_ref().map(config_json),
+            "active_config": snapshot.active_config.as_ref().map(config_json),
+            "selected_config": snapshot.selected_config.as_ref().map(config_json),
+            "inbounds": {
+                "socks": health_json(snapshot.inbound_health.socks.as_ref()),
+                "http": health_json(snapshot.inbound_health.http.as_ref()),
+                "shadowsocks": health_json(snapshot.inbound_health.shadowsocks.as_ref()),
+            },
+            "database": snapshot.database_label,
+        }))?
+    );
+    Ok(())
+}
+
+fn config_json(config: &crate::db::ConfigRecord) -> serde_json::Value {
+    serde_json::json!({
+        "id": config.id,
+        "name": &config.name,
+        "protocol": &config.protocol,
+        "address": &config.address,
+        "port": config.port,
+        "is_enabled": config.is_enabled,
+        "is_selected": config.is_selected,
+        "is_active": config.is_active,
+    })
+}
+
+fn health_json(health: Option<&RuntimeEndpointHealth>) -> serde_json::Value {
+    health
+        .map(|health| {
+            serde_json::json!({
+                "host": &health.endpoint.host,
+                "port": health.endpoint.port,
+                "state": health.state.as_str(),
             })
-            .unwrap_or_else(|| format!("{}:{port}", host.unwrap_or("unknown")));
-        println!("{label}: {endpoint}");
+        })
+        .unwrap_or(serde_json::Value::Null)
+}
+
+fn print_inbound(label: &str, health: Option<&RuntimeEndpointHealth>) {
+    if let Some(health) = health {
+        let endpoint = super::runtime_output::format_inbound_endpoint(
+            &health.endpoint.host,
+            health.endpoint.port,
+        );
+        println!("{label}: {endpoint} ({})", health.state.as_str());
     }
 }
