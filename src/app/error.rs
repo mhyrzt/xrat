@@ -47,6 +47,23 @@ pub enum AppError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("failed to spawn Xray process: {0}")]
+    XraySpawn(String),
+
+    #[error("Xray process exited during startup: {0}")]
+    XrayExited(String),
+
+    #[error("Xray did not open local port {port} before startup timeout")]
+    XrayStartupTimeout { port: u16 },
+
+    #[error(
+        "runtime session already active; disconnect first or enable [runtime].replace_active_session"
+    )]
+    RuntimeSessionAlreadyActive,
+
+    #[error("no local runtime inbound is enabled; enable [runtime.socks] or [runtime.http]")]
+    NoRuntimeInboundEnabled,
+
     #[error("background task failed")]
     TaskJoin(#[from] tokio::task::JoinError),
 }

@@ -40,21 +40,47 @@ pub fn generate_runtime_config(
     socks_port: u16,
     http_port: Option<u16>,
 ) -> Result<XrayConfig, String> {
-    let mut inbounds = vec![Inbound {
-        tag: "socks-in".to_string(),
-        port: socks_port,
-        listen: "127.0.0.1".to_string(),
-        protocol: "socks".to_string(),
-        settings: Some(json!({
-            "udp": true
-        })),
-    }];
+    generate_runtime_config_with_inbounds(node, "127.0.0.1", socks_port, None, http_port)
+}
 
-    if let Some(port) = http_port {
+pub fn generate_runtime_config_with_inbounds(
+    node: &Node,
+    socks_host: &str,
+    socks_port: u16,
+    http_host: Option<&str>,
+    http_port: Option<u16>,
+) -> Result<XrayConfig, String> {
+    generate_runtime_config_for_inbounds(
+        node,
+        Some((socks_host, socks_port, true)),
+        http_port.map(|port| (http_host.unwrap_or(socks_host), port)),
+    )
+}
+
+pub fn generate_runtime_config_for_inbounds(
+    node: &Node,
+    socks: Option<(&str, u16, bool)>,
+    http: Option<(&str, u16)>,
+) -> Result<XrayConfig, String> {
+    let mut inbounds = Vec::new();
+
+    if let Some((host, port, udp)) = socks {
+        inbounds.push(Inbound {
+            tag: "socks-in".to_string(),
+            port,
+            listen: host.to_string(),
+            protocol: "socks".to_string(),
+            settings: Some(json!({
+                "udp": udp
+            })),
+        });
+    }
+
+    if let Some((host, port)) = http {
         inbounds.push(Inbound {
             tag: "http-in".to_string(),
             port,
-            listen: "127.0.0.1".to_string(),
+            listen: host.to_string(),
             protocol: "http".to_string(),
             settings: None,
         });
@@ -128,5 +154,32 @@ mod tests {
         let stream = config.outbounds[0].stream_settings.as_ref().unwrap();
         assert_eq!(stream.network, "ws");
         assert!(stream.ws_settings.is_some());
+    }
+
+    #[test]
+    fn generates_http_only_runtime_config() {
+        let node = Node {
+            protocol: Protocol::Http,
+            address: "example.com".to_string(),
+            port: 8080,
+            username: Some("user".to_string()),
+            uuid: None,
+            password: Some("pass".to_string()),
+            method: None,
+            network: "tcp".to_string(),
+            tls: None,
+            sni: None,
+            host: None,
+            path: None,
+            name: Some("http".to_string()),
+            raw_config: "".to_string(),
+        };
+
+        let config =
+            generate_runtime_config_for_inbounds(&node, None, Some(("127.0.0.1", 18080))).unwrap();
+
+        assert_eq!(config.inbounds.len(), 1);
+        assert_eq!(config.inbounds[0].protocol, "http");
+        assert_eq!(config.inbounds[0].port, 18080);
     }
 }

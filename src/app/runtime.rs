@@ -18,10 +18,12 @@ pub struct AppContext {
 
 #[derive(Clone)]
 pub struct RuntimePaths {
+    pub root_dir: PathBuf,
     pub database_config: DatabaseConnectionConfig,
     pub database_path: PathBuf,
     pub database_label: String,
     pub config_path: PathBuf,
+    pub runtime_dir: PathBuf,
     pub xray_path: PathBuf,
     pub v2ray_path: PathBuf,
 }
@@ -70,10 +72,12 @@ fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, AppConf
 
     Ok((
         RuntimePaths {
+            root_dir: app_paths.root_dir.clone(),
             database_config,
             database_path,
             database_label,
             config_path,
+            runtime_dir: app_paths.root_dir.join("runtime"),
             xray_path,
             v2ray_path,
         },

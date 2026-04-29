@@ -139,6 +139,10 @@ pub async fn set_active_config(pool: &DbPool, id: i64) -> crate::db::Result<()> 
     configs::mark_active(pool, id).await
 }
 
+pub async fn clear_active_config(pool: &DbPool) -> crate::db::Result<()> {
+    configs::clear_all_active(pool).await
+}
+
 pub async fn set_config_enabled(pool: &DbPool, id: i64, is_enabled: bool) -> crate::db::Result<()> {
     configs::set_enabled(pool, id, is_enabled).await
 }

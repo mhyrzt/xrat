@@ -14,7 +14,8 @@ By the end of this phase, XRAT should be able to:
   - `xrat connect <id>`
   - `xrat disconnect`
   - `xrat status`
-- track the active session and persist runtime state in SQLite
+- track the active session and persist runtime state in the configured database
+  backend
 - stop, restart, or switch configs cleanly without leaving orphaned processes
   behind
 
@@ -40,18 +41,27 @@ Phase 4 exists to answer the next operational question:
 This phase turns the project from a config database plus tester into a client
 that can drive a real local proxy runtime.
 
-## Dependency On Phase 3
+## Current Starting Point
 
-Phase 4 should explicitly build on the runtime primitives pulled into Phase 3.
+Phase 4 should explicitly build on the runtime primitives and data-model work
+completed through Phase 3.6.
 
 Those reusable pieces include:
 
-- converting a stored node into runnable Xray JSON
-- choosing local ports safely
-- spawning Xray as a child process
-- waiting for readiness
-- collecting process output and failure details
-- stopping a child process reliably
+- converting a stored node into runnable Xray JSON through `src/xray/config/`
+- generating probe configs and initial runtime configs with SOCKS plus optional
+  HTTP inbounds
+- spawning Xray as a child process through `src/xray/process.rs`
+- writing temporary config files and waiting for local port readiness
+- collecting startup stderr when the process exits early
+- stopping a child process on explicit kill or drop
+- storing runtime session rows through the database facade and repository layer
+- tracking config `selected`, `active`, and `enabled` flags
+- using concrete app/DB error types instead of boxed errors
+- using tracing for diagnostics instead of ad-hoc stderr prints
+- dispatching DB behavior across SQLite and PostgreSQL
+- verifying PostgreSQL behavior against a real Docker Compose database
+- preserving stable node identity with canonical `configs.dedup_key` values
 
 Phase 3 uses those pieces for short-lived tests.
 
@@ -73,6 +83,7 @@ Phase 4 should cover:
 - CLI commands for connect/disconnect/status
 - switching from one running config to another safely
 - clear user-visible runtime errors
+- SQLite and PostgreSQL support for the runtime repository path
 
 Phase 4 should not yet cover:
 
@@ -104,7 +115,7 @@ The first usable version should feel like this:
 
 - `xrat disconnect`
   - stops the managed Xray process
-  - updates runtime state in SQLite
+  - updates runtime state in the configured database
   - confirms the runtime is no longer active
 
 Later extensions in or after this phase can add:
@@ -140,13 +151,25 @@ at once.
 The managed runtime should use a full local proxy configuration rather than the
 tiny probe configuration from Phase 3.
 
+The codebase already has:
+
+- `[runtime.socks]`, `[runtime.http]`, `[runtime.shadowsocks]`, and
+  `[runtime.sniffing]` config sections
+- `generate_runtime_config(node, socks_port, http_port)` for SOCKS plus optional
+  HTTP inbounds
+- runtime defaults such as `engine`, `replace_active_session`, and inbound host
+  and port values
+
 Recommended initial runtime behavior:
 
-- bind local SOCKS and/or HTTP proxy ports on `127.0.0.1`
+- bind local SOCKS and/or HTTP proxy ports using `[runtime.*]` settings
 - generate a stable runtime config for the chosen node
 - start Xray with that config
 - keep the child process alive until the user disconnects or it exits
   unexpectedly
+- validate that at least one local inbound is enabled before startup
+- honor the configured runtime engine path/name; initially this can still map to
+  the `xray` executable
 
 Possible first runtime modes:
 
@@ -157,8 +180,9 @@ Possible first runtime modes:
 
 A good first product choice is:
 
-- start with SOCKS plus HTTP or one mixed inbound
+- start with SOCKS plus optional HTTP, matching the current config generator
 - avoid global/TUN mode in this phase
+- defer Shadowsocks inbound generation unless it falls out naturally
 
 That keeps platform-specific complexity out of the initial runtime work.
 
@@ -178,6 +202,15 @@ The table should capture at least:
 - started time
 - stopped time
 - updated time
+
+Current schema note:
+
+- `runtime_sessions` currently has one `mixed_port` column.
+- Phase 4 can either treat that column as the primary local runtime port for the
+  first slice or add a migration for explicit `socks_port`, `http_port`, and
+  future inbound columns.
+- If multiple inbounds are exposed in the first release, prefer an explicit
+  migration rather than overloading `mixed_port` with ambiguous meaning.
 
 Recommended session states:
 
@@ -243,18 +276,29 @@ Responsibilities:
 
 ### Step 1. Stabilize reusable Xray runtime primitives
 
-Take the temporary process/config helpers introduced for Phase 3 and make sure
-they can support long-lived sessions.
+Take the process/config helpers introduced for Phase 3 and make sure they can
+support long-lived sessions.
 
 That includes:
 
-- stable config generation APIs
-- explicit local port selection
+- stable config generation APIs that accept runtime settings, not just raw ports
+- explicit local port selection and validation
+- support for configured bind hosts where safe
 - readiness detection
 - structured shutdown handling
 - stderr/stdout capture for diagnostics
+- keeping generated runtime config files in a predictable runtime directory when
+  useful for debugging, instead of always relying on anonymous temp files
 
 This step should reduce duplication between probe mode and managed mode.
+
+Important refactor:
+
+- keep probe-specific behavior available for testing
+- add managed-runtime-specific generation/launch paths rather than stretching
+  probe assumptions into long-lived sessions
+- make `XrayProcess` readiness checks work with the primary inbound selected for
+  the managed runtime
 
 ### Step 2. Define runtime session service types
 
@@ -269,6 +313,9 @@ Add domain types for:
 These types should sit above raw DB rows so CLI and future TUI/API code can
 consume a stable runtime model.
 
+They should also translate lower-level errors into the existing concrete
+`AppError`/`DbError` style rather than introducing boxed errors.
+
 ### Step 3. Implement `connect`
 
 Add `xrat connect <id>`.
@@ -276,15 +323,16 @@ Add `xrat connect <id>`.
 Recommended behavior:
 
 - load the config by id
-- reject deleted or disabled configs
+- reject missing or disabled configs
 - if another session is already running, either:
-  - stop it first, then continue, or
-  - fail with a clear message in the first iteration
+  - stop it first when `[runtime].replace_active_session = true`, or
+  - fail with a clear message when replacement is disabled
 - generate a managed runtime config
 - insert/update `runtime_sessions` as `starting`
 - spawn Xray and wait for readiness
 - mark session `running`
 - mark the config active
+- preserve the selected flag independently from active state
 - print local port details
 
 A later iteration can support `connect selected`, but id-based startup is enough
@@ -298,11 +346,12 @@ Recommended behavior:
 
 - load the current running session
 - mark it `stopping`
-- terminate the child process cleanly
+- terminate the child process cleanly using the saved PID/process handle path
 - wait for exit with a bounded timeout
 - force-kill only if needed
 - mark session `stopped`
 - clear active runtime state in config/session tables as appropriate
+- handle stale PIDs by marking the session stopped or failed with a clear reason
 
 This command should be safe to run even if nothing is active; it should just
 report that nothing is running.
@@ -319,6 +368,8 @@ Recommended output:
 - process id
 - started time
 - last failure if the most recent session failed
+- selected config, if different from the active config
+- database backend label if useful for debugging
 
 This command should use persisted state plus lightweight runtime checks where
 appropriate.
@@ -334,6 +385,8 @@ Important cases:
 - the saved PID is stale
 - the process starts but never becomes ready
 - shutdown hangs and needs escalation to force-kill
+- config flags and runtime session rows drift out of sync
+- the app restarts while the previously launched process may still be running
 
 The runtime service should classify these clearly and keep the DB state honest.
 
@@ -343,10 +396,13 @@ Add coverage for:
 
 - CLI parsing for `connect`, `disconnect`, and `status`
 - runtime session repository updates
+- SQLite and PostgreSQL runtime-session behavior where practical
 - transition rules between `starting`, `running`, `stopping`, `stopped`, and
   `failed`
 - connect rejection for deleted/disabled configs
 - unexpected process exit handling through a fake process adapter where possible
+- runtime config generation from `[runtime.socks]` and `[runtime.http]` settings
+- status behavior for stale PID/session state
 
 As in Phase 3, keep the subprocess boundary small so most logic is testable
 without a real Xray binary.
@@ -367,9 +423,14 @@ That service should:
 - retain enough state to stop the right process
 - persist state transitions immediately
 - capture startup or crash errors in a way `status` and future UI can surface
+- emit diagnostics through `tracing`
 
 If the app is restarted while Xray is still running, Phase 4 should at least
 detect and report the mismatch, even if full re-attachment is deferred.
+
+For the first implementation, avoid relying on in-memory child ownership alone.
+The CLI process may exit after `connect`, so `disconnect` and `status` need to
+work from persisted session data plus OS-level process checks.
 
 ## Suggested Command Semantics
 
@@ -386,8 +447,12 @@ Possible future flags:
 - `--mixed-port <port>`
 - `--replace`
 - `--background`
+- `--json`
 
 The first iteration does not need all of these.
+
+Initial behavior should read default ports and replacement policy from
+`[runtime]`.
 
 ### `xrat disconnect`
 
@@ -398,6 +463,7 @@ Purpose:
 Possible future flags:
 
 - `--force`
+- `--json`
 
 ### `xrat status`
 
@@ -413,13 +479,34 @@ Possible future flags:
 
 To keep risk low, build this phase in the following order:
 
-1. stabilize shared Xray config/process helpers
-2. define runtime session domain types
-3. ship `connect <id>` end to end
-4. ship `disconnect`
-5. ship `status`
-6. harden switching and crash handling
-7. add focused unit/repository/CLI/runtime tests
+1. audit `runtime_sessions.mixed_port` and decide whether to migrate to explicit
+   inbound port columns
+2. stabilize shared Xray config/process helpers around `[runtime]` settings
+3. define runtime session domain/service types
+4. ship `connect <id>` end to end
+5. ship `disconnect`
+6. ship `status`
+7. harden switching, stale PID, and crash handling
+8. add focused unit/repository/CLI/runtime tests
+
+## Implementation Progress
+
+Initial Phase 4 work has started with the minimum managed runtime command
+surface:
+
+- added `xrat connect <id>`, `xrat disconnect`, and `xrat status` CLI parsing
+- added detached Xray startup helpers that write per-session runtime config and
+  log files under the XRAT runtime directory
+- connected runtime startup to `[runtime].engine`, `[runtime.socks]`, and
+  `[runtime.http]`
+- persisted `starting`, `running`, `stopping`, `stopped`, and `failed` session
+  transitions through the existing `runtime_sessions` repository path
+- wired successful connects to `configs.is_active` while preserving
+  `configs.is_selected`
+- added PID-based status checks and stale-session reporting for the first status
+  slice
+- kept `runtime_sessions.mixed_port` as the first-slice primary local readiness
+  port instead of adding explicit inbound columns yet
 
 ## Completion Criteria
 
@@ -427,12 +514,14 @@ Phase 4 can be considered complete when:
 
 1. XRAT exposes `xrat connect <id>`, `xrat disconnect`, and `xrat status`
 2. one stored config can be launched as a managed local Xray runtime
-3. runtime session state is persisted in `runtime_sessions`
+3. runtime session state is persisted in `runtime_sessions` for SQLite and
+   PostgreSQL
 4. active config and runtime state stay aligned during normal start/stop flows
 5. switching or shutdown does not leave orphaned Xray processes behind
 6. unexpected startup and runtime failures are surfaced clearly enough for users
    to diagnose issues
 7. the new code is covered by focused CLI, repository, and lifecycle tests
+8. generated runtime config respects the relevant `[runtime]` settings
 
 ## Open Questions
 
@@ -441,9 +530,11 @@ the phase:
 
 - should the first runtime expose SOCKS, HTTP, mixed inbound, or more than one
   at once?
-- should `connect <id>` automatically replace an existing running session or
-  require explicit confirmation later?
+- should the current `mixed_port` column be kept as the primary local port, or
+  replaced with explicit inbound port columns?
 - should the app attempt to reattach to an already-running Xray process after
   restart, or just report a stale session?
 - should `status` be purely DB-driven, or also verify that the PID still exists?
 - which local ports should be fixed by default versus allocated dynamically?
+- should Phase 4 add Shadowsocks inbound support or leave it configured but
+  unused until a later runtime expansion?

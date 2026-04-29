@@ -42,6 +42,9 @@ mod tests {
             Command::Add(_) => panic!("expected import command"),
             Command::List(_) => panic!("expected import command"),
             Command::Test(_) => panic!("expected import command"),
+            Command::Connect(_) | Command::Disconnect(_) | Command::Status(_) => {
+                panic!("expected import command")
+            }
         }
     }
 
@@ -54,6 +57,9 @@ mod tests {
             Command::Import(_) => panic!("expected add command"),
             Command::List(_) => panic!("expected add command"),
             Command::Test(_) => panic!("expected add command"),
+            Command::Connect(_) | Command::Disconnect(_) | Command::Status(_) => {
+                panic!("expected add command")
+            }
         }
     }
 
@@ -66,7 +72,12 @@ mod tests {
                 ListTarget::Subscriptions(_) => {}
                 ListTarget::Configs(_) => panic!("expected subscriptions target"),
             },
-            Command::Import(_) | Command::Add(_) | Command::Test(_) => {
+            Command::Import(_)
+            | Command::Add(_)
+            | Command::Test(_)
+            | Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_) => {
                 panic!("expected list command")
             }
         }
@@ -91,7 +102,12 @@ mod tests {
                 }
                 ListTarget::Subscriptions(_) => panic!("expected configs target"),
             },
-            Command::Import(_) | Command::Add(_) | Command::Test(_) => {
+            Command::Import(_)
+            | Command::Add(_)
+            | Command::Test(_)
+            | Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_) => {
                 panic!("expected list command")
             }
         }
@@ -139,7 +155,12 @@ mod tests {
                 assert_eq!(args.real_delay_timeout_ms, Some(5500));
                 assert_eq!(args.download_timeout_ms, Some(6500));
             }
-            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+            Command::Import(_)
+            | Command::Add(_)
+            | Command::List(_)
+            | Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_) => {
                 panic!("expected test command")
             }
         }
@@ -178,7 +199,12 @@ mod tests {
                 assert!(matches!(args.sort_by, TestSortBy::RealDelay));
                 assert!(args.no_progress);
             }
-            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+            Command::Import(_)
+            | Command::Add(_)
+            | Command::List(_)
+            | Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_) => {
                 panic!("expected test command")
             }
         }
@@ -190,10 +216,30 @@ mod tests {
 
         match cli.command {
             Command::Test(args) => assert!(matches!(args.format, TestFormat::Csv)),
-            Command::Import(_) | Command::Add(_) | Command::List(_) => {
+            Command::Import(_)
+            | Command::Add(_)
+            | Command::List(_)
+            | Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_) => {
                 panic!("expected test command")
             }
         }
+    }
+
+    #[test]
+    fn parses_runtime_commands() {
+        let connect = Cli::parse_from(["xrat", "connect", "42"]);
+        match connect.command {
+            Command::Connect(args) => assert_eq!(args.id, 42),
+            _ => panic!("expected connect command"),
+        }
+
+        let disconnect = Cli::parse_from(["xrat", "disconnect"]);
+        assert!(matches!(disconnect.command, Command::Disconnect(_)));
+
+        let status = Cli::parse_from(["xrat", "status"]);
+        assert!(matches!(status.command, Command::Status(_)));
     }
 
     #[test]

@@ -1,16 +1,22 @@
 mod add;
 mod command;
+mod connect;
+mod disconnect;
 mod import;
 mod list;
 mod root;
+mod status;
 mod test;
 mod tests;
 
 pub use add::AddArgs;
 pub use command::Command;
+pub use connect::ConnectArgs;
+pub use disconnect::DisconnectArgs;
 pub use import::ImportArgs;
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use root::Cli;
+pub use status::StatusArgs;
 pub use test::{TestArgs, TestFormat, TestSortBy};
 
 use clap::Parser;

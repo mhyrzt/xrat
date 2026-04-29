@@ -195,6 +195,10 @@ impl Database {
         repository::set_active_config(&self.pool, id).await
     }
 
+    pub async fn clear_active_config(&self) -> crate::db::Result<()> {
+        repository::clear_active_config(&self.pool).await
+    }
+
     pub async fn set_config_enabled(&self, id: i64, is_enabled: bool) -> crate::db::Result<()> {
         repository::set_config_enabled(&self.pool, id, is_enabled).await
     }

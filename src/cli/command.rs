@@ -1,6 +1,8 @@
 use clap::Subcommand;
 
-use crate::cli::{AddArgs, ImportArgs, ListArgs, TestArgs};
+use crate::cli::{
+    AddArgs, ConnectArgs, DisconnectArgs, ImportArgs, ListArgs, StatusArgs, TestArgs,
+};
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
@@ -12,4 +14,10 @@ pub enum Command {
     List(ListArgs),
     #[command(about = "Test connectivity and latency for stored configs.")]
     Test(TestArgs),
+    #[command(about = "Start a managed Xray runtime for a stored config.")]
+    Connect(ConnectArgs),
+    #[command(about = "Stop the active managed Xray runtime.")]
+    Disconnect(DisconnectArgs),
+    #[command(about = "Show the managed Xray runtime status.")]
+    Status(StatusArgs),
 }
