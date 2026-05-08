@@ -27,8 +27,8 @@ pub use runtime::{
 };
 pub use secret::{SecretError, SecretString};
 pub use testing::{
-    ConnectionTestStage, DownloadTestSettings, IcmpTestSettings, RealDelayTestSettings,
-    TcpTestSettings, TestFailurePolicy, TestingSettings,
+    ConnectionTestStage, DownloadTestSettings, GeoIpTestSettings, IcmpTestSettings,
+    RealDelayTestSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
 };
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
@@ -92,6 +92,19 @@ mod tests {
         assert_eq!(
             config.testing.real_delay.url,
             crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL
+        );
+        assert!(!config.testing.geoip.enabled);
+        assert_eq!(
+            config.testing.geoip.country_path,
+            std::path::PathBuf::from(crate::app::config::defaults::DEFAULT_TEST_GEOIP_COUNTRY_PATH)
+        );
+        assert_eq!(
+            config.testing.geoip.city_path,
+            std::path::PathBuf::from(crate::app::config::defaults::DEFAULT_TEST_GEOIP_CITY_PATH)
+        );
+        assert_eq!(
+            config.testing.geoip.asn_path,
+            std::path::PathBuf::from(crate::app::config::defaults::DEFAULT_TEST_GEOIP_ASN_PATH)
         );
         assert_eq!(
             config.parser.parse_mode,

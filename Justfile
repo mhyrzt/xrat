@@ -27,6 +27,20 @@ uninstall:
 test:
     cargo test -q
 
+# Download GeoLite2 MMDB into ~/.config/xrat/geoip (or XRAT_PATH/geoip)
+# Optional env: GEOIP_EDITION=GeoLite2-City|GeoLite2-Country|GeoLite2-ASN
+geoip-download:
+    ./scripts/download_geolite2_mmdb.sh
+
+# Download GeoLite2-Country test fixture into ./testdata/xrat/geoip
+geoip-download-testdata:
+    XRAT_PATH=./testdata/xrat GEOIP_EDITION=GeoLite2-Country ./scripts/download_geolite2_mmdb.sh
+
+# Download GeoLite2 City + ASN fixtures into ./testdata/xrat/geoip
+geoip-download-testdata-all:
+    XRAT_PATH=./testdata/xrat GEOIP_EDITION=GeoLite2-City ./scripts/download_geolite2_mmdb.sh
+    XRAT_PATH=./testdata/xrat GEOIP_EDITION=GeoLite2-ASN ./scripts/download_geolite2_mmdb.sh
+
 # Start the local PostgreSQL verification database
 postgres-up:
     docker compose up -d postgres

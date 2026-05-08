@@ -89,6 +89,12 @@ pub struct TestArgs {
 
     #[arg(long = "no-progress", help = "Disable bulk progress output.")]
     pub no_progress: bool,
+
+    #[arg(
+        long = "latest-run-summary",
+        help = "Print summary for latest persisted test run and exit."
+    )]
+    pub latest_run_summary: bool,
 }
 
 impl TestArgs {

@@ -213,6 +213,7 @@ mod tests {
                 );
                 assert!(matches!(args.sort_by, TestSortBy::RealDelay));
                 assert!(args.no_progress);
+                assert!(!args.latest_run_summary);
             }
             Command::Import(_)
             | Command::Add(_)
@@ -241,6 +242,18 @@ mod tests {
             | Command::Parse(_) => {
                 panic!("expected test command")
             }
+        }
+    }
+
+    #[test]
+    fn parses_latest_run_summary_flag() {
+        let cli = Cli::parse_from(["xrat", "test", "--latest-run-summary"]);
+        match cli.command {
+            Command::Test(args) => {
+                assert!(args.latest_run_summary);
+                assert_eq!(args.id, None);
+            }
+            _ => panic!("expected test command"),
         }
     }
 

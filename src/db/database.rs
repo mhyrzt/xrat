@@ -7,9 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
 use crate::db::model::{
-    ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord, ImportSource,
-    ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
-    SubscriptionRecord,
+    ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord,
+    ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource, ImportSummary,
+    RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SubscriptionRecord,
 };
 use crate::db::repository;
 
@@ -53,6 +53,9 @@ impl Database {
                 sqlx::query("DELETE FROM connection_tests")
                     .execute(pool)
                     .await?;
+                sqlx::query("DELETE FROM connection_test_runs")
+                    .execute(pool)
+                    .await?;
                 sqlx::query("DELETE FROM configs").execute(pool).await?;
                 sqlx::query("DELETE FROM subscriptions")
                     .execute(pool)
@@ -60,7 +63,7 @@ impl Database {
             }
             DbPool::Postgres(pool) => {
                 sqlx::query(
-                    "TRUNCATE runtime_sessions, connection_tests, configs, subscriptions RESTART IDENTITY CASCADE",
+                    "TRUNCATE runtime_sessions, connection_tests, connection_test_runs, configs, subscriptions RESTART IDENTITY CASCADE",
                 )
                 .execute(pool)
                 .await?;
@@ -119,6 +122,13 @@ impl Database {
         repository::insert_connection_test(&self.pool, test).await
     }
 
+    pub async fn insert_connection_test_run(
+        &self,
+        run: &ConnectionTestRunInsert,
+    ) -> crate::db::Result<i64> {
+        repository::insert_connection_test_run(&self.pool, run).await
+    }
+
     pub async fn list_connection_tests(
         &self,
         config_id: i64,
@@ -131,6 +141,19 @@ impl Database {
         config_id: i64,
     ) -> crate::db::Result<Option<ConnectionTestRecord>> {
         repository::get_latest_connection_test(&self.pool, config_id).await
+    }
+
+    pub async fn get_latest_connection_test_run(
+        &self,
+    ) -> crate::db::Result<Option<ConnectionTestRunRecord>> {
+        repository::get_latest_connection_test_run(&self.pool).await
+    }
+
+    pub async fn list_connection_tests_by_run(
+        &self,
+        run_id: i64,
+    ) -> crate::db::Result<Vec<ConnectionTestRecord>> {
+        repository::list_connection_tests_by_run(&self.pool, run_id).await
     }
 
     pub async fn get_runtime_session_count(&self) -> crate::db::Result<i64> {
@@ -222,8 +245,8 @@ fn test_database_path(prefix: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        ConfigListFilter, ConnectionTestInsert, Database, ImportSource, RuntimeSessionInsert,
-        RuntimeSessionStatus, test_database_path,
+        ConfigListFilter, ConnectionTestInsert, ConnectionTestRunInsert, Database, ImportSource,
+        RuntimeSessionInsert, RuntimeSessionStatus, test_database_path,
     };
     use crate::db::model::SourceKind;
     use crate::model::{Node, Protocol};
@@ -398,7 +421,6 @@ mod tests {
             .into_iter()
             .next()
             .expect("config should exist");
-
         db.set_selected_config(config.id)
             .await
             .expect("select should succeed");
@@ -444,8 +466,15 @@ mod tests {
             .into_iter()
             .next()
             .expect("config should exist");
+        let run_id = db
+            .insert_connection_test_run(&ConnectionTestRunInsert {
+                kind: "bulk".to_string(),
+            })
+            .await
+            .expect("run insert should succeed");
 
         db.insert_connection_test(&ConnectionTestInsert {
+            run_id: Some(run_id),
             config_id: config.id,
             icmp_ok: Some(false),
             icmp_ms: None,
@@ -454,6 +483,13 @@ mod tests {
             real_delay_ok: None,
             real_delay_ms: None,
             download_mbps: None,
+            connect_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            endpoint_ip: None,
+            endpoint_location: None,
+            endpoint_country: None,
+            endpoint_asn: None,
             failure_kind: Some("timeout".to_string()),
             failure_reason: Some("tcp handshake timed out".to_string()),
         })
@@ -461,6 +497,7 @@ mod tests {
         .expect("first test insert should succeed");
 
         db.insert_connection_test(&ConnectionTestInsert {
+            run_id: Some(run_id),
             config_id: config.id,
             icmp_ok: Some(true),
             icmp_ms: Some(50),
@@ -469,6 +506,13 @@ mod tests {
             real_delay_ok: Some(true),
             real_delay_ms: Some(240),
             download_mbps: Some(42.5),
+            connect_ms: Some(95),
+            ttfb_ms: Some(180),
+            http_status: Some(204),
+            endpoint_ip: Some("1.1.1.1".to_string()),
+            endpoint_location: Some("US".to_string()),
+            endpoint_country: Some("US".to_string()),
+            endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
             failure_kind: None,
             failure_reason: None,
         })
@@ -479,6 +523,10 @@ mod tests {
             .list_connection_tests(config.id)
             .await
             .expect("history should load");
+        let run_tests = db
+            .list_connection_tests_by_run(run_id)
+            .await
+            .expect("run history should load");
         let latest = db
             .get_latest_connection_test(config.id)
             .await
@@ -487,13 +535,33 @@ mod tests {
 
         assert_eq!(db.get_connection_test_count().await.expect("count"), 2);
         assert_eq!(tests.len(), 2);
+        assert_eq!(run_tests.len(), 2);
         assert_eq!(latest.config_id, config.id);
+        assert_eq!(latest.run_id, Some(run_id));
         assert_eq!(latest.tcp_ok, Some(true));
         assert_eq!(latest.tcp_ms, Some(120));
         assert_eq!(latest.real_delay_ok, Some(true));
         assert_eq!(latest.real_delay_ms, Some(240));
         assert_eq!(latest.download_mbps, Some(42.5));
+        assert_eq!(latest.connect_ms, Some(95));
+        assert_eq!(latest.ttfb_ms, Some(180));
+        assert_eq!(latest.http_status, Some(204));
+        assert_eq!(latest.endpoint_ip.as_deref(), Some("1.1.1.1"));
+        assert_eq!(latest.endpoint_location.as_deref(), Some("US"));
+        assert_eq!(latest.endpoint_country.as_deref(), Some("US"));
+        assert_eq!(
+            latest.endpoint_asn.as_deref(),
+            Some("AS13335 CLOUDFLARENET")
+        );
         assert_eq!(latest.failure_kind, None);
+        assert_eq!(
+            db.get_latest_connection_test_run()
+                .await
+                .expect("latest run should load")
+                .expect("latest run should exist")
+                .id,
+            run_id
+        );
 
         let _ = std::fs::remove_file(db_path);
     }
@@ -693,6 +761,7 @@ mod tests {
         );
 
         db.insert_connection_test(&ConnectionTestInsert {
+            run_id: None,
             config_id: second_id,
             icmp_ok: Some(true),
             icmp_ms: Some(50),
@@ -701,6 +770,13 @@ mod tests {
             real_delay_ok: Some(true),
             real_delay_ms: Some(240),
             download_mbps: Some(42.5),
+            connect_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            endpoint_ip: None,
+            endpoint_location: None,
+            endpoint_country: None,
+            endpoint_asn: None,
             failure_kind: None,
             failure_reason: None,
         })

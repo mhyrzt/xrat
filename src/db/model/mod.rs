@@ -4,6 +4,8 @@ mod import;
 mod runtime_sessions;
 
 pub use configs::{ConfigListFilter, ConfigRecord};
-pub use connection_tests::{ConnectionTestInsert, ConnectionTestRecord};
+pub use connection_tests::{
+    ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
+};
 pub use import::{ImportSource, ImportSummary, SourceKind, SubscriptionRecord};
 pub use runtime_sessions::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};

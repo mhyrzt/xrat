@@ -7,4 +7,5 @@ target
 
 **/mutants.out*/
 
+testdata/xrat/geoip/*.mmdb
 temp/

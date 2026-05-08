@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::io::Write;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -14,13 +15,19 @@ use crate::app::runtime::{AppContext, RuntimePaths};
 use crate::cli::{TestArgs, TestFormat, TestSortBy};
 #[cfg(test)]
 use crate::db::DatabaseConnectionConfig;
-use crate::db::{ConfigRecord, ConnectionTestInsert, Database};
+use crate::db::{ConfigRecord, ConnectionTestInsert, ConnectionTestRunInsert, Database};
 use crate::model::Node;
 use crate::tester::{
     FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
 };
+use crate::{app::config, support::geoip};
 
 pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()> {
+    if args.latest_run_summary {
+        print_latest_run_summary(&context.db).await?;
+        return Ok(());
+    }
+
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
 
     if let Some(config_id) = args.id {
@@ -28,6 +35,25 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()
     } else {
         run_bulk(args, context, settings).await
     }
+}
+
+async fn print_latest_run_summary(db: &Database) -> crate::app::Result<()> {
+    let Some(run) = db.get_latest_connection_test_run().await? else {
+        println!("No persisted test runs found.");
+        return Ok(());
+    };
+    let tests = db.list_connection_tests_by_run(run.id).await?;
+    let total = tests.len();
+    let failed = tests
+        .iter()
+        .filter(|row| row.failure_kind.is_some())
+        .count();
+    let ok = total.saturating_sub(failed);
+    println!(
+        "Latest test run #{} ({}) at {}: total={}, ok={}, failed={}",
+        run.id, run.kind, run.created_at, total, ok, failed
+    );
+    Ok(())
 }
 
 async fn run_single(
@@ -43,8 +69,16 @@ async fn run_single(
         return Ok(());
     };
 
+    let run_id = context
+        .db
+        .insert_connection_test_run(&ConnectionTestRunInsert {
+            kind: "single".to_string(),
+        })
+        .await?;
+
     print_single_header(&config);
-    let output = test_and_record_config(context.db.clone(), config, settings, true).await?;
+    let output =
+        test_and_record_config(context.db.clone(), config, settings, true, Some(run_id)).await?;
     print_single_summary(&output);
 
     Ok(())
@@ -62,6 +96,12 @@ async fn run_bulk(
         write_results(args, &[])?;
         return Ok(());
     }
+    let run_id = context
+        .db
+        .insert_connection_test_run(&ConnectionTestRunInsert {
+            kind: "bulk".to_string(),
+        })
+        .await?;
 
     let total = configs.len();
     let concurrency = resolve_concurrency(settings.concurrency)?;
@@ -76,7 +116,13 @@ async fn run_bulk(
         let Some(config) = next_config.next() else {
             break;
         };
-        spawn_config_test(&mut join_set, context.db.clone(), config, settings.clone());
+        spawn_config_test(
+            &mut join_set,
+            context.db.clone(),
+            config,
+            settings.clone(),
+            Some(run_id),
+        );
     }
 
     while let Some(joined) = join_set.join_next().await {
@@ -89,7 +135,13 @@ async fn run_bulk(
         update_bulk_progress(&progress, completed, failed);
 
         if let Some(config) = next_config.next() {
-            spawn_config_test(&mut join_set, context.db.clone(), config, settings.clone());
+            spawn_config_test(
+                &mut join_set,
+                context.db.clone(),
+                config,
+                settings.clone(),
+                Some(run_id),
+            );
         }
     }
     finish_bulk_progress(progress, completed, failed);
@@ -135,8 +187,10 @@ fn spawn_config_test(
     db: Database,
     config: ConfigRecord,
     settings: ResolvedTestSettings,
+    run_id: Option<i64>,
 ) {
-    join_set.spawn(async move { test_and_record_config(db, config, settings, false).await });
+    join_set
+        .spawn(async move { test_and_record_config(db, config, settings, false, run_id).await });
 }
 
 async fn test_and_record_config(
@@ -144,6 +198,7 @@ async fn test_and_record_config(
     config: ConfigRecord,
     settings: ResolvedTestSettings,
     print_progress: bool,
+    run_id: Option<i64>,
 ) -> crate::app::Result<TestOutputRow> {
     let node = node_from_record(&config)?;
     let mut result = TestResult::default();
@@ -206,7 +261,7 @@ async fn test_and_record_config(
         ran_download,
         elapsed,
     );
-    db.insert_connection_test(&output.connection_test_insert())
+    db.insert_connection_test(&output.connection_test_insert(run_id))
         .await?;
 
     Ok(output)
@@ -291,6 +346,19 @@ async fn run_real_delay_stage(
 
     result.real_delay_ok = real_delay_result.success;
     result.real_delay_ms = real_delay_result.latency_ms;
+    result.ttfb_ms = real_delay_result.ttfb_ms;
+    result.http_status = real_delay_result.http_status;
+    result.endpoint_ip = real_delay_result.endpoint_ip;
+    let endpoint_meta = resolve_endpoint_meta(
+        result.endpoint_ip.as_deref(),
+        settings.geoip_enabled,
+        &settings.geoip_city_path,
+        &settings.geoip_country_path,
+        &settings.geoip_asn_path,
+    );
+    result.endpoint_location = endpoint_meta.location;
+    result.endpoint_country = endpoint_meta.country;
+    result.endpoint_asn = endpoint_meta.asn;
     merge_failure(
         result,
         real_delay_result.failure_kind,
@@ -306,6 +374,81 @@ async fn run_real_delay_stage(
     }
 
     Ok(())
+}
+
+fn classify_endpoint_location(endpoint_ip: Option<&str>) -> Option<String> {
+    let ip = endpoint_ip?.parse::<IpAddr>().ok()?;
+    let label = match ip {
+        IpAddr::V4(v4) => {
+            if v4.is_private() {
+                "private_ipv4"
+            } else if v4.is_loopback() {
+                "loopback_ipv4"
+            } else if v4.is_link_local() {
+                "link_local_ipv4"
+            } else {
+                "public"
+            }
+        }
+        IpAddr::V6(v6) => {
+            if v6.is_loopback() {
+                "loopback_ipv6"
+            } else if v6.is_unique_local() {
+                "unique_local_ipv6"
+            } else if v6.is_unicast_link_local() {
+                "link_local_ipv6"
+            } else {
+                "public"
+            }
+        }
+    };
+    Some(label.to_string())
+}
+
+struct EndpointMeta {
+    location: Option<String>,
+    country: Option<String>,
+    asn: Option<String>,
+}
+
+fn resolve_endpoint_meta(
+    endpoint_ip: Option<&str>,
+    geoip_enabled: bool,
+    geoip_city_path: &std::path::Path,
+    geoip_country_path: &std::path::Path,
+    geoip_asn_path: &std::path::Path,
+) -> EndpointMeta {
+    if geoip_enabled {
+        if let Some(ip) = endpoint_ip {
+            if let Some(city) = geoip::lookup_city_label(geoip_city_path, ip) {
+                let country = city.split('/').next().map(str::to_string);
+                return EndpointMeta {
+                    location: Some(city),
+                    country,
+                    asn: geoip::lookup_asn_label(geoip_asn_path, ip),
+                };
+            }
+            if let Some(country) = geoip::lookup_country_iso(geoip_country_path, ip) {
+                return EndpointMeta {
+                    location: Some(country.clone()),
+                    country: Some(country),
+                    asn: geoip::lookup_asn_label(geoip_asn_path, ip),
+                };
+            }
+            if let Some(asn) = geoip::lookup_asn_label(geoip_asn_path, ip) {
+                return EndpointMeta {
+                    location: Some(asn.clone()),
+                    country: None,
+                    asn: Some(asn),
+                };
+            }
+        }
+    }
+    EndpointMeta {
+        location: classify_endpoint_location(endpoint_ip),
+        country: None,
+        asn: None,
+    }
 }
 
 async fn run_download_stage(
@@ -576,6 +719,10 @@ struct ResolvedTestSettings {
     run_real_delay: bool,
     run_download: bool,
     concurrency: i32,
+    geoip_enabled: bool,
+    geoip_country_path: PathBuf,
+    geoip_city_path: PathBuf,
+    geoip_asn_path: PathBuf,
 }
 
 fn resolve_test_settings(
@@ -625,6 +772,19 @@ fn resolve_test_settings(
         run_real_delay: app_config.testing.real_delay.enabled && !args.skip_real_delay,
         run_download: app_config.testing.download.enabled && !args.skip_download,
         concurrency,
+        geoip_enabled: app_config.testing.geoip.enabled,
+        geoip_country_path: config::resolve_config_path(
+            &runtime_paths.config_path,
+            &app_config.testing.geoip.country_path,
+        ),
+        geoip_city_path: config::resolve_config_path(
+            &runtime_paths.config_path,
+            &app_config.testing.geoip.city_path,
+        ),
+        geoip_asn_path: config::resolve_config_path(
+            &runtime_paths.config_path,
+            &app_config.testing.geoip.asn_path,
+        ),
     })
 }
 
@@ -681,6 +841,18 @@ struct TestOutputRow {
     #[serde(skip_serializing)]
     tcp_ms: Option<u32>,
     #[serde(skip_serializing)]
+    ttfb_ms: Option<u32>,
+    #[serde(skip_serializing)]
+    http_status: Option<u16>,
+    #[serde(skip_serializing)]
+    endpoint_ip: Option<String>,
+    #[serde(skip_serializing)]
+    endpoint_location: Option<String>,
+    #[serde(skip_serializing)]
+    endpoint_country: Option<String>,
+    #[serde(skip_serializing)]
+    endpoint_asn: Option<String>,
+    #[serde(skip_serializing)]
     ran_icmp: bool,
     #[serde(skip_serializing)]
     ran_tcp: bool,
@@ -722,6 +894,12 @@ impl TestOutputRow {
             status,
             error: result.failure_reason.clone(),
             tcp_ms: result.tcp_ms,
+            ttfb_ms: result.ttfb_ms,
+            http_status: result.http_status,
+            endpoint_ip: result.endpoint_ip.clone(),
+            endpoint_location: result.endpoint_location.clone(),
+            endpoint_country: result.endpoint_country.clone(),
+            endpoint_asn: result.endpoint_asn.clone(),
             ran_icmp,
             ran_tcp,
             ran_real_delay,
@@ -736,8 +914,9 @@ impl TestOutputRow {
         }
     }
 
-    fn connection_test_insert(&self) -> ConnectionTestInsert {
+    fn connection_test_insert(&self, run_id: Option<i64>) -> ConnectionTestInsert {
         ConnectionTestInsert {
+            run_id,
             config_id: self.id,
             icmp_ok: self.ran_icmp.then_some(self.icmp_ok),
             icmp_ms: self.icmp_ms.map(i64::from),
@@ -746,6 +925,13 @@ impl TestOutputRow {
             real_delay_ok: self.ran_real_delay.then_some(self.real_delay_ok),
             real_delay_ms: self.real_delay_ms.map(i64::from),
             download_mbps: self.download_mbps,
+            connect_ms: self.tcp_ms.map(i64::from),
+            ttfb_ms: self.ttfb_ms.map(i64::from),
+            http_status: self.http_status.map(i64::from),
+            endpoint_ip: self.endpoint_ip.clone(),
+            endpoint_location: self.endpoint_location.clone(),
+            endpoint_country: self.endpoint_country.clone(),
+            endpoint_asn: self.endpoint_asn.clone(),
             failure_kind: self.failure_kind.clone(),
             failure_reason: self.error.clone(),
         }
@@ -1034,6 +1220,12 @@ mod tests {
             status: TestStatus::Ok,
             error: None,
             tcp_ms: Some(25),
+            ttfb_ms: Some(123),
+            http_status: Some(204),
+            endpoint_ip: Some("1.1.1.1".to_string()),
+            endpoint_location: Some("US".to_string()),
+            endpoint_country: Some("US".to_string()),
+            endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
             ran_icmp: true,
             ran_tcp: true,
             ran_real_delay: true,
@@ -1058,6 +1250,52 @@ mod tests {
         assert_eq!(resolve_concurrency(16).expect("positive concurrency"), 16);
         assert!(resolve_concurrency(-1).is_err());
         assert!(resolve_concurrency(0).expect("auto concurrency") >= 1);
+    }
+
+    #[test]
+    fn classifies_endpoint_location_from_ip() {
+        assert_eq!(
+            classify_endpoint_location(Some("10.0.0.7")).as_deref(),
+            Some("private_ipv4")
+        );
+        assert_eq!(
+            classify_endpoint_location(Some("8.8.8.8")).as_deref(),
+            Some("public")
+        );
+        assert_eq!(
+            classify_endpoint_location(Some("::1")).as_deref(),
+            Some("loopback_ipv6")
+        );
+        assert!(classify_endpoint_location(Some("not-an-ip")).is_none());
+        assert!(classify_endpoint_location(None).is_none());
+    }
+
+    #[test]
+    fn resolves_endpoint_location_with_geoip_fallback() {
+        assert_eq!(
+            resolve_endpoint_meta(
+                Some("8.8.8.8"),
+                true,
+                "/tmp/no-city.mmdb".as_ref(),
+                "/tmp/no-country.mmdb".as_ref(),
+                "/tmp/no-asn.mmdb".as_ref(),
+            )
+            .location
+            .as_deref(),
+            Some("public")
+        );
+        assert_eq!(
+            resolve_endpoint_meta(
+                Some("10.0.0.1"),
+                false,
+                "/tmp/no-city.mmdb".as_ref(),
+                "/tmp/no-country.mmdb".as_ref(),
+                "/tmp/no-asn.mmdb".as_ref(),
+            )
+            .location
+            .as_deref(),
+            Some("private_ipv4")
+        );
     }
 
     #[test]
@@ -1154,6 +1392,7 @@ mod tests {
             output: None,
             sort_by: crate::cli::TestSortBy::Status,
             no_progress: false,
+            latest_run_summary: false,
         }
     }
 }

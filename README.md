@@ -39,3 +39,73 @@ cargo run -- parse --json --engine auto 'hy2://...'
 ## Documentation
 
 Planning notes live in `docs/plan/`.
+
+## GeoIP Database (Optional)
+
+XRAT stores app state under `~/.config/xrat` by default (or `XRAT_PATH` when
+set). For GeoIP databases, use a dedicated subfolder:
+
+- `~/.config/xrat/geoip/GeoLite2-Country.mmdb`
+- `~/.config/xrat/geoip/GeoLite2-City.mmdb`
+
+GeoLite2 files can be downloaded from:
+
+- <https://github.com/P3TERX/GeoLite.mmdb/>
+
+Helper script included:
+
+```bash
+./scripts/download_geolite2_mmdb.sh
+```
+
+Or via `just`:
+
+```bash
+just geoip-download
+```
+
+Download into repo-local testdata folder:
+
+```bash
+just geoip-download-testdata
+```
+
+Optional overrides:
+
+```bash
+XRAT_PATH=~/.config/xrat GEOIP_EDITION=GeoLite2-City \
+  ./scripts/download_geolite2_mmdb.sh
+```
+
+Note: for now, XRAT ships with shell-based downloader (script) rather than
+built-in downloader.
+
+Optional test-time GeoIP lookup config:
+
+```toml
+[testing.geoip]
+enabled = true
+country_path = "geoip/GeoLite2-Country.mmdb"
+city_path = "geoip/GeoLite2-City.mmdb"
+asn_path = "geoip/GeoLite2-ASN.mmdb"
+```
+
+GeoIP enrichment order: City -> Country -> ASN -> fallback classifier.
+Paths can be relative to your config file location.
+
+Optional real-MMDB test:
+
+```bash
+XRAT_GEOIP_TEST_MMDB=./testdata/xrat/geoip/GeoLite2-Country.mmdb \
+  cargo test -q looks_up_country_from_real_mmdb_when_provided
+```
+
+City/ASN real-MMDB tests:
+
+```bash
+XRAT_GEOIP_TEST_CITY_MMDB=./testdata/xrat/geoip/GeoLite2-City.mmdb \
+  cargo test -q looks_up_city_from_real_mmdb_when_provided
+
+XRAT_GEOIP_TEST_ASN_MMDB=./testdata/xrat/geoip/GeoLite2-ASN.mmdb \
+  cargo test -q looks_up_asn_from_real_mmdb_when_provided
+```
