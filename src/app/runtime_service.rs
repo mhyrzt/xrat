@@ -602,6 +602,7 @@ fn node_from_record(config: &ConfigRecord) -> crate::app::Result<Node> {
         host: config.host.clone(),
         path: config.path.clone(),
         name: config.name.clone(),
+        extensions: None,
         raw_config: config.raw_config.clone(),
     })
 }
@@ -849,6 +850,7 @@ mod tests {
             host: None,
             path: None,
             name: Some("test".to_string()),
+            extensions: None,
             raw_config:
                 "vless://00000000-0000-0000-0000-000000000000@example.com:443?security=tls#test"
                     .to_string(),

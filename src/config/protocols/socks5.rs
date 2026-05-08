@@ -32,6 +32,7 @@ pub fn parse_socks5(line: &str) -> Result<Node, ConfigParseError> {
             .fragment()
             .map(percent_decode)
             .and_then(empty_to_none),
+        extensions: None,
         raw_config: line.to_string(),
     })
 }

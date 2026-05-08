@@ -25,6 +25,7 @@ pub fn parse_vmess(line: &str) -> Result<Node, ConfigParseError> {
         host: optional_string(&data, "host"),
         path: optional_string(&data, "path"),
         name: optional_string(&data, "ps"),
+        extensions: None,
         raw_config: line.to_string(),
     })
 }

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::model::{NodeDedupKey, Protocol};
 
@@ -17,6 +18,8 @@ pub struct Node {
     pub host: Option<String>,
     pub path: Option<String>,
     pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<BTreeMap<String, String>>,
     pub raw_config: String,
 }
 

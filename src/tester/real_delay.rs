@@ -213,6 +213,7 @@ mod tests {
             host: None,
             path: None,
             name: Some("test".to_string()),
+            extensions: None,
             raw_config: "".to_string(),
         };
 

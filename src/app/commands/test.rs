@@ -823,6 +823,7 @@ fn node_from_record(config: &ConfigRecord) -> crate::app::Result<Node> {
         host: config.host.clone(),
         path: config.path.clone(),
         name: config.name.clone(),
+        extensions: None,
         raw_config: config.raw_config.clone(),
     })
 }

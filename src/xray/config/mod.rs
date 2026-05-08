@@ -118,6 +118,7 @@ mod tests {
             host: None,
             path: None,
             name: Some("test".to_string()),
+            extensions: None,
             raw_config: "".to_string(),
         };
 
@@ -144,6 +145,7 @@ mod tests {
             host: Some("example.com".to_string()),
             path: Some("/path".to_string()),
             name: Some("test".to_string()),
+            extensions: None,
             raw_config: "".to_string(),
         };
 
@@ -172,6 +174,7 @@ mod tests {
             host: None,
             path: None,
             name: Some("http".to_string()),
+            extensions: None,
             raw_config: "".to_string(),
         };
 

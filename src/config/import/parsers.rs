@@ -145,6 +145,7 @@ fn parse_sip008_server(server: &serde_json::Value) -> Result<Node, ImportParseEr
         host: None,
         path: None,
         name,
+        extensions: None,
         raw_config: serde_json::to_string(server)?,
     })
 }

@@ -291,6 +291,45 @@ mod tests {
     }
 
     #[test]
+    fn parses_parse_command_with_file_input() {
+        let cli = Cli::parse_from(["xrat", "parse", "--file", "/tmp/links.txt"]);
+        match cli.command {
+            Command::Parse(args) => {
+                assert_eq!(
+                    args.file.as_deref(),
+                    Some(std::path::Path::new("/tmp/links.txt"))
+                );
+                assert!(!args.stdin);
+                assert!(args.input.is_none());
+            }
+            _ => panic!("expected parse command"),
+        }
+    }
+
+    #[test]
+    fn parses_parse_command_with_stdin_input() {
+        let cli = Cli::parse_from(["xrat", "parse", "--stdin", "--engine", "sing-box"]);
+        match cli.command {
+            Command::Parse(args) => {
+                assert!(args.stdin);
+                assert!(matches!(args.engine, crate::cli::ParseEngine::SingBox));
+                assert!(args.input.is_none());
+                assert!(args.file.is_none());
+            }
+            _ => panic!("expected parse command"),
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_parse_engine_value() {
+        let error = Cli::try_parse_from(["xrat", "parse", "--stdin", "--engine", "bad-engine"])
+            .expect_err("invalid engine must fail");
+        let rendered = error.to_string();
+        assert!(rendered.contains("invalid value"));
+        assert!(rendered.contains("sing-box"));
+    }
+
+    #[test]
     fn parses_global_logging_flags() {
         let verbose_cli = Cli::parse_from(["xrat", "-vv", "list", "configs"]);
         assert_eq!(verbose_cli.verbose, 2);

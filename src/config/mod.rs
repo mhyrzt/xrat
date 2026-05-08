@@ -2,6 +2,7 @@ mod error;
 mod import;
 mod line;
 mod normalize;
+mod parse_service;
 mod protocols;
 mod support;
 pub mod xray;
@@ -12,6 +13,10 @@ use crate::model::Node;
 
 pub use error::ConfigParseError;
 pub use import::{ImportMode, ImportResult, SubscriptionMetadata, parse_import};
+pub use parse_service::{
+    EngineMode, ParseServiceError, ParsedEntry, ResolvedEngine, parse_batch as parse_links_batch,
+    parse_single as parse_link_with_engine,
+};
 
 pub fn parse_text(config_text: &str) -> Vec<Node> {
     let mut nodes = Vec::new();
@@ -191,5 +196,30 @@ mod tests {
         assert_eq!(node.protocol, Protocol::Hy2);
         assert_eq!(node.password.as_deref(), Some("secret"));
         assert_eq!(node.sni.as_deref(), Some("edge.example.com"));
+    }
+
+    #[test]
+    fn parses_hysteria2_alias_line() {
+        let input = "hysteria2://secret@example.com:8443?sni=edge.example.com#Node";
+        let nodes = parse_text(input);
+
+        assert_eq!(nodes.len(), 1);
+        let node = &nodes[0];
+        assert_eq!(node.protocol, Protocol::Hy2);
+        assert_eq!(node.port, 8443);
+        assert_eq!(node.name.as_deref(), Some("Node"));
+    }
+
+    #[test]
+    fn normalizes_hy2_defaults() {
+        let input = "hy2://secret@example.com:443#";
+        let nodes = parse_text(input);
+
+        assert_eq!(nodes.len(), 1);
+        let node = &nodes[0];
+        assert_eq!(node.protocol, Protocol::Hy2);
+        assert_eq!(node.network, "udp");
+        assert_eq!(node.tls.as_deref(), Some("tls"));
+        assert_eq!(node.name, None);
     }
 }

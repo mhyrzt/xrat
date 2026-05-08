@@ -35,6 +35,7 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
         host: query.get("host").cloned(),
         path: empty_to_none(percent_decode(path)),
         name: fragment.and_then(empty_to_none),
+        extensions: None,
         raw_config: line.to_string(),
     })
 }

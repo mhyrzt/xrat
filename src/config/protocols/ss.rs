@@ -42,6 +42,7 @@ pub fn parse_ss(line: &str) -> Result<Node, ConfigParseError> {
             .fragment()
             .map(percent_decode)
             .and_then(empty_to_none),
+        extensions: None,
         raw_config: line.to_string(),
     })
 }

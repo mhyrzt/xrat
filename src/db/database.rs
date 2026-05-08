@@ -243,6 +243,7 @@ mod tests {
             host: Some("cdn.example.com".to_string()),
             path: Some("/socket".to_string()),
             name: Some(name.to_string()),
+            extensions: None,
             raw_config: format!(
                 "vless://uuid-123@example.com:443?type=ws&security=tls#{}",
                 name
