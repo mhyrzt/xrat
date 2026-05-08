@@ -1,6 +1,7 @@
 # XRAT
 
-XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible proxy configurations.
+XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
+proxy configurations.
 
 ## Current Features
 
