@@ -1,5 +1,5 @@
-use url::Url;
 use std::collections::BTreeMap;
+use url::Url;
 
 use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
@@ -17,7 +17,14 @@ pub fn parse_hy2(line: &str) -> Result<Node, ConfigParseError> {
         .ok_or(ConfigParseError::MissingAddressOrPort)?;
     let query = parse_query_pairs(parsed.query().unwrap_or_default());
     let mut extensions = BTreeMap::new();
-    for key in ["obfs", "obfs-password", "alpn", "insecure", "upmbps", "downmbps"] {
+    for key in [
+        "obfs",
+        "obfs-password",
+        "alpn",
+        "insecure",
+        "upmbps",
+        "downmbps",
+    ] {
         if let Some(value) = query.get(key) {
             extensions.insert(key.to_string(), value.clone());
         }

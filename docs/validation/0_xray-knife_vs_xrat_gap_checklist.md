@@ -77,7 +77,7 @@ Status legend:
 
 ## 4) Engine Selection Logic (xray vs sing-box)
 
-| xray-knife file(s)                  | xrat file(s)                                                                           | Current gap status      | Notes / action                                                                                             |
+| xray-knife file(s)                  | xrat file(s)                                                                           | Current gap status      | Notes / action                                                                                             |~~~~
 | ----------------------------------- | -------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `pkg/core/factory.go` (auto select) | `src/app/config/runtime.rs`, `src/app/commands/test.rs` (`resolve_engine_binary_path`) | **DIFFERENT BY DESIGN** | xrat selects runtime binary from config (`xray` or `v2ray`), not protocol-based multi-engine auto-routing. |
 | `pkg/core/singbox/*`                | N/A                                                                                    | **MISSING**             | No sing-box runtime integration in xrat.                                                                   |

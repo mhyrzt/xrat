@@ -39,7 +39,10 @@ pub async fn run(args: &ParseArgs) -> crate::app::Result<()> {
     Ok(())
 }
 
-fn parse_inputs(inputs: &[ParseInput], requested_engine: ParseEngine) -> crate::app::Result<Vec<ParsedEntry>> {
+fn parse_inputs(
+    inputs: &[ParseInput],
+    requested_engine: ParseEngine,
+) -> crate::app::Result<Vec<ParsedEntry>> {
     let batch_inputs: Vec<(String, String)> = inputs
         .iter()
         .map(|input| (input.source.clone(), input.link.clone()))
@@ -96,10 +99,7 @@ fn load_inputs(args: &ParseArgs) -> crate::app::Result<Vec<ParseInput>> {
 
     if let Some(path) = &args.file {
         let raw_bytes = fs::read(path)?;
-        let decoded = decode_input_text(
-            &raw_bytes,
-            &format!("file {}", path.to_string_lossy()),
-        )?;
+        let decoded = decode_input_text(&raw_bytes, &format!("file {}", path.to_string_lossy()))?;
         return Ok(extract_inputs(
             &decoded,
             &format!("file {}", path.to_string_lossy()),
@@ -113,8 +113,9 @@ fn load_inputs(args: &ParseArgs) -> crate::app::Result<Vec<ParseInput>> {
 }
 
 fn decode_input_text(raw: &[u8], source: &str) -> crate::app::Result<String> {
-    decode_or_raw_text(raw)
-        .map_err(|error| AppError::InvalidArgument(format!("failed to decode {source} input: {error}")))
+    decode_or_raw_text(raw).map_err(|error| {
+        AppError::InvalidArgument(format!("failed to decode {source} input: {error}"))
+    })
 }
 
 fn extract_inputs(input: &str, source_prefix: &str) -> Vec<ParseInput> {
@@ -219,8 +220,8 @@ mod tests {
         validate_inputs,
     };
     use crate::cli::ParseArgs;
-    use crate::config::{ResolvedEngine, parse_link};
     use crate::cli::ParseEngine;
+    use crate::config::{ResolvedEngine, parse_link};
     use std::path::PathBuf;
 
     #[test]
@@ -282,9 +283,7 @@ mod tests {
         match value {
             serde_json::Value::Null => true,
             serde_json::Value::String(text) => text.is_empty(),
-            serde_json::Value::Object(map) => {
-                map.is_empty() || map.values().any(has_null_or_empty)
-            }
+            serde_json::Value::Object(map) => map.is_empty() || map.values().any(has_null_or_empty),
             serde_json::Value::Array(values) => {
                 values.is_empty() || values.iter().any(has_null_or_empty)
             }
@@ -327,8 +326,7 @@ mod tests {
 
     #[test]
     fn formats_details_output_for_valid_link() {
-        let link =
-            "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com#Node";
+        let link = "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com#Node";
         let node = parse_link(link)
             .expect("link should parse")
             .expect("node should exist");

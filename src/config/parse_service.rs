@@ -70,7 +70,10 @@ pub fn parse_batch(
     Ok(parsed)
 }
 
-pub fn resolve_engine(mode: EngineMode, protocol: Protocol) -> Result<ResolvedEngine, ConfigParseError> {
+pub fn resolve_engine(
+    mode: EngineMode,
+    protocol: Protocol,
+) -> Result<ResolvedEngine, ConfigParseError> {
     match mode {
         EngineMode::Auto => {
             if matches!(protocol, Protocol::Hy2) {
