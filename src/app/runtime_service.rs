@@ -357,6 +357,7 @@ impl<'a> RuntimeService<'a> {
         let binary_path = match runtime.engine.as_str() {
             "xray" => self.context.runtime_paths.xray_path.clone(),
             "v2ray" => self.context.runtime_paths.v2ray_path.clone(),
+            "sing-box" => self.context.runtime_paths.sing_box_path.clone(),
             other => PathBuf::from(other),
         };
 
@@ -820,6 +821,7 @@ mod tests {
                 runtime_dir: root.join("runtime"),
                 xray_path: "xray".into(),
                 v2ray_path: "v2ray".into(),
+                sing_box_path: "sing-box".into(),
             },
         }
     }

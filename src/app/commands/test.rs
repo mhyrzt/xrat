@@ -659,6 +659,7 @@ impl TestFailurePolicy {
 
 fn resolve_engine_binary_path(app_config: &AppConfig, runtime_paths: &RuntimePaths) -> PathBuf {
     match app_config.runtime.engine.as_str() {
+        "sing-box" => runtime_paths.sing_box_path.clone(),
         "v2ray" => runtime_paths.v2ray_path.clone(),
         "xray" => runtime_paths.xray_path.clone(),
         other => PathBuf::from(other),
@@ -1072,6 +1073,7 @@ mod tests {
             runtime_dir: "/tmp/xrat/runtime".into(),
             xray_path: "/tmp/xrat/bin/xray".into(),
             v2ray_path: "/tmp/xrat/bin/v2ray".into(),
+            sing_box_path: "/tmp/xrat/bin/sing-box".into(),
         };
 
         let resolved = resolve_engine_binary_path(&app_config, &runtime_paths);
@@ -1105,6 +1107,7 @@ mod tests {
             runtime_dir: "/tmp/xrat/runtime".into(),
             xray_path: "/tmp/xrat/bin/xray".into(),
             v2ray_path: "/opt/v2ray/v2ray".into(),
+            sing_box_path: "/tmp/xrat/bin/sing-box".into(),
         };
 
         let resolved = resolve_engine_binary_path(&app_config, &runtime_paths);
@@ -1124,6 +1127,7 @@ mod tests {
             runtime_dir: "/tmp/xrat/runtime".into(),
             xray_path: "xray".into(),
             v2ray_path: "v2ray".into(),
+            sing_box_path: "sing-box".into(),
         }
     }
 

@@ -31,6 +31,31 @@ pub fn parse_text(config_text: &str) -> Vec<Node> {
     nodes
 }
 
+pub fn parse_link(link: &str) -> Result<Option<Node>, ConfigParseError> {
+    let line = link.trim();
+    if line.is_empty() || line.starts_with('#') {
+        return Ok(None);
+    }
+
+    let mut node = match line {
+        value if value.starts_with("vless://") => protocols::parse_vless(value)?,
+        value if value.starts_with("vmess://") => protocols::parse_vmess(value)?,
+        value if value.starts_with("ss://") => protocols::parse_ss(value)?,
+        value if value.starts_with("trojan://") => protocols::parse_trojan(value)?,
+        value if value.starts_with("http://") || value.starts_with("https://") => {
+            protocols::parse_http(value)?
+        }
+        value if value.starts_with("socks5://") => protocols::parse_socks5(value)?,
+        value if value.starts_with("hysteria2://") || value.starts_with("hy2://") => {
+            protocols::parse_hy2(value)?
+        }
+        _ => return Err(ConfigParseError::UnsupportedScheme(line.to_string())),
+    };
+
+    normalize::normalize(&mut node);
+    Ok(Some(node))
+}
+
 #[cfg(test)]
 mod tests {
     use super::parse_text;
@@ -154,5 +179,17 @@ mod tests {
 
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes[0].protocol, Protocol::Ss);
+    }
+
+    #[test]
+    fn parses_hy2_line() {
+        let input = "hy2://secret@example.com:443?sni=edge.example.com&obfs=salamander&obfs-password=123#HY2";
+        let nodes = parse_text(input);
+
+        assert_eq!(nodes.len(), 1);
+        let node = &nodes[0];
+        assert_eq!(node.protocol, Protocol::Hy2);
+        assert_eq!(node.password.as_deref(), Some("secret"));
+        assert_eq!(node.sni.as_deref(), Some("edge.example.com"));
     }
 }

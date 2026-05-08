@@ -46,6 +46,12 @@ pub struct Cli {
         help = "Override the V2Ray binary path. Defaults to [paths].v2ray in config.toml or v2ray."
     )]
     pub v2ray: Option<PathBuf>,
+    #[arg(
+        long = "sing-box",
+        global = true,
+        help = "Override the sing-box binary path. Defaults to [paths].sing_box in config.toml or sing-box."
+    )]
+    pub sing_box: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
 }

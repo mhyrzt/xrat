@@ -23,4 +23,6 @@ pub enum ConfigParseError {
         context: &'static str,
         key: &'static str,
     },
+    #[error("unsupported config scheme: {0}")]
+    UnsupportedScheme(String),
 }

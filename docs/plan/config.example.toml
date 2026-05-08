@@ -4,6 +4,7 @@ database = "db.sqlite"
 # optional
 # xray = "/usr/local/bin/xray" 
 # v2ray = "/usr/local/bin/v2ray"
+# sing_box = "/usr/local/bin/sing-box"
 
 [database]
 backend = "sqlite" # sqlite | postgres
@@ -23,7 +24,7 @@ connect_timeout_secs = 10
 
 
 [runtime]
-engine = "xray"
+engine = "xray" # xray | v2ray | sing-box
 replace_active_session = true
 
 [runtime.log]

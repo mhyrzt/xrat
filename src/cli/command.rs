@@ -1,7 +1,7 @@
 use clap::Subcommand;
 
 use crate::cli::{
-    AddArgs, ConnectArgs, DisconnectArgs, ImportArgs, ListArgs, StatusArgs, TestArgs,
+    AddArgs, ConnectArgs, DisconnectArgs, ImportArgs, ListArgs, ParseArgs, StatusArgs, TestArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -20,4 +20,6 @@ pub enum Command {
     Disconnect(DisconnectArgs),
     #[command(about = "Show the managed Xray runtime status.")]
     Status(StatusArgs),
+    #[command(about = "Parse and validate config links without importing to the database.")]
+    Parse(ParseArgs),
 }

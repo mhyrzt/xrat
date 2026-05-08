@@ -16,6 +16,8 @@ mod tests {
             "/opt/xray/xray",
             "--v2ray",
             "/opt/v2ray/v2ray",
+            "--sing-box",
+            "/opt/sing-box/sing-box",
             "import",
             "https://example.com/sub.txt",
         ]);
@@ -36,13 +38,20 @@ mod tests {
             cli.v2ray.as_deref(),
             Some(std::path::Path::new("/opt/v2ray/v2ray"))
         );
+        assert_eq!(
+            cli.sing_box.as_deref(),
+            Some(std::path::Path::new("/opt/sing-box/sing-box"))
+        );
 
         match cli.command {
             Command::Import(args) => assert_eq!(args.input, "https://example.com/sub.txt"),
             Command::Add(_) => panic!("expected import command"),
             Command::List(_) => panic!("expected import command"),
             Command::Test(_) => panic!("expected import command"),
-            Command::Connect(_) | Command::Disconnect(_) | Command::Status(_) => {
+            Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected import command")
             }
         }
@@ -57,7 +66,10 @@ mod tests {
             Command::Import(_) => panic!("expected add command"),
             Command::List(_) => panic!("expected add command"),
             Command::Test(_) => panic!("expected add command"),
-            Command::Connect(_) | Command::Disconnect(_) | Command::Status(_) => {
+            Command::Connect(_)
+            | Command::Disconnect(_)
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected add command")
             }
         }
@@ -77,7 +89,8 @@ mod tests {
             | Command::Test(_)
             | Command::Connect(_)
             | Command::Disconnect(_)
-            | Command::Status(_) => {
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected list command")
             }
         }
@@ -107,7 +120,8 @@ mod tests {
             | Command::Test(_)
             | Command::Connect(_)
             | Command::Disconnect(_)
-            | Command::Status(_) => {
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected list command")
             }
         }
@@ -160,7 +174,8 @@ mod tests {
             | Command::List(_)
             | Command::Connect(_)
             | Command::Disconnect(_)
-            | Command::Status(_) => {
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected test command")
             }
         }
@@ -204,7 +219,8 @@ mod tests {
             | Command::List(_)
             | Command::Connect(_)
             | Command::Disconnect(_)
-            | Command::Status(_) => {
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected test command")
             }
         }
@@ -221,7 +237,8 @@ mod tests {
             | Command::List(_)
             | Command::Connect(_)
             | Command::Disconnect(_)
-            | Command::Status(_) => {
+            | Command::Status(_)
+            | Command::Parse(_) => {
                 panic!("expected test command")
             }
         }
@@ -248,6 +265,28 @@ mod tests {
         match status.command {
             Command::Status(args) => assert!(args.json),
             _ => panic!("expected status command"),
+        }
+    }
+
+    #[test]
+    fn parses_parse_command() {
+        let cli = Cli::parse_from([
+            "xrat",
+            "parse",
+            "--json",
+            "--engine",
+            "auto",
+            "vless://example",
+        ]);
+
+        match cli.command {
+            Command::Parse(args) => {
+                assert!(args.json);
+                assert_eq!(args.input.as_deref(), Some("vless://example"));
+                assert!(!args.stdin);
+                assert!(args.file.is_none());
+            }
+            _ => panic!("expected parse command"),
         }
     }
 

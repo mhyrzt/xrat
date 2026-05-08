@@ -10,6 +10,7 @@ pub enum Protocol {
     Trojan,
     Http,
     Socks5,
+    Hy2,
 }
 
 impl Protocol {
@@ -21,6 +22,7 @@ impl Protocol {
             Self::Trojan => "trojan",
             Self::Http => "http",
             Self::Socks5 => "socks5",
+            Self::Hy2 => "hy2",
         }
     }
 }

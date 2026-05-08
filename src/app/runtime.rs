@@ -26,6 +26,7 @@ pub struct RuntimePaths {
     pub runtime_dir: PathBuf,
     pub xray_path: PathBuf,
     pub v2ray_path: PathBuf,
+    pub sing_box_path: PathBuf,
 }
 
 impl AppContext {
@@ -69,6 +70,12 @@ fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, AppConf
         app_config.paths.v2ray.as_ref(),
         "v2ray",
     );
+    let sing_box_path = resolve_binary_path(
+        &config_path,
+        args.sing_box.as_ref(),
+        app_config.paths.sing_box.as_ref(),
+        "sing-box",
+    );
 
     Ok((
         RuntimePaths {
@@ -80,6 +87,7 @@ fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, AppConf
             runtime_dir: app_paths.root_dir.join("runtime"),
             xray_path,
             v2ray_path,
+            sing_box_path,
         },
         app_config,
     ))
@@ -188,6 +196,7 @@ mod tests {
         );
         assert_eq!(runtime_paths.xray_path, PathBuf::from("xray"));
         assert_eq!(runtime_paths.v2ray_path, PathBuf::from("v2ray"));
+        assert_eq!(runtime_paths.sing_box_path, PathBuf::from("sing-box"));
 
         let _ = std::fs::remove_file(config_path);
         let _ = std::fs::remove_dir(root_dir);
@@ -284,7 +293,7 @@ mod tests {
         std::fs::create_dir_all(&root_dir).expect("temp dir should be created");
         std::fs::write(
             &config_path,
-            "[paths]\nxray = \"bin/xray\"\nv2ray = \"/opt/v2ray/v2ray\"\n",
+            "[paths]\nxray = \"bin/xray\"\nv2ray = \"/opt/v2ray/v2ray\"\nsing_box = \"bin/sing-box\"\n",
         )
         .expect("config should be written");
 
@@ -299,6 +308,7 @@ mod tests {
 
         assert_eq!(runtime_paths.xray_path, root_dir.join("bin/xray"));
         assert_eq!(runtime_paths.v2ray_path, PathBuf::from("/opt/v2ray/v2ray"));
+        assert_eq!(runtime_paths.sing_box_path, root_dir.join("bin/sing-box"));
 
         let _ = std::fs::remove_file(config_path);
         let _ = std::fs::remove_dir(root_dir);
@@ -317,7 +327,7 @@ mod tests {
         std::fs::create_dir_all(&root_dir).expect("temp dir should be created");
         std::fs::write(
             &config_path,
-            "[paths]\nxray = \"bin/xray\"\nv2ray = \"bin/v2ray\"\n",
+            "[paths]\nxray = \"bin/xray\"\nv2ray = \"bin/v2ray\"\nsing_box = \"bin/sing-box\"\n",
         )
         .expect("config should be written");
 
@@ -329,6 +339,8 @@ mod tests {
             "/custom/xray",
             "--v2ray",
             "/custom/v2ray",
+            "--sing-box",
+            "/custom/sing-box",
             "list",
             "configs",
         ]);
@@ -336,6 +348,10 @@ mod tests {
 
         assert_eq!(runtime_paths.xray_path, PathBuf::from("/custom/xray"));
         assert_eq!(runtime_paths.v2ray_path, PathBuf::from("/custom/v2ray"));
+        assert_eq!(
+            runtime_paths.sing_box_path,
+            PathBuf::from("/custom/sing-box")
+        );
 
         let _ = std::fs::remove_file(config_path);
         let _ = std::fs::remove_dir(root_dir);

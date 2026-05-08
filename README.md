@@ -10,6 +10,7 @@ proxy configurations.
 - Test configs for connectivity, latency, and optional download speed.
 - Run one stored config as a managed local Xray runtime.
 - Show runtime status and stop the active runtime session.
+- Parse and validate links without importing, with optional JSON output.
 
 ## Development
 
@@ -30,6 +31,9 @@ cargo run -- test
 cargo run -- connect <id>
 cargo run -- status
 cargo run -- disconnect
+cargo run -- parse 'vless://...'
+cargo run -- parse --json --engine auto 'vless://...'
+cargo run -- parse --json --engine auto 'hy2://...'
 ```
 
 ## Documentation

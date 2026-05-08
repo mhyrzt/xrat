@@ -17,6 +17,9 @@ pub fn parse_line(line: &str) -> Option<Node> {
             protocols::parse_http(value)
         }
         value if value.starts_with("socks5://") => protocols::parse_socks5(value),
+        value if value.starts_with("hysteria2://") || value.starts_with("hy2://") => {
+            protocols::parse_hy2(value)
+        }
         _ => return None,
     };
 

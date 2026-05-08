@@ -8,4 +8,5 @@ pub struct PathSettings {
     pub database: Option<PathBuf>,
     pub xray: Option<PathBuf>,
     pub v2ray: Option<PathBuf>,
+    pub sing_box: Option<PathBuf>,
 }

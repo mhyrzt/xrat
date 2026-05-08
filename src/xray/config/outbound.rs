@@ -105,5 +105,6 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "servers": [server]
             }))
         }
+        Protocol::Hy2 => Err("hysteria2/hy2 is not supported by xray config generator".to_string()),
     }
 }
