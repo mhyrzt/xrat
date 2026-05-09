@@ -224,16 +224,16 @@ Gap notes:
 
 ## F) Schema comparison quick map
 
-| Concern                   | xray-knife             | xrat                   | Status                        |
-| ------------------------- | ---------------------- | ---------------------- | ----------------------------- |
-| Subscription source table | `subscriptions`        | `subscriptions`        | **MATCHED**                   |
-| Config table              | `subscription_configs` | `configs`              | **MATCHED (DIFFERENT MODEL)** |
-| Config uniqueness key     | `config_link`          | `dedup_key`            | **DIFFERENT BY DESIGN**       |
-| Test results table        | `http_test_results`    | `connection_tests`     | **MATCHED**                   |
-| Test run grouping table   | `http_test_runs`       | `connection_test_runs` | **MATCHED**                   |
+| Concern                   | xray-knife             | xrat                   | Status                              |
+| ------------------------- | ---------------------- | ---------------------- | ----------------------------------- |
+| Subscription source table | `subscriptions`        | `subscriptions`        | **MATCHED**                         |
+| Config table              | `subscription_configs` | `configs`              | **MATCHED (DIFFERENT MODEL)**       |
+| Config uniqueness key     | `config_link`          | `dedup_key`            | **DIFFERENT BY DESIGN**             |
+| Test results table        | `http_test_results`    | `connection_tests`     | **MATCHED**                         |
+| Test run grouping table   | `http_test_runs`       | `connection_test_runs` | **MATCHED**                         |
 | Scanner results table     | `cf_scan_results`      | `cf_scan_results`      | **MATCHED (TABLE), PARTIAL (FLOW)** |
-| Runtime session table     | N/A                    | `runtime_sessions`     | **xrat extension**            |
-| DB backend support        | SQLite only            | SQLite + PostgreSQL    | **xrat extension**            |
+| Runtime session table     | N/A                    | `runtime_sessions`     | **xrat extension**                  |
+| DB backend support        | SQLite only            | SQLite + PostgreSQL    | **xrat extension**                  |
 
 ---
 
@@ -362,7 +362,7 @@ Verified outcomes:
 
 - xrat already has strong storage fundamentals: migrations, durable import
   upsert, and structured per-config test persistence.
-- Main parity gap versus xray-knife storage is scanner feature depth
-  beyond current persisted command flow.
+- Main parity gap versus xray-knife storage is scanner feature depth beyond
+  current persisted command flow.
 - xrat intentionally diverges in key areas (`dedup_key`, runtime session table,
   PostgreSQL support) and these are net strengths if documented clearly.

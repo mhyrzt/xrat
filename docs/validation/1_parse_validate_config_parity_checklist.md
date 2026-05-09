@@ -239,7 +239,7 @@ Note: For parse-only phase, sing-box runtime process spawn is optional if
 ## Suggested implementation order (small safe slices)
 
 1. [x] Add CLI + handler skeleton for `parse` without sing-box and without JSON
-      (details output only for existing protocols).
+       (details output only for existing protocols).
 2. [x] Add `--json` for xray path by reusing `src/xray/config/*`.
 3. [x] Add engine resolver (`auto|xray|sing-box`) and compatibility checks.
 4. [x] Add initial sing-box protocol parsing (`hysteria2`/`hy2`) + JSON builder.

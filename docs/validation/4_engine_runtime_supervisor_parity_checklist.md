@@ -13,8 +13,10 @@ ownership/supervision decisions linked from:
 
 Parity target for this phase bundle:
 
-1. Managed runtime lifecycle parity (`connect`/`disconnect`/`status`) with DB-backed state.
-2. Engine selection semantics parity decision (xray-focused vs multi-engine parity).
+1. Managed runtime lifecycle parity (`connect`/`disconnect`/`status`) with
+   DB-backed state.
+2. Engine selection semantics parity decision (xray-focused vs multi-engine
+   parity).
 3. Process ownership, stale PID reconciliation, and failure reason persistence.
 4. Supervisor/reattach policy decision capture (Phase 4.5 boundary).
 
@@ -22,7 +24,8 @@ Out of scope for this checklist:
 
 - full rotating-proxy scheduler behavior (area #5),
 - full scanner orchestration breadth (area #6),
-- full sing-box runtime feature parity when runtime engine matrix is not yet enabled.
+- full sing-box runtime feature parity when runtime engine matrix is not yet
+  enabled.
 
 ---
 
@@ -30,20 +33,24 @@ Out of scope for this checklist:
 
 - Runtime commands exist:
   - `xrat connect <id>` (`src/cli/connect.rs`, `src/app/commands/connect.rs`)
-  - `xrat disconnect` (`src/cli/disconnect.rs`, `src/app/commands/disconnect.rs`)
+  - `xrat disconnect` (`src/cli/disconnect.rs`,
+    `src/app/commands/disconnect.rs`)
   - `xrat status` (`src/cli/status.rs`, `src/app/commands/status.rs`)
 - Runtime lifecycle orchestration exists:
-  - managed start/stop/status and stale reconciliation in `src/app/runtime_service.rs`.
+  - managed start/stop/status and stale reconciliation in
+    `src/app/runtime_service.rs`.
 - Persistence model exists:
-  - `runtime_sessions` repository flow and lifecycle statuses
-    (`starting`, `running`, `stopping`, `stopped`, `failed`).
+  - `runtime_sessions` repository flow and lifecycle statuses (`starting`,
+    `running`, `stopping`, `stopped`, `failed`).
 - Runtime config generation exists:
-  - runtime inbounds and launch path via `src/xray/config/*` + `src/xray/runtime.rs`.
+  - runtime inbounds and launch path via `src/xray/config/*` +
+    `src/xray/runtime.rs`.
 - Engine wiring status:
   - runtime config can select binary path by configured engine name
     (`xray|v2ray|sing-box`) but runtime generation path remains xray-shaped.
 - Supervisor status:
-  - no always-on daemon/watcher process yet; status reconciliation is command-driven.
+  - no always-on daemon/watcher process yet; status reconciliation is
+    command-driven.
 
 ---
 
@@ -63,7 +70,8 @@ Checklist:
 - [x] Stale PID/session reconciliation path exists in runtime service.
 - [x] SQLite and PostgreSQL repository path support remains intact.
 - [x] Connect rejects disabled/missing config ids with clear argument error.
-- [x] Runtime supports replacement policy (`replace_active_session`) when connecting.
+- [x] Runtime supports replacement policy (`replace_active_session`) when
+      connecting.
 - [x] JSON output mode exists for connect/disconnect/status command UX.
 
 Gap notes:
@@ -80,9 +88,12 @@ Gap notes:
 Checklist:
 
 - [x] Runtime engine name is configurable in app config.
-- [x] Runtime binary path resolves from configured engine (`xray/v2ray/sing-box`).
-- [x] Parse-time engine selector (`auto|xray|sing-box`) exists for diagnostics path.
-- [ ] Add runtime engine abstraction layer equivalent to xray-knife core factory.
+- [x] Runtime binary path resolves from configured engine
+      (`xray/v2ray/sing-box`).
+- [x] Parse-time engine selector (`auto|xray|sing-box`) exists for diagnostics
+      path.
+- [ ] Add runtime engine abstraction layer equivalent to xray-knife core
+      factory.
 - [ ] Add runtime protocol-to-engine compatibility matrix for managed runtime.
 - [ ] Add managed-runtime `auto` engine mode with deterministic selection rules.
 - [ ] Add sing-box runtime config generation/execution path parity.
@@ -101,11 +112,13 @@ Gap notes:
 Checklist:
 
 - [x] Persist concise runtime `failure_reason` in `runtime_sessions`.
-- [x] Reconcile stale sessions when runtime PID is no longer alive during command flow.
+- [x] Reconcile stale sessions when runtime PID is no longer alive during
+      command flow.
 - [x] Surface runtime/session health via `status` including PID-running signals.
 - [ ] Add background supervisor/daemon that continuously watches runtime PID.
 - [ ] Immediately mark runtime `failed` without requiring next CLI command.
-- [ ] Reattach policy implementation for XRAT-owned running process after app restart.
+- [ ] Reattach policy implementation for XRAT-owned running process after app
+      restart.
 - [ ] Define and implement daemon UX (`xrat daemon` or implicit watcher model).
 - [ ] Decide and implement auto-reconnect ownership (supervisor vs later phase).
 
@@ -118,13 +131,14 @@ Gap notes:
 
 ## Suggested implementation order (remaining)
 
-1. [ ] Finalize engine-direction decision for managed runtime:
-       xray-focused for now vs explicit multi-engine parity target.
+1. [ ] Finalize engine-direction decision for managed runtime: xray-focused for
+       now vs explicit multi-engine parity target.
 2. [ ] If multi-engine target approved, introduce runtime engine trait/factory
        and sing-box runtime config adapter.
 3. [ ] Add background supervisor command/process for continuous crash detection.
 4. [ ] Implement controlled reattach policy for XRAT-owned runtime artifacts.
-5. [ ] Add failure/event persistence fields for daemon-originated transitions if needed.
+5. [ ] Add failure/event persistence fields for daemon-originated transitions if
+       needed.
 
 ---
 
@@ -133,8 +147,10 @@ Gap notes:
 - [x] Phase 4 managed runtime baseline behavior is implemented and validated.
 - [x] Engine-selection parity gaps are explicitly listed and scoped.
 - [x] Phase 4.5 supervisor decisions are captured as actionable checklist items.
-- [ ] Runtime engine abstraction parity decision is implemented (or documented non-goal).
-- [ ] Background supervisor/reattach policy is implemented (or documented non-goal).
+- [ ] Runtime engine abstraction parity decision is implemented (or documented
+      non-goal).
+- [ ] Background supervisor/reattach policy is implemented (or documented
+      non-goal).
 
 ---
 

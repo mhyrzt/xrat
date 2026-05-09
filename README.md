@@ -90,8 +90,8 @@ city_path = "geoip/GeoLite2-City.mmdb"
 asn_path = "geoip/GeoLite2-ASN.mmdb"
 ```
 
-GeoIP enrichment order: City -> Country -> ASN -> fallback classifier.
-Paths can be relative to your config file location.
+GeoIP enrichment order: City -> Country -> ASN -> fallback classifier. Paths can
+be relative to your config file location.
 
 Optional real-MMDB test:
 

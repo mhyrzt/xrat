@@ -42,14 +42,13 @@ Out of scope for this phase:
 - Primitive checks:
   - ICMP and TCP probes implemented (`src/tester/icmp.rs`, `src/tester/tcp.rs`).
 - Batch/single test UX:
-  - `xrat test [id]` with bulk filters/format/sort options
-    (`src/cli/test.rs`).
+  - `xrat test [id]` with bulk filters/format/sort options (`src/cli/test.rs`).
 - Persistence:
-  - test runs + per-result rows in DB
-    (`connection_test_runs`, `connection_tests`).
+  - test runs + per-result rows in DB (`connection_test_runs`,
+    `connection_tests`).
 - Persisted metrics:
-  - `icmp/tcp/real_delay`, `download_mbps`, `upload_mbps`,
-    `ttfb_ms`, `connect_ms`, `http_status`, endpoint IP/location/country/ASN.
+  - `icmp/tcp/real_delay`, `download_mbps`, `upload_mbps`, `ttfb_ms`,
+    `connect_ms`, `http_status`, endpoint IP/location/country/ASN.
 - Latest summary UX:
   - `--latest-run-summary` with optional `--country` / `--asn` filters and
     country/ASN distribution output.
@@ -132,8 +131,8 @@ Checklist:
 
 - [x] Stable status model exists (`ok`, `failed`, `skipped`).
 - [x] Failure kind/reason classification persisted.
-- [x] Decide whether to add compatibility mapping table for
-      xray-knife-style statuses (if cross-tool report parity needed).
+- [x] Decide whether to add compatibility mapping table for xray-knife-style
+      statuses (if cross-tool report parity needed).
 
 Gap notes:
 
@@ -165,8 +164,8 @@ Gap notes:
 ## Suggested implementation order (remaining)
 
 1. [x] Add `test --ping` continuous loop mode.
-2. [x] Implement upload measurement path for `upload_mbps`
-       (`--upload-url` + persistence).
+2. [x] Implement upload measurement path for `upload_mbps` (`--upload-url` +
+       persistence).
 3. [x] Add optional status vocabulary compatibility mapping for cross-tool
        exported reports (decision: keep simplified xrat status model for now).
 
