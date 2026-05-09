@@ -24,7 +24,7 @@ use crate::{app::config, support::geoip};
 
 pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()> {
     if args.latest_run_summary {
-        print_latest_run_summary(&context.db).await?;
+        print_latest_run_summary(&context.db, args).await?;
         return Ok(());
     }
 
@@ -37,12 +37,13 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()
     }
 }
 
-async fn print_latest_run_summary(db: &Database) -> crate::app::Result<()> {
+async fn print_latest_run_summary(db: &Database, args: &TestArgs) -> crate::app::Result<()> {
     let Some(run) = db.get_latest_connection_test_run().await? else {
         println!("No persisted test runs found.");
         return Ok(());
     };
     let tests = db.list_connection_tests_by_run(run.id).await?;
+    let tests = filter_latest_run_rows(tests, args.country.as_deref(), args.asn.as_deref());
     let total = tests.len();
     let failed = tests
         .iter()
@@ -53,7 +54,71 @@ async fn print_latest_run_summary(db: &Database) -> crate::app::Result<()> {
         "Latest test run #{} ({}) at {}: total={}, ok={}, failed={}",
         run.id, run.kind, run.created_at, total, ok, failed
     );
+    print_geo_distribution(
+        "Country distribution",
+        tests
+            .iter()
+            .filter_map(|row| row.endpoint_country.as_deref()),
+    );
+    print_geo_distribution(
+        "ASN distribution",
+        tests.iter().filter_map(|row| row.endpoint_asn.as_deref()),
+    );
     Ok(())
+}
+
+fn filter_latest_run_rows(
+    rows: Vec<crate::db::ConnectionTestRecord>,
+    country: Option<&str>,
+    asn: Option<&str>,
+) -> Vec<crate::db::ConnectionTestRecord> {
+    let country = country
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_ascii_uppercase());
+    let asn = asn
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_ascii_lowercase());
+
+    rows.into_iter()
+        .filter(|row| {
+            let country_match = country.as_ref().map_or(true, |filter| {
+                row.endpoint_country
+                    .as_deref()
+                    .map(|value| value.eq_ignore_ascii_case(filter))
+                    .unwrap_or(false)
+            });
+            let asn_match = asn.as_ref().map_or(true, |filter| {
+                row.endpoint_asn
+                    .as_deref()
+                    .map(|value| value.to_ascii_lowercase().contains(filter))
+                    .unwrap_or(false)
+            });
+            country_match && asn_match
+        })
+        .collect()
+}
+
+fn print_geo_distribution<'a>(label: &str, values: impl Iterator<Item = &'a str>) {
+    use std::collections::BTreeMap;
+
+    let mut counts = BTreeMap::<String, usize>::new();
+    for value in values {
+        *counts.entry(value.to_string()).or_insert(0) += 1;
+    }
+
+    if counts.is_empty() {
+        println!("{label}: -");
+        return;
+    }
+
+    let summary = counts
+        .iter()
+        .map(|(value, count)| format!("{value}:{count}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    println!("{label}: {summary}");
 }
 
 async fn run_single(
@@ -925,6 +990,7 @@ impl TestOutputRow {
             real_delay_ok: self.ran_real_delay.then_some(self.real_delay_ok),
             real_delay_ms: self.real_delay_ms.map(i64::from),
             download_mbps: self.download_mbps,
+            upload_mbps: None,
             connect_ms: self.tcp_ms.map(i64::from),
             ttfb_ms: self.ttfb_ms.map(i64::from),
             http_status: self.http_status.map(i64::from),
@@ -1253,6 +1319,62 @@ mod tests {
     }
 
     #[test]
+    fn filters_latest_run_rows_by_country_and_asn() {
+        let rows = vec![
+            crate::db::ConnectionTestRecord {
+                id: 1,
+                run_id: Some(1),
+                config_id: 10,
+                icmp_ok: Some(true),
+                icmp_ms: Some(10),
+                tcp_ok: Some(true),
+                tcp_ms: Some(20),
+                real_delay_ok: Some(true),
+                real_delay_ms: Some(30),
+                download_mbps: Some(40.0),
+                upload_mbps: Some(10.0),
+                connect_ms: Some(20),
+                ttfb_ms: Some(30),
+                http_status: Some(200),
+                endpoint_ip: Some("1.1.1.1".to_string()),
+                endpoint_location: Some("US".to_string()),
+                endpoint_country: Some("US".to_string()),
+                endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
+                failure_kind: None,
+                failure_reason: None,
+                tested_at: "now".to_string(),
+            },
+            crate::db::ConnectionTestRecord {
+                id: 2,
+                run_id: Some(1),
+                config_id: 11,
+                icmp_ok: Some(true),
+                icmp_ms: Some(11),
+                tcp_ok: Some(true),
+                tcp_ms: Some(21),
+                real_delay_ok: Some(true),
+                real_delay_ms: Some(31),
+                download_mbps: Some(41.0),
+                upload_mbps: Some(11.0),
+                connect_ms: Some(21),
+                ttfb_ms: Some(31),
+                http_status: Some(200),
+                endpoint_ip: Some("8.8.8.8".to_string()),
+                endpoint_location: Some("public".to_string()),
+                endpoint_country: Some("DE".to_string()),
+                endpoint_asn: Some("AS15169 GOOGLE".to_string()),
+                failure_kind: None,
+                failure_reason: None,
+                tested_at: "now".to_string(),
+            },
+        ];
+
+        let filtered = filter_latest_run_rows(rows, Some("us"), Some("cloudflare"));
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].config_id, 10);
+    }
+
+    #[test]
     fn classifies_endpoint_location_from_ip() {
         assert_eq!(
             classify_endpoint_location(Some("10.0.0.7")).as_deref(),
@@ -1393,6 +1515,8 @@ mod tests {
             sort_by: crate::cli::TestSortBy::Status,
             no_progress: false,
             latest_run_summary: false,
+            country: None,
+            asn: None,
         }
     }
 }

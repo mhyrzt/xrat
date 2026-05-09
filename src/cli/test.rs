@@ -95,6 +95,18 @@ pub struct TestArgs {
         help = "Print summary for latest persisted test run and exit."
     )]
     pub latest_run_summary: bool,
+
+    #[arg(
+        long = "country",
+        help = "Filter latest-run summary by endpoint country (ISO code)."
+    )]
+    pub country: Option<String>,
+
+    #[arg(
+        long = "asn",
+        help = "Filter latest-run summary by endpoint ASN text (case-insensitive substring)."
+    )]
+    pub asn: Option<String>,
 }
 
 impl TestArgs {

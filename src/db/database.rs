@@ -7,9 +7,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
 use crate::db::model::{
-    ConfigListFilter, ConfigRecord, ConnectionTestInsert, ConnectionTestRecord,
-    ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource, ImportSummary,
-    RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SubscriptionRecord,
+    CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConnectionTestInsert,
+    ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource,
+    ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
+    SubscriptionRecord,
 };
 use crate::db::repository;
 
@@ -56,6 +57,9 @@ impl Database {
                 sqlx::query("DELETE FROM connection_test_runs")
                     .execute(pool)
                     .await?;
+                sqlx::query("DELETE FROM cf_scan_results")
+                    .execute(pool)
+                    .await?;
                 sqlx::query("DELETE FROM configs").execute(pool).await?;
                 sqlx::query("DELETE FROM subscriptions")
                     .execute(pool)
@@ -63,7 +67,7 @@ impl Database {
             }
             DbPool::Postgres(pool) => {
                 sqlx::query(
-                    "TRUNCATE runtime_sessions, connection_tests, connection_test_runs, configs, subscriptions RESTART IDENTITY CASCADE",
+                    "TRUNCATE runtime_sessions, connection_tests, connection_test_runs, cf_scan_results, configs, subscriptions RESTART IDENTITY CASCADE",
                 )
                 .execute(pool)
                 .await?;
@@ -113,6 +117,24 @@ impl Database {
 
     pub async fn get_connection_test_count(&self) -> crate::db::Result<i64> {
         repository::get_connection_test_count(&self.pool).await
+    }
+
+    pub async fn upsert_cf_scan_results(
+        &self,
+        results: &[CfScanResultUpsert],
+    ) -> crate::db::Result<()> {
+        repository::upsert_cf_scan_results(&self.pool, results).await
+    }
+
+    pub async fn list_cf_scan_results(&self) -> crate::db::Result<Vec<CfScanResultRecord>> {
+        repository::list_cf_scan_results(&self.pool).await
+    }
+
+    pub async fn list_cf_scan_history(
+        &self,
+        limit: i64,
+    ) -> crate::db::Result<Vec<CfScanResultRecord>> {
+        repository::list_cf_scan_history(&self.pool, limit).await
     }
 
     pub async fn insert_connection_test(
@@ -245,8 +267,8 @@ fn test_database_path(prefix: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        ConfigListFilter, ConnectionTestInsert, ConnectionTestRunInsert, Database, ImportSource,
-        RuntimeSessionInsert, RuntimeSessionStatus, test_database_path,
+        CfScanResultUpsert, ConfigListFilter, ConnectionTestInsert, ConnectionTestRunInsert,
+        Database, ImportSource, RuntimeSessionInsert, RuntimeSessionStatus, test_database_path,
     };
     use crate::db::model::SourceKind;
     use crate::model::{Node, Protocol};
@@ -483,6 +505,7 @@ mod tests {
             real_delay_ok: None,
             real_delay_ms: None,
             download_mbps: None,
+            upload_mbps: None,
             connect_ms: None,
             ttfb_ms: None,
             http_status: None,
@@ -506,6 +529,7 @@ mod tests {
             real_delay_ok: Some(true),
             real_delay_ms: Some(240),
             download_mbps: Some(42.5),
+            upload_mbps: Some(11.25),
             connect_ms: Some(95),
             ttfb_ms: Some(180),
             http_status: Some(204),
@@ -543,6 +567,7 @@ mod tests {
         assert_eq!(latest.real_delay_ok, Some(true));
         assert_eq!(latest.real_delay_ms, Some(240));
         assert_eq!(latest.download_mbps, Some(42.5));
+        assert_eq!(latest.upload_mbps, Some(11.25));
         assert_eq!(latest.connect_ms, Some(95));
         assert_eq!(latest.ttfb_ms, Some(180));
         assert_eq!(latest.http_status, Some(204));
@@ -659,6 +684,68 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn upserts_and_lists_cf_scan_results() {
+        let db_path = test_database_path("xrat-cf-scan");
+        let db = Database::connect_sqlite(&db_path)
+            .await
+            .expect("db should open");
+
+        db.upsert_cf_scan_results(&[
+            CfScanResultUpsert {
+                ip: "1.1.1.1".to_string(),
+                latency_ms: Some(18),
+                download_mbps: Some(93.0),
+                upload_mbps: Some(14.2),
+                error: None,
+            },
+            CfScanResultUpsert {
+                ip: "1.0.0.1".to_string(),
+                latency_ms: None,
+                download_mbps: None,
+                upload_mbps: None,
+                error: Some("timeout".to_string()),
+            },
+        ])
+        .await
+        .expect("initial upsert should succeed");
+
+        db.upsert_cf_scan_results(&[CfScanResultUpsert {
+            ip: "1.1.1.1".to_string(),
+            latency_ms: Some(12),
+            download_mbps: None,
+            upload_mbps: Some(15.0),
+            error: None,
+        }])
+        .await
+        .expect("update upsert should succeed");
+
+        let all = db
+            .list_cf_scan_results()
+            .await
+            .expect("list should succeed");
+        assert_eq!(all.len(), 2);
+
+        let best = all
+            .iter()
+            .find(|row| row.ip == "1.1.1.1")
+            .expect("best row should exist");
+        assert_eq!(best.latency_ms, Some(12));
+        assert_eq!(best.download_mbps, Some(93.0));
+        assert_eq!(best.upload_mbps, Some(15.0));
+        assert_eq!(best.error, None);
+
+        let history = db
+            .list_cf_scan_history(10)
+            .await
+            .expect("history should load");
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].ip, "1.1.1.1");
+        assert_eq!(history[1].ip, "1.0.0.1");
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[tokio::test]
     async fn verifies_postgres_backend_when_url_is_set() {
         let Ok(url) = std::env::var("XRAT_POSTGRES_TEST_URL") else {
             eprintln!("skipping PostgreSQL verification; set XRAT_POSTGRES_TEST_URL to run it");
@@ -770,6 +857,7 @@ mod tests {
             real_delay_ok: Some(true),
             real_delay_ms: Some(240),
             download_mbps: Some(42.5),
+            upload_mbps: Some(11.25),
             connect_ms: None,
             ttfb_ms: None,
             http_status: None,
@@ -789,6 +877,7 @@ mod tests {
             .expect("latest test should exist");
         assert_eq!(db.get_connection_test_count().await.expect("count"), 1);
         assert_eq!(latest_test.download_mbps, Some(42.5));
+        assert_eq!(latest_test.upload_mbps, Some(11.25));
 
         let session_id = db
             .insert_runtime_session(&RuntimeSessionInsert {
