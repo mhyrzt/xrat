@@ -36,6 +36,9 @@ pub struct TestArgs {
     #[arg(long = "skip-download", help = "Skip download speed test.")]
     pub skip_download: bool,
 
+    #[arg(long = "skip-upload", help = "Skip upload speed test.")]
+    pub skip_upload: bool,
+
     #[arg(
         long = "test-url",
         help = "Override the URL used for real-delay checks."
@@ -47,6 +50,12 @@ pub struct TestArgs {
         help = "Override the URL used for download speed checks."
     )]
     pub download_url: Option<String>,
+
+    #[arg(
+        long = "upload-url",
+        help = "Enable and set URL used for upload speed checks (HTTP POST)."
+    )]
+    pub upload_url: Option<String>,
 
     #[arg(
         long = "icmp-timeout",
@@ -72,6 +81,12 @@ pub struct TestArgs {
     )]
     pub download_timeout_ms: Option<u64>,
 
+    #[arg(
+        long = "upload-timeout",
+        help = "Override the upload speed request timeout in milliseconds."
+    )]
+    pub upload_timeout_ms: Option<u64>,
+
     #[arg(long = "concurrency", help = "Bulk test concurrency. 0 means auto.")]
     pub concurrency: Option<i32>,
 
@@ -89,6 +104,19 @@ pub struct TestArgs {
 
     #[arg(long = "no-progress", help = "Disable bulk progress output.")]
     pub no_progress: bool,
+
+    #[arg(
+        long = "ping",
+        help = "Continuously test one config until Ctrl+C and print loop summary."
+    )]
+    pub ping: bool,
+
+    #[arg(
+        long = "ping-interval",
+        help = "Ping-loop interval in milliseconds.",
+        default_value_t = 1000
+    )]
+    pub ping_interval_ms: u64,
 
     #[arg(
         long = "latest-run-summary",

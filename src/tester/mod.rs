@@ -2,11 +2,13 @@ pub mod download;
 pub mod icmp;
 pub mod real_delay;
 pub mod tcp;
+pub mod upload;
 
 pub use download::{DownloadResult, download_speed_check};
 pub use icmp::{IcmpResult, icmp_ping};
 pub use real_delay::{RealDelayResult, real_delay_check};
 pub use tcp::{TcpResult, tcp_check};
+pub use upload::{UploadResult, upload_speed_check};
 
 /// Test failure classification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,6 +53,8 @@ pub struct TestResult {
     pub real_delay_ms: Option<u32>,
     pub download_ok: bool,
     pub download_mbps: Option<f64>,
+    pub upload_ok: bool,
+    pub upload_mbps: Option<f64>,
     pub ttfb_ms: Option<u32>,
     pub http_status: Option<u16>,
     pub endpoint_ip: Option<String>,
@@ -72,6 +76,8 @@ impl Default for TestResult {
             real_delay_ms: None,
             download_ok: false,
             download_mbps: None,
+            upload_ok: false,
+            upload_mbps: None,
             ttfb_ms: None,
             http_status: None,
             endpoint_ip: None,

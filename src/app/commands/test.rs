@@ -19,6 +19,7 @@ use crate::db::{ConfigRecord, ConnectionTestInsert, ConnectionTestRunInsert, Dat
 use crate::model::Node;
 use crate::tester::{
     FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
+    upload_speed_check,
 };
 use crate::{app::config, support::geoip};
 
@@ -30,11 +31,93 @@ pub async fn run(args: &TestArgs, context: &AppContext) -> crate::app::Result<()
 
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
 
+    if args.ping {
+        return run_ping_loop(args, context, settings).await;
+    }
+
     if let Some(config_id) = args.id {
         run_single(args, context, settings, config_id).await
     } else {
         run_bulk(args, context, settings).await
     }
+}
+
+async fn run_ping_loop(
+    args: &TestArgs,
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+) -> crate::app::Result<()> {
+    let config_id = args.id.ok_or_else(|| {
+        AppError::InvalidArgument(
+            "`test --ping` requires config id: `xrat test <id> --ping`".into(),
+        )
+    })?;
+    let config = context
+        .db
+        .get_config_by_id(config_id)
+        .await?
+        .ok_or_else(|| AppError::InvalidArgument(format!("config id {config_id} not found")))?;
+    let run_id = context
+        .db
+        .insert_connection_test_run(&ConnectionTestRunInsert {
+            kind: "ping_loop".to_string(),
+        })
+        .await?;
+    let interval_ms = args.ping_interval_ms.max(100);
+    println!(
+        "Starting ping loop for config #{} (interval={}ms). Press Ctrl+C to stop.",
+        config_id, interval_ms
+    );
+
+    let mut ticker = tokio::time::interval(Duration::from_millis(interval_ms));
+    ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let started_at = Instant::now();
+    let mut total = 0usize;
+    let mut ok = 0usize;
+    let mut failed = 0usize;
+
+    loop {
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {
+                break;
+            }
+            _ = ticker.tick() => {
+                total += 1;
+                let output = test_and_record_config(
+                    context.db.clone(),
+                    config.clone(),
+                    settings.clone(),
+                    false,
+                    Some(run_id),
+                ).await?;
+                match output.status {
+                    TestStatus::Ok => {
+                        ok += 1;
+                        println!(
+                            "#{total} ok icmp={}ms real_delay={}ms download={}Mbps",
+                            optional_number(output.icmp_ms),
+                            optional_number(output.real_delay_ms),
+                            optional_float(output.download_mbps),
+                        );
+                    }
+                    TestStatus::Failed => {
+                        failed += 1;
+                        println!("#{total} failed {}", output.error.as_deref().unwrap_or("failed"));
+                    }
+                    TestStatus::Skipped => {
+                        println!("#{total} skipped");
+                    }
+                }
+            }
+        }
+    }
+
+    let elapsed = started_at.elapsed().as_secs_f64();
+    println!(
+        "Ping loop stopped: total={}, ok={}, failed={}, elapsed={:.2}s, run_id={}",
+        total, ok, failed, elapsed, run_id
+    );
+    Ok(())
 }
 
 async fn print_latest_run_summary(db: &Database, args: &TestArgs) -> crate::app::Result<()> {
@@ -272,6 +355,7 @@ async fn test_and_record_config(
     let mut ran_tcp = false;
     let mut ran_real_delay = false;
     let mut ran_download = false;
+    let mut ran_upload = false;
 
     for stage in &settings.stage_order {
         match stage {
@@ -308,6 +392,10 @@ async fn test_and_record_config(
             ConnectionTestStage::Download if settings.run_download => {
                 ran_download = true;
                 run_download_stage(&node, &settings, &mut result, print_progress).await?;
+                if settings.run_upload {
+                    ran_upload = true;
+                    run_upload_stage(&node, &settings, &mut result, print_progress).await?;
+                }
                 if !result.download_ok && settings.failure_policy.halts_after_failure() {
                     break;
                 }
@@ -324,6 +412,7 @@ async fn test_and_record_config(
         ran_tcp,
         ran_real_delay,
         ran_download,
+        ran_upload,
         elapsed,
     );
     db.insert_connection_test(&output.connection_test_insert(run_id))
@@ -556,6 +645,51 @@ async fn run_download_stage(
     Ok(())
 }
 
+async fn run_upload_stage(
+    node: &Node,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+    print_progress: bool,
+) -> crate::app::Result<()> {
+    let Some(upload_url) = settings.upload_url.as_deref() else {
+        return Ok(());
+    };
+
+    if print_progress {
+        print!("Running upload speed test... ");
+        std::io::stdout().flush()?;
+    }
+
+    let upload_result = upload_speed_check(
+        node,
+        upload_url,
+        &settings.xray_binary_path,
+        settings.xray_startup_timeout,
+        settings.upload_timeout,
+        settings.upload_payload_bytes,
+    )
+    .await;
+    let failure_reason = upload_result.failure_reason.clone();
+
+    result.upload_ok = upload_result.success;
+    result.upload_mbps = upload_result.mbps;
+    merge_failure(
+        result,
+        upload_result.failure_kind,
+        upload_result.failure_reason,
+    );
+
+    if print_progress {
+        print_download_result(
+            upload_result.success,
+            upload_result.mbps,
+            failure_reason.as_deref(),
+        );
+    }
+
+    Ok(())
+}
+
 fn merge_failure(
     result: &mut TestResult,
     failure_kind: Option<FailureKind>,
@@ -610,6 +744,9 @@ fn print_single_summary(output: &TestOutputRow) {
             if let Some(mbps) = output.download_mbps {
                 println!("  Download speed: {mbps:.2} Mbps");
             }
+            if let Some(mbps) = output.upload_mbps {
+                println!("  Upload speed: {mbps:.2} Mbps");
+            }
         }
         TestStatus::Failed => {
             println!("FAIL Config failed");
@@ -639,13 +776,13 @@ fn write_results(args: &TestArgs, outputs: &[TestOutputRow]) -> crate::app::Resu
 fn format_tsv(outputs: &[TestOutputRow]) -> String {
     let mut lines = Vec::with_capacity(outputs.len() + 1);
     lines.push(
-        "id\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tstatus\terror"
+        "id\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tstatus\terror"
             .to_string(),
     );
 
     for output in outputs {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             output.id,
             tsv_cell(output.name.as_deref()),
             output.protocol,
@@ -655,6 +792,10 @@ fn format_tsv(outputs: &[TestOutputRow]) -> String {
             optional_number(output.real_delay_ms),
             output
                 .download_mbps
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_default(),
+            output
+                .upload_mbps
                 .map(|value| format!("{value:.2}"))
                 .unwrap_or_default(),
             output.status.as_str(),
@@ -668,7 +809,7 @@ fn format_tsv(outputs: &[TestOutputRow]) -> String {
 fn format_csv(outputs: &[TestOutputRow]) -> String {
     let mut lines = Vec::with_capacity(outputs.len() + 1);
     lines.push(
-        "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,status,error"
+        "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error"
             .to_string(),
     );
 
@@ -683,6 +824,7 @@ fn format_csv(outputs: &[TestOutputRow]) -> String {
                 optional_number(output.icmp_ms),
                 optional_number(output.real_delay_ms),
                 optional_float(output.download_mbps),
+                optional_float(output.upload_mbps),
                 output.status.as_str().to_string(),
                 csv_cell(output.error.as_deref()),
             ]
@@ -773,16 +915,20 @@ struct ResolvedTestSettings {
     failure_policy: TestFailurePolicy,
     real_delay_url: String,
     download_url: String,
+    upload_url: Option<String>,
     xray_binary_path: PathBuf,
     icmp_timeout: Duration,
     tcp_timeout: Duration,
     xray_startup_timeout: Duration,
     real_delay_timeout: Duration,
     download_timeout: Duration,
+    upload_timeout: Duration,
+    upload_payload_bytes: usize,
     run_icmp: bool,
     run_tcp: bool,
     run_real_delay: bool,
     run_download: bool,
+    run_upload: bool,
     concurrency: i32,
     geoip_enabled: bool,
     geoip_country_path: PathBuf,
@@ -814,6 +960,7 @@ fn resolve_test_settings(
             .download_url
             .clone()
             .unwrap_or_else(|| app_config.testing.download.url.clone()),
+        upload_url: args.upload_url.clone(),
         xray_binary_path: resolve_engine_binary_path(app_config, runtime_paths),
         icmp_timeout: Duration::from_millis(
             args.icmp_timeout_ms
@@ -832,10 +979,16 @@ fn resolve_test_settings(
             args.download_timeout_ms
                 .unwrap_or(app_config.testing.download.timeout),
         ),
+        upload_timeout: Duration::from_millis(
+            args.upload_timeout_ms
+                .unwrap_or(defaults::DEFAULT_UPLOAD_TIMEOUT_MS),
+        ),
+        upload_payload_bytes: defaults::DEFAULT_UPLOAD_PAYLOAD_BYTES,
         run_icmp: app_config.testing.icmp.enabled && !args.skip_icmp,
         run_tcp: app_config.testing.tcp.enabled && !args.skip_tcp,
         run_real_delay: app_config.testing.real_delay.enabled && !args.skip_real_delay,
         run_download: app_config.testing.download.enabled && !args.skip_download,
+        run_upload: args.upload_url.is_some() && !args.skip_upload,
         concurrency,
         geoip_enabled: app_config.testing.geoip.enabled,
         geoip_country_path: config::resolve_config_path(
@@ -901,6 +1054,7 @@ struct TestOutputRow {
     icmp_ms: Option<u32>,
     real_delay_ms: Option<u32>,
     download_mbps: Option<f64>,
+    upload_mbps: Option<f64>,
     status: TestStatus,
     error: Option<String>,
     #[serde(skip_serializing)]
@@ -943,9 +1097,17 @@ impl TestOutputRow {
         ran_tcp: bool,
         ran_real_delay: bool,
         ran_download: bool,
+        ran_upload: bool,
         elapsed: Duration,
     ) -> Self {
-        let status = overall_status(result, ran_icmp, ran_tcp, ran_real_delay, ran_download);
+        let status = overall_status(
+            result,
+            ran_icmp,
+            ran_tcp,
+            ran_real_delay,
+            ran_download,
+            ran_upload,
+        );
 
         Self {
             id: config.id,
@@ -956,6 +1118,7 @@ impl TestOutputRow {
             icmp_ms: result.icmp_ms,
             real_delay_ms: result.real_delay_ms,
             download_mbps: result.download_mbps,
+            upload_mbps: result.upload_mbps,
             status,
             error: result.failure_reason.clone(),
             tcp_ms: result.tcp_ms,
@@ -990,7 +1153,7 @@ impl TestOutputRow {
             real_delay_ok: self.ran_real_delay.then_some(self.real_delay_ok),
             real_delay_ms: self.real_delay_ms.map(i64::from),
             download_mbps: self.download_mbps,
-            upload_mbps: None,
+            upload_mbps: self.upload_mbps,
             connect_ms: self.tcp_ms.map(i64::from),
             ttfb_ms: self.ttfb_ms.map(i64::from),
             http_status: self.http_status.map(i64::from),
@@ -1028,12 +1191,15 @@ fn overall_status(
     ran_tcp: bool,
     ran_real_delay: bool,
     ran_download: bool,
+    ran_upload: bool,
 ) -> TestStatus {
-    if !ran_icmp && !ran_tcp && !ran_real_delay && !ran_download {
+    if !ran_icmp && !ran_tcp && !ran_real_delay && !ran_download && !ran_upload {
         return TestStatus::Skipped;
     }
 
-    let success = if ran_download {
+    let success = if ran_upload {
+        result.upload_ok
+    } else if ran_download {
         result.download_ok
     } else if ran_real_delay {
         result.real_delay_ok
@@ -1283,6 +1449,7 @@ mod tests {
             icmp_ms: Some(12),
             real_delay_ms: Some(123),
             download_mbps: Some(45.678),
+            upload_mbps: Some(12.345),
             status: TestStatus::Ok,
             error: None,
             tcp_ms: Some(25),
@@ -1305,9 +1472,9 @@ mod tests {
         let csv = format_csv(&[output]);
 
         assert!(csv.starts_with(
-            "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,status,error\n"
+            "id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error\n"
         ));
-        assert!(csv.contains("7,\"node, one\",vless,example.com,443,12,123,45.68,ok,"));
+        assert!(csv.contains("7,\"node, one\",vless,example.com,443,12,123,45.68,12.35,ok,"));
     }
 
     #[test]
@@ -1421,6 +1588,51 @@ mod tests {
     }
 
     #[test]
+    fn resolves_endpoint_meta_priority_with_real_mmdb_when_provided() {
+        let Some(city_path) = std::env::var_os("XRAT_GEOIP_TEST_CITY_MMDB") else {
+            return;
+        };
+        let Some(country_path) = std::env::var_os("XRAT_GEOIP_TEST_MMDB") else {
+            return;
+        };
+        let Some(asn_path) = std::env::var_os("XRAT_GEOIP_TEST_ASN_MMDB") else {
+            return;
+        };
+
+        let ip = "8.8.8.8";
+        let meta = resolve_endpoint_meta(
+            Some(ip),
+            true,
+            city_path.as_ref(),
+            country_path.as_ref(),
+            asn_path.as_ref(),
+        );
+
+        if let Some(city) = geoip::lookup_city_label(city_path.as_ref(), ip) {
+            assert_eq!(meta.location.as_deref(), Some(city.as_str()));
+            assert_eq!(
+                meta.country.as_deref(),
+                city.split('/').next().map(str::trim)
+            );
+            return;
+        }
+
+        if let Some(country) = geoip::lookup_country_iso(country_path.as_ref(), ip) {
+            assert_eq!(meta.location.as_deref(), Some(country.as_str()));
+            assert_eq!(meta.country.as_deref(), Some(country.as_str()));
+            return;
+        }
+
+        if let Some(asn) = geoip::lookup_asn_label(asn_path.as_ref(), ip) {
+            assert_eq!(meta.location.as_deref(), Some(asn.as_str()));
+            assert!(meta.country.is_none());
+            return;
+        }
+
+        panic!("expected at least one mmdb lookup to resolve for provided test assets");
+    }
+
+    #[test]
     fn resolves_xray_binary_from_runtime_paths() {
         let app_config = AppConfig::default();
         let runtime_paths = crate::app::runtime::RuntimePaths {
@@ -1503,17 +1715,22 @@ mod tests {
             skip_tcp: false,
             skip_real_delay: false,
             skip_download: false,
+            skip_upload: false,
             test_url: None,
             download_url: None,
+            upload_url: None,
             icmp_timeout_ms: None,
             tcp_timeout_ms: None,
             real_delay_timeout_ms: None,
             download_timeout_ms: None,
+            upload_timeout_ms: None,
             concurrency: None,
             format: crate::cli::TestFormat::Tsv,
             output: None,
             sort_by: crate::cli::TestSortBy::Status,
             no_progress: false,
+            ping: false,
+            ping_interval_ms: 1000,
             latest_run_summary: false,
             country: None,
             asn: None,
