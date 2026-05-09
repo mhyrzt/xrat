@@ -200,6 +200,7 @@ fn send_signal(pid: i64, signal: &str) -> Result<bool, crate::app::AppError> {
 
 #[cfg(test)]
 mod tests {
+    use std::process::{Command, Stdio};
     use std::time::Duration;
 
     use super::{TerminationOutcome, process_is_running, terminate_process_gracefully};
@@ -216,5 +217,29 @@ mod tests {
             .expect("invalid pid should not fail");
 
         assert_eq!(outcome, TerminationOutcome::NotRunning);
+    }
+
+    #[test]
+    fn graceful_termination_stops_running_process() {
+        let mut child = Command::new("sleep")
+            .arg("5")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("sleep should spawn");
+
+        let pid = i64::from(child.id());
+        assert!(process_is_running(pid));
+
+        let outcome = terminate_process_gracefully(pid, Duration::from_secs(1))
+            .expect("termination should succeed");
+
+        let _ = child.wait();
+        assert!(matches!(
+            outcome,
+            TerminationOutcome::Terminated | TerminationOutcome::Killed
+        ));
+        assert!(!process_is_running(pid));
     }
 }
