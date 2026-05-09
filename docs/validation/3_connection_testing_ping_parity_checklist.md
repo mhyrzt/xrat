@@ -14,6 +14,7 @@ This checklist maps gap area **#3 Connection Testing + Ping** using:
 - `src/tester/tcp.rs`
 - `src/tester/real_delay.rs`
 - `src/tester/download.rs`
+- `src/tester/upload.rs`
 
 ---
 
@@ -36,7 +37,7 @@ Out of scope for this phase:
 ## Current state snapshot (xrat)
 
 - Test pipeline:
-  - staged ICMP -> TCP gate -> real-delay -> download
+  - staged ICMP -> TCP gate -> real-delay -> download -> optional upload
     (`src/app/commands/test.rs`).
 - Primitive checks:
   - ICMP and TCP probes implemented (`src/tester/icmp.rs`, `src/tester/tcp.rs`).
@@ -52,8 +53,11 @@ Out of scope for this phase:
 - Latest summary UX:
   - `--latest-run-summary` with optional `--country` / `--asn` filters and
     country/ASN distribution output.
-- Main missing piece:
-  - no continuous ping mode (`test --ping`) equivalent to xray-knife loop.
+- Main behavioral gap from earlier pass:
+  - continuous ping mode (`test --ping`) was missing; now implemented with
+    Ctrl+C loop summary and persisted `ping_loop` run grouping.
+  - upload speed path was previously deferred; now implemented via
+    `--upload-url` (persisted to `upload_mbps`).
 
 ---
 
@@ -79,13 +83,13 @@ Checklist:
 - [x] Persist HTTP-aligned fields (`ttfb_ms`, `connect_ms`, `http_status`).
 - [x] Persist endpoint metadata fields (`endpoint_ip`, `endpoint_location`,
       `endpoint_country`, `endpoint_asn`).
-- [ ] Add true upload-speed measurement path (currently persistence field exists,
-      command flow stores `upload_mbps = None`).
+- [x] Add true upload-speed measurement path (enabled by `--upload-url`,
+      persisted into `connection_tests.upload_mbps`).
 
 Gap notes:
 
-- **PARTIAL** parity: field-level model mostly aligned; upload measurement and
-  some xray-knife examiner semantics still differ.
+- **MATCHED (core metrics)** parity: delay/download/upload + HTTP/geo fields are
+  persisted; some examiner implementation details still differ.
 
 ---
 
@@ -106,11 +110,11 @@ Checklist:
 - [x] Output modes (`tsv`, `csv`, `json`) and sorting controls.
 - [x] Run-level summary command path (`--latest-run-summary`).
 - [x] Geo filters for latest run summary (`--country`, `--asn`).
-- [ ] Add optional continuous ping loop (`test --ping`) + Ctrl+C summary stats.
+- [x] Add optional continuous ping loop (`test --ping`) + Ctrl+C summary stats.
 
 Gap notes:
 
-- **PARTIAL** parity: main missing behavioral gap is ping-loop command mode.
+- **MATCHED** parity for ping-loop behavior (`--ping` + Ctrl+C summary).
 
 ---
 
@@ -128,7 +132,7 @@ Checklist:
 
 - [x] Stable status model exists (`ok`, `failed`, `skipped`).
 - [x] Failure kind/reason classification persisted.
-- [ ] Decide whether to add compatibility mapping table for
+- [x] Decide whether to add compatibility mapping table for
       xray-knife-style statuses (if cross-tool report parity needed).
 
 Gap notes:
@@ -160,26 +164,37 @@ Gap notes:
 
 ## Suggested implementation order (remaining)
 
-1. [ ] Add `test --ping` continuous loop mode.
-2. [ ] Decide/upload real measurement path for `upload_mbps`.
-3. [ ] Add optional status vocabulary compatibility mapping for cross-tool
-       exported reports.
+1. [x] Add `test --ping` continuous loop mode.
+2. [x] Implement upload measurement path for `upload_mbps`
+       (`--upload-url` + persistence).
+3. [x] Add optional status vocabulary compatibility mapping for cross-tool
+       exported reports (decision: keep simplified xrat status model for now).
 
 ---
 
 ## Exit criteria for "Area #3 complete"
 
-- [ ] Ping loop parity decision implemented or explicitly documented non-goal.
-- [ ] Upload metric parity decision implemented or explicitly documented
-      non-goal.
-- [ ] Status taxonomy compatibility decision documented.
+- [x] Ping loop parity implemented (`test --ping`).
+- [x] Upload metric parity implemented (`upload_mbps` measured + persisted).
+- [x] Status taxonomy compatibility decision documented.
 - [x] Core test persistence model aligned for major HTTP + geo fields.
+
+---
+
+## Explicit parity decisions (May 9, 2026)
+
+- Upload metric parity:
+  - Decision updated: **implemented** in current test flow.
+  - Runtime measurement is opt-in via `--upload-url`; field remains nullable
+    when upload stage is not enabled.
 
 ---
 
 ## Summary
 
 - xrat already matches most connection-testing storage/reporting needs.
-- Major remaining behavior gap is continuous ping mode.
+- Ping-loop parity now implemented via `xrat test <id> --ping`.
+- Upload metric path now implemented via
+  `xrat test <id> --upload-url <http-endpoint>`.
 - Status vocabulary remains intentionally simplified unless cross-tool
   comparability becomes hard requirement.

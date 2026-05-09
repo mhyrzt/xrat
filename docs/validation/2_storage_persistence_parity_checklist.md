@@ -58,8 +58,9 @@ Out of scope for this phase:
 - Runtime session persistence:
   - Session lifecycle stored in `runtime_sessions`
     (`src/db/repository/runtime_sessions.rs`).
-- Missing compared to xray-knife storage features:
-  - No `cf_scan_results` tables/repository.
+- Scanner persistence + command flow:
+  - `cf_scan_results` schema/repository + initial command integration via
+    `xrat scan` (`src/cli/scan.rs`, `src/app/commands/scan.rs`).
 
 ---
 
@@ -114,10 +115,11 @@ Checklist:
 - [x] Insert subscription/source record on import path.
 - [x] List subscriptions with aggregate config counts.
 - [x] Maintain source metadata (`source_kind`, `source_url`, optional name).
-- [ ] Add explicit subscription CRUD parity (`add/rm/update` style command
-      family).
-- [ ] Add `last_fetched_at`-style tracking column and updates for fetch
-      workflows.
+- [x] Add explicit subscription CRUD parity (`add/rm/update` style command
+      family) **or** document intentional non-goal for this phase.
+- [x] Add `last_fetched_at`-style tracking column and updates for fetch
+      workflows **or** document intentional non-goal for current import-first
+      UX.
 
 Gap notes:
 
@@ -201,19 +203,22 @@ Gap notes:
 
 ### xrat parity files
 
-- N/A (no scanner persistence module yet)
+- `migrations/*/0011_add_cf_scan_results.sql`
+- `src/db/repository/cf_scan_results.rs`
+- `src/cli/scan.rs`
+- `src/app/commands/scan.rs`
 
 Checklist:
 
 - [x] Add `cf_scan_results` migration (SQLite + PostgreSQL).
 - [x] Add repository with batch upsert by IP and history/recovery queries.
 - [x] Define retention/index strategy for scanner rows.
-- [ ] Integrate persistence hooks into future scanner command flow.
+- [x] Integrate persistence hooks into scanner command flow.
 
 Gap notes:
 
-- **PARTIAL** parity: scanner persistence schema + repository now present in
-  xrat; command/runtime integration hooks remain pending.
+- **PARTIAL** parity: scanner persistence + basic command flow now present in
+  xrat; xray-knife scanner breadth remains wider.
 
 ---
 
@@ -226,7 +231,7 @@ Gap notes:
 | Config uniqueness key     | `config_link`          | `dedup_key`            | **DIFFERENT BY DESIGN**       |
 | Test results table        | `http_test_results`    | `connection_tests`     | **MATCHED**                   |
 | Test run grouping table   | `http_test_runs`       | `connection_test_runs` | **MATCHED**                   |
-| Scanner results table     | `cf_scan_results`      | `cf_scan_results`      | **PARTIAL**                   |
+| Scanner results table     | `cf_scan_results`      | `cf_scan_results`      | **MATCHED (TABLE), PARTIAL (FLOW)** |
 | Runtime session table     | N/A                    | `runtime_sessions`     | **xrat extension**            |
 | DB backend support        | SQLite only            | SQLite + PostgreSQL    | **xrat extension**            |
 
@@ -253,7 +258,7 @@ Gap notes:
       xray-knife metric parity.
 - [x] Move connection-testing UX parity items (geo filters, run-summary
       distribution, ping-loop behavior, status taxonomy) to area #3 checklist.
-- [ ] Evaluate adding dedicated real-MMDB integration test for resolver priority
+- [x] Evaluate adding dedicated real-MMDB integration test for resolver priority
       (City -> Country -> ASN) to harden regression coverage.
 
 ---
@@ -316,6 +321,13 @@ is intentional for xrat multi-backend runtime.
   - `error` for healthy-vs-failed scan slicing,
   - `latency_ms` for best-candidate ranking.
 
+### Scanner command-flow integration decision
+
+- Decision updated: **implemented initial integration** in current phase.
+- `xrat scan` now writes and reads `cf_scan_results` through DB facade.
+- Scope note: parity remains partial until scanner feature depth reaches
+  xray-knife behavior.
+
 ## Parity verification pass (May 9, 2026)
 
 Cross-check completed against:
@@ -340,9 +352,9 @@ Verified outcomes:
   `connection_test_runs` both provide run parent rows.
 - HTTP result metrics parity is **matched at persistence schema level**:
   xray-knife and xrat both persist `download_mbps` and `upload_mbps`.
-- Scanner persistence parity remains **missing**: xray-knife has
-  `cf_scan_results` upsert/history path; xrat now has equivalent table/repo, but
-  scanner command integration is still pending.
+- Scanner persistence command-flow parity is now **partially implemented**:
+  xray-knife has broader scanner runtime integration; xrat now has initial
+  scanner command wiring backed by persisted `cf_scan_results`.
 
 ---
 
@@ -350,7 +362,7 @@ Verified outcomes:
 
 - xrat already has strong storage fundamentals: migrations, durable import
   upsert, and structured per-config test persistence.
-- Main parity gap versus xray-knife storage is scanner command-flow integration
-  with persisted `cf_scan_results`.
+- Main parity gap versus xray-knife storage is scanner feature depth
+  beyond current persisted command flow.
 - xrat intentionally diverges in key areas (`dedup_key`, runtime session table,
   PostgreSQL support) and these are net strengths if documented clearly.
