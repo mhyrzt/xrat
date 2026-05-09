@@ -6,6 +6,7 @@ mod import;
 mod list;
 mod parse;
 mod root;
+mod scan;
 mod status;
 mod test;
 mod tests;
@@ -18,6 +19,7 @@ pub use import::ImportArgs;
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use parse::{ParseArgs, ParseEngine};
 pub use root::Cli;
+pub use scan::ScanArgs;
 pub use status::StatusArgs;
 pub use test::{TestArgs, TestFormat, TestSortBy};
 

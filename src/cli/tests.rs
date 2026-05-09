@@ -51,7 +51,8 @@ mod tests {
             Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected import command")
             }
         }
@@ -69,7 +70,8 @@ mod tests {
             Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected add command")
             }
         }
@@ -90,7 +92,8 @@ mod tests {
             | Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected list command")
             }
         }
@@ -121,7 +124,8 @@ mod tests {
             | Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected list command")
             }
         }
@@ -175,7 +179,8 @@ mod tests {
             | Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected test command")
             }
         }
@@ -221,7 +226,8 @@ mod tests {
             | Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected test command")
             }
         }
@@ -239,7 +245,8 @@ mod tests {
             | Command::Connect(_)
             | Command::Disconnect(_)
             | Command::Status(_)
-            | Command::Parse(_) => {
+            | Command::Parse(_)
+            | Command::Scan(_) => {
                 panic!("expected test command")
             }
         }
@@ -277,6 +284,54 @@ mod tests {
                 assert_eq!(args.asn.as_deref(), Some("cloudflare"));
             }
             _ => panic!("expected test command"),
+        }
+    }
+
+    #[test]
+    fn parses_ping_loop_flags() {
+        let cli = Cli::parse_from([
+            "xrat",
+            "test",
+            "5",
+            "--ping",
+            "--ping-interval",
+            "1500",
+            "--upload-url",
+            "https://example.com/upload",
+        ]);
+        match cli.command {
+            Command::Test(args) => {
+                assert_eq!(args.id, Some(5));
+                assert!(args.ping);
+                assert_eq!(args.ping_interval_ms, 1500);
+                assert_eq!(
+                    args.upload_url.as_deref(),
+                    Some("https://example.com/upload")
+                );
+            }
+            _ => panic!("expected test command"),
+        }
+    }
+
+    #[test]
+    fn parses_scan_command() {
+        let cli = Cli::parse_from([
+            "xrat",
+            "scan",
+            "--ips",
+            "1.1.1.1,8.8.8.8",
+            "--port",
+            "443",
+            "--timeout",
+            "5000",
+        ]);
+        match cli.command {
+            Command::Scan(args) => {
+                assert_eq!(args.ips.len(), 2);
+                assert_eq!(args.port, 443);
+                assert_eq!(args.timeout_ms, 5000);
+            }
+            _ => panic!("expected scan command"),
         }
     }
 
