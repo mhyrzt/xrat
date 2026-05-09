@@ -41,16 +41,16 @@ Status legend:
 | `cmd/root.go` (default DB path init)                                      | `src/cli/root.rs`, `src/app/config/paths.rs`, `src/app/config/database.rs` | **PARTIAL**             | Both support DB path resolution; paths/layout conventions differ.                                                                                                     |
 | `database/queries.go` (`UpsertSubscriptionConfigs`)                       | `src/db/repository/configs.rs`, `src/db/repository/subscriptions.rs`       | **MATCHED**             | Both do durable storage with upsert semantics. xrat upserts by canonical `dedup_key`; xray-knife upserts by `config_link`.                                            |
 | `database/migrations/0001_initial_schema.up.sql`                          | `migrations/sqlite/0001_init.sql`, `migrations/postgres/0001_init.sql`     | **DIFFERENT BY DESIGN** | Schema model differs: xray-knife has `subscription_configs`, `http_test_runs/results`, `cf_scan_results`; xrat has `configs`, `connection_tests`, `runtime_sessions`. |
-| `database/queries.go` (`CreateHttpTestRun`, `InsertHttpTestResultsBatch`) | `src/db/repository/connection_tests.rs`                                    | **PARTIAL**             | Both persist test results; xray-knife groups by run table, xrat persists per-config test rows without run-group table.                                                |
-| `database/queries.go` (`UpsertCfScanResultsBatch`)                        | N/A                                                                        | **MISSING**             | xrat has no CF scanner result persistence tables/repositories.                                                                                                        |
+| `database/queries.go` (`CreateHttpTestRun`, `InsertHttpTestResultsBatch`) | `src/db/repository/connection_tests.rs`                                    | **MATCHED**             | Both persist run-grouped test history (`http_test_runs/results` vs `connection_test_runs/connection_tests`).                                                           |
+| `database/queries.go` (`UpsertCfScanResultsBatch`)                        | `src/db/repository/cf_scan_results.rs`, `migrations/*/0011_add_cf_scan_results.sql` | **PARTIAL**             | xrat now has scanner result persistence schema/repository; scanner command/runtime integration still missing.                                                           |
 
 ### Checklist tasks for this area
 
-- [ ] If run-history parity is required, add `test_runs` table + FK from
+- [x] If run-history parity is required, add `test_runs` table + FK from
       `connection_tests`.
-- [ ] If scanner parity is required, add `cf_scan_results` schema and
+- [x] If scanner parity is required, add `cf_scan_results` schema and
       repository.
-- [ ] Decide if dedup key should remain canonical-struct (`xrat`) or raw-link
+- [x] Decide if dedup key should remain canonical-struct (`xrat`) or raw-link
       key (`xray-knife` style).
 
 ---
@@ -69,7 +69,7 @@ Status legend:
 ### Checklist tasks for this area
 
 - [ ] Add optional `test --ping` (continuous HTTP probe loop) in xrat.
-- [ ] Decide whether to add `ttfb`, `connect_ms`, `http_status`, `egress_ip`,
+- [x] Decide whether to add `ttfb`, `connect_ms`, `http_status`, `egress_ip`,
       `location` columns.
 - [ ] Align/translate status taxonomy if cross-tool comparability is needed.
 
@@ -77,7 +77,13 @@ Status legend:
 
 ## 4) Engine Selection Logic (xray vs sing-box)
 
-| xray-knife file(s)                  | xrat file(s)                                                                           | Current gap status      | Notes / action                                                                                             |~~~~
+Planning note:
+
+- Runtime-engine direction items in this section should be tracked alongside
+  `docs/plan/PHASE_4.md` and `docs/plan/PHASE_4.5.md` because they directly
+  affect managed-runtime architecture and future supervisor/reattach behavior.
+
+| xray-knife file(s)                  | xrat file(s)                                                                           | Current gap status      | Notes / action                                                                                             |
 | ----------------------------------- | -------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `pkg/core/factory.go` (auto select) | `src/app/config/runtime.rs`, `src/app/commands/test.rs` (`resolve_engine_binary_path`) | **DIFFERENT BY DESIGN** | xrat selects runtime binary from config (`xray` or `v2ray`), not protocol-based multi-engine auto-routing. |
 | `pkg/core/singbox/*`                | N/A                                                                                    | **MISSING**             | No sing-box runtime integration in xrat.                                                                   |
@@ -93,6 +99,14 @@ Status legend:
 ---
 
 ## 5) Auto-Rotating Proxy
+
+Planning note:
+
+- Runtime lifecycle, reconnect, and supervision-adjacent items here are
+  upstream inputs for `docs/plan/PHASE_4.md` and `docs/plan/PHASE_4.5.md`.
+- Full rotation strategy still belongs to later parity phases, but any process
+  ownership/reconciliation behavior must stay consistent with Phase 4/4.5
+  decisions.
 
 | xray-knife file(s)                                                      | xrat file(s)                                                                                                                | Current gap status | Notes / action                                                                              |
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
@@ -116,14 +130,14 @@ Status legend:
 | ---------------------------------------------------------- | ------------ | ------------------ | ------------------------------------------------------------- |
 | `cmd/cfscanner/cfscanner.go`                               | N/A          | **MISSING**        | No cfscanner command in xrat.                                 |
 | `pkg/scanner/scanner.go`                                   | N/A          | **MISSING**        | No scanner service module.                                    |
-| `database/queries.go` (`CfScanResult`, upsert/load resume) | N/A          | **MISSING**        | No scan-results persistence/recovery layer in xrat DB schema. |
+| `database/queries.go` (`CfScanResult`, upsert/load resume) | `src/db/repository/cf_scan_results.rs`, `migrations/*/0011_add_cf_scan_results.sql` | **PARTIAL**        | Schema/repository parity exists; scanner command flow still missing. |
 | `cmd/cfscanner/realityscanner.go`                          | N/A          | **MISSING**        | No reality-specific scanner flow in xrat.                     |
 
 ### Checklist tasks for this area
 
 - [ ] Decide scanner scope: latency-only vs latency+speedtest+proxy-assisted
       scan.
-- [ ] Add schema (`cf_scan_results`) + repository + resume behavior.
+- [x] Add schema (`cf_scan_results`) + repository + resume behavior.
 - [ ] Add command UX (`--subnets`, `--resume`, `--speedtest`, `--config`,
       `--save-db`).
 
@@ -151,7 +165,7 @@ Status legend:
 
 | xray-knife command file      | xrat nearest file                                                              | Gap                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `cmd/parse/parse.go`         | `src/cli/import.rs`, `src/app/commands/import.rs`, `src/app/commands/add.rs`   | Missing dedicated parse UX/JSON output.                             |
+| `cmd/parse/parse.go`         | `src/cli/parse.rs`, `src/app/commands/parse.rs`                                  | Parse UX parity is present (`parse` with file/stdin/input + `--json`). |
 | `cmd/http/http.go`           | `src/cli/test.rs`, `src/app/commands/test.rs`                                  | Mostly present; missing ping loop semantics and some metric fields. |
 | `cmd/proxy/proxy.go`         | `src/cli/connect.rs`, `src/app/commands/connect.rs`                            | xrat has session connect; missing auto-rotating proxy service.      |
 | `cmd/cfscanner/cfscanner.go` | N/A                                                                            | Entire feature missing.                                             |
@@ -172,7 +186,7 @@ Status legend:
          `http_status`, `egress_ip`, `location`).
 
 3. **P1 - Parse UX parity**
-   - [ ] Add `parse` command (single/file/stdin) and optional `--json` runtime
+   - [x] Add `parse` command (single/file/stdin) and optional `--json` runtime
          config preview.
 
 4. **P2 - Proxy rotation subsystem**

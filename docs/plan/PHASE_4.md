@@ -22,6 +22,17 @@ By the end of this phase, XRAT should be able to:
 This phase is about turning Xray from a disposable probe tool into a managed
 application runtime.
 
+## Validation Link
+
+Related parity checklist source:
+
+- `docs/validation/0_xray-knife_vs_xrat_gap_checklist.md`
+  - section **4) Engine Selection Logic (xray vs sing-box)**
+  - section **5) Auto-Rotating Proxy**
+
+When those checklist items change status, update this phase doc assumptions for
+runtime engine selection and process ownership semantics.
+
 ## Why This Phase Exists
 
 Phase 3 gives XRAT a way to validate configs and measure them with real traffic.

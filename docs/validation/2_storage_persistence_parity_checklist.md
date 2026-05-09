@@ -51,12 +51,15 @@ Out of scope for this phase:
 - Test-result persistence:
   - Per-config rows stored in `connection_tests`
     (`src/db/repository/connection_tests.rs`).
+- Test-run grouping persistence:
+  - Run parent rows stored in `connection_test_runs` and linked from
+    `connection_tests.run_id` (`migrations/*/0007_add_connection_test_runs.sql`,
+    `src/db/repository/connection_tests.rs`).
 - Runtime session persistence:
   - Session lifecycle stored in `runtime_sessions`
     (`src/db/repository/runtime_sessions.rs`).
 - Missing compared to xray-knife storage features:
   - No `cf_scan_results` tables/repository.
-  - No explicit `http_test_runs` parent table for grouping test runs.
 
 ---
 
@@ -82,7 +85,7 @@ Checklist:
 - [x] DB initializes on startup through runtime bootstrap and migration layer.
 - [x] Default SQLite path resolution exists with CLI/config override precedence.
 - [x] Migration execution is wired for both SQLite and PostgreSQL.
-- [ ] Document exact precedence table in user docs (`--database` vs config vs
+- [x] Document exact precedence table in user docs (`--database` vs config vs
       default path).
 
 Gap notes:
@@ -144,7 +147,7 @@ Checklist:
 - [x] Dedup key semantics are deterministic and versioned.
 - [x] Import returns summary (`imported_configs`, `total_configs`,
       `subscription_id`).
-- [ ] Decide if raw-link conflict key compatibility mode needed for cross-tool
+- [x] Decide if raw-link conflict key compatibility mode needed for cross-tool
       migration (`config_link`-style natural key).
 
 Gap notes:
@@ -176,13 +179,17 @@ Checklist:
 - [x] Query test history by config ID and latest-by-config.
 - [x] Add optional `test_runs` parent table for run-level grouping metadata.
 - [x] Add run-level query UX equivalent to "latest run summary" semantics.
-- [x] Add xray-knife-aligned HTTP fields (`ttfb`, `connect_ms`,
-      `http_status`, `ip/location`) in same table.
+- [x] Add xray-knife-aligned HTTP fields (`ttfb`, `connect_ms`, `http_status`,
+      `ip/location`) in same table.
+- [x] Add optional upload-throughput persistence parity (`upload_mbps`) for
+      direct schema-level alignment with xray-knife `http_test_results`.
 
 Gap notes:
 
-- **PARTIAL** parity: xrat stores robust per-config records but does not group
-  rows under explicit run IDs.
+- **MATCHED** parity for run grouping: xrat now stores explicit run parent rows
+  via `connection_test_runs` and links each `connection_tests` row by `run_id`.
+- **MATCHED** schema metric parity: xrat now persists both `download_mbps` and
+  `upload_mbps` in `connection_tests`.
 
 ---
 
@@ -198,29 +205,30 @@ Gap notes:
 
 Checklist:
 
-- [ ] Add `cf_scan_results` migration (SQLite + PostgreSQL).
-- [ ] Add repository with batch upsert by IP and history/recovery queries.
-- [ ] Define retention/index strategy for scanner rows.
+- [x] Add `cf_scan_results` migration (SQLite + PostgreSQL).
+- [x] Add repository with batch upsert by IP and history/recovery queries.
+- [x] Define retention/index strategy for scanner rows.
 - [ ] Integrate persistence hooks into future scanner command flow.
 
 Gap notes:
 
-- **MISSING** parity: scanner persistence layer not present in xrat.
+- **PARTIAL** parity: scanner persistence schema + repository now present in
+  xrat; command/runtime integration hooks remain pending.
 
 ---
 
 ## F) Schema comparison quick map
 
-| Concern                   | xray-knife             | xrat                | Status                        |
-| ------------------------- | ---------------------- | ------------------- | ----------------------------- |
-| Subscription source table | `subscriptions`        | `subscriptions`     | **MATCHED**                   |
-| Config table              | `subscription_configs` | `configs`           | **MATCHED (DIFFERENT MODEL)** |
-| Config uniqueness key     | `config_link`          | `dedup_key`         | **DIFFERENT BY DESIGN**       |
-| Test results table        | `http_test_results`    | `connection_tests`  | **PARTIAL**                   |
-| Test run grouping table   | `http_test_runs`       | N/A                 | **MISSING**                   |
-| Scanner results table     | `cf_scan_results`      | N/A                 | **MISSING**                   |
-| Runtime session table     | N/A                    | `runtime_sessions`  | **xrat extension**            |
-| DB backend support        | SQLite only            | SQLite + PostgreSQL | **xrat extension**            |
+| Concern                   | xray-knife             | xrat                   | Status                        |
+| ------------------------- | ---------------------- | ---------------------- | ----------------------------- |
+| Subscription source table | `subscriptions`        | `subscriptions`        | **MATCHED**                   |
+| Config table              | `subscription_configs` | `configs`              | **MATCHED (DIFFERENT MODEL)** |
+| Config uniqueness key     | `config_link`          | `dedup_key`            | **DIFFERENT BY DESIGN**       |
+| Test results table        | `http_test_results`    | `connection_tests`     | **MATCHED**                   |
+| Test run grouping table   | `http_test_runs`       | `connection_test_runs` | **MATCHED**                   |
+| Scanner results table     | `cf_scan_results`      | `cf_scan_results`      | **PARTIAL**                   |
+| Runtime session table     | N/A                    | `runtime_sessions`     | **xrat extension**            |
+| DB backend support        | SQLite only            | SQLite + PostgreSQL    | **xrat extension**            |
 
 ---
 
@@ -228,40 +236,113 @@ Gap notes:
 
 1. [x] Add run-group persistence (`test_runs`) and tie `connection_tests` rows
        via FK.
-2. [ ] Add scanner persistence schema + repository API (`cf_scan_results`).
-3. [ ] Add subscription-management UX parity decisions
+2. [x] Add scanner persistence schema + repository API (`cf_scan_results`).
+3. [x] Add subscription-management UX parity decisions
        (`subs add/rm/update/fetch` style vs keep current import-first UX).
-4. [ ] Add compatibility/import tooling for raw-link uniqueness migration if
+4. [x] Add compatibility/import tooling for raw-link uniqueness migration if
        cross-tool DB migration needed.
-5. [ ] Update docs with DB path precedence and storage model differences.
+5. [x] Update docs with DB path precedence and storage model differences.
 
 ---
 
 ## Follow-up (next session)
 
-- [ ] Expose persisted GeoIP fields in CLI test/list UX:
-      `endpoint_ip`, `endpoint_country`, `endpoint_asn`,
-      `endpoint_location`.
-- [ ] Add query/filter support for persisted test geography metadata
-      (e.g. country/ASN filters).
-- [ ] Add run-summary UX enrichment that includes country/ASN distribution for
-      latest run.
-- [ ] Evaluate adding dedicated real-MMDB integration test for resolver
-      priority (City -> Country -> ASN) to harden regression coverage.
+- [x] Expose persisted GeoIP fields in storage model: `endpoint_ip`,
+      `endpoint_country`, `endpoint_asn`, `endpoint_location`.
+- [x] Decide whether to add `upload_mbps` to `connection_tests` for strict
+      xray-knife metric parity.
+- [x] Move connection-testing UX parity items (geo filters, run-summary
+      distribution, ping-loop behavior, status taxonomy) to area #3 checklist.
+- [ ] Evaluate adding dedicated real-MMDB integration test for resolver priority
+      (City -> Country -> ASN) to harden regression coverage.
 
 ---
 
 ## Exit criteria for "Area #2 complete"
 
-- [ ] xrat has explicit run-level test history grouping (or documented
+- [x] xrat has explicit run-level test history grouping (or documented
       intentional non-goal).
-- [ ] scanner result persistence exists (or scanner out-of-scope decision
+- [x] scanner result persistence exists (or scanner out-of-scope decision
       documented).
-- [ ] subscription CRUD/fetch lifecycle parity decision documented.
-- [ ] storage model differences (`dedup_key` vs `config_link`) documented with
+- [x] subscription CRUD/fetch lifecycle parity decision documented.
+- [x] HTTP metric parity decision documented (`upload_mbps`: add vs intentional
+      non-goal).
+- [x] storage model differences (`dedup_key` vs `config_link`) documented with
       migration guidance.
-- [ ] docs describe DB bootstrap/path precedence and backend differences
+- [x] docs describe DB bootstrap/path precedence and backend differences
       clearly.
+
+---
+
+## Explicit parity decisions (May 9, 2026)
+
+### DB path precedence (xrat)
+
+Resolution order:
+
+1. CLI `--database` value (highest priority).
+2. Config file `[database.sqlite].path` (or PostgreSQL URL when backend is
+   postgres).
+3. XRAT default app path (lowest priority).
+
+This differs from xray-knife fixed default (`~/.xray-knife/xray-knife.db`) and
+is intentional for xrat multi-backend runtime.
+
+### Subscription CRUD/fetch UX parity decision
+
+- Decision: **intentional non-goal for now**.
+- xrat keeps import-first UX (`import`, `list subscriptions/configs`) rather
+  than adding xray-knife-style `subs add/rm/update/fetch` command family in this
+  phase.
+- Rationale: keep CLI surface small while scanner/runtime areas are still in
+  active development.
+
+### Config uniqueness compatibility decision (`dedup_key` vs `config_link`)
+
+- Decision: **no default compatibility mode** in core storage path.
+- xrat canonical `dedup_key` remains system-of-record uniqueness key.
+- Migration guidance for cross-tool import:
+  - re-parse legacy `config_link` rows into normalized node model,
+  - recompute `dedup_key`,
+  - import via normal upsert path,
+  - keep raw link only as payload/trace data, not as primary uniqueness key.
+
+### Scanner persistence retention/index strategy
+
+- Table has `UNIQUE(ip)` upsert key with mutable freshness timestamp
+  (`last_scanned_at`).
+- Secondary indexes:
+  - `last_scanned_at` for recency queries/resume windows,
+  - `error` for healthy-vs-failed scan slicing,
+  - `latency_ms` for best-candidate ranking.
+
+## Parity verification pass (May 9, 2026)
+
+Cross-check completed against:
+
+- `../xray-knife/QA/2_storage_and_persistence.md`
+- `../xray-knife/database/queries.go`
+- `../xray-knife/database/migrations/0001_initial_schema.up.sql`
+- `../xray-knife/cmd/root.go`
+- `../xray-knife/cmd/subs/fetch.go`
+- `../xray-knife/cmd/http/http.go`
+- `../xray-knife/cmd/cfscanner/cfscanner.go`
+
+Verified outcomes:
+
+- DB bootstrap/default path behavior in xray-knife is home-dir fixed
+  (`~/.xray-knife/xray-knife.db`); xrat remains override-first with XRAT
+  defaults (**intentional divergence, doc gap remains**).
+- Subscription flow parity still **partial**: xray-knife has explicit
+  add/rm/update/fetch lifecycle + `last_fetched_at`; xrat currently import/list
+  centric.
+- HTTP history grouping now **matched**: xray-knife `http_test_runs` and xrat
+  `connection_test_runs` both provide run parent rows.
+- HTTP result metrics parity is **matched at persistence schema level**:
+  xray-knife and xrat both persist `download_mbps` and `upload_mbps`.
+- Scanner persistence parity remains **missing**: xray-knife has
+  `cf_scan_results` upsert/history path; xrat now has equivalent table/repo, but
+  scanner command integration is still pending.
 
 ---
 
@@ -269,7 +350,7 @@ Gap notes:
 
 - xrat already has strong storage fundamentals: migrations, durable import
   upsert, and structured per-config test persistence.
-- Main parity gaps versus xray-knife storage are run-group test history and CF
-  scanner result persistence.
+- Main parity gap versus xray-knife storage is scanner command-flow integration
+  with persisted `cf_scan_results`.
 - xrat intentionally diverges in key areas (`dedup_key`, runtime session table,
   PostgreSQL support) and these are net strengths if documented clearly.

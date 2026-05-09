@@ -10,6 +10,17 @@ reconciles state when the user next runs `connect`, `disconnect`, or `status`.
 That is enough for a first managed runtime, but it does not continuously watch
 for crashes after the CLI exits.
 
+## Validation Link
+
+Related parity checklist source:
+
+- `docs/validation/0_xray-knife_vs_xrat_gap_checklist.md`
+  - section **4) Engine Selection Logic (xray vs sing-box)**
+  - section **5) Auto-Rotating Proxy**
+
+Use those checklist sections as external parity pressure when deciding daemon
+model, reattach policy, and runtime failure reconciliation behavior.
+
 ## Scope
 
 Phase 4.5 should cover:
