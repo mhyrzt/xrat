@@ -45,9 +45,12 @@ Behavioral source narrative:
   - `migrations/sqlite/0011_add_cf_scan_results.sql`
   - `migrations/postgres/0011_add_cf_scan_results.sql`
   - `src/db/repository/cf_scan_results.rs`
-- Generic scan command exists but is not cfscanner parity:
+- Basic scanner command/service exists (partial parity):
   - `src/cli/scan.rs`
   - `src/app/commands/scan.rs`
+  - supports `--ips`, `--file`, `--port`, `--timeout`, `--history`
+  - performs TCP latency probes and persists results to `cf_scan_results`
+  - supports scanner history queries from durable storage
 
 Missing today:
 
@@ -63,10 +66,10 @@ Missing today:
 
 ### `../xray-knife/QA/6_powerful_ip_scanner.md` alignment
 
-- [ ] Add dedicated scanner command contract (subnets/input/output options).
+- [x] Add dedicated scanner command contract (subnets/input/output options).
 - [ ] Implement candidate expansion from CIDRs/ranges/IP lists.
 - [ ] Implement concurrent latency scan worker pool with bounded concurrency.
-- [ ] Persist progressive/final scan results into `cf_scan_results`.
+- [x] Persist progressive/final scan results into `cf_scan_results`.
 - [ ] Implement `--resume` behavior (DB-backed and/or CSV-backed skip set).
 - [ ] Add optional speedtest stage for top candidates.
 - [ ] Add sort policy parity (success -> latency -> speed tie-break).
@@ -76,8 +79,9 @@ Missing today:
 
 Gap status summary:
 
-- **PARTIAL**: persistence foundation exists.
-- **MISSING**: scanner orchestration and CLI parity behavior.
+- **PARTIAL**: CLI scanner + persistence path implemented.
+- **MISSING**: cfscanner-grade candidate generation, concurrency, resume,
+  speedtest, and proxy-assisted/reality extensions.
 
 ---
 
@@ -98,13 +102,15 @@ Gap status summary:
 - [ ] Optional speedtest and proxy-assisted modes are implemented or explicitly
       documented non-goals.
 - [ ] Scanner output and ranking semantics are documented and test-covered.
+- [x] Basic scanner command can probe explicit IP candidates and persist/query
+      results.
 
 ---
 
 ## Summary
 
 - xray-knife area #6 is a full scanner subsystem.
-- xrat currently has DB schema support for scanner results but lacks scanner
-  runtime behavior.
+- xrat now has a basic scanner runtime (`xrat scan`) and durable persistence,
+  but does not yet match cfscanner depth.
 - This area is best implemented after product-direction confirmation on scanner
   depth (especially speedtest/proxy-assisted/reality modes).

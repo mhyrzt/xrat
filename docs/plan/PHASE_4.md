@@ -98,6 +98,9 @@ Phase 4 should cover:
 
 Phase 4 should not yet cover:
 
+- daemon IPC runtime ownership (`xrat daemon`)
+- continuous background crash monitoring after CLI exit
+- make-before-break auto-rotation orchestration
 - the HTTP API
 - the TUI runtime dashboard
 - scheduled health checks or auto-reconnect policies
@@ -460,6 +463,30 @@ Continuous monitoring after the CLI exits is intentionally deferred to Phase
 4.5. Phase 4 reconciles runtime exits on the next `status`, `connect`, or
 `disconnect` command instead of running a background daemon/watcher.
 
+## Phase 4 to 4.5 Handoff Contract
+
+Phase 4 should leave stable seams so Phase 4.5 can move ownership to an explicit
+daemon without rewriting command semantics.
+
+Recommended handoff rules:
+
+- keep connect/disconnect/status behavior defined as service operations instead
+  of tightly coupling them to direct child-process ownership in CLI handlers
+- persist transition reasons in `runtime_sessions.failure_reason` using concise,
+  XRAT-owned reason labels
+- keep session writes deterministic (`starting` -> `running` -> `stopping` ->
+  `stopped` or `failed`) so daemon reconciliation can reuse the same state
+  machine
+- treat stale PID reconciliation as a first-class runtime outcome with explicit
+  status updates
+- avoid one-off runtime side channels that bypass repository/service layers
+
+Expected Phase 4.5 migration path:
+
+- Phase 4 command handlers call local runtime services directly
+- Phase 4.5 command handlers become IPC clients to `xrat daemon`
+- runtime service logic remains mostly unchanged and is hosted by the daemon
+
 ## Suggested Command Semantics
 
 ### `xrat connect <id>`
@@ -480,6 +507,11 @@ Possible future flags:
 - `--background`
 
 Initial behavior reads default ports and replacement policy from `[runtime]`.
+
+Note for Phase 4.5 alignment:
+
+- `--background` should only become active when daemon ownership is introduced;
+  in Phase 4 it remains non-goal behavior.
 
 ### `xrat disconnect`
 

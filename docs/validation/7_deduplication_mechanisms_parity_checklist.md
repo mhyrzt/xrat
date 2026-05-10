@@ -49,6 +49,9 @@ Behavioral source narrative:
   - migration: `migrations/*/0003_canonical_config_dedup_key.sql`
 - DB upsert uniqueness exists:
   - `src/db/repository/configs.rs` (`ON CONFLICT(dedup_key)`)
+- Policy notes already exist in validation docs:
+  - `docs/validation/2_storage_persistence_parity_checklist.md` (documents
+    canonical key as intentional design difference)
 
 Known differences vs xray-knife:
 
@@ -71,21 +74,22 @@ Scanner-specific dedup:
 - [x] DB uniqueness constraint/upsert path prevents duplicate durable rows.
 - [x] Dedup behavior is deterministic and represented by explicit key model.
 - [x] Canonical dedup-key migration/versioning exists.
-- [ ] Confirm/document canonical dedup key as long-term source of truth.
-- [ ] Add explicit cross-tool comparability note (raw-link vs canonical key).
+- [x] Confirm/document canonical dedup key as long-term source of truth.
+- [x] Add explicit cross-tool comparability note (raw-link vs canonical key).
 - [ ] If scanner is added, add IP-level final-result dedup strategy + DB key.
 
 Gap status summary:
 
 - **MATCHED / STRONGER IN XRAT** for canonical config dedup.
-- **MISSING (dependency)** for scanner-result dedup only because area #6 is not
-  yet implemented.
+- **MOSTLY COMPLETE** for config/subscription dedup semantics and enforcement.
+- **MISSING (dependency)** for scanner-result dedup policy tied to full area #6
+  scanner parity.
 
 ---
 
 ## Suggested implementation order
 
-1. [ ] Finalize dedup policy decision in docs: canonical semantic key is
+1. [x] Finalize dedup policy decision in docs: canonical semantic key is
        normative.
 2. [ ] Add/expand tests for canonicalization edge cases (ordering, defaults,
        equivalent forms).
@@ -95,7 +99,7 @@ Gap status summary:
 
 ## Exit criteria
 
-- [ ] Dedup contract is documented as canonical-key based and stable.
+- [x] Dedup contract is documented as canonical-key based and stable.
 - [ ] Canonical-key dedup behavior is covered by focused tests.
 - [ ] Scanner dedup policy is implemented (or explicitly deferred) with clear
       rationale.
@@ -105,5 +109,5 @@ Gap status summary:
 ## Summary
 
 - xrat already has robust canonical dedup foundations and DB enforcement.
-- Main remaining work is policy documentation/test depth and scanner-linked
-  dedup once area #6 lands.
+- Main remaining work is test depth for canonicalization edge cases and
+  scanner-linked dedup once area #6 reaches fuller parity.

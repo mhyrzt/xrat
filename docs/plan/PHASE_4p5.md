@@ -1,14 +1,15 @@
-# Phase 4.5 Runtime Supervisor And Reattach Policy
+# Phase 4.5 Runtime Supervisor, Daemon IPC, and Reattach Policy
 
 ## Goal
 
-Define the behavior that needs a background runtime supervisor, daemon, or
-watcher instead of the current command-driven lifecycle checks.
+Introduce an explicit long-lived XRAT daemon that owns runtime process
+lifecycle, watches failures in real time, and provides stable ownership
+contracts for area #5 (auto-rotating proxy).
 
-Phase 4 keeps XRAT as a CLI that starts Xray, records the runtime session, and
-reconciles state when the user next runs `connect`, `disconnect`, or `status`.
-That is enough for a first managed runtime, but it does not continuously watch
-for crashes after the CLI exits.
+Phase 4 keeps XRAT command-driven (`connect`/`disconnect`/`status`) with
+reconciliation on the next CLI call. Phase 4.5 moves runtime ownership to a
+single background supervisor so crash detection, rotation triggers, and session
+state updates do not depend on user-initiated commands.
 
 ## Validation Link
 
@@ -27,78 +28,117 @@ Related parity checklist source:
 Use those checklist sections as external parity pressure when deciding daemon
 model, reattach policy, and runtime failure reconciliation behavior.
 
+## Architecture Decision
+
+Phase 4.5 should standardize on:
+
+- explicit daemon command: `xrat daemon`
+- CLI as IPC client instead of direct process owner for runtime operations
+- one authoritative supervisor loop for start/stop/rotate/reconcile transitions
+
+Recommended process split:
+
+- `src/cli/daemon.rs`
+  - daemon command flags and lifecycle entrypoint
+- `src/app/daemon/server.rs`
+  - IPC listener and request routing
+- `src/app/daemon/supervisor.rs`
+  - runtime event loop and process ownership
+
+IPC transport options:
+
+- Unix domain socket (`tokio::net::UnixListener`) on Unix-like platforms
+- localhost HTTP/JSON bound only to `127.0.0.1` for cross-platform fallback
+
 ## Scope
 
 Phase 4.5 should cover:
 
-- deciding whether XRAT should run a background supervisor process
-- detecting Xray/V2Ray exits immediately instead of waiting for the next CLI
-  command
-- optionally reattaching to an already-running managed process after app restart
-- surfacing runtime failure reasons without relying only on Xray/V2Ray log files
-- defining whether automatic reconnect belongs in the supervisor or a later
-  health-check phase
+- daemonized ownership of Xray/V2Ray runtime processes
+- immediate failure detection while CLI is not running
+- restart-time reconciliation and controlled reattach
+- persisted transition reasons suitable for future rotation policy
+- safe replace/stop primitives that area #5 can call
 
-Phase 4.5 should additionally provide process-ownership contracts that area #5
-(auto-rotating proxy) can rely on:
+Phase 4.5 should not yet cover:
 
-- one authoritative owner for start/stop/reconcile transitions
-- atomic active-session handoff semantics to avoid orphaned runtime processes
-- clear transition reasons that rotation logic can consume (`process exited`,
-  `health-check failed`, `manual rotate`, `timer rotate`)
+- full rotation scheduler policy tuning (cooldown windows, ranking weights,
+  adaptive scoring)
+- external remote control API surface beyond local IPC
+- multi-instance cluster orchestration
 
-## Background Watcher Work
+## Supervisor State Model
 
-A daemon or watcher would be responsible for:
+Use in-memory volatile state for hot runtime signals plus SQLite/PostgreSQL for
+macro transitions.
 
-- monitoring the saved runtime PID while the proxy is active
-- marking `runtime_sessions.status` as `failed` when the process exits
-- storing a short XRAT-owned `failure_reason` such as `process exited`,
-  `startup timeout`, or `inbound closed`
-- clearing `configs.is_active` when the managed runtime is no longer alive
-- optionally tailing or linking generated stdout/stderr log paths for
-  diagnostics
+Volatile in-memory state (for example `Arc<RwLock<SupervisorState>>`):
 
-This is intentionally deferred from Phase 4 because the current CLI process
-exits after `connect`, so continuous monitoring requires a new long-lived
-process model.
+- active runtime PID/session id
+- rolling health metrics (latency window, consecutive failures)
+- timestamp of last successful rotation/handoff
+- in-flight transition marker (`starting`, `rotating`, `stopping`)
 
-For parity alignment with area #5, the watcher should expose minimal hooks that
-future rotation logic can reuse:
+Persistent DB writes (only on macro transitions):
 
-- runtime health signal stream (or equivalent event polling contract)
-- deterministic transition writes to `runtime_sessions`
-- safe replace/stop primitives that keep `configs.is_active` and session status
-  synchronized
+- proxy selected/activated
+- runtime process started/running/failed/stopped
+- candidate marked failed and cooldown/blacklist-related fields updated
 
-## Open Decisions
+Do not write to DB for every probe ping/health sample.
 
-- should the watcher be an explicit `xrat daemon` command or an implicit
-  background process started by `connect`?
-- should `status` only report persisted state from the daemon, or should it keep
-  doing local PID/inbound checks as a fallback?
-- should reattach be supported for any matching PID, or only for processes with
-  XRAT-owned config/log paths?
-- should automatic reconnect be part of Phase 4.5 or a later runtime-health
-  phase?
-- should Phase 4.5 include a minimal manual rotate trigger contract so area #5
-  can be layered without redesigning supervisor ownership?
+## Reattach Policy
 
-## Suggested Delivery Order (Phase 4.5 with area #5 compatibility)
+Reattach should be XRAT-owned and conservative.
 
-1. Choose daemon ownership model (`xrat daemon` explicit command is preferred).
-2. Implement continuous PID watch and immediate failed-state persistence.
-3. Implement restart-time reconciliation + XRAT-owned reattach policy.
-4. Define stable runtime transition reason taxonomy for future rotation events.
-5. Expose safe replace/stop service primitives that later `proxy` rotation code
-   can call directly.
+On daemon startup:
+
+1. Read XRAT PID/session metadata (pid file + runtime session row).
+2. Verify PID exists.
+3. Verify process executable is expected (`xray`/`v2ray`).
+4. Verify command line references XRAT-owned config path.
+5. If all checks pass, adopt monitoring ownership.
+6. Otherwise mark prior session stale/failed with explicit reason and clear
+   active config state.
+
+Suggested pid path:
+
+- `~/.local/state/xrat/xrat-xray.pid`
+
+## Rotation Contract (Area #5 Bridge)
+
+Phase 4.5 must expose make-before-break primitives so area #5 can layer rotation
+without redesigning ownership.
+
+Canonical handoff flow:
+
+1. Running instance A is active.
+2. Rotation event arrives (`manual`, `timer`, `health-check failed`).
+3. Supervisor selects candidate B (via repository/rotation service).
+4. Spawn B on alternate local inbound port(s).
+5. Validate B readiness via internal proxy health check.
+6. Atomically switch active routing/session ownership to B.
+7. Gracefully stop A and persist cleanup transition.
+
+If B fails validation:
+
+- stop B
+- persist failure reason for candidate B
+- keep A active
+
+## Suggested Delivery Order
+
+1. Add `xrat daemon` command and supervisor bootstrap.
+2. Add local IPC server and CLI client wiring for connect/disconnect/status.
+3. Add supervisor event bus (`tokio::sync::mpsc`) and timer-driven health task.
+4. Add restart reconciliation + strict reattach verification.
+5. Add make-before-break replace primitive and transition reason taxonomy.
+6. Add focused tests for daemon ownership, reattach mismatch, and safe handoff.
 
 ## Exit Criteria
 
-- daemon/watcher updates runtime failure state without waiting for next CLI
-  command
-- active config/session drift is reconciled automatically on crash/exit
-- reattach policy is implemented or explicitly documented as non-goal
-- supervisor contracts needed by
-  `docs/validation/5_auto_rotating_proxy_parity_checklist.md` are defined and
-  tested
+- daemon updates runtime failure state without waiting for next CLI command
+- CLI runtime commands operate through daemon IPC when daemon is running
+- restart reconciliation and reattach policy are implemented and documented
+- supervisor exposes safe replace/stop contracts for area #5 rotation work
+- transition reasons are persisted and usable by future scheduler logic

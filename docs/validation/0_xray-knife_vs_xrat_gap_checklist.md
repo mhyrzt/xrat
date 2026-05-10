@@ -126,20 +126,22 @@ Planning note:
 
 ## 6) Powerful IP Scanner
 
-| xray-knife file(s)                                         | xrat file(s)                                                                        | Current gap status | Notes / action                                                       |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------- |
-| `cmd/cfscanner/cfscanner.go`                               | N/A                                                                                 | **MISSING**        | No cfscanner command in xrat.                                        |
-| `pkg/scanner/scanner.go`                                   | N/A                                                                                 | **MISSING**        | No scanner service module.                                           |
-| `database/queries.go` (`CfScanResult`, upsert/load resume) | `src/db/repository/cf_scan_results.rs`, `migrations/*/0011_add_cf_scan_results.sql` | **PARTIAL**        | Schema/repository parity exists; scanner command flow still missing. |
-| `cmd/cfscanner/realityscanner.go`                          | N/A                                                                                 | **MISSING**        | No reality-specific scanner flow in xrat.                            |
+| xray-knife file(s)                                         | xrat file(s)                                                                        | Current gap status | Notes / action                                                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| `cmd/cfscanner/cfscanner.go`                               | `src/cli/scan.rs`, `src/app/commands/scan.rs`                                       | **PARTIAL**        | xrat has basic scanner command, but not cfscanner feature depth/parity.                                  |
+| `pkg/scanner/scanner.go`                                   | `src/app/commands/scan.rs`                                                          | **PARTIAL**        | Basic sequential TCP probing exists; no CIDR expansion/concurrent worker pool yet.                       |
+| `database/queries.go` (`CfScanResult`, upsert/load resume) | `src/db/repository/cf_scan_results.rs`, `migrations/*/0011_add_cf_scan_results.sql` | **PARTIAL**        | Schema/repository parity exists; basic scanner command flow exists, but resume semantics remain missing. |
+| `cmd/cfscanner/realityscanner.go`                          | N/A                                                                                 | **MISSING**        | No reality-specific scanner flow in xrat.                                                                |
 
 ### Checklist tasks for this area
 
 - [ ] Decide scanner scope: latency-only vs latency+speedtest+proxy-assisted
       scan.
-- [x] Add schema (`cf_scan_results`) + repository + resume behavior.
+- [x] Add schema (`cf_scan_results`) + repository persistence path.
 - [ ] Add command UX (`--subnets`, `--resume`, `--speedtest`, `--config`,
       `--save-db`).
+- [x] Add baseline scanner command flow (`--ips`/`--file` + persisted results +
+      `--history`).
 
 ---
 
@@ -155,7 +157,7 @@ Planning note:
 
 ### Checklist tasks for this area
 
-- [ ] Keep canonical dedup key as source of truth (recommended).
+- [x] Keep canonical dedup key as source of truth (recommended).
 - [ ] If scanner is added, include per-IP final result dedup map + DB unique
       key.
 
@@ -168,7 +170,7 @@ Planning note:
 | `cmd/parse/parse.go`         | `src/cli/parse.rs`, `src/app/commands/parse.rs`                                | Parse UX parity is present (`parse` with file/stdin/input + `--json`). |
 | `cmd/http/http.go`           | `src/cli/test.rs`, `src/app/commands/test.rs`                                  | Mostly present; missing ping loop semantics and some metric fields.    |
 | `cmd/proxy/proxy.go`         | `src/cli/connect.rs`, `src/app/commands/connect.rs`                            | xrat has session connect; missing auto-rotating proxy service.         |
-| `cmd/cfscanner/cfscanner.go` | N/A                                                                            | Entire feature missing.                                                |
+| `cmd/cfscanner/cfscanner.go` | `src/cli/scan.rs`, `src/app/commands/scan.rs`                                  | Baseline scanner exists; advanced cfscanner parity remains missing.    |
 | `cmd/subs/*.go`              | `src/cli/import.rs`, `src/app/import.rs`, `src/db/repository/subscriptions.rs` | Conceptually present, different UX/storage model.                      |
 | `cmd/net/*.go`               | `src/tester/icmp.rs`, `src/tester/tcp.rs`                                      | Primitive checks present inside test pipeline.                         |
 
@@ -193,7 +195,8 @@ Planning note:
    - [ ] Introduce `proxy` command + rotation scheduler + health/blacklist.
 
 5. **P2 - CF scanner subsystem**
-   - [ ] Add scanner command/service and DB resume/persistence model.
+   - [ ] Add advanced scanner parity (CIDR expansion, resume, bounded
+         concurrency, speedtest, proxy-assisted/reality modes).
 
 6. **P3 - Engine abstraction**
    - [ ] Add engine plugin/trait abstraction if sing-box support is required.
