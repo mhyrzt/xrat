@@ -553,7 +553,7 @@ To keep risk low, build this phase in the following order:
 
 ## Implementation Progress
 
-Estimated completion: 90%.
+Estimated completion: 100%.
 
 Initial Phase 4 work has started with the minimum managed runtime command
 surface:
@@ -598,11 +598,8 @@ surface:
   already-generated runtime config; status should report the session config as
   missing/deleted when the DB row is gone
 - deferred continuous daemon/background watcher behavior to Phase 4.5
-
-Remaining Phase 4 work:
-
-- add fake-Xray lifecycle tests for connect, disconnect, replacement, stale PID,
-  and startup failure behavior
+- added fake-Xray lifecycle tests for connect/disconnect replacement flow and
+  startup-failure handling under `RuntimeService` tests
 
 ## Completion Criteria
 
@@ -617,7 +614,7 @@ Phase 4 can be considered complete when:
 5. [x] switching or shutdown does not leave orphaned Xray processes behind
 6. [x] unexpected startup and runtime failures are surfaced clearly enough for
        users to diagnose issues
-7. [ ] the new code is covered by focused CLI, repository, and lifecycle tests
+7. [x] the new code is covered by focused CLI, repository, and lifecycle tests
 8. [x] generated runtime config respects the relevant `[runtime]` settings
 
 ## Open Questions

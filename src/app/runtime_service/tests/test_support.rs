@@ -1,0 +1,69 @@
+use super::super::*;
+use crate::app::config::AppConfig;
+use crate::app::runtime::RuntimePaths;
+use crate::db::{Database, DatabaseConnectionConfig, ImportSource, SourceKind};
+use crate::model::{Node, Protocol};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+pub(super) async fn test_context() -> AppContext {
+    let root = std::env::temp_dir().join(format!(
+        "xrat-runtime-service-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time should be valid")
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&root).expect("root should be created");
+    let database_config = DatabaseConnectionConfig::Sqlite {
+        path: root.join("db.sqlite"),
+    };
+    let db = Database::connect(&database_config)
+        .await
+        .expect("database should connect");
+
+    AppContext {
+        db,
+        app_config: AppConfig::default(),
+        runtime_paths: RuntimePaths {
+            root_dir: root.clone(),
+            database_config,
+            database_path: root.join("db.sqlite"),
+            database_label: root.join("db.sqlite").display().to_string(),
+            config_path: root.join("config.toml"),
+            runtime_dir: root.join("runtime"),
+            xray_path: "xray".into(),
+            v2ray_path: "v2ray".into(),
+            sing_box_path: "sing-box".into(),
+        },
+    }
+}
+
+pub(super) fn test_source() -> ImportSource {
+    ImportSource {
+        kind: SourceKind::RawText,
+        value: "test".to_string(),
+        name: Some("test".to_string()),
+    }
+}
+
+pub(super) fn test_node() -> Node {
+    Node {
+        protocol: Protocol::Vless,
+        address: "example.com".to_string(),
+        port: 443,
+        username: None,
+        uuid: Some("00000000-0000-0000-0000-000000000000".to_string()),
+        password: None,
+        method: None,
+        network: "tcp".to_string(),
+        tls: Some("tls".to_string()),
+        sni: Some("example.com".to_string()),
+        host: None,
+        path: None,
+        name: Some("test".to_string()),
+        extensions: None,
+        raw_config:
+            "vless://00000000-0000-0000-0000-000000000000@example.com:443?security=tls#test"
+                .to_string(),
+    }
+}
