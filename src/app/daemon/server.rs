@@ -645,7 +645,9 @@ pub fn daemon_unreachable(err: &crate::app::AppError) -> bool {
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
-    use crate::app::daemon::supervisor::{DaemonShutdownResult, SupervisorEvent};
+    use crate::app::daemon::supervisor::{
+        DaemonShutdownResult, RuntimeReplaceResult, SupervisorEvent,
+    };
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::UnixStream;
@@ -686,6 +688,47 @@ mod tests {
                 match event {
                     SupervisorEvent::DaemonPing { respond_to } => {
                         let _ = respond_to.send(PingPayload { daemon_ready: true });
+                    }
+                    SupervisorEvent::DaemonShutdown { respond_to } => {
+                        let _ = respond_to.send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
+                            daemon_ready: false,
+                            runtime_disconnected: false,
+                        }));
+                        break;
+                    }
+                    SupervisorEvent::RuntimeReplace {
+                        trigger,
+                        candidate_id,
+                        respond_to,
+                    } => {
+                        let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
+                            trigger,
+                            replaced: true,
+                            old_session_id: 10,
+                            new_config_id: candidate_id.unwrap_or(20),
+                            new_session_id: 30,
+                            new_pid: 40,
+                        }));
+                    }
+                    _ => {}
+                }
+            }
+        })
+    }
+
+    fn spawn_test_supervisor_replace_error(
+        mut rx: mpsc::Receiver<SupervisorEvent>,
+    ) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(async move {
+            while let Some(event) = rx.recv().await {
+                match event {
+                    SupervisorEvent::DaemonPing { respond_to } => {
+                        let _ = respond_to.send(PingPayload { daemon_ready: true });
+                    }
+                    SupervisorEvent::RuntimeReplace { respond_to, .. } => {
+                        let _ = respond_to.send(RuntimeReplaceResult::Err {
+                            message: "replace validation failed".to_string(),
+                        });
                     }
                     SupervisorEvent::DaemonShutdown { respond_to } => {
                         let _ = respond_to.send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
@@ -792,6 +835,59 @@ mod tests {
         assert!(!response.ok);
         assert!(matches!(response.code, DaemonResponseCode::InvalidState));
         assert!(response.message.contains("unsupported protocol version"));
+
+        let _ = shutdown_test_server(&socket_path).await;
+        let _ = timeout(Duration::from_secs(1), server_task).await;
+        let _ = timeout(Duration::from_secs(1), supervisor_task).await;
+    }
+
+    #[tokio::test]
+    async fn runtime_replace_request_returns_payload() {
+        let socket_path = test_socket_path("runtime-replace-ok");
+        let _ = std::fs::remove_file(&socket_path);
+        let (tx, rx) = mpsc::channel(8);
+        let supervisor_task = spawn_test_supervisor(rx);
+        let server_socket = socket_path.clone();
+        let server_task = tokio::spawn(async move { serve_ping(&server_socket, tx).await });
+        wait_until_reachable(&socket_path).await;
+
+        let response =
+            runtime_replace_daemon(&socket_path, RotationTrigger::Manual, Some(99))
+                .await
+                .expect("replace request should succeed");
+        assert!(response.ok);
+        assert!(matches!(response.code, DaemonResponseCode::Ok));
+        assert_eq!(response.message, "runtime replaced");
+        let payload = response.payload.expect("replace payload should exist");
+        assert!(matches!(payload.trigger, RotationTrigger::Manual));
+        assert!(payload.replaced);
+        assert_eq!(payload.old_session_id, 10);
+        assert_eq!(payload.new_config_id, 99);
+        assert_eq!(payload.new_session_id, 30);
+        assert_eq!(payload.new_pid, 40);
+
+        let _ = shutdown_test_server(&socket_path).await;
+        let _ = timeout(Duration::from_secs(1), server_task).await;
+        let _ = timeout(Duration::from_secs(1), supervisor_task).await;
+    }
+
+    #[tokio::test]
+    async fn runtime_replace_request_maps_supervisor_error() {
+        let socket_path = test_socket_path("runtime-replace-error");
+        let _ = std::fs::remove_file(&socket_path);
+        let (tx, rx) = mpsc::channel(8);
+        let supervisor_task = spawn_test_supervisor_replace_error(rx);
+        let server_socket = socket_path.clone();
+        let server_task = tokio::spawn(async move { serve_ping(&server_socket, tx).await });
+        wait_until_reachable(&socket_path).await;
+
+        let response = runtime_replace_daemon(&socket_path, RotationTrigger::Manual, None)
+            .await
+            .expect("replace request should return response envelope");
+        assert!(!response.ok);
+        assert!(matches!(response.code, DaemonResponseCode::InvalidState));
+        assert_eq!(response.message, "replace validation failed");
+        assert!(response.payload.is_none());
 
         let _ = shutdown_test_server(&socket_path).await;
         let _ = timeout(Duration::from_secs(1), server_task).await;
