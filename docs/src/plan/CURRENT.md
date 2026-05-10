@@ -56,6 +56,8 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
+Current Phase 4.5 progress estimate: **72%** complete as of **2026-05-10**.
+
 ## Phase 4 Boundary (Now Explicit)
 
 Phase 4 remains responsible for:
@@ -128,13 +130,15 @@ reconciled.
 
 - implement strict reattach checks (`pid`, executable, cmdline config path)
 - reject mismatches with explicit persisted reason code
-- **status:** not started
+- **status:** in progress (strict checks and reject reasons landed; accepted
+  ownership metadata schema still pending)
 
 5. **Replace bridge for area #5**
 
 - add make-before-break `RuntimeReplace` primitive
 - keep active runtime when candidate validation fails
-- **status:** not started
+- **status:** in progress (replace IPC/supervisor/runtime contract landed with
+  safety coverage; full make-before-break execution still pending)
 
 6. **Targeted test pass**
 
@@ -156,7 +160,7 @@ reconciled.
 - transition reason taxonomy persistence (`reason_code`, `origin`,
   `reason_detail`) is not implemented in runtime session writes yet.
 - strict reattach verification and restart reconciliation hardening are not
-  implemented yet.
+  fully implemented yet (ownership metadata schema still pending).
 
 ## Immediate Deliverables
 
@@ -219,7 +223,7 @@ tracking.
   - add `RuntimeReplace` make-before-break flow
   - validate replacement readiness before ownership switch
   - persist rollback reason while keeping old runtime active on failure
-- status: pending
+- status: in progress
 
 ## Daily Progress Board (Phase 4.5)
 
@@ -230,8 +234,8 @@ actionable.
 | ------------------------------- | ----------- | ------------ | ------------ | ---------------------------------------------------- |
 | A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-10   | Follow-up: daemon start output/UX polish only     |
 | B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-10   | Optional: expand structured failures for other event types |
-| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-10   | Remaining: cmdline-mismatch test + owner metadata schema fields |
-| D - Replace primitive bridge    | Pending     | _unassigned_ | 2026-05-10   | Depends on stable supervisor transition taxonomy     |
+| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-10   | Remaining: owner metadata schema fields |
+| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-10   | Remaining: true make-before-break handoff semantics |
 
 ## Phase 4.5 Closure Gates
 

@@ -13,6 +13,8 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-10)
 
+Estimated completion: **72%**
+
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
 
@@ -39,11 +41,17 @@ not yet complete.
 - Startup reattach reconciliation is wired into supervisor boot with strict
   checks (`pid`, executable identity, cmdline config-path ownership) and
   explicit reject reason codes persisted via runtime session failure reason.
+- Added `RuntimeReplace` request/response contract across daemon IPC,
+  supervisor event handling, and runtime service API.
+- Added focused replace safety coverage:
+  - runtime service rejects replace without running session
+  - replacement validation failure keeps old runtime active
+  - daemon IPC replace success/error response mapping tests
 
 ### Not Started (Phase 4.5 scope items)
 
-- Make-before-break replace primitive (`RuntimeReplace`) and rotation trigger
-  flow.
+- Full make-before-break replace execution semantics (stage new runtime before
+  stopping old runtime).
 - Transition reason taxonomy persistence and schema additions (`owner_kind`,
   `owner_instance_id`, transition reason fields, cooldown/failure tracking).
 - Timer-driven health task and rotation-oriented failure signaling.
@@ -64,9 +72,10 @@ be resolved before marking Phase 4.5 complete:
   - `src/app/daemon/server.rs`
 - Closed: server enforces `protocol_version` gate with mismatch rejection test.
   - `src/app/daemon/server.rs`
-- Remaining: reattach coverage still needs explicit `cmdline_mismatch` reject
-  regression and schema-level owner/reason taxonomy fields from planned
-  migrations.
+- Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
+  regression.
+  - `src/app/runtime_service/tests/reattach_cases.rs`
+- Remaining: schema-level owner/reason taxonomy fields from planned migrations.
 
 ## Validation Link
 
