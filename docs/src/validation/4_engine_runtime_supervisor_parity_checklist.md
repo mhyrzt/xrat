@@ -173,8 +173,8 @@ Gap notes:
 3. [ ] Add background supervisor command/process for continuous crash detection.
 4. [ ] Implement controlled reattach policy for XRAT-owned runtime artifacts.
 5. [ ] Add transition reason/origin persistence and daemon ownership fields.
-6. [ ] Implement make-before-break replace primitive (`RuntimeReplace`) for
-       area #5 bridge.
+6. [ ] Implement make-before-break replace primitive (`RuntimeReplace`) for area
+       #5 bridge.
 7. [ ] Add deterministic test coverage using runtime adapter fakes.
 
 ---

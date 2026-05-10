@@ -78,6 +78,10 @@ lint:
 # Run fmt + lint + test (CI pipeline)
 ci: fmt-check lint test
 
+# Serve docs as an mdBook
+docs-serve:
+    mdbook serve docs --open
+
 # Clean build artifacts
 clean:
     cargo clean

@@ -9,3 +9,6 @@ target
 
 testdata/xrat/geoip/*.mmdb
 temp/
+
+# mdBook build output
+docs/book/

@@ -104,35 +104,46 @@ reconciled.
 ## Active Task Breakdown (Next)
 
 1. **Daemon command scaffold**
-  - add `xrat daemon start|status|stop` command shape in `src/cli/daemon.rs`
-  - wire entrypoints into existing CLI root command tree
-  - **status:** done
+
+- add `xrat daemon start|status|stop` command shape in `src/cli/daemon.rs`
+- wire entrypoints into existing CLI root command tree
+- **status:** done
+
 2. **IPC baseline**
-  - add daemon server skeleton in `src/app/daemon/server.rs`
-  - add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
-  - route `connect`/`disconnect`/`status` commands via IPC client path
-  - **status:** in progress (connect/disconnect/status routes exist; fallback
-    policy still transitional)
+
+- add daemon server skeleton in `src/app/daemon/server.rs`
+- add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
+- route `connect`/`disconnect`/`status` commands via IPC client path
+- **status:** in progress (connect/disconnect/status routes exist; fallback
+  policy still transitional)
+
 3. **Supervisor ownership loop**
-  - add `src/app/daemon/supervisor.rs` event queue + runtime owner state
-  - persist macro transition records with reason code + origin fields
-  - **status:** in progress (event loop + connect/status handlers wired; transition
-    reason persistence still pending; disconnect handler now wired too)
+
+- add `src/app/daemon/supervisor.rs` event queue + runtime owner state
+- persist macro transition records with reason code + origin fields
+- **status:** in progress (event loop + connect/status handlers wired;
+  transition reason persistence still pending; disconnect handler now wired too)
+
 4. **Reattach and reconciliation hardening**
-  - implement strict reattach checks (`pid`, executable, cmdline config path)
-  - reject mismatches with explicit persisted reason code
-  - **status:** not started
+
+- implement strict reattach checks (`pid`, executable, cmdline config path)
+- reject mismatches with explicit persisted reason code
+- **status:** not started
+
 5. **Replace bridge for area #5**
-  - add make-before-break `RuntimeReplace` primitive
-  - keep active runtime when candidate validation fails
-  - **status:** not started
+
+- add make-before-break `RuntimeReplace` primitive
+- keep active runtime when candidate validation fails
+- **status:** not started
+
 6. **Targeted test pass**
-  - IPC routing + daemon-unreachable guidance
-  - reattach accept/reject regression coverage
-  - unexpected process exit persistence
-  - replace success/failure handoff safety
-  - **status:** in progress (CLI parse + focused command-path checks; broader
-    daemon integration coverage pending)
+
+- IPC routing + daemon-unreachable guidance
+- reattach accept/reject regression coverage
+- unexpected process exit persistence
+- replace success/failure handoff safety
+- **status:** in progress (CLI parse + focused command-path checks; broader
+  daemon integration coverage pending)
 
 ## Current Gaps to Close
 

@@ -21,8 +21,8 @@ not yet complete.
 - Added `xrat daemon start|status|stop` CLI surface and parser/help coverage.
 - Added local Unix socket IPC server/client with request envelope and
   `protocol_version` field.
-- Added supervisor event channel for `ping`, `status`, `connect`,
-  `disconnect`, and `shutdown`.
+- Added supervisor event channel for `ping`, `status`, `connect`, `disconnect`,
+  and `shutdown`.
 - Wired `connect`/`disconnect`/`status` commands to prefer daemon IPC when
   reachable.
 - Added daemon server tests for startup conflict and shutdown behavior.
@@ -61,8 +61,8 @@ be resolved before marking Phase 4.5 complete:
   still return success when daemon reports failure.
   - `src/app/commands/daemon.rs:18`
   - `src/app/commands/daemon.rs:45`
-- Medium: supervisor runtime status path masks `RuntimeService::status()`
-  errors as `"unknown"` with successful envelope semantics.
+- Medium: supervisor runtime status path masks `RuntimeService::status()` errors
+  as `"unknown"` with successful envelope semantics.
   - `src/app/daemon/supervisor.rs:75`
 - Low: server accepts any `protocol_version`; no compatibility gate yet.
   - `src/app/daemon/server.rs:339`
@@ -306,5 +306,5 @@ Minimum targeted tests for Phase 4.5:
   - `replace_success_commits_new_runtime_then_stops_old`
   - `replace_validation_failure_keeps_old_runtime_active`
 
-Prefer deterministic tests with fake runtime adapter traits rather than
-spawning real Xray binaries in unit-level coverage.
+Prefer deterministic tests with fake runtime adapter traits rather than spawning
+real Xray binaries in unit-level coverage.

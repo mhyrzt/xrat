@@ -1,0 +1,9 @@
+[book]
+title = "xrat Documentation"
+authors = ["xrat contributors"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
