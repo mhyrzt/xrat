@@ -1,4 +1,4 @@
-# Current Work: Phase 4.5 Daemon Supervisor Planning
+# Current Work: Phase 4.5 Daemon Supervisor Implementation Staging
 
 ## Context
 
@@ -6,8 +6,9 @@ Phases 1 through 4 are now in place at the planning level, with Phase 4 focused
 on managed runtime commands (`connect`, `disconnect`, `status`) and persisted
 runtime session lifecycle.
 
-The current planning focus has moved to Phase 4.5 so XRAT can transition from
-command-driven reconciliation to an explicit background supervisor model.
+The work focus is now implementation staging for Phase 4.5 so XRAT can
+transition from command-driven reconciliation to an explicit background
+supervisor model.
 
 ## What Changed
 
@@ -22,13 +23,17 @@ Recent plan updates aligned `PHASE_4.md` and `PHASE_4p5.md` with
 - `docs/plan/PHASE_4p5.md`
   - adopts explicit `xrat daemon` ownership
   - defines CLI-as-IPC-client behavior
+  - defines first-pass daemon IPC contract + response envelope
   - defines supervisor state split (in-memory signals vs DB macro transitions)
   - defines conservative reattach policy
+  - defines transition reason taxonomy and origin fields
+  - defines minimal schema additions for daemon ownership traceability
   - defines area #5 rotation bridge via make-before-break primitives
+  - defines Phase 4.5 test matrix for IPC/reattach/replace safety
 
 ## Current Goal
 
-Design and stage implementation for Phase 4.5 runtime supervision so that:
+Stage and execute Phase 4.5 implementation increments so that:
 
 - one daemon owns runtime start/stop/reconcile decisions
 - process exit is detected immediately while CLI is not running
@@ -80,18 +85,42 @@ Startup verification should require all of the following before reattach:
 If verification fails, session is marked stale/failed and active state is
 reconciled.
 
-## Delivery Focus (Next)
+## Active Task Breakdown (Next)
 
-1. Add daemon command bootstrap and supervisor skeleton.
-2. Add local IPC server and CLI client wiring for connect/disconnect/status.
-3. Add continuous process watch and failed-state persistence.
-4. Add restart reconciliation and strict reattach verification.
-5. Add make-before-break replace primitive for area #5 compatibility.
-6. Add focused tests for ownership, reattach mismatch, and safe handoff.
+1. **Daemon command scaffold**
+   - add `xrat daemon start|status|stop` command shape in `src/cli/daemon.rs`
+   - wire entrypoints into existing CLI root command tree
+2. **IPC baseline**
+   - add daemon server skeleton in `src/app/daemon/server.rs`
+   - add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
+   - route `connect`/`disconnect`/`status` commands via IPC client path
+3. **Supervisor ownership loop**
+   - add `src/app/daemon/supervisor.rs` event queue + runtime owner state
+   - persist macro transition records with reason code + origin fields
+4. **Reattach and reconciliation hardening**
+   - implement strict reattach checks (`pid`, executable, cmdline config path)
+   - reject mismatches with explicit persisted reason code
+5. **Replace bridge for area #5**
+   - add make-before-break `RuntimeReplace` primitive
+   - keep active runtime when candidate validation fails
+6. **Targeted test pass**
+   - IPC routing + daemon-unreachable guidance
+   - reattach accept/reject regression coverage
+   - unexpected process exit persistence
+   - replace success/failure handoff safety
+
+## Immediate Deliverables
+
+To keep change risk controlled, first implementation batch should deliver:
+
+- daemon command + IPC scaffold (no full rotation policy yet)
+- supervisor process watch with failed-state persistence
+- strict reattach verification path
+- deterministic tests for new ownership contracts
 
 ## Success Criteria
 
-Phase 4.5 planning is successful when:
+Phase 4.5 staging is successful when:
 
 - daemon ownership contracts are explicit and testable
 - Phase 4 command semantics remain reusable behind IPC

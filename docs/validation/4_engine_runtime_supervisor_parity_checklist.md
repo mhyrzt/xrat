@@ -119,8 +119,43 @@ Checklist:
 - [ ] Immediately mark runtime `failed` without requiring next CLI command.
 - [ ] Reattach policy implementation for XRAT-owned running process after app
       restart.
-- [ ] Define and implement daemon UX (`xrat daemon` or implicit watcher model).
-- [ ] Decide and implement auto-reconnect ownership (supervisor vs later phase).
+- [ ] Implement explicit daemon UX:
+  - [ ] `xrat daemon start`
+  - [ ] `xrat daemon status`
+  - [ ] `xrat daemon stop`
+- [ ] Add daemon IPC contract for runtime operations:
+  - [ ] `RuntimeConnect`
+  - [ ] `RuntimeDisconnect`
+  - [ ] `RuntimeStatus`
+  - [ ] `RuntimeReplace`
+  - [ ] `DaemonPing`
+- [ ] Ensure CLI runtime commands use daemon IPC when daemon is running.
+- [ ] Ensure daemon-unreachable runtime commands return explicit guidance and do
+      not silently take direct runtime ownership.
+- [ ] Add request/response protocol versioning (`protocol_version`) for forward
+      compatibility.
+- [ ] Persist transition reason taxonomy machine codes:
+  - [ ] `manual_connect`, `manual_disconnect`
+  - [ ] reattach accepted/rejected reason family
+  - [ ] unexpected exit / health-check failure
+  - [ ] replace started / validation failed / commit success / rollback
+- [ ] Persist transition origin (`cli|daemon|health_task|rotation_task`).
+- [ ] Add schema fields for daemon ownership traceability:
+  - [ ] `owner_kind`
+  - [ ] `owner_instance_id`
+  - [ ] `last_transition_reason_code`
+  - [ ] `last_transition_reason_detail`
+- [ ] Add candidate cooldown/failure fields needed by replace bridge:
+  - [ ] `cooldown_until`
+  - [ ] `last_failed_at`
+  - [ ] `last_failed_reason_code`
+- [ ] Decide and implement auto-reconnect ownership boundary (supervisor now vs
+      defer to later scheduler phase).
+- [ ] Add focused tests for:
+  - [ ] IPC routing + daemon-unreachable hints
+  - [ ] strict reattach accept/reject paths
+  - [ ] unexpected process exit persistence
+  - [ ] make-before-break replace success/failure safety
 
 Gap notes:
 
@@ -137,8 +172,10 @@ Gap notes:
        and sing-box runtime config adapter.
 3. [ ] Add background supervisor command/process for continuous crash detection.
 4. [ ] Implement controlled reattach policy for XRAT-owned runtime artifacts.
-5. [ ] Add failure/event persistence fields for daemon-originated transitions if
-       needed.
+5. [ ] Add transition reason/origin persistence and daemon ownership fields.
+6. [ ] Implement make-before-break replace primitive (`RuntimeReplace`) for
+       area #5 bridge.
+7. [ ] Add deterministic test coverage using runtime adapter fakes.
 
 ---
 
@@ -151,6 +188,8 @@ Gap notes:
       non-goal).
 - [ ] Background supervisor/reattach policy is implemented (or documented
       non-goal).
+- [ ] IPC contract, reason taxonomy, and ownership schema additions are
+      implemented and validated.
 
 ---
 

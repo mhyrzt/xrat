@@ -142,3 +142,113 @@ If B fails validation:
 - restart reconciliation and reattach policy are implemented and documented
 - supervisor exposes safe replace/stop contracts for area #5 rotation work
 - transition reasons are persisted and usable by future scheduler logic
+
+## IPC Contract (Initial Shape)
+
+Keep Phase 4 command semantics, but execute them via daemon RPC when available.
+If daemon is not reachable, return explicit guidance (`xrat daemon start`) and
+do not silently fall back to direct runtime ownership.
+
+Suggested request types:
+
+- `RuntimeConnect { selected_only: bool, include_geoip: bool }`
+- `RuntimeDisconnect { reason: DisconnectReason }`
+- `RuntimeStatus`
+- `RuntimeReplace { trigger: RotationTrigger, candidate_id: Option<i64> }`
+- `DaemonPing`
+
+Suggested response envelope:
+
+- `ok: bool`
+- `code: "ok" | "busy" | "not_found" | "invalid_state" | "internal_error"`
+- `message: String`
+- `payload: Option<T>`
+
+Use a single serialized schema (JSON or bincode) with version tag
+(`protocol_version`) so later phases can evolve fields safely.
+
+## Transition Reason Taxonomy
+
+Persist reason codes as stable machine values and optional details for humans.
+Prefer additive enums so downstream scheduler logic can depend on them.
+
+Minimum reason code set:
+
+- `manual_connect`
+- `manual_disconnect`
+- `daemon_restart_reattach_ok`
+- `daemon_restart_reattach_rejected_pid_missing`
+- `daemon_restart_reattach_rejected_exec_mismatch`
+- `daemon_restart_reattach_rejected_cmdline_mismatch`
+- `process_exit_unexpected`
+- `health_check_failed`
+- `replace_started`
+- `replace_validation_failed`
+- `replace_commit_success`
+- `replace_rollback_keep_old`
+
+Store:
+
+- `reason_code` (required, stable)
+- `reason_detail` (optional text for diagnostics)
+- `origin` (`cli` | `daemon` | `health_task` | `rotation_task`)
+
+## Data and Schema Additions
+
+Phase 4.5 should avoid broad schema churn; add only fields required for
+supervisor ownership and rotation bridge.
+
+Likely additions:
+
+- runtime session table:
+  - `owner_kind` (`direct_cli` in Phase 4, `daemon` in Phase 4.5)
+  - `owner_instance_id` (daemon boot UUID for traceability)
+  - `last_transition_reason_code`
+  - `last_transition_reason_detail`
+- candidate/proxy state table (if not already present):
+  - `cooldown_until`
+  - `last_failed_at`
+  - `last_failed_reason_code`
+
+Migration rule: new columns must be nullable or have backward-safe defaults so
+existing Phase 4 databases upgrade without manual repair.
+
+## Implementation Checklist (Code-Level)
+
+1. `src/cli/daemon.rs`
+   - add `xrat daemon start|status|stop` command surface
+   - add daemon socket path/port override flags (advanced/debug only)
+2. `src/app/daemon/server.rs`
+   - bind local transport, decode request envelope, route to supervisor bus
+   - enforce single-flight timeout and structured error mapping
+3. `src/app/daemon/supervisor.rs`
+   - own runtime child process handle and watch task
+   - process event queue (`connect`, `disconnect`, `replace`, `status`)
+   - persist macro transition records with reason taxonomy
+4. `src/app/commands/runtime/*`
+   - refactor existing Phase 4 logic into reusable service functions callable by
+     supervisor handlers
+5. `src/app/runtime_service/*`
+   - add reattach verifier (`pid`, executable, cmdline config path checks)
+   - add handoff helper for make-before-break replace
+
+## Test Matrix
+
+Minimum targeted tests for Phase 4.5:
+
+- CLI/IPC:
+  - `runtime_status_returns_daemon_unreachable_hint`
+  - `runtime_connect_routes_to_daemon_when_available`
+- Reattach:
+  - `reattach_accepts_matching_pid_exec_cmdline`
+  - `reattach_rejects_pid_missing_marks_session_stale`
+  - `reattach_rejects_exec_mismatch_marks_failed`
+- Supervisor lifecycle:
+  - `unexpected_process_exit_persists_failure_reason`
+  - `disconnect_stops_active_runtime_and_clears_owner`
+- Replace safety:
+  - `replace_success_commits_new_runtime_then_stops_old`
+  - `replace_validation_failure_keeps_old_runtime_active`
+
+Prefer deterministic tests with fake runtime adapter traits rather than
+spawning real Xray binaries in unit-level coverage.
