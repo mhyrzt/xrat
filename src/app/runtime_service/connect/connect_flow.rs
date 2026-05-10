@@ -1,10 +1,6 @@
 use super::*;
 
 impl<'a> RuntimeService<'a> {
-    pub fn new(context: &'a AppContext) -> Self {
-        Self { context }
-    }
-
     pub async fn connect(&self, request: ConnectRequest) -> crate::app::Result<ConnectResult> {
         let Some(config) = self.context.db.get_config_by_id(request.config_id).await? else {
             return Err(AppError::InvalidArgument(format!(
@@ -131,38 +127,6 @@ impl<'a> RuntimeService<'a> {
             pid: process.pid,
             runtime_config_path: process.paths.config_path,
             endpoints: launch.endpoints,
-        })
-    }
-
-    pub async fn disconnect(&self) -> crate::app::Result<DisconnectResult> {
-        let stopped_session = stop_active_session(self.context).await?;
-        Ok(DisconnectResult { stopped_session })
-    }
-
-    pub async fn replace(&self, request: ReplaceRequest) -> crate::app::Result<ReplaceResult> {
-        let active = match self.active_session_state().await? {
-            ActiveSessionState::Running(session) => session,
-            ActiveSessionState::Stale(_) | ActiveSessionState::None => {
-                return Err(AppError::InvalidArgument(
-                    "no running runtime session to replace".to_string(),
-                ));
-            }
-        };
-        let next_config_id = request.candidate_id.unwrap_or(active.config_id.ok_or_else(|| {
-            AppError::InvalidArgument(
-                "active runtime session has no config id".to_string(),
-            )
-        })?);
-        let result = self
-            .connect(ConnectRequest {
-                config_id: next_config_id,
-            })
-            .await?;
-        Ok(ReplaceResult {
-            old_session_id: active.id,
-            new_config_id: result.config.id,
-            new_session_id: result.session_id,
-            new_pid: result.pid,
         })
     }
 }
