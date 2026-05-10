@@ -11,6 +11,62 @@ reconciliation on the next CLI call. Phase 4.5 moves runtime ownership to a
 single background supervisor so crash detection, rotation triggers, and session
 state updates do not depend on user-initiated commands.
 
+## Progress Report (2026-05-10)
+
+Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
+not yet complete.
+
+### Completed
+
+- Added `xrat daemon start|status|stop` CLI surface and parser/help coverage.
+- Added local Unix socket IPC server/client with request envelope and
+  `protocol_version` field.
+- Added supervisor event channel for `ping`, `status`, `connect`,
+  `disconnect`, and `shutdown`.
+- Wired `connect`/`disconnect`/`status` commands to prefer daemon IPC when
+  reachable.
+- Added daemon server tests for startup conflict and shutdown behavior.
+
+### In Progress / Partial
+
+- Runtime supervision exists, but current supervisor status handling drops
+  runtime backend errors and reports `"unknown"` status instead of surfacing the
+  failure.
+- IPC response envelope supports `ok/code/message/payload`, but daemon command
+  handlers do not consistently treat `ok=false` as command failure.
+- Protocol field exists in request envelope, but server routing does not yet
+  enforce compatibility checks.
+
+### Not Started (Phase 4.5 scope items)
+
+- True daemonization/detach behavior for `xrat daemon start` (current command
+  blocks foreground).
+- Reattach verification policy (`pid`/executable/cmdline checks) and restart
+  reconciliation.
+- Make-before-break replace primitive (`RuntimeReplace`) and rotation trigger
+  flow.
+- Transition reason taxonomy persistence and schema additions (`owner_kind`,
+  `owner_instance_id`, transition reason fields, cooldown/failure tracking).
+- Timer-driven health task and rotation-oriented failure signaling.
+
+### Review Findings Snapshot (current diff)
+
+These findings came from reviewing the current daemon-related changes and should
+be resolved before marking Phase 4.5 complete:
+
+- High: `xrat daemon start` is not daemonized and blocks terminal execution.
+  - `src/app/commands/daemon.rs:10`
+  - `src/app/commands/daemon.rs:15`
+- Medium: daemon `status`/`stop` command paths ignore `response.ok` and can
+  still return success when daemon reports failure.
+  - `src/app/commands/daemon.rs:18`
+  - `src/app/commands/daemon.rs:45`
+- Medium: supervisor runtime status path masks `RuntimeService::status()`
+  errors as `"unknown"` with successful envelope semantics.
+  - `src/app/daemon/supervisor.rs:75`
+- Low: server accepts any `protocol_version`; no compatibility gate yet.
+  - `src/app/daemon/server.rs:339`
+
 ## Validation Link
 
 Related parity checklist source:
