@@ -1,7 +1,7 @@
 use super::*;
 
 impl TestOutputRow {
-    pub(super) fn from_parts(
+    pub(crate) fn from_parts(
         config: &ConfigRecord,
         result: &TestResult,
         ran_icmp: bool,
@@ -53,7 +53,7 @@ impl TestOutputRow {
         }
     }
 
-    pub(super) fn connection_test_insert(&self, run_id: Option<i64>) -> ConnectionTestInsert {
+    pub(crate) fn connection_test_insert(&self, run_id: Option<i64>) -> ConnectionTestInsert {
         ConnectionTestInsert {
             run_id,
             config_id: self.id,
@@ -76,83 +76,4 @@ impl TestOutputRow {
             failure_reason: self.error.clone(),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum TestStatus {
-    Ok,
-    Failed,
-    Skipped,
-}
-
-impl TestStatus {
-    pub(super) fn as_str(self) -> &'static str {
-        match self {
-            Self::Ok => "ok",
-            Self::Failed => "failed",
-            Self::Skipped => "skipped",
-        }
-    }
-}
-
-pub(super) fn overall_status(
-    result: &TestResult,
-    ran_icmp: bool,
-    ran_tcp: bool,
-    ran_real_delay: bool,
-    ran_download: bool,
-    ran_upload: bool,
-) -> TestStatus {
-    if !ran_icmp && !ran_tcp && !ran_real_delay && !ran_download && !ran_upload {
-        return TestStatus::Skipped;
-    }
-
-    let success = if ran_upload {
-        result.upload_ok
-    } else if ran_download {
-        result.download_ok
-    } else if ran_real_delay {
-        result.real_delay_ok
-    } else if ran_tcp {
-        result.tcp_ok
-    } else {
-        result.icmp_ok
-    };
-
-    if success {
-        TestStatus::Ok
-    } else {
-        TestStatus::Failed
-    }
-}
-
-pub(super) fn node_from_record(config: &ConfigRecord) -> crate::app::Result<Node> {
-    let protocol = match config.protocol.as_str() {
-        "vless" => crate::model::Protocol::Vless,
-        "vmess" => crate::model::Protocol::Vmess,
-        "ss" => crate::model::Protocol::Ss,
-        "trojan" => crate::model::Protocol::Trojan,
-        "http" => crate::model::Protocol::Http,
-        "socks5" => crate::model::Protocol::Socks5,
-        other => return Err(AppError::UnsupportedProtocol(other.to_string())),
-    };
-
-    Ok(Node {
-        protocol,
-        address: config.address.clone(),
-        port: config.port as u16,
-        username: config.username.clone(),
-        uuid: config.uuid.clone(),
-        password: config.password.clone(),
-        method: config.method.clone(),
-        network: config.network.clone(),
-        tls: config.tls.clone(),
-        sni: config.sni.clone(),
-        host: config.host.clone(),
-        path: config.path.clone(),
-        name: config.name.clone(),
-        extensions: None,
-        raw_config: config.raw_config.clone(),
-    })
 }
