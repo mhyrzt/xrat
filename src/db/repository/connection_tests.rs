@@ -121,12 +121,18 @@ pub async fn get_latest_by_config(
 
 pub async fn get_latest_run(pool: &DbPool) -> crate::db::Result<Option<ConnectionTestRunRecord>> {
     match pool {
-        DbPool::Sqlite(pool) => Ok(sqlx::query(
-            "SELECT id, kind, created_at FROM connection_test_runs ORDER BY created_at DESC, id DESC LIMIT 1",
-        ).fetch_optional(pool).await?.map(map_connection_test_run_row)),
-        DbPool::Postgres(pool) => Ok(sqlx::query(
-            "SELECT id, kind, created_at FROM connection_test_runs ORDER BY created_at DESC, id DESC LIMIT 1",
-        ).fetch_optional(pool).await?.map(map_connection_test_run_row)),
+        DbPool::Sqlite(pool) => Ok(
+            sqlx::query("SELECT id, kind, created_at FROM connection_test_runs ORDER BY created_at DESC, id DESC LIMIT 1")
+                .fetch_optional(pool)
+                .await?
+                .map(map_connection_test_run_row),
+        ),
+        DbPool::Postgres(pool) => Ok(
+            sqlx::query("SELECT id, kind, created_at FROM connection_test_runs ORDER BY created_at DESC, id DESC LIMIT 1")
+                .fetch_optional(pool)
+                .await?
+                .map(map_connection_test_run_row),
+        ),
     }
 }
 

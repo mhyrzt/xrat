@@ -98,10 +98,8 @@ mod tests {
 
     #[test]
     fn rejects_multiple_configs_for_add() {
-        let err = load_single_node(
-            "vless://uuid-123@example.com:443#One\nss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#Two",
-        )
-        .expect_err("multiple configs should fail");
+        let err = load_single_node("vless://uuid-123@example.com:443#One\nss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#Two")
+            .expect_err("multiple configs should fail");
 
         assert!(err.to_string().contains("exactly one"));
     }
