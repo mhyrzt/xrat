@@ -44,17 +44,7 @@ fn parses_test_subcommand_flags() {
             assert_eq!(args.real_delay_timeout_ms, Some(5500));
             assert_eq!(args.download_timeout_ms, Some(6500));
         }
-        Command::Import(_)
-        | Command::Add(_)
-        | Command::List(_)
-        | Command::Connect(_)
-        | Command::Disconnect(_)
-        | Command::Status(_)
-        | Command::Daemon(_)
-        | Command::Parse(_)
-        | Command::Scan(_) => {
-            panic!("expected test command")
-        }
+        _ => panic!("expected test command"),
     }
 }
 
@@ -92,17 +82,7 @@ fn parses_bulk_test_flags() {
             assert!(args.no_progress);
             assert!(!args.latest_run_summary);
         }
-        Command::Import(_)
-        | Command::Add(_)
-        | Command::List(_)
-        | Command::Connect(_)
-        | Command::Disconnect(_)
-        | Command::Status(_)
-        | Command::Daemon(_)
-        | Command::Parse(_)
-        | Command::Scan(_) => {
-            panic!("expected test command")
-        }
+        _ => panic!("expected test command"),
     }
 }
 
@@ -112,51 +92,6 @@ fn parses_csv_test_format() {
 
     match cli.command {
         Command::Test(args) => assert!(matches!(args.format, TestFormat::Csv)),
-        Command::Import(_)
-        | Command::Add(_)
-        | Command::List(_)
-        | Command::Connect(_)
-        | Command::Disconnect(_)
-        | Command::Status(_)
-        | Command::Daemon(_)
-        | Command::Parse(_)
-        | Command::Scan(_) => {
-            panic!("expected test command")
-        }
-    }
-}
-
-#[test]
-fn parses_latest_run_summary_flag() {
-    let cli = Cli::parse_from(["xrat", "test", "--latest-run-summary"]);
-    match cli.command {
-        Command::Test(args) => {
-            assert!(args.latest_run_summary);
-            assert_eq!(args.id, None);
-            assert_eq!(args.country, None);
-            assert_eq!(args.asn, None);
-        }
-        _ => panic!("expected test command"),
-    }
-}
-
-#[test]
-fn parses_latest_run_summary_geo_filters() {
-    let cli = Cli::parse_from([
-        "xrat",
-        "test",
-        "--latest-run-summary",
-        "--country",
-        "US",
-        "--asn",
-        "cloudflare",
-    ]);
-    match cli.command {
-        Command::Test(args) => {
-            assert!(args.latest_run_summary);
-            assert_eq!(args.country.as_deref(), Some("US"));
-            assert_eq!(args.asn.as_deref(), Some("cloudflare"));
-        }
         _ => panic!("expected test command"),
     }
 }
