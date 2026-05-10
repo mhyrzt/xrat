@@ -1,13 +1,23 @@
 use crate::app::daemon::{server, supervisor};
 use crate::app::runtime::AppContext;
 use crate::cli::{DaemonAction, DaemonArgs};
+use std::process::Stdio;
+use tokio::time::{Duration, sleep};
 
 pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<()> {
     let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
 
     match args.action {
         DaemonAction::Start(_) => {
-            println!("Starting daemon IPC listener at {}", socket_path.display());
+            if server::ping_daemon(&socket_path).await.is_ok() {
+                println!("Daemon already running. Socket: {}", socket_path.display());
+                return Ok(());
+            }
+            spawn_detached_daemon(context)?;
+            wait_until_daemon_ready(&socket_path).await?;
+            println!("Daemon started. Socket: {}", socket_path.display());
+        }
+        DaemonAction::Serve(_) => {
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
@@ -15,6 +25,9 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
         }
         DaemonAction::Status(_) => match server::runtime_status_daemon(&socket_path).await {
             Ok(response) => {
+                if !response.ok {
+                    return Err(crate::app::AppError::InvalidArgument(response.message));
+                }
                 let payload = response.payload.unwrap_or(server::RuntimeStatusPayload {
                     daemon_ready: false,
                     runtime_owned: false,
@@ -45,6 +58,9 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
         },
         DaemonAction::Stop(_) => match server::daemon_shutdown_daemon(&socket_path).await {
             Ok(response) => {
+                if !response.ok {
+                    return Err(crate::app::AppError::InvalidArgument(response.message));
+                }
                 let payload = response.payload.unwrap_or(server::DaemonShutdownPayload {
                     daemon_ready: false,
                     runtime_disconnected: false,
@@ -68,4 +84,31 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
     }
 
     Ok(())
+}
+
+fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
+    let current_exe = std::env::current_exe()?;
+    let mut command = std::process::Command::new(current_exe);
+    command
+        .arg("--config")
+        .arg(&context.runtime_paths.config_path)
+        .arg("daemon")
+        .arg("serve")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    command.spawn()?;
+    Ok(())
+}
+
+async fn wait_until_daemon_ready(socket_path: &std::path::Path) -> crate::app::Result<()> {
+    for _ in 0..20 {
+        if server::ping_daemon(socket_path).await.is_ok() {
+            return Ok(());
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+    Err(crate::app::AppError::InvalidArgument(
+        "daemon start failed: socket did not become reachable".to_string(),
+    ))
 }

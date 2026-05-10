@@ -7,7 +7,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::app::daemon::supervisor::{DaemonShutdownResult, RuntimeConnectResult, SupervisorEvent};
+use crate::app::daemon::supervisor::{
+    DaemonShutdownResult, RuntimeConnectResult, RuntimeStatusResult, SupervisorEvent,
+};
+
+pub const PROTOCOL_VERSION: u16 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonRequest {
@@ -83,7 +87,7 @@ pub fn default_socket_path(runtime_dir: &Path) -> PathBuf {
 
 pub fn ping_response() -> DaemonResponse<PingPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "daemon reachable".to_string(),
@@ -95,7 +99,7 @@ pub fn runtime_status_response(
     payload: RuntimeStatusPayload,
 ) -> DaemonResponse<RuntimeStatusPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "runtime status available".to_string(),
@@ -103,11 +107,21 @@ pub fn runtime_status_response(
     }
 }
 
+pub fn runtime_status_error_response(message: String) -> DaemonResponse<RuntimeStatusPayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: false,
+        code: DaemonResponseCode::InternalError,
+        message,
+        payload: None,
+    }
+}
+
 pub fn runtime_connect_response(
     payload: RuntimeConnectPayload,
 ) -> DaemonResponse<RuntimeConnectPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "runtime connected".to_string(),
@@ -117,7 +131,7 @@ pub fn runtime_connect_response(
 
 pub fn runtime_connect_error_response(message: String) -> DaemonResponse<RuntimeConnectPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: false,
         code: DaemonResponseCode::InvalidState,
         message,
@@ -129,7 +143,7 @@ pub fn runtime_disconnect_response(
     payload: RuntimeDisconnectPayload,
 ) -> DaemonResponse<RuntimeDisconnectPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "runtime disconnected".to_string(),
@@ -141,7 +155,7 @@ pub fn runtime_disconnect_error_response(
     message: String,
 ) -> DaemonResponse<RuntimeDisconnectPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: false,
         code: DaemonResponseCode::InvalidState,
         message,
@@ -153,7 +167,7 @@ pub fn daemon_shutdown_response(
     payload: DaemonShutdownPayload,
 ) -> DaemonResponse<DaemonShutdownPayload> {
     DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "daemon shutdown requested".to_string(),
@@ -261,7 +275,7 @@ async fn send_request(
 ) -> crate::app::Result<Vec<u8>> {
     let mut stream = UnixStream::connect(socket_path).await?;
     let request = DaemonRequest {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         request: request_kind,
     };
     let mut encoded = serde_json::to_vec(&request)?;
@@ -337,6 +351,20 @@ async fn handle_connection(
     let mut request_bytes = Vec::new();
     stream.read_to_end(&mut request_bytes).await?;
     let request = serde_json::from_slice::<DaemonRequest>(&request_bytes)?;
+    if request.protocol_version != PROTOCOL_VERSION {
+        let response = DaemonResponse::<serde_json::Value> {
+            protocol_version: PROTOCOL_VERSION,
+            ok: false,
+            code: DaemonResponseCode::InvalidState,
+            message: format!(
+                "unsupported protocol version {} (expected {})",
+                request.protocol_version, PROTOCOL_VERSION
+            ),
+            payload: None,
+        };
+        stream.write_all(&serde_json::to_vec(&response)?).await?;
+        return Ok(());
+    }
 
     let (encoded, should_shutdown) = match request.request {
         DaemonRequestKind::DaemonPing => (
@@ -433,8 +461,11 @@ async fn runtime_status_response_via_supervisor(
     let payload = rx.await.map_err(|_| {
         crate::app::AppError::InvalidArgument("supervisor response channel closed".to_string())
     })?;
-
-    Ok(runtime_status_response(payload))
+    let response = match payload {
+        RuntimeStatusResult::Ok(payload) => runtime_status_response(payload),
+        RuntimeStatusResult::Err { message } => runtime_status_error_response(message),
+    };
+    Ok(response)
 }
 
 #[cfg(unix)]
@@ -453,7 +484,7 @@ async fn ping_response_via_supervisor(
     })?;
 
     Ok(DaemonResponse {
-        protocol_version: 1,
+        protocol_version: PROTOCOL_VERSION,
         ok: true,
         code: DaemonResponseCode::Ok,
         message: "daemon reachable".to_string(),
@@ -479,7 +510,7 @@ async fn daemon_shutdown_response_via_supervisor(
     let response = match payload {
         DaemonShutdownResult::Ok(payload) => daemon_shutdown_response(payload),
         DaemonShutdownResult::Err { message } => DaemonResponse {
-            protocol_version: 1,
+            protocol_version: PROTOCOL_VERSION,
             ok: false,
             code: DaemonResponseCode::InvalidState,
             message,
@@ -504,6 +535,8 @@ mod tests {
     use super::*;
     use crate::app::daemon::supervisor::{DaemonShutdownResult, SupervisorEvent};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::UnixStream;
     use tokio::time::timeout;
 
     fn test_socket_path(name: &str) -> PathBuf {
@@ -607,6 +640,46 @@ mod tests {
             }
             other => panic!("expected already-running error, got {other:?}"),
         }
+
+        let _ = shutdown_test_server(&socket_path).await;
+        let _ = timeout(Duration::from_secs(1), server_task).await;
+        let _ = timeout(Duration::from_secs(1), supervisor_task).await;
+    }
+
+    #[tokio::test]
+    async fn rejects_incompatible_protocol_version() {
+        let socket_path = test_socket_path("protocol-mismatch");
+        let _ = std::fs::remove_file(&socket_path);
+        let (tx, rx) = mpsc::channel(8);
+        let supervisor_task = spawn_test_supervisor(rx);
+        let server_socket = socket_path.clone();
+        let server_task = tokio::spawn(async move { serve_ping(&server_socket, tx).await });
+        wait_until_reachable(&socket_path).await;
+
+        let mut stream = UnixStream::connect(&socket_path)
+            .await
+            .expect("connect should succeed");
+        let request = DaemonRequest {
+            protocol_version: PROTOCOL_VERSION + 1,
+            request: DaemonRequestKind::DaemonPing,
+        };
+        let encoded = serde_json::to_vec(&request).expect("request serialization should succeed");
+        stream
+            .write_all(&encoded)
+            .await
+            .expect("write should succeed");
+        stream.shutdown().await.expect("shutdown should succeed");
+
+        let mut response_bytes = Vec::new();
+        stream
+            .read_to_end(&mut response_bytes)
+            .await
+            .expect("read should succeed");
+        let response = serde_json::from_slice::<DaemonResponse<serde_json::Value>>(&response_bytes)
+            .expect("response parse should succeed");
+        assert!(!response.ok);
+        assert!(matches!(response.code, DaemonResponseCode::InvalidState));
+        assert!(response.message.contains("unsupported protocol version"));
 
         let _ = shutdown_test_server(&socket_path).await;
         let _ = timeout(Duration::from_secs(1), server_task).await;

@@ -13,7 +13,7 @@ pub enum SupervisorEvent {
         respond_to: oneshot::Sender<PingPayload>,
     },
     RuntimeStatus {
-        respond_to: oneshot::Sender<RuntimeStatusPayload>,
+        respond_to: oneshot::Sender<RuntimeStatusResult>,
     },
     RuntimeConnect {
         config_id: i64,
@@ -30,6 +30,12 @@ pub enum SupervisorEvent {
 #[derive(Debug)]
 pub enum RuntimeConnectResult {
     Ok(RuntimeConnectPayload),
+    Err { message: String },
+}
+
+#[derive(Debug)]
+pub enum RuntimeStatusResult {
+    Ok(RuntimeStatusPayload),
     Err { message: String },
 }
 
@@ -66,6 +72,12 @@ pub fn channel(
 }
 
 pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
+    if let Err(err) = RuntimeService::new(&context)
+        .reconcile_reattach_on_daemon_start()
+        .await
+    {
+        tracing::warn!(error = %err, "daemon reattach reconciliation failed");
+    }
     let mut state = SupervisorState::default();
     while let Some(event) = rx.recv().await {
         handle_event(&mut state, event, &context).await;
@@ -81,52 +93,49 @@ async fn handle_event(state: &mut SupervisorState, event: SupervisorEvent, conte
             });
         }
         SupervisorEvent::RuntimeStatus { respond_to } => {
-            let snapshot = RuntimeService::new(context).status().await.ok();
-            let runtime_owned = snapshot
-                .as_ref()
-                .is_some_and(|s| s.session.is_some() && s.pid_running);
-            let runtime_status = snapshot
-                .as_ref()
-                .map(|s| s.status.as_str().to_string())
-                .unwrap_or_else(|| "unknown".to_string());
-            let session_id = snapshot
-                .as_ref()
-                .and_then(|s| s.session.as_ref().map(|session| session.id));
-            let active_config_id = snapshot
-                .as_ref()
-                .and_then(|s| s.active_config.as_ref().map(|config| config.id));
-            let pid_running = snapshot.as_ref().is_some_and(|s| s.pid_running);
-            let _ = respond_to.send(RuntimeStatusPayload {
-                daemon_ready: state.ready,
-                runtime_owned,
-                runtime_status,
-                session_id,
-                active_config_id,
-                pid_running,
-            });
-        }
-        SupervisorEvent::RuntimeConnect {
-            config_id,
-            respond_to,
-        } => {
-            match RuntimeService::new(context)
-                .connect(ConnectRequest { config_id })
-                .await
-            {
-                Ok(result) => {
-                    let _ = respond_to.send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
-                        config_id: result.config.id,
-                        session_id: result.session_id,
-                        pid: result.pid,
+            match RuntimeService::new(context).status().await {
+                Ok(snapshot) => {
+                    let runtime_owned = snapshot.session.is_some() && snapshot.pid_running;
+                    let runtime_status = snapshot.status.as_str().to_string();
+                    let session_id = snapshot.session.as_ref().map(|session| session.id);
+                    let active_config_id = snapshot.active_config.as_ref().map(|config| config.id);
+                    let pid_running = snapshot.pid_running;
+                    let _ = respond_to.send(RuntimeStatusResult::Ok(RuntimeStatusPayload {
+                        daemon_ready: state.ready,
+                        runtime_owned,
+                        runtime_status,
+                        session_id,
+                        active_config_id,
+                        pid_running,
                     }));
                 }
                 Err(err) => {
-                    let _ = respond_to.send(RuntimeConnectResult::Err {
+                    let _ = respond_to.send(RuntimeStatusResult::Err {
                         message: err.to_string(),
                     });
                 }
             }
         }
+        SupervisorEvent::RuntimeConnect {
+            config_id,
+            respond_to,
+        } => match RuntimeService::new(context)
+            .connect(ConnectRequest { config_id })
+            .await
+        {
+            Ok(result) => {
+                let _ = respond_to.send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
+                    config_id: result.config.id,
+                    session_id: result.session_id,
+                    pid: result.pid,
+                }));
+            }
+            Err(err) => {
+                let _ = respond_to.send(RuntimeConnectResult::Err {
+                    message: err.to_string(),
+                });
+            }
+        },
         SupervisorEvent::RuntimeDisconnect { respond_to } => {
             match RuntimeService::new(context).disconnect().await {
                 Ok(result) => {
