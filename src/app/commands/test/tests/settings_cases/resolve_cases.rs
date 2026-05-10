@@ -1,5 +1,5 @@
-use super::super::geoip_cases::{test_args, test_runtime_paths};
 use super::super::super::*;
+use super::super::geoip_cases::{test_args, test_runtime_paths};
 
 use crate::app::config::{AppConfig, TestingSettings};
 use crate::cli::TestArgs;
