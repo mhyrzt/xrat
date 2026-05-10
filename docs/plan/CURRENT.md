@@ -30,6 +30,22 @@ Recent plan updates aligned `PHASE_4.md` and `PHASE_4p5.md` with
   - defines minimal schema additions for daemon ownership traceability
   - defines area #5 rotation bridge via make-before-break primitives
   - defines Phase 4.5 test matrix for IPC/reattach/replace safety
+- implementation scaffolding is now started in code:
+  - daemon CLI command surface (`xrat daemon start|status|stop`)
+  - unix socket IPC server/client baseline (`runtime/daemon.sock`)
+  - supervisor event bus (`mpsc` + `oneshot`) with routed request handling
+  - routed daemon operations:
+    - `DaemonPing`
+    - `RuntimeStatus` (backed by `RuntimeService::status` with runtime/session
+      summary payload)
+    - `RuntimeConnect` (backed by `RuntimeService::connect`)
+    - `RuntimeDisconnect` (backed by `RuntimeService::disconnect`)
+  - CLI runtime command handlers now attempt daemon IPC first:
+    - `connect` -> `RuntimeConnect`
+    - `disconnect` -> `RuntimeDisconnect`
+    - `status` -> `RuntimeStatus`
+  - structured mutating command responses now return explicit `ok/code/message`
+    with typed payloads on success
 
 ## Current Goal
 
@@ -88,26 +104,48 @@ reconciled.
 ## Active Task Breakdown (Next)
 
 1. **Daemon command scaffold**
-   - add `xrat daemon start|status|stop` command shape in `src/cli/daemon.rs`
-   - wire entrypoints into existing CLI root command tree
+  - add `xrat daemon start|status|stop` command shape in `src/cli/daemon.rs`
+  - wire entrypoints into existing CLI root command tree
+  - **status:** done
 2. **IPC baseline**
-   - add daemon server skeleton in `src/app/daemon/server.rs`
-   - add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
-   - route `connect`/`disconnect`/`status` commands via IPC client path
+  - add daemon server skeleton in `src/app/daemon/server.rs`
+  - add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
+  - route `connect`/`disconnect`/`status` commands via IPC client path
+  - **status:** in progress (connect/disconnect/status routes exist; fallback
+    policy still transitional)
 3. **Supervisor ownership loop**
-   - add `src/app/daemon/supervisor.rs` event queue + runtime owner state
-   - persist macro transition records with reason code + origin fields
+  - add `src/app/daemon/supervisor.rs` event queue + runtime owner state
+  - persist macro transition records with reason code + origin fields
+  - **status:** in progress (event loop + connect/status handlers wired; transition
+    reason persistence still pending; disconnect handler now wired too)
 4. **Reattach and reconciliation hardening**
-   - implement strict reattach checks (`pid`, executable, cmdline config path)
-   - reject mismatches with explicit persisted reason code
+  - implement strict reattach checks (`pid`, executable, cmdline config path)
+  - reject mismatches with explicit persisted reason code
+  - **status:** not started
 5. **Replace bridge for area #5**
-   - add make-before-break `RuntimeReplace` primitive
-   - keep active runtime when candidate validation fails
+  - add make-before-break `RuntimeReplace` primitive
+  - keep active runtime when candidate validation fails
+  - **status:** not started
 6. **Targeted test pass**
-   - IPC routing + daemon-unreachable guidance
-   - reattach accept/reject regression coverage
-   - unexpected process exit persistence
-   - replace success/failure handoff safety
+  - IPC routing + daemon-unreachable guidance
+  - reattach accept/reject regression coverage
+  - unexpected process exit persistence
+  - replace success/failure handoff safety
+  - **status:** in progress (CLI parse + focused command-path checks; broader
+    daemon integration coverage pending)
+
+## Current Gaps to Close
+
+- runtime commands still allow direct fallback behavior when daemon is
+  unreachable; Phase 4.5 target is explicit daemon guidance without silent
+  ownership fallback.
+- daemon status payload is currently a compact summary; full parity with local
+  status output shape (inbound endpoint health, failure reason details) is still
+  pending.
+- transition reason taxonomy persistence (`reason_code`, `origin`,
+  `reason_detail`) is not implemented in runtime session writes yet.
+- strict reattach verification and restart reconciliation hardening are not
+  implemented yet.
 
 ## Immediate Deliverables
 

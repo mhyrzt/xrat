@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod config;
+pub mod daemon;
 mod error;
 pub mod import;
 pub mod input;

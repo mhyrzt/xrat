@@ -1,6 +1,7 @@
 mod add;
 mod command;
 mod connect;
+mod daemon;
 mod disconnect;
 mod import;
 mod list;
@@ -14,6 +15,7 @@ mod tests;
 pub use add::AddArgs;
 pub use command::Command;
 pub use connect::ConnectArgs;
+pub use daemon::{DaemonAction, DaemonArgs, DaemonStartArgs, DaemonStatusArgs, DaemonStopArgs};
 pub use disconnect::DisconnectArgs;
 pub use import::ImportArgs;
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};

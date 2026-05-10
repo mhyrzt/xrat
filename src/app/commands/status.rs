@@ -1,8 +1,51 @@
+use crate::app::daemon::server;
 use crate::app::runtime::AppContext;
 use crate::app::runtime_service::{RuntimeEndpointHealth, RuntimeService};
 use crate::cli::StatusArgs;
 
 pub async fn run(context: &AppContext, args: &StatusArgs) -> crate::app::Result<()> {
+    let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
+    match server::runtime_status_daemon(&socket_path).await {
+        Ok(response) => {
+            if !response.ok {
+                return Err(crate::app::AppError::InvalidArgument(response.message));
+            }
+            let payload = response.payload.ok_or_else(|| {
+                crate::app::AppError::InvalidArgument(
+                    "daemon status response missing payload".to_string(),
+                )
+            })?;
+            if args.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "daemon": true,
+                        "runtime": payload.runtime_status,
+                        "runtime_owned": payload.runtime_owned,
+                        "session_id": payload.session_id,
+                        "active_config_id": payload.active_config_id,
+                        "pid_running": payload.pid_running,
+                    }))?
+                );
+            } else {
+                println!("Runtime: {} (daemon)", payload.runtime_status);
+                println!("Owned: {}", payload.runtime_owned);
+                if let Some(session_id) = payload.session_id {
+                    println!("Session: {session_id}");
+                }
+                if let Some(config_id) = payload.active_config_id {
+                    println!("Active config: {config_id}");
+                }
+                println!("PID running: {}", payload.pid_running);
+            }
+            return Ok(());
+        }
+        Err(err) if server::daemon_unreachable(&err) => {
+            tracing::info!("daemon not reachable; using direct runtime status path");
+        }
+        Err(err) => return Err(err),
+    }
+
     let snapshot = RuntimeService::new(context).status().await?;
 
     if args.json {

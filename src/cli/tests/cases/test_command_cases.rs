@@ -50,6 +50,7 @@ fn parses_test_subcommand_flags() {
         | Command::Connect(_)
         | Command::Disconnect(_)
         | Command::Status(_)
+        | Command::Daemon(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected test command")
@@ -97,6 +98,7 @@ fn parses_bulk_test_flags() {
         | Command::Connect(_)
         | Command::Disconnect(_)
         | Command::Status(_)
+        | Command::Daemon(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected test command")
@@ -116,6 +118,7 @@ fn parses_csv_test_format() {
         | Command::Connect(_)
         | Command::Disconnect(_)
         | Command::Status(_)
+        | Command::Daemon(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected test command")
