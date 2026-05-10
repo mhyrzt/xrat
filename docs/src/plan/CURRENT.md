@@ -167,6 +167,90 @@ To keep change risk controlled, first implementation batch should deliver:
 - strict reattach verification path
 - deterministic tests for new ownership contracts
 
+## Phase 4.5 Execution Slices (Live Tracker)
+
+Source of truth detail lives in `docs/src/plan/PHASE_4p5.md` under **Next Work
+Slices (Implementation Order)**. This section mirrors status for day-to-day
+tracking.
+
+1. **Slice A - Daemon command correctness hardening**
+
+- scope:
+  - `src/app/commands/daemon.rs`
+  - `src/app/daemon/client.rs`
+  - `src/app/daemon/protocol.rs`
+- focus:
+  - make `xrat daemon start` detach/spawn-and-return
+  - fail `daemon status|stop` when IPC reply has `ok=false`
+  - enforce `protocol_version` compatibility gate
+- status: mostly complete
+
+2. **Slice B - Supervisor error semantics and failure visibility**
+
+- scope:
+  - `src/app/daemon/supervisor.rs`
+  - `src/app/daemon/server.rs`
+  - `src/app/runtime_service/`
+- focus:
+  - stop masking backend status errors as `"unknown"`
+  - map status backend failures to structured `ok=false` IPC responses
+  - persist unexpected process exits with `process_exit_unexpected`
+- status: complete (status failure path)
+
+3. **Slice C - Reattach verification and restart reconciliation**
+
+- scope:
+  - `src/app/runtime_service/` reattach verifier module
+  - `src/app/daemon/supervisor.rs`
+  - `src/db/repository/`
+- focus:
+  - enforce strict checks (`pid`, executable, cmdline/config ownership)
+  - persist explicit reject reason codes and clear stale owner state
+  - mark accepted reattach with daemon ownership metadata
+- status: in progress
+
+4. **Slice D - Replace primitive for Area #5 bridge**
+
+- scope:
+  - `src/app/daemon/supervisor.rs`
+  - `src/app/runtime_service/`
+  - `src/app/daemon/protocol.rs`
+- focus:
+  - add `RuntimeReplace` make-before-break flow
+  - validate replacement readiness before ownership switch
+  - persist rollback reason while keeping old runtime active on failure
+- status: pending
+
+## Daily Progress Board (Phase 4.5)
+
+Update this table during active implementation. Keep blocker text short and
+actionable.
+
+| Slice                           | Status      | Owner        | Last Updated | Blocker                                              |
+| ------------------------------- | ----------- | ------------ | ------------ | ---------------------------------------------------- |
+| A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-10   | Follow-up: daemon start output/UX polish only     |
+| B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-10   | Optional: expand structured failures for other event types |
+| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-10   | Remaining: cmdline-mismatch test + owner metadata schema fields |
+| D - Replace primitive bridge    | Pending     | _unassigned_ | 2026-05-10   | Depends on stable supervisor transition taxonomy     |
+
+## Phase 4.5 Closure Gates
+
+Phase 4.5 should not be marked complete until all of these are passing:
+
+- daemon command contracts:
+  - detached start behavior
+  - `status`/`stop` failure on `ok=false`
+- protocol contract:
+  - incompatible protocol version rejection
+- supervisor contract:
+  - backend status failures visible via structured daemon error response
+  - unexpected runtime exit persisted with stable reason code
+- reattach contract:
+  - deterministic accept + reject path coverage (`pid_missing`, `exec_mismatch`,
+    `cmdline_mismatch`)
+- replace contract:
+  - success handoff and keep-old-runtime rollback coverage
+
 ## Success Criteria
 
 Phase 4.5 staging is successful when:

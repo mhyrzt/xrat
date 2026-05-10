@@ -29,20 +29,19 @@ not yet complete.
 
 ### In Progress / Partial
 
-- Runtime supervision exists, but current supervisor status handling drops
-  runtime backend errors and reports `"unknown"` status instead of surfacing the
-  failure.
-- IPC response envelope supports `ok/code/message/payload`, but daemon command
-  handlers do not consistently treat `ok=false` as command failure.
-- Protocol field exists in request envelope, but server routing does not yet
-  enforce compatibility checks.
+- Runtime supervision now surfaces runtime backend status failures through
+  structured daemon error envelopes (`ok=false`, `code=internal_error`) instead
+  of reporting `"unknown"` as success.
+- Daemon command handlers now treat `ok=false` as command failure for daemon
+  `status` and `stop`.
+- Server now enforces `protocol_version` compatibility and returns structured
+  rejection for mismatches.
+- Startup reattach reconciliation is wired into supervisor boot with strict
+  checks (`pid`, executable identity, cmdline config-path ownership) and
+  explicit reject reason codes persisted via runtime session failure reason.
 
 ### Not Started (Phase 4.5 scope items)
 
-- True daemonization/detach behavior for `xrat daemon start` (current command
-  blocks foreground).
-- Reattach verification policy (`pid`/executable/cmdline checks) and restart
-  reconciliation.
 - Make-before-break replace primitive (`RuntimeReplace`) and rotation trigger
   flow.
 - Transition reason taxonomy persistence and schema additions (`owner_kind`,
@@ -54,18 +53,20 @@ not yet complete.
 These findings came from reviewing the current daemon-related changes and should
 be resolved before marking Phase 4.5 complete:
 
-- High: `xrat daemon start` is not daemonized and blocks terminal execution.
-  - `src/app/commands/daemon.rs:10`
-  - `src/app/commands/daemon.rs:15`
-- Medium: daemon `status`/`stop` command paths ignore `response.ok` and can
-  still return success when daemon reports failure.
-  - `src/app/commands/daemon.rs:18`
-  - `src/app/commands/daemon.rs:45`
-- Medium: supervisor runtime status path masks `RuntimeService::status()` errors
-  as `"unknown"` with successful envelope semantics.
-  - `src/app/daemon/supervisor.rs:75`
-- Low: server accepts any `protocol_version`; no compatibility gate yet.
-  - `src/app/daemon/server.rs:339`
+- Closed: `xrat daemon start` now detaches by spawning internal daemon serve
+  mode and returning after socket readiness check.
+  - `src/app/commands/daemon.rs`
+  - `src/cli/daemon.rs`
+- Closed: daemon `status`/`stop` now fail when daemon replies `ok=false`.
+  - `src/app/commands/daemon.rs`
+- Closed: supervisor runtime status no longer masks backend failures.
+  - `src/app/daemon/supervisor.rs`
+  - `src/app/daemon/server.rs`
+- Closed: server enforces `protocol_version` gate with mismatch rejection test.
+  - `src/app/daemon/server.rs`
+- Remaining: reattach coverage still needs explicit `cmdline_mismatch` reject
+  regression and schema-level owner/reason taxonomy fields from planned
+  migrations.
 
 ## Validation Link
 
@@ -308,3 +309,122 @@ Minimum targeted tests for Phase 4.5:
 
 Prefer deterministic tests with fake runtime adapter traits rather than spawning
 real Xray binaries in unit-level coverage.
+
+## Next Work Slices (Implementation Order)
+
+Use small, reviewable batches that each tighten one daemon contract.
+
+### Slice A - Daemon command correctness hardening
+
+Target files:
+
+- `src/app/commands/daemon.rs`
+- `src/app/daemon/client.rs`
+- `src/app/daemon/protocol.rs`
+
+Tasks:
+
+- make `xrat daemon start` detach (or clearly spawn+return) so command does not
+  hold foreground shell
+- treat daemon replies with `ok=false` as command failure in `daemon status` and
+  `daemon stop`
+- enforce protocol compatibility gate and return a structured version error
+
+Done when:
+
+- start command returns promptly after daemon launch
+- `daemon status` exits non-zero when daemon reports structured failure
+- incompatible `protocol_version` request is rejected with explicit `code`
+
+### Slice B - Supervisor error semantics and failure visibility
+
+Target files:
+
+- `src/app/daemon/supervisor.rs`
+- `src/app/daemon/server.rs`
+- `src/app/runtime_service/`
+
+Tasks:
+
+- stop masking runtime backend errors as `"unknown"` status
+- map `RuntimeService::status()` failures to `ok=false` envelopes with stable
+  error code
+- persist unexpected runtime exit with `process_exit_unexpected` transition
+  reason
+
+Done when:
+
+- status response differentiates `running`, `not_running`, and `backend_error`
+- failure path includes reason code and detail text suitable for CLI display
+- regression test asserts failure is visible through daemon IPC
+
+### Slice C - Reattach verification and restart reconciliation
+
+Target files:
+
+- `src/app/runtime_service/reattach*.rs` (or equivalent module)
+- `src/app/daemon/supervisor.rs`
+- `src/db/repository/`
+
+Tasks:
+
+- add strict reattach verifier for `pid` existence, executable identity, and
+  XRAT-owned config path in cmdline
+- on reject, persist explicit `daemon_restart_reattach_rejected_*` reason and
+  clear active owner state
+- on accept, mark session with `owner_kind=daemon` and `owner_instance_id`
+
+Done when:
+
+- daemon restart deterministically chooses adopt vs reject path
+- stale session metadata is cleaned up without requiring manual `disconnect`
+- reattach tests cover all reject variants and acceptance case
+
+### Slice D - Replace primitive for Area #5 bridge
+
+Target files:
+
+- `src/app/daemon/supervisor.rs`
+- `src/app/runtime_service/`
+- `src/app/daemon/protocol.rs`
+
+Tasks:
+
+- add `RuntimeReplace` request handling with make-before-break flow
+- validate candidate readiness before switching active ownership
+- on validation failure, keep old runtime active and persist rollback reason
+
+Done when:
+
+- successful replace commits new runtime then drains/stops old runtime
+- failed replace preserves old runtime availability
+- replace responses include reason-coded outcomes for scheduler consumption
+
+## Test Closure Checklist
+
+Before Phase 4.5 is marked complete, verify all of the following in CI:
+
+- daemon command behavior:
+  - detached start contract validated
+  - `status` and `stop` fail correctly on `ok=false` responses
+- protocol behavior:
+  - incompatible protocol version is rejected
+- supervisor behavior:
+  - runtime status backend failures surface as structured daemon errors
+  - unexpected process exit is persisted with stable reason code
+- reattach behavior:
+  - accept path and each reject path (`pid_missing`, `exec_mismatch`,
+    `cmdline_mismatch`) have deterministic regression tests
+- replace behavior:
+  - success handoff and rollback keep-old-runtime scenario are both covered
+
+## Definition of Done (Phase 4.5)
+
+Phase 4.5 is complete only when all of these are true simultaneously:
+
+- daemon is the only runtime owner while it is running (no silent CLI fallback)
+- runtime failure is detectable and persisted without user-triggered commands
+- restart reconciliation follows strict reattach policy with explicit reasons
+- replace contract is available and safe for Area #5 rotation integration
+- schema/repository changes for owner + transition reason fields are migrated
+  and backward-safe
