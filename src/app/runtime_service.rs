@@ -1,6 +1,7 @@
 mod connect;
 mod helpers;
 mod launch;
+mod reattach;
 mod session_state;
 mod status;
 mod types;
