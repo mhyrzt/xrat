@@ -22,6 +22,12 @@ pub struct ConnectRequest {
     pub config_id: i64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReplaceRequest {
+    pub trigger: crate::app::daemon::server::RotationTrigger,
+    pub candidate_id: Option<i64>,
+}
+
 #[derive(Clone, Debug)]
 pub struct ConnectResult {
     pub config: ConfigRecord,
@@ -34,6 +40,14 @@ pub struct ConnectResult {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DisconnectResult {
     pub stopped_session: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReplaceResult {
+    pub old_session_id: i64,
+    pub new_config_id: i64,
+    pub new_session_id: i64,
+    pub new_pid: u32,
 }
 
 #[derive(Clone, Debug)]

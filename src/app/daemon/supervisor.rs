@@ -1,11 +1,11 @@
 use tokio::sync::{mpsc, oneshot};
 
 use crate::app::daemon::server::{
-    DaemonShutdownPayload, PingPayload, RuntimeConnectPayload, RuntimeDisconnectPayload,
-    RuntimeStatusPayload,
+    DaemonShutdownPayload, PingPayload, RotationTrigger, RuntimeConnectPayload,
+    RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
 };
 use crate::app::runtime::AppContext;
-use crate::app::runtime_service::{ConnectRequest, RuntimeService};
+use crate::app::runtime_service::{ConnectRequest, ReplaceRequest, RuntimeService};
 
 #[derive(Debug)]
 pub enum SupervisorEvent {
@@ -21,6 +21,11 @@ pub enum SupervisorEvent {
     },
     RuntimeDisconnect {
         respond_to: oneshot::Sender<RuntimeDisconnectResult>,
+    },
+    RuntimeReplace {
+        trigger: RotationTrigger,
+        candidate_id: Option<i64>,
+        respond_to: oneshot::Sender<RuntimeReplaceResult>,
     },
     DaemonShutdown {
         respond_to: oneshot::Sender<DaemonShutdownResult>,
@@ -42,6 +47,12 @@ pub enum RuntimeStatusResult {
 #[derive(Debug)]
 pub enum RuntimeDisconnectResult {
     Ok(RuntimeDisconnectPayload),
+    Err { message: String },
+}
+
+#[derive(Debug)]
+pub enum RuntimeReplaceResult {
+    Ok(RuntimeReplacePayload),
     Err { message: String },
 }
 
@@ -151,6 +162,33 @@ async fn handle_event(state: &mut SupervisorState, event: SupervisorEvent, conte
                 }
             }
         }
+        SupervisorEvent::RuntimeReplace {
+            trigger,
+            candidate_id,
+            respond_to,
+        } => match RuntimeService::new(context)
+            .replace(ReplaceRequest {
+                trigger: trigger.clone(),
+                candidate_id,
+            })
+            .await
+        {
+            Ok(result) => {
+                let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
+                    trigger,
+                    replaced: true,
+                    old_session_id: result.old_session_id,
+                    new_config_id: result.new_config_id,
+                    new_session_id: result.new_session_id,
+                    new_pid: result.new_pid,
+                }));
+            }
+            Err(err) => {
+                let _ = respond_to.send(RuntimeReplaceResult::Err {
+                    message: err.to_string(),
+                });
+            }
+        },
         SupervisorEvent::DaemonShutdown { respond_to } => {
             let runtime_disconnected = RuntimeService::new(context)
                 .disconnect()

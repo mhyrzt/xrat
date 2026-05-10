@@ -10,9 +10,9 @@ use helpers::*;
 use session_state::*;
 use types::*;
 pub use types::{
-    ConnectRequest, ConnectResult, DisconnectResult, RuntimeEndpoint, RuntimeEndpointHealth,
-    RuntimeEndpointState, RuntimeEndpoints, RuntimeInboundHealth, RuntimeService,
-    RuntimeStatusLabel, RuntimeStatusSnapshot,
+    ConnectRequest, ConnectResult, DisconnectResult, ReplaceRequest, ReplaceResult,
+    RuntimeEndpoint, RuntimeEndpointHealth, RuntimeEndpointState, RuntimeEndpoints,
+    RuntimeInboundHealth, RuntimeService, RuntimeStatusLabel, RuntimeStatusSnapshot,
 };
 
 #[cfg(test)]

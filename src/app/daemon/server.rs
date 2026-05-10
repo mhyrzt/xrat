@@ -8,7 +8,8 @@ use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::app::daemon::supervisor::{
-    DaemonShutdownResult, RuntimeConnectResult, RuntimeStatusResult, SupervisorEvent,
+    DaemonShutdownResult, RuntimeConnectResult, RuntimeReplaceResult, RuntimeStatusResult,
+    SupervisorEvent,
 };
 
 pub const PROTOCOL_VERSION: u16 = 1;
@@ -26,7 +27,19 @@ pub enum DaemonRequestKind {
     DaemonShutdown,
     RuntimeStatus,
     RuntimeConnect { config_id: i64 },
+    RuntimeReplace {
+        trigger: RotationTrigger,
+        candidate_id: Option<i64>,
+    },
     RuntimeDisconnect,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RotationTrigger {
+    Manual,
+    Timer,
+    HealthCheckFailed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +86,16 @@ pub struct RuntimeConnectPayload {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeDisconnectPayload {
     pub stopped_session: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeReplacePayload {
+    pub trigger: RotationTrigger,
+    pub replaced: bool,
+    pub old_session_id: i64,
+    pub new_config_id: i64,
+    pub new_session_id: i64,
+    pub new_pid: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -148,6 +171,28 @@ pub fn runtime_disconnect_response(
         code: DaemonResponseCode::Ok,
         message: "runtime disconnected".to_string(),
         payload: Some(payload),
+    }
+}
+
+pub fn runtime_replace_response(
+    payload: RuntimeReplacePayload,
+) -> DaemonResponse<RuntimeReplacePayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: true,
+        code: DaemonResponseCode::Ok,
+        message: "runtime replaced".to_string(),
+        payload: Some(payload),
+    }
+}
+
+pub fn runtime_replace_error_response(message: String) -> DaemonResponse<RuntimeReplacePayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: false,
+        code: DaemonResponseCode::InvalidState,
+        message,
+        payload: None,
     }
 }
 
@@ -259,6 +304,25 @@ pub async fn runtime_disconnect_daemon(
 }
 
 #[cfg(unix)]
+pub async fn runtime_replace_daemon(
+    socket_path: &Path,
+    trigger: RotationTrigger,
+    candidate_id: Option<i64>,
+) -> crate::app::Result<DaemonResponse<RuntimeReplacePayload>> {
+    let response_bytes = send_request(
+        socket_path,
+        DaemonRequestKind::RuntimeReplace {
+            trigger,
+            candidate_id,
+        },
+    )
+    .await?;
+    let response =
+        serde_json::from_slice::<DaemonResponse<RuntimeReplacePayload>>(&response_bytes)?;
+    Ok(response)
+}
+
+#[cfg(unix)]
 pub async fn daemon_shutdown_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
@@ -334,6 +398,17 @@ pub async fn runtime_disconnect_daemon(
 }
 
 #[cfg(not(unix))]
+pub async fn runtime_replace_daemon(
+    _socket_path: &Path,
+    _trigger: RotationTrigger,
+    _candidate_id: Option<i64>,
+) -> crate::app::Result<DaemonResponse<RuntimeReplacePayload>> {
+    Err(crate::app::AppError::InvalidArgument(
+        "daemon IPC client is not supported on this platform yet".to_string(),
+    ))
+}
+
+#[cfg(not(unix))]
 pub async fn daemon_shutdown_daemon(
     _socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
@@ -385,6 +460,16 @@ async fn handle_connection(
             serde_json::to_vec(&runtime_disconnect_response_via_supervisor(supervisor_tx).await?)?,
             false,
         ),
+        DaemonRequestKind::RuntimeReplace {
+            trigger,
+            candidate_id,
+        } => (
+            serde_json::to_vec(
+                &runtime_replace_response_via_supervisor(supervisor_tx, trigger, candidate_id)
+                    .await?,
+            )?,
+            false,
+        ),
         DaemonRequestKind::DaemonShutdown => (
             serde_json::to_vec(&daemon_shutdown_response_via_supervisor(supervisor_tx).await?)?,
             true,
@@ -395,6 +480,33 @@ async fn handle_connection(
         let _ = shutdown_tx.send(()).await;
     }
     Ok(())
+}
+
+#[cfg(unix)]
+async fn runtime_replace_response_via_supervisor(
+    supervisor_tx: mpsc::Sender<SupervisorEvent>,
+    trigger: RotationTrigger,
+    candidate_id: Option<i64>,
+) -> crate::app::Result<DaemonResponse<RuntimeReplacePayload>> {
+    let (tx, rx) = oneshot::channel();
+    supervisor_tx
+        .send(SupervisorEvent::RuntimeReplace {
+            trigger,
+            candidate_id,
+            respond_to: tx,
+        })
+        .await
+        .map_err(|_| {
+            crate::app::AppError::InvalidArgument("supervisor is not running".to_string())
+        })?;
+    let payload = rx.await.map_err(|_| {
+        crate::app::AppError::InvalidArgument("supervisor response channel closed".to_string())
+    })?;
+    let response = match payload {
+        RuntimeReplaceResult::Ok(payload) => runtime_replace_response(payload),
+        RuntimeReplaceResult::Err { message } => runtime_replace_error_response(message),
+    };
+    Ok(response)
 }
 
 #[cfg(unix)]
