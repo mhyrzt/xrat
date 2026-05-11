@@ -15,8 +15,8 @@ state updates do not depend on user-initiated commands.
 
 Estimated completion: **100%**
 
-Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
-not yet complete.
+Phase 4.5 scope in this document is complete. Remaining work is follow-up
+polish and next-phase scheduler behavior tracked outside this phase.
 
 ### Completed
 
@@ -49,7 +49,7 @@ not yet complete.
   - replace flow now persists `replace_started`,
     `replace_validation_failed`, and `replace_rollback_keep_old`
 
-### In Progress / Partial
+### Completed (late-slice items)
 
 - Runtime supervision now surfaces runtime backend status failures through
   structured daemon error envelopes (`ok=false`, `code=internal_error`) instead
@@ -119,11 +119,10 @@ not yet complete.
   - subsequent `RuntimeReplace { trigger = health_check_failed }` rejects
     cooled candidate alternatives when ineligible
 
-### Not Started (Phase 4.5 scope items)
+### Not Started (outside Phase 4.5)
 
-- Timer-driven health task and rotation-oriented failure signaling.
-- Candidate/proxy cooldown/failure tracking schema fields for scheduler phases
-  (`cooldown_until`, `last_failed_at`, `last_failed_reason_code`).
+- Full scheduler policy tuning and ranking behavior for area #5 remains in the
+  auto-rotating proxy phase.
 
 ### Review Findings Snapshot (current diff)
 

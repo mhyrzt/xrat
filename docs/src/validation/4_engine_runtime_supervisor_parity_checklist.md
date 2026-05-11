@@ -49,8 +49,8 @@ Out of scope for this checklist:
   - runtime config can select binary path by configured engine name
     (`xray|v2ray|sing-box`) but runtime generation path remains xray-shaped.
 - Supervisor status:
-  - no always-on daemon/watcher process yet; status reconciliation is
-    command-driven.
+  - explicit daemon + supervisor loop exists with IPC routing and protocol
+    version gating (`src/app/daemon/*`).
 
 ---
 
@@ -115,52 +115,55 @@ Checklist:
 - [x] Reconcile stale sessions when runtime PID is no longer alive during
       command flow.
 - [x] Surface runtime/session health via `status` including PID-running signals.
-- [ ] Add background supervisor/daemon that continuously watches runtime PID.
-- [ ] Immediately mark runtime `failed` without requiring next CLI command.
-- [ ] Reattach policy implementation for XRAT-owned running process after app
+- [x] Add background supervisor/daemon that continuously watches runtime PID.
+- [x] Immediately mark runtime `failed` without requiring next CLI command.
+- [x] Reattach policy implementation for XRAT-owned running process after app
       restart.
-- [ ] Implement explicit daemon UX:
-  - [ ] `xrat daemon start`
-  - [ ] `xrat daemon status`
-  - [ ] `xrat daemon stop`
-- [ ] Add daemon IPC contract for runtime operations:
-  - [ ] `RuntimeConnect`
-  - [ ] `RuntimeDisconnect`
-  - [ ] `RuntimeStatus`
-  - [ ] `RuntimeReplace`
-  - [ ] `DaemonPing`
-- [ ] Ensure CLI runtime commands use daemon IPC when daemon is running.
-- [ ] Ensure daemon-unreachable runtime commands return explicit guidance and do
+- [x] Implement explicit daemon UX:
+  - [x] `xrat daemon start`
+  - [x] `xrat daemon status`
+  - [x] `xrat daemon stop`
+- [x] Add daemon IPC contract for runtime operations:
+  - [x] `RuntimeConnect`
+  - [x] `RuntimeDisconnect`
+  - [x] `RuntimeStatus`
+  - [x] `RuntimeReplace`
+  - [x] `DaemonPing`
+- [x] Ensure CLI runtime commands use daemon IPC when daemon is running.
+- [x] Ensure daemon-unreachable runtime commands return explicit guidance and do
       not silently take direct runtime ownership.
-- [ ] Add request/response protocol versioning (`protocol_version`) for forward
+- [x] Add request/response protocol versioning (`protocol_version`) for forward
       compatibility.
-- [ ] Persist transition reason taxonomy machine codes:
-  - [ ] `manual_connect`, `manual_disconnect`
-  - [ ] reattach accepted/rejected reason family
-  - [ ] unexpected exit / health-check failure
-  - [ ] replace started / validation failed / commit success / rollback
-- [ ] Persist transition origin (`cli|daemon|health_task|rotation_task`).
-- [ ] Add schema fields for daemon ownership traceability:
-  - [ ] `owner_kind`
-  - [ ] `owner_instance_id`
-  - [ ] `last_transition_reason_code`
-  - [ ] `last_transition_reason_detail`
-- [ ] Add candidate cooldown/failure fields needed by replace bridge:
-  - [ ] `cooldown_until`
-  - [ ] `last_failed_at`
-  - [ ] `last_failed_reason_code`
+- [x] Persist transition reason taxonomy machine codes:
+  - [x] `manual_connect`, `manual_disconnect`
+  - [x] reattach accepted/rejected reason family
+  - [x] unexpected exit / health-check failure
+  - [x] replace started / validation failed / commit success / rollback
+- [x] Persist transition origin (`cli|daemon|health_task|rotation_task`).
+- [x] Add schema fields for daemon ownership traceability:
+  - [x] `owner_kind`
+  - [x] `owner_instance_id`
+  - [x] `last_transition_reason_code`
+  - [x] `last_transition_reason_detail`
+- [x] Add candidate cooldown/failure fields needed by replace bridge:
+  - [x] `cooldown_until`
+  - [x] `last_failed_at`
+  - [x] `last_failed_reason_code`
 - [ ] Decide and implement auto-reconnect ownership boundary (supervisor now vs
       defer to later scheduler phase).
-- [ ] Add focused tests for:
-  - [ ] IPC routing + daemon-unreachable hints
-  - [ ] strict reattach accept/reject paths
-  - [ ] unexpected process exit persistence
-  - [ ] make-before-break replace success/failure safety
+- [x] Add focused tests for:
+  - [x] IPC routing + daemon-unreachable hints
+  - [x] strict reattach accept/reject paths
+  - [x] unexpected process exit persistence
+  - [x] make-before-break replace success/failure safety
 
 Gap notes:
 
-- **PARTIAL**: command-driven reconciliation exists; always-on supervisor model
-  from Phase 4.5 not implemented yet.
+- **MOSTLY COMPLETE FOR PHASE 4.5**: daemon ownership, IPC contract, reattach
+  enforcement, transition taxonomy, cooldown/failure bridge fields, and core
+  tests are implemented.
+- Remaining item is product-boundary policy: whether auto-reconnect behavior is
+  finalized in supervisor scope or deferred to scheduler phase.
 
 ---
 
@@ -170,12 +173,12 @@ Gap notes:
        now vs explicit multi-engine parity target.
 2. [ ] If multi-engine target approved, introduce runtime engine trait/factory
        and sing-box runtime config adapter.
-3. [ ] Add background supervisor command/process for continuous crash detection.
-4. [ ] Implement controlled reattach policy for XRAT-owned runtime artifacts.
-5. [ ] Add transition reason/origin persistence and daemon ownership fields.
-6. [ ] Implement make-before-break replace primitive (`RuntimeReplace`) for area
+3. [x] Add background supervisor command/process for continuous crash detection.
+4. [x] Implement controlled reattach policy for XRAT-owned runtime artifacts.
+5. [x] Add transition reason/origin persistence and daemon ownership fields.
+6. [x] Implement make-before-break replace primitive (`RuntimeReplace`) for area
        #5 bridge.
-7. [ ] Add deterministic test coverage using runtime adapter fakes.
+7. [x] Add deterministic test coverage using runtime adapter fakes.
 
 ---
 
@@ -183,12 +186,11 @@ Gap notes:
 
 - [x] Phase 4 managed runtime baseline behavior is implemented and validated.
 - [x] Engine-selection parity gaps are explicitly listed and scoped.
-- [x] Phase 4.5 supervisor decisions are captured as actionable checklist items.
+- [x] Phase 4.5 supervisor decisions are captured and implemented.
 - [ ] Runtime engine abstraction parity decision is implemented (or documented
       non-goal).
-- [ ] Background supervisor/reattach policy is implemented (or documented
-      non-goal).
-- [ ] IPC contract, reason taxonomy, and ownership schema additions are
+- [x] Background supervisor/reattach policy is implemented.
+- [x] IPC contract, reason taxonomy, and ownership schema additions are
       implemented and validated.
 
 ---
@@ -196,5 +198,6 @@ Gap notes:
 ## Summary
 
 - xrat Phase 4 baseline runtime management is in place and functional.
-- Largest remaining parity pressure in this area is runtime multi-engine depth
-  plus always-on supervisor/reattach behavior from Phase 4.5.
+- Phase 4.5 supervisor/reattach baseline is implemented with daemon IPC and
+  ownership/transition metadata persistence.
+- Largest remaining parity pressure in this area is runtime multi-engine depth.

@@ -59,6 +59,15 @@ Missing today:
 - no blacklist/cooldown/drain rotation state model,
 - no netns/sysproxy chain orchestration equivalents.
 
+Phase 4.5 bridge primitives now present:
+
+- daemon health-tick path can emit `health_check_failed` transition/failure
+  metadata,
+- `RuntimeReplace` daemon contract and make-before-break handoff are available,
+- cooldown/failure fields exist in `runtime_sessions`
+  (`cooldown_until`, `last_failed_at`, `last_failed_reason_code`),
+- cooldown-aware candidate filtering is wired for health-triggered replace.
+
 ---
 
 ## Checklist
@@ -79,7 +88,8 @@ Missing today:
 Gap status summary:
 
 - **MISSING** for scheduler-level auto-rotation behavior.
-- **PARTIAL FOUNDATION** from Phase 4 runtime lifecycle building blocks.
+- **PARTIAL FOUNDATION** from Phase 4 + 4.5 runtime/daemon building blocks,
+  including health-triggered replace and cooldown bridge metadata.
 
 ---
 
@@ -106,5 +116,5 @@ Gap status summary:
 
 - xray-knife area #5 is a dedicated long-running rotation subsystem.
 - xrat currently has managed single-session runtime control, but no scheduler.
-- Phase 4.5 decisions (supervisor model) should be finalized before deep
-  rotation implementation so process ownership remains consistent.
+- Phase 4.5 supervisor model is now available as a rotation foundation.
+- Remaining work is scheduler policy, ranking, and dedicated `proxy` UX parity.
