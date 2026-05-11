@@ -225,6 +225,15 @@ fn should_record_health_failure(session: &crate::db::RuntimeSessionRecord) -> bo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::config::AppConfig;
+    use crate::app::runtime::RuntimePaths;
+    use crate::db::{
+        Database, DatabaseConnectionConfig, ImportSource, RuntimeSessionInsert, SourceKind,
+    };
+    use crate::model::{Node, Protocol};
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use tokio::sync::oneshot;
 
     fn session_with_cooldown(cooldown_until: Option<&str>) -> crate::db::RuntimeSessionRecord {
         crate::db::RuntimeSessionRecord {
@@ -264,5 +273,183 @@ mod tests {
     fn allows_health_failure_after_cooldown_expires() {
         let session = session_with_cooldown(Some("1"));
         assert!(should_record_health_failure(&session));
+    }
+
+    #[tokio::test]
+    async fn health_tick_cooldown_blocks_health_replace_candidate_selection() {
+        let context = test_context("health-tick-cooldown-block").await;
+        let source = ImportSource {
+            kind: SourceKind::RawText,
+            value: "test".to_string(),
+            name: Some("test".to_string()),
+        };
+        context
+            .db
+            .import_nodes(
+                &source,
+                &[
+                    test_node("example-a.com", "a"),
+                    test_node("example-b.com", "b"),
+                ],
+            )
+            .await
+            .expect("nodes should import");
+        let mut configs = context
+            .db
+            .list_configs(&Default::default())
+            .await
+            .expect("configs should load");
+        configs.sort_by_key(|cfg| cfg.id);
+        let active_config = configs[0].clone();
+        let cooldown_candidate = configs[1].clone();
+
+        context
+            .db
+            .set_active_config(cooldown_candidate.id)
+            .await
+            .expect("cooldown candidate should be active first");
+        let cooldown_session_id = context
+            .db
+            .insert_runtime_session(&RuntimeSessionInsert {
+                config_id: Some(cooldown_candidate.id),
+                status: crate::db::RuntimeSessionStatus::Running,
+                socks_host: Some("127.0.0.1".to_string()),
+                socks_port: Some(9),
+                http_host: None,
+                http_port: None,
+                shadowsocks_host: None,
+                shadowsocks_port: None,
+                process_id: Some(i64::from(std::process::id())),
+                failure_reason: None,
+                started_at: Some("1".to_string()),
+                stopped_at: None,
+            })
+            .await
+            .expect("cooldown session should insert");
+
+        let mut state = SupervisorState::new("daemon-test".to_string());
+        handle_event(&mut state, SupervisorEvent::HealthTick, &context).await;
+
+        let cooled = context
+            .db
+            .get_latest_runtime_session_for_config(cooldown_candidate.id)
+            .await
+            .expect("cooldown session should load")
+            .expect("cooldown session should exist");
+        assert_eq!(
+            cooled.last_failed_reason_code.as_deref(),
+            Some("health_check_failed")
+        );
+        assert!(cooled.cooldown_until.is_some());
+
+        context
+            .db
+            .update_runtime_session_state(
+                cooldown_session_id,
+                crate::db::RuntimeSessionStatus::Failed,
+                None,
+                None,
+                Some("2"),
+                Some("simulate handoff away from cooled candidate"),
+            )
+            .await
+            .expect("cooldown session should mark failed");
+
+        context
+            .db
+            .set_active_config(active_config.id)
+            .await
+            .expect("active config should switch");
+        context
+            .db
+            .insert_runtime_session(&RuntimeSessionInsert {
+                config_id: Some(active_config.id),
+                status: crate::db::RuntimeSessionStatus::Running,
+                socks_host: Some("127.0.0.1".to_string()),
+                socks_port: Some(1080),
+                http_host: None,
+                http_port: None,
+                shadowsocks_host: None,
+                shadowsocks_port: None,
+                process_id: Some(i64::from(std::process::id())),
+                failure_reason: None,
+                started_at: Some("3".to_string()),
+                stopped_at: None,
+            })
+            .await
+            .expect("active session should insert");
+
+        let (tx, rx) = oneshot::channel();
+        handle_event(
+            &mut state,
+            SupervisorEvent::RuntimeReplace {
+                trigger: crate::app::daemon::server::RotationTrigger::HealthCheckFailed,
+                candidate_id: None,
+                respond_to: tx,
+            },
+            &context,
+        )
+        .await;
+
+        match rx.await.expect("replace response should arrive") {
+            RuntimeReplaceResult::Err { message } => {
+                assert!(message.contains("no eligible replacement candidate"));
+            }
+            other => panic!("expected replace error, got {other:?}"),
+        }
+    }
+
+    async fn test_context(prefix: &str) -> AppContext {
+        let root = std::env::temp_dir().join(format!(
+            "xrat-supervisor-{prefix}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).expect("root should be created");
+        let database_config = DatabaseConnectionConfig::Sqlite {
+            path: root.join("db.sqlite"),
+        };
+        let db = Database::connect(&database_config)
+            .await
+            .expect("database should connect");
+        AppContext {
+            db,
+            app_config: AppConfig::default(),
+            runtime_paths: RuntimePaths {
+                root_dir: root.clone(),
+                database_config,
+                database_path: root.join("db.sqlite"),
+                database_label: root.join("db.sqlite").display().to_string(),
+                config_path: root.join("config.toml"),
+                runtime_dir: root.join("runtime"),
+                xray_path: PathBuf::from("xray"),
+                v2ray_path: PathBuf::from("v2ray"),
+                sing_box_path: PathBuf::from("sing-box"),
+            },
+        }
+    }
+
+    fn test_node(address: &str, name: &str) -> Node {
+        Node {
+            protocol: Protocol::Vless,
+            address: address.to_string(),
+            port: 443,
+            username: None,
+            uuid: Some("00000000-0000-0000-0000-000000000000".to_string()),
+            password: None,
+            method: None,
+            network: "tcp".to_string(),
+            tls: Some("tls".to_string()),
+            sni: Some(address.to_string()),
+            host: None,
+            path: None,
+            name: Some(name.to_string()),
+            extensions: None,
+            raw_config: format!(
+                "vless://00000000-0000-0000-0000-000000000000@{address}:443?security=tls#{name}"
+            ),
+        }
     }
 }

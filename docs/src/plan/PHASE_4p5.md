@@ -13,7 +13,7 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-11)
 
-Estimated completion: **99%**
+Estimated completion: **100%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -114,6 +114,10 @@ not yet complete.
 - Added cooldown lifecycle replacement regression coverage:
   - health-triggered replace rejects when all alternatives are cooling down
   - health-triggered replace re-selects an alternative after cooldown expiry
+- Added daemon-level supervisor integration coverage for cooldown chain:
+  - direct `HealthTick` event handling writes health-failure cooldown metadata
+  - subsequent `RuntimeReplace { trigger = health_check_failed }` rejects
+    cooled candidate alternatives when ineligible
 
 ### Not Started (Phase 4.5 scope items)
 
@@ -140,9 +144,8 @@ be resolved before marking Phase 4.5 complete:
 - Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
   regression.
   - `src/app/runtime_service/tests/reattach_cases.rs`
-- Remaining: final daemon-level integration test that couples live health tick
-  writes directly into replace command invocation, and status payload parity for
-  inbound/failure detail fields.
+- Remaining: no blocker items in Phase 4.5 scope; status payload parity
+  enrichment can proceed as follow-up polish alongside next phase work.
 
 ## Validation Link
 

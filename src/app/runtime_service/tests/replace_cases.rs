@@ -477,7 +477,10 @@ async fn replace_health_trigger_uses_alternative_after_cooldown_expires() {
         .db
         .import_nodes(
             &test_source(),
-            &[test_node_with("example-c.com", "c"), test_node_with("example-d.com", "d")],
+            &[
+                test_node_with("example-c.com", "c"),
+                test_node_with("example-d.com", "d"),
+            ],
         )
         .await
         .expect("nodes should import");

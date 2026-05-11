@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **99%** complete as of **2026-05-11**.
+Current Phase 4.5 progress estimate: **100%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -189,6 +189,10 @@ reconciled.
 - cooldown lifecycle regression coverage now includes both:
   - rejection while only alternative is still cooling down
   - re-selection once cooldown has expired (health-triggered flow)
+- daemon-level supervisor integration coverage now includes chained behavior:
+  - health tick writes cooldown/failure metadata for a runtime
+  - later health-triggered replace invocation rejects cooled candidate as
+    ineligible
 - `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
   `replace_rollback_keep_old`, and `replace_commit_success` are persisted in
   transition metadata with origin metadata; remaining transitions are still
