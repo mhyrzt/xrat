@@ -63,6 +63,17 @@ impl<'a> RuntimeService<'a> {
 
         self.context.db.set_active_config(next_config_id).await?;
         stop_session(self.context, &active).await?;
+        self.context
+            .db
+            .update_runtime_session_transition_metadata(
+                session_id,
+                None,
+                None,
+                Some("replace_commit_success"),
+                Some("runtime replace handoff completed"),
+                Some("daemon"),
+            )
+            .await?;
 
         Ok(ReplaceResult {
             old_session_id: active.id,
@@ -147,6 +158,7 @@ impl<'a> RuntimeService<'a> {
         let spawned = match spawned {
             Ok(process) => process,
             Err(err) => {
+                let failed_at = now_string();
                 self.context
                     .db
                     .update_runtime_session_state(
@@ -156,6 +168,15 @@ impl<'a> RuntimeService<'a> {
                         None,
                         Some(&now_string()),
                         Some(&err.to_string()),
+                    )
+                    .await?;
+                self.context
+                    .db
+                    .update_runtime_session_failure_tracking(
+                        session_id,
+                        None,
+                        Some(&failed_at),
+                        Some("replace_validation_failed"),
                     )
                     .await?;
                 return Err(err);

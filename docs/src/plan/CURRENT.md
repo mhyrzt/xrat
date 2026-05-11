@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **91%** complete as of **2026-05-11**.
+Current Phase 4.5 progress estimate: **96%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -140,8 +140,8 @@ reconciled.
 - add make-before-break `RuntimeReplace` primitive
 - keep active runtime when candidate validation fails
 - **status:** in progress (replace IPC/supervisor/runtime contract landed with
-  make-before-break baseline + rollback coverage; remaining success-path
-  deterministic handoff test coverage pending)
+  make-before-break baseline + rollback coverage; deterministic success-path
+  handoff coverage now landed; broader daemon integration coverage pending)
 
 6. **Targeted test pass**
 
@@ -162,11 +162,23 @@ reconciled.
   pending.
 - transition reason taxonomy persistence (`reason_code`, `origin`,
   `reason_detail`) now includes `last_transition_origin` schema/model/repo
-  wiring and daemon/reattach/replace write paths; full CLI/direct ownership
-  transition coverage is still pending.
+  wiring and daemon/reattach/replace write paths; direct CLI connect/disconnect
+  ownership transition coverage is now landed; remaining gaps are broader
+  daemon/CLI lifecycle parity paths.
+- stale-session reconciliation now preserves transition origin based on session
+  ownership (`cli` vs `daemon`) instead of always attributing to daemon.
+- scheduler bridge schema groundwork is now added on `runtime_sessions`:
+  `cooldown_until`, `last_failed_at`, `last_failed_reason_code` (SQLite +
+  Postgres migrations, model/repository mapping).
+- failure tracking write paths are now partially wired:
+  - unexpected process exit reconciliation sets
+    `last_failed_at`/`last_failed_reason_code=process_exit_unexpected`
+  - replacement spawn failure sets
+    `last_failed_at`/`last_failed_reason_code=replace_validation_failed`
 - `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
-  and `replace_rollback_keep_old` are persisted in transition metadata with
-  origin metadata; remaining transitions are still pending.
+  `replace_rollback_keep_old`, and `replace_commit_success` are persisted in
+  transition metadata with origin metadata; remaining transitions are still
+  pending.
 - strict reattach verification and restart reconciliation are now writing daemon
   ownership metadata, but broader lifecycle parity remains pending.
 

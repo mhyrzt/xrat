@@ -74,3 +74,20 @@ pub async fn update_runtime_session_transition_metadata(
     )
     .await
 }
+
+pub async fn update_runtime_session_failure_tracking(
+    pool: &DbPool,
+    session_id: i64,
+    cooldown_until: Option<&str>,
+    last_failed_at: Option<&str>,
+    last_failed_reason_code: Option<&str>,
+) -> crate::db::Result<()> {
+    runtime_sessions::update_failure_tracking(
+        pool,
+        session_id,
+        cooldown_until,
+        last_failed_at,
+        last_failed_reason_code,
+    )
+    .await
+}

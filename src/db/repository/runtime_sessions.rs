@@ -2,7 +2,7 @@ use super::row::map_runtime_session_row;
 use crate::db::connection::DbPool;
 use crate::db::model::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};
 
-const RUNTIME_SESSION_COLUMNS: &str = "id, config_id, status, socks_host, socks_port, http_host, http_port, shadowsocks_host, shadowsocks_port, process_id, failure_reason, owner_kind, owner_instance_id, last_transition_reason_code, last_transition_reason_detail, last_transition_origin, started_at, stopped_at, created_at, updated_at";
+const RUNTIME_SESSION_COLUMNS: &str = "id, config_id, status, socks_host, socks_port, http_host, http_port, shadowsocks_host, shadowsocks_port, process_id, failure_reason, owner_kind, owner_instance_id, last_transition_reason_code, last_transition_reason_detail, last_transition_origin, cooldown_until, last_failed_at, last_failed_reason_code, started_at, stopped_at, created_at, updated_at";
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
@@ -163,6 +163,36 @@ pub async fn update_transition_metadata(
                 .bind(reason_code)
                 .bind(reason_detail)
                 .bind(transition_origin)
+                .execute(pool)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn update_failure_tracking(
+    pool: &DbPool,
+    session_id: i64,
+    cooldown_until: Option<&str>,
+    last_failed_at: Option<&str>,
+    last_failed_reason_code: Option<&str>,
+) -> crate::db::Result<()> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("UPDATE runtime_sessions SET cooldown_until = COALESCE(?2, cooldown_until), last_failed_at = COALESCE(?3, last_failed_at), last_failed_reason_code = COALESCE(?4, last_failed_reason_code), updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+                .bind(session_id)
+                .bind(cooldown_until)
+                .bind(last_failed_at)
+                .bind(last_failed_reason_code)
+                .execute(pool)
+                .await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("UPDATE runtime_sessions SET cooldown_until = COALESCE($2, cooldown_until), last_failed_at = COALESCE($3, last_failed_at), last_failed_reason_code = COALESCE($4, last_failed_reason_code), updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+                .bind(session_id)
+                .bind(cooldown_until)
+                .bind(last_failed_at)
+                .bind(last_failed_reason_code)
                 .execute(pool)
                 .await?;
         }

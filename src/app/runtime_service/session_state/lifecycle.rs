@@ -21,6 +21,17 @@ pub(crate) async fn stop_active_session(context: &AppContext) -> crate::app::Res
         return Ok(false);
     };
     stop_session(context, &session).await?;
+    context
+        .db
+        .update_runtime_session_transition_metadata(
+            session.id,
+            Some("cli"),
+            None,
+            Some("manual_disconnect"),
+            Some("runtime disconnect request succeeded"),
+            Some("cli"),
+        )
+        .await?;
     context.db.clear_active_config().await?;
     Ok(true)
 }
@@ -100,7 +111,13 @@ async fn mark_session_stale(
         RuntimeSessionStatus::Stopping => Some("manual_disconnect"),
         RuntimeSessionStatus::Stopped | RuntimeSessionStatus::Failed => None,
     };
+    let transition_origin = session
+        .owner_kind
+        .as_deref()
+        .filter(|origin| !origin.is_empty())
+        .unwrap_or("daemon");
     if let Some(reason_code) = reason_code {
+        let failed_at = now_string();
         context
             .db
             .update_runtime_session_transition_metadata(
@@ -109,9 +126,20 @@ async fn mark_session_stale(
                 None,
                 Some(reason_code),
                 Some(stale_session_reason(session)),
-                Some("daemon"),
+                Some(transition_origin),
             )
             .await?;
+        if reason_code == "process_exit_unexpected" {
+            context
+                .db
+                .update_runtime_session_failure_tracking(
+                    session.id,
+                    None,
+                    Some(&failed_at),
+                    Some(reason_code),
+                )
+                .await?;
+        }
     }
     context.db.clear_active_config().await?;
     Ok(())

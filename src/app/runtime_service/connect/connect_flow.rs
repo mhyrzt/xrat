@@ -119,6 +119,17 @@ impl<'a> RuntimeService<'a> {
                 None,
             )
             .await?;
+        self.context
+            .db
+            .update_runtime_session_transition_metadata(
+                session_id,
+                Some("cli"),
+                None,
+                Some("manual_connect"),
+                Some("runtime connect request succeeded"),
+                Some("cli"),
+            )
+            .await?;
         self.context.db.set_active_config(config.id).await?;
 
         Ok(ConnectResult {

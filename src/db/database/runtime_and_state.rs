@@ -74,4 +74,21 @@ impl Database {
         )
         .await
     }
+
+    pub async fn update_runtime_session_failure_tracking(
+        &self,
+        session_id: i64,
+        cooldown_until: Option<&str>,
+        last_failed_at: Option<&str>,
+        last_failed_reason_code: Option<&str>,
+    ) -> crate::db::Result<()> {
+        repository::update_runtime_session_failure_tracking(
+            &self.pool,
+            session_id,
+            cooldown_until,
+            last_failed_at,
+            last_failed_reason_code,
+        )
+        .await
+    }
 }

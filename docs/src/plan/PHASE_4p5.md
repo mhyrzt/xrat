@@ -13,7 +13,7 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-11)
 
-Estimated completion: **91%**
+Estimated completion: **96%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -74,6 +74,28 @@ not yet complete.
 - Runtime replace flow now stages candidate runtime on alternate local inbound
   ports, marks candidate session running, switches active config, then stops
   old runtime session (make-before-break baseline).
+- Added direct-runtime metadata parity for CLI-owned runtime service paths:
+  - direct `connect` now persists `manual_connect` + detail + `origin=cli`
+    + `owner_kind=cli`
+  - direct `disconnect` now persists `manual_disconnect` + detail +
+    `origin=cli` + `owner_kind=cli`
+- Added deterministic replace success-path handoff assertion coverage:
+  - validates new running session transition metadata includes
+    `replace_commit_success` and origin/detail fields
+- Stale session reconciliation now preserves ownership-aware transition origin:
+  - `process_exit_unexpected` / stale-stop metadata now uses session
+    `owner_kind` when present (for example `cli`) instead of always writing
+    daemon origin.
+- Added scheduler bridge schema fields and wiring for future rotation phases:
+  - `runtime_sessions.cooldown_until`
+  - `runtime_sessions.last_failed_at`
+  - `runtime_sessions.last_failed_reason_code`
+  - SQLite/Postgres migrations + model/repository row mapping
+- Added initial failure-tracking write paths for scheduler bridge data:
+  - stale reconcile on dead running process now writes
+    `last_failed_at` + `last_failed_reason_code=process_exit_unexpected`
+  - replace candidate spawn failure now writes
+    `last_failed_at` + `last_failed_reason_code=replace_validation_failed`
 
 ### Not Started (Phase 4.5 scope items)
 
@@ -100,8 +122,9 @@ be resolved before marking Phase 4.5 complete:
 - Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
   regression.
   - `src/app/runtime_service/tests/reattach_cases.rs`
-- Remaining: full transition origin parity across all CLI/direct ownership
-  paths and candidate cooldown/failure schema fields.
+- Remaining: timer-driven health signaling and policy logic for cooldown window
+  computation/consumption (`cooldown_until`) in scheduler-oriented rotation
+  phases.
 
 ## Validation Link
 
