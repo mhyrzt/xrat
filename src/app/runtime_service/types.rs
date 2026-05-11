@@ -104,7 +104,7 @@ pub struct RuntimeInboundHealth {
 }
 
 impl RuntimeInboundHealth {
-    pub(super) fn has_unreachable_endpoint(&self) -> bool {
+    pub(crate) fn has_unreachable_endpoint(&self) -> bool {
         [&self.socks, &self.http, &self.shadowsocks]
             .into_iter()
             .flatten()

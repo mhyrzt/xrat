@@ -13,7 +13,7 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-11)
 
-Estimated completion: **96%**
+Estimated completion: **97%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -96,6 +96,11 @@ not yet complete.
     `last_failed_at` + `last_failed_reason_code=process_exit_unexpected`
   - replace candidate spawn failure now writes
     `last_failed_at` + `last_failed_reason_code=replace_validation_failed`
+- Added timer-driven supervisor health tick scaffold:
+  - supervisor loop runs periodic health ticks (15s interval)
+  - unreachable runtime inbound health now persists
+    `health_check_failed` transition/failure metadata
+  - cooldown bridge value `cooldown_until` is set to now + 300s
 
 ### Not Started (Phase 4.5 scope items)
 
@@ -122,9 +127,9 @@ be resolved before marking Phase 4.5 complete:
 - Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
   regression.
   - `src/app/runtime_service/tests/reattach_cases.rs`
-- Remaining: timer-driven health signaling and policy logic for cooldown window
-  computation/consumption (`cooldown_until`) in scheduler-oriented rotation
-  phases.
+- Remaining: selection policy consumption of cooldown windows in rotation
+  candidate choice and broader daemon integration tests for repeated health-fail
+  suppression behavior.
 
 ## Validation Link
 

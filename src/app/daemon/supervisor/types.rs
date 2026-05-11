@@ -7,6 +7,7 @@ use crate::app::daemon::server::{
 
 #[derive(Debug)]
 pub enum SupervisorEvent {
+    HealthTick,
     DaemonPing {
         respond_to: oneshot::Sender<PingPayload>,
     },

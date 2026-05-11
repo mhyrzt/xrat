@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **96%** complete as of **2026-05-11**.
+Current Phase 4.5 progress estimate: **97%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -175,6 +175,12 @@ reconciled.
     `last_failed_at`/`last_failed_reason_code=process_exit_unexpected`
   - replacement spawn failure sets
     `last_failed_at`/`last_failed_reason_code=replace_validation_failed`
+- daemon supervisor now runs timer-driven health ticks (15s interval) and
+  writes health-triggered failure metadata when runtime inbounds are
+  unreachable:
+  - `last_transition_reason_code=health_check_failed`
+  - `last_failed_reason_code=health_check_failed`
+  - `cooldown_until` computed as now + 300s
 - `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
   `replace_rollback_keep_old`, and `replace_commit_success` are persisted in
   transition metadata with origin metadata; remaining transitions are still
