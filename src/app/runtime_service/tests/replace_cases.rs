@@ -469,3 +469,121 @@ async fn replace_health_trigger_rejects_when_only_alternative_is_on_cooldown() {
         other => panic!("expected invalid argument, got {other:?}"),
     }
 }
+
+#[tokio::test]
+async fn replace_health_trigger_uses_alternative_after_cooldown_expires() {
+    let mut context = test_context().await;
+    let summary = context
+        .db
+        .import_nodes(
+            &test_source(),
+            &[test_node_with("example-c.com", "c"), test_node_with("example-d.com", "d")],
+        )
+        .await
+        .expect("nodes should import");
+    assert_eq!(summary.imported_configs, 2);
+    let mut configs = context
+        .db
+        .list_configs(&Default::default())
+        .await
+        .expect("configs should load");
+    configs.sort_by_key(|config| config.id);
+    let active_config = configs[0].clone();
+    let alternate_config = configs[1].clone();
+
+    let mut child = Command::new("sleep")
+        .arg("5")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("sleep process should spawn");
+    let pid = i64::from(child.id());
+    context
+        .db
+        .set_active_config(active_config.id)
+        .await
+        .expect("active config should be set");
+    context
+        .db
+        .insert_runtime_session(&RuntimeSessionInsert {
+            config_id: Some(active_config.id),
+            status: RuntimeSessionStatus::Running,
+            socks_host: Some("127.0.0.1".to_string()),
+            socks_port: Some(1080),
+            http_host: None,
+            http_port: None,
+            shadowsocks_host: None,
+            shadowsocks_port: None,
+            process_id: Some(pid),
+            failure_reason: None,
+            started_at: Some("1".to_string()),
+            stopped_at: None,
+        })
+        .await
+        .expect("active runtime session should insert");
+
+    let cooldown_session_id = context
+        .db
+        .insert_runtime_session(&RuntimeSessionInsert {
+            config_id: Some(alternate_config.id),
+            status: RuntimeSessionStatus::Failed,
+            socks_host: None,
+            socks_port: None,
+            http_host: None,
+            http_port: None,
+            shadowsocks_host: None,
+            shadowsocks_port: None,
+            process_id: None,
+            failure_reason: Some("health check failed".to_string()),
+            started_at: None,
+            stopped_at: Some("1".to_string()),
+        })
+        .await
+        .expect("cooldown session should insert");
+    context
+        .db
+        .update_runtime_session_failure_tracking(
+            cooldown_session_id,
+            Some("1"),
+            Some("1"),
+            Some("health_check_failed"),
+        )
+        .await
+        .expect("cooldown tracking should update");
+
+    context.runtime_paths.xray_path = std::path::PathBuf::from("/definitely/missing-xray");
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::HealthCheckFailed,
+            candidate_id: None,
+        })
+        .await;
+
+    let _ = child.kill();
+    let _ = child.wait();
+
+    match result {
+        Err(AppError::InvalidArgument(message)) => {
+            assert!(
+                !message.contains("no eligible replacement candidate"),
+                "expected expired cooldown to allow candidate selection, got: {message}"
+            );
+        }
+        Err(_) => {}
+        Ok(_) => panic!("replace should not fully succeed with missing runtime binary"),
+    }
+
+    let latest = context
+        .db
+        .get_latest_runtime_session()
+        .await
+        .expect("latest should load")
+        .expect("latest should exist");
+    assert_eq!(latest.config_id, Some(alternate_config.id));
+    assert_eq!(latest.status, RuntimeSessionStatus::Failed);
+    assert_eq!(
+        latest.last_failed_reason_code.as_deref(),
+        Some("replace_validation_failed")
+    );
+}
