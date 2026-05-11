@@ -25,6 +25,13 @@ pub async fn get_running_runtime_session(
     runtime_sessions::get_running(pool).await
 }
 
+pub async fn get_latest_runtime_session_for_config(
+    pool: &DbPool,
+    config_id: i64,
+) -> crate::db::Result<Option<RuntimeSessionRecord>> {
+    runtime_sessions::get_latest_for_config(pool, config_id).await
+}
+
 pub async fn update_runtime_session_state(
     pool: &DbPool,
     session_id: i64,

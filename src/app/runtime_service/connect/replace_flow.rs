@@ -1,5 +1,7 @@
 use super::*;
+use crate::app::daemon::server::RotationTrigger;
 use std::net::TcpListener;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 impl<'a> RuntimeService<'a> {
     pub async fn replace(&self, request: ReplaceRequest) -> crate::app::Result<ReplaceResult> {
@@ -11,11 +13,7 @@ impl<'a> RuntimeService<'a> {
                 ));
             }
         };
-        let next_config_id = request
-            .candidate_id
-            .unwrap_or(active.config_id.ok_or_else(|| {
-                AppError::InvalidArgument("active runtime session has no config id".to_string())
-            })?);
+        let next_config_id = self.resolve_replace_candidate_id(&active, &request).await?;
         self.context
             .db
             .update_runtime_session_transition_metadata(
@@ -196,6 +194,61 @@ impl<'a> RuntimeService<'a> {
             .await?;
         Ok((next_config.id, session_id, spawned.pid))
     }
+
+    async fn resolve_replace_candidate_id(
+        &self,
+        active: &RuntimeSessionRecord,
+        request: &ReplaceRequest,
+    ) -> crate::app::Result<i64> {
+        if let Some(candidate_id) = request.candidate_id {
+            if self.config_is_on_cooldown(candidate_id).await? {
+                return Err(AppError::InvalidArgument(format!(
+                    "config {} is on cooldown and cannot be selected for replacement",
+                    candidate_id
+                )));
+            }
+            return Ok(candidate_id);
+        }
+
+        let active_config_id = active.config_id.ok_or_else(|| {
+            AppError::InvalidArgument("active runtime session has no config id".to_string())
+        })?;
+        if matches!(request.trigger, RotationTrigger::Manual) {
+            return Ok(active_config_id);
+        }
+
+        let mut filter = ConfigListFilter::default();
+        filter.only_enabled = true;
+        let configs = self.context.db.list_configs(&filter).await?;
+        for config in configs.into_iter().filter(|cfg| cfg.id != active_config_id) {
+            if !self.config_is_on_cooldown(config.id).await? {
+                return Ok(config.id);
+            }
+        }
+
+        Err(AppError::InvalidArgument(
+            "no eligible replacement candidate: all enabled alternatives are on cooldown"
+                .to_string(),
+        ))
+    }
+
+    async fn config_is_on_cooldown(&self, config_id: i64) -> crate::app::Result<bool> {
+        let Some(session) = self
+            .context
+            .db
+            .get_latest_runtime_session_for_config(config_id)
+            .await?
+        else {
+            return Ok(false);
+        };
+        let Some(cooldown_until) = session.cooldown_until.as_deref() else {
+            return Ok(false);
+        };
+        let Ok(cooldown_until) = cooldown_until.parse::<u64>() else {
+            return Ok(false);
+        };
+        Ok(now_epoch_seconds() < cooldown_until)
+    }
 }
 
 fn assign_ephemeral_inbound_ports(launch: &mut ResolvedLaunch) -> crate::app::Result<()> {
@@ -254,4 +307,11 @@ fn allocate_port(host: &str) -> crate::app::Result<u16> {
         .port();
     drop(listener);
     Ok(port)
+}
+
+fn now_epoch_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
 }

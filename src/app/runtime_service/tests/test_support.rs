@@ -47,9 +47,13 @@ pub(super) fn test_source() -> ImportSource {
 }
 
 pub(super) fn test_node() -> Node {
+    test_node_with("example.com", "test")
+}
+
+pub(super) fn test_node_with(address: &str, name: &str) -> Node {
     Node {
         protocol: Protocol::Vless,
-        address: "example.com".to_string(),
+        address: address.to_string(),
         port: 443,
         username: None,
         uuid: Some("00000000-0000-0000-0000-000000000000".to_string()),
@@ -57,13 +61,13 @@ pub(super) fn test_node() -> Node {
         method: None,
         network: "tcp".to_string(),
         tls: Some("tls".to_string()),
-        sni: Some("example.com".to_string()),
+        sni: Some(address.to_string()),
         host: None,
         path: None,
-        name: Some("test".to_string()),
+        name: Some(name.to_string()),
         extensions: None,
-        raw_config:
-            "vless://00000000-0000-0000-0000-000000000000@example.com:443?security=tls#test"
-                .to_string(),
+        raw_config: format!(
+            "vless://00000000-0000-0000-0000-000000000000@{address}:443?security=tls#{name}"
+        ),
     }
 }

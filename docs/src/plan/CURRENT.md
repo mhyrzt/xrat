@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **97%** complete as of **2026-05-11**.
+Current Phase 4.5 progress estimate: **98%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -181,6 +181,11 @@ reconciled.
   - `last_transition_reason_code=health_check_failed`
   - `last_failed_reason_code=health_check_failed`
   - `cooldown_until` computed as now + 300s
+- replace candidate selection now consumes cooldown windows for non-manual
+  rotation triggers:
+  - timer/health-triggered replace skips alternatives currently on cooldown
+  - returns explicit invalid-state guidance when no eligible alternative exists
+  - repeated health-fail metadata writes are suppressed while cooldown is active
 - `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
   `replace_rollback_keep_old`, and `replace_commit_success` are persisted in
   transition metadata with origin metadata; remaining transitions are still

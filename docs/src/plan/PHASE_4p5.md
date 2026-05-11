@@ -13,7 +13,7 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-11)
 
-Estimated completion: **97%**
+Estimated completion: **98%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -101,6 +101,16 @@ not yet complete.
   - unreachable runtime inbound health now persists
     `health_check_failed` transition/failure metadata
   - cooldown bridge value `cooldown_until` is set to now + 300s
+- Added cooldown-aware replace candidate selection for rotation triggers:
+  - timer/health-triggered replace now selects from enabled alternatives that
+    are not on active cooldown
+  - manual replace keeps explicit behavior (defaulting to active config restart
+    when no candidate id is supplied)
+  - when all alternatives are cooling down, replace returns explicit invalid
+    argument error
+- Added suppression guard for repeated health-failure writes:
+  - daemon health tick does not rewrite `health_check_failed` metadata while an
+    existing cooldown window is still active
 
 ### Not Started (Phase 4.5 scope items)
 
@@ -127,9 +137,9 @@ be resolved before marking Phase 4.5 complete:
 - Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
   regression.
   - `src/app/runtime_service/tests/reattach_cases.rs`
-- Remaining: selection policy consumption of cooldown windows in rotation
-  candidate choice and broader daemon integration tests for repeated health-fail
-  suppression behavior.
+- Remaining: broader daemon integration tests for end-to-end cooldown lifecycle
+  (tick -> cooldown write -> auto-expire -> re-eligible candidate) and final
+  status payload parity for inbound/failure detail fields.
 
 ## Validation Link
 

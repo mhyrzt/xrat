@@ -8,7 +8,8 @@ pub(super) use crate::app::AppError;
 pub(super) use crate::app::config::defaults;
 pub(super) use crate::app::runtime::AppContext;
 pub(super) use crate::db::{
-    ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
+    ConfigListFilter, ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord,
+    RuntimeSessionStatus,
 };
 pub(super) use crate::model::{Node, Protocol};
 pub(super) use crate::xray::config::Inbound;

@@ -26,7 +26,8 @@ pub async fn handle_event(
                             return;
                         }
                         let failed_at = now_epoch_seconds();
-                        let cooldown_until = (failed_at + HEALTH_FAILURE_COOLDOWN_SECONDS).to_string();
+                        let cooldown_until =
+                            (failed_at + HEALTH_FAILURE_COOLDOWN_SECONDS).to_string();
                         let failed_at = failed_at.to_string();
                         let _ = context
                             .db
@@ -35,9 +36,7 @@ pub async fn handle_event(
                                 Some("daemon"),
                                 Some(&state.instance_id),
                                 Some("health_check_failed"),
-                                Some(
-                                    "runtime health check detected unreachable inbound endpoint",
-                                ),
+                                Some("runtime health check detected unreachable inbound endpoint"),
                                 Some("daemon"),
                             )
                             .await;
@@ -221,4 +220,49 @@ fn should_record_health_failure(session: &crate::db::RuntimeSessionRecord) -> bo
         return true;
     };
     now_epoch_seconds() >= cooldown_until
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn session_with_cooldown(cooldown_until: Option<&str>) -> crate::db::RuntimeSessionRecord {
+        crate::db::RuntimeSessionRecord {
+            id: 1,
+            config_id: Some(1),
+            status: crate::db::RuntimeSessionStatus::Running,
+            socks_host: Some("127.0.0.1".to_string()),
+            socks_port: Some(1080),
+            http_host: None,
+            http_port: None,
+            shadowsocks_host: None,
+            shadowsocks_port: None,
+            process_id: Some(1),
+            failure_reason: None,
+            owner_kind: Some("daemon".to_string()),
+            owner_instance_id: Some("d1".to_string()),
+            last_transition_reason_code: Some("health_check_failed".to_string()),
+            last_transition_reason_detail: None,
+            last_transition_origin: Some("daemon".to_string()),
+            cooldown_until: cooldown_until.map(ToString::to_string),
+            last_failed_at: Some("1".to_string()),
+            last_failed_reason_code: Some("health_check_failed".to_string()),
+            started_at: Some("1".to_string()),
+            stopped_at: None,
+            created_at: "1".to_string(),
+            updated_at: "1".to_string(),
+        }
+    }
+
+    #[test]
+    fn suppresses_repeated_health_failure_while_cooldown_active() {
+        let session = session_with_cooldown(Some(&(u64::MAX - 1).to_string()));
+        assert!(!should_record_health_failure(&session));
+    }
+
+    #[test]
+    fn allows_health_failure_after_cooldown_expires() {
+        let session = session_with_cooldown(Some("1"));
+        assert!(should_record_health_failure(&session));
+    }
 }

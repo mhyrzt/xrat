@@ -94,6 +94,34 @@ pub async fn get_running(pool: &DbPool) -> crate::db::Result<Option<RuntimeSessi
     }
 }
 
+pub async fn get_latest_for_config(
+    pool: &DbPool,
+    config_id: i64,
+) -> crate::db::Result<Option<RuntimeSessionRecord>> {
+    let sql = format!(
+        "SELECT {RUNTIME_SESSION_COLUMNS} FROM runtime_sessions WHERE config_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 1"
+    );
+    match pool {
+        DbPool::Sqlite(pool) => sqlx::query(&sql)
+            .bind(config_id)
+            .fetch_optional(pool)
+            .await?
+            .map(map_runtime_session_row)
+            .transpose(),
+        DbPool::Postgres(pool) => {
+            let sql = format!(
+                "SELECT {RUNTIME_SESSION_COLUMNS} FROM runtime_sessions WHERE config_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1"
+            );
+            sqlx::query(&sql)
+                .bind(config_id)
+                .fetch_optional(pool)
+                .await?
+                .map(map_runtime_session_row)
+                .transpose()
+        }
+    }
+}
+
 pub async fn update_state(
     pool: &DbPool,
     session_id: i64,
