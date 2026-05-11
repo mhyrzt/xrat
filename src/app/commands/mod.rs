@@ -5,7 +5,6 @@ mod disconnect;
 mod import;
 mod list;
 mod parse;
-mod runtime_output;
 mod scan;
 mod status;
 mod test;

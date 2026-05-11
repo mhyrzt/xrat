@@ -76,13 +76,13 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "address": node.address,
                 "port": node.port
             });
-            if let Some(username) = &node.username {
-                if let Some(password) = &node.password {
-                    server["users"] = json!([{
-                        "user": username,
-                        "pass": password
-                    }]);
-                }
+            if let Some(username) = &node.username
+                && let Some(password) = &node.password
+            {
+                server["users"] = json!([{
+                    "user": username,
+                    "pass": password
+                }]);
             }
             Ok(json!({
                 "servers": [server]
@@ -93,13 +93,13 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "address": node.address,
                 "port": node.port
             });
-            if let Some(username) = &node.username {
-                if let Some(password) = &node.password {
-                    server["users"] = json!([{
-                        "user": username,
-                        "pass": password
-                    }]);
-                }
+            if let Some(username) = &node.username
+                && let Some(password) = &node.password
+            {
+                server["users"] = json!([{
+                    "user": username,
+                    "pass": password
+                }]);
             }
             Ok(json!({
                 "servers": [server]

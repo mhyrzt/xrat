@@ -21,7 +21,8 @@ pub(super) async fn print_latest_run_summary(
     summary::print_latest_run_summary(db, args).await
 }
 
-pub(super) fn filter_latest_run_rows(
+#[cfg(test)]
+pub(crate) fn filter_latest_run_rows(
     rows: Vec<crate::db::ConnectionTestRecord>,
     country: Option<&str>,
     asn: Option<&str>,

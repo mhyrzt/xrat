@@ -22,20 +22,20 @@ pub(super) async fn handle_runtime_disconnect(
         .map(|session| session.id);
     match RuntimeService::new(context).disconnect().await {
         Ok(result) => {
-            if result.stopped_session {
-                if let Some(session_id) = active_session_id {
-                    let _ = context
-                        .db
-                        .update_runtime_session_transition_metadata(
-                            session_id,
-                            Some("daemon"),
-                            Some(&state.instance_id),
-                            Some("manual_disconnect"),
-                            Some("daemon runtime disconnect request succeeded"),
-                            Some("daemon"),
-                        )
-                        .await;
-                }
+            if result.stopped_session
+                && let Some(session_id) = active_session_id
+            {
+                let _ = context
+                    .db
+                    .update_runtime_session_transition_metadata(
+                        session_id,
+                        Some("daemon"),
+                        Some(&state.instance_id),
+                        Some("manual_disconnect"),
+                        Some("daemon runtime disconnect request succeeded"),
+                        Some("daemon"),
+                    )
+                    .await;
             }
             let _ = respond_to.send(RuntimeDisconnectResult::Ok(RuntimeDisconnectPayload {
                 stopped_session: result.stopped_session,

@@ -25,10 +25,10 @@ pub async fn fetch_subscription(url: &str) -> Result<ImportResult, SubscriptionF
         status: None,
     };
 
-    if let Some(userinfo) = response.headers().get("subscription-userinfo") {
-        if let Ok(userinfo_str) = userinfo.to_str() {
-            parse_subscription_userinfo(userinfo_str, &mut metadata);
-        }
+    if let Some(userinfo) = response.headers().get("subscription-userinfo")
+        && let Ok(userinfo_str) = userinfo.to_str()
+    {
+        parse_subscription_userinfo(userinfo_str, &mut metadata);
     }
 
     let body = response.text().await?;

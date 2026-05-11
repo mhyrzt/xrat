@@ -6,8 +6,6 @@ mod validation;
 
 pub(crate) use resolve::resolve_test_settings;
 pub(crate) use rows::TestOutputRow;
-#[cfg(test)]
-pub(crate) use validation::test_stage_name;
 pub(crate) use validation::{resolve_concurrency, validate_test_stage_order};
 
 impl TestFailurePolicy {

@@ -29,15 +29,15 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
                 println!("Session: {}", payload.session_id);
                 println!("PID: {}", payload.pid);
             }
-            return Ok(());
+            Ok(())
         }
         Err(err) if server::daemon_unreachable(&err) => {
-            return Err(crate::app::AppError::InvalidArgument(format!(
+            Err(crate::app::AppError::InvalidArgument(format!(
                 "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                 socket_path.display()
-            )));
+            )))
         }
-        Err(err) => return Err(err),
+        Err(err) => Err(err),
     }
 }
 

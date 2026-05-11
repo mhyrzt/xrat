@@ -40,10 +40,10 @@ pub fn ensure_layout() -> crate::app::Result<AppPaths> {
 }
 
 pub fn ensure_config_file(config_path: &Path) -> crate::app::Result<()> {
-    if let Some(parent) = config_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = config_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
     }
 
     if !config_path.exists() {

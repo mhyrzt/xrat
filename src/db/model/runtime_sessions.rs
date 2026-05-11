@@ -18,7 +18,7 @@ impl RuntimeSessionStatus {
         }
     }
 
-    pub fn from_str(value: &str) -> Option<Self> {
+    pub fn from_db_str(value: &str) -> Option<Self> {
         match value {
             "starting" => Some(Self::Starting),
             "running" => Some(Self::Running),

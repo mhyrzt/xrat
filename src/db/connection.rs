@@ -48,10 +48,10 @@ pub async fn connect(config: &DatabaseConnectionConfig) -> crate::db::Result<DbP
 }
 
 async fn connect_sqlite(database_path: &Path) -> crate::db::Result<DbPool> {
-    if let Some(parent) = database_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = database_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
     }
 
     let options = SqliteConnectOptions::new()

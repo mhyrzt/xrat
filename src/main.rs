@@ -13,7 +13,7 @@ async fn main() {
 }
 
 async fn run(args: &cli::Cli) -> xrat::app::Result<()> {
-    let context = AppContext::build(&args).await?;
+    let context = AppContext::build(args).await?;
     commands::run(&context, &args.command).await?;
 
     Ok(())

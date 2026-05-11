@@ -14,7 +14,7 @@ where
     R::Database: Database,
 {
     let status_value: String = row.get("status");
-    let status = RuntimeSessionStatus::from_str(&status_value)
+    let status = RuntimeSessionStatus::from_db_str(&status_value)
         .ok_or_else(|| DbError::InvalidRuntimeSessionStatus(status_value.clone()))?;
 
     Ok(RuntimeSessionRecord {

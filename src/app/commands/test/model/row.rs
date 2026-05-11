@@ -1,16 +1,17 @@
 use super::*;
 
 impl TestOutputRow {
-    pub(crate) fn from_parts(
-        config: &ConfigRecord,
-        result: &TestResult,
-        ran_icmp: bool,
-        ran_tcp: bool,
-        ran_real_delay: bool,
-        ran_download: bool,
-        ran_upload: bool,
-        elapsed: Duration,
-    ) -> Self {
+    pub(crate) fn from_parts(parts: TestOutputParts<'_>) -> Self {
+        let TestOutputParts {
+            config,
+            result,
+            ran_icmp,
+            ran_tcp,
+            ran_real_delay,
+            ran_download,
+            ran_upload,
+            elapsed,
+        } = parts;
         let status = overall_status(
             result,
             ran_icmp,
@@ -76,4 +77,15 @@ impl TestOutputRow {
             failure_reason: self.error.clone(),
         }
     }
+}
+
+pub(crate) struct TestOutputParts<'a> {
+    pub(crate) config: &'a ConfigRecord,
+    pub(crate) result: &'a TestResult,
+    pub(crate) ran_icmp: bool,
+    pub(crate) ran_tcp: bool,
+    pub(crate) ran_real_delay: bool,
+    pub(crate) ran_download: bool,
+    pub(crate) ran_upload: bool,
+    pub(crate) elapsed: Duration,
 }

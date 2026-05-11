@@ -43,7 +43,7 @@ impl FailureKind {
 }
 
 /// Combined test result for a config
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TestResult {
     pub icmp_ok: bool,
     pub icmp_ms: Option<u32>,
@@ -63,29 +63,4 @@ pub struct TestResult {
     pub endpoint_asn: Option<String>,
     pub failure_kind: Option<FailureKind>,
     pub failure_reason: Option<String>,
-}
-
-impl Default for TestResult {
-    fn default() -> Self {
-        Self {
-            icmp_ok: false,
-            icmp_ms: None,
-            tcp_ok: false,
-            tcp_ms: None,
-            real_delay_ok: false,
-            real_delay_ms: None,
-            download_ok: false,
-            download_mbps: None,
-            upload_ok: false,
-            upload_mbps: None,
-            ttfb_ms: None,
-            http_status: None,
-            endpoint_ip: None,
-            endpoint_location: None,
-            endpoint_country: None,
-            endpoint_asn: None,
-            failure_kind: None,
-            failure_reason: None,
-        }
-    }
 }

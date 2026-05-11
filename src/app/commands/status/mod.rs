@@ -3,19 +3,18 @@ use crate::app::runtime::AppContext;
 use crate::cli::StatusArgs;
 
 mod display;
-mod json;
 
 pub async fn run(context: &AppContext, args: &StatusArgs) -> crate::app::Result<()> {
     let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
     match server::runtime_status_daemon(&socket_path).await {
-        Ok(response) => return display::print_daemon_status(response, args.json),
+        Ok(response) => display::print_daemon_status(response, args.json),
         Err(err) if server::daemon_unreachable(&err) => {
-            return Err(crate::app::AppError::InvalidArgument(format!(
+            Err(crate::app::AppError::InvalidArgument(format!(
                 "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                 socket_path.display()
-            )));
+            )))
         }
-        Err(err) => return Err(err),
+        Err(err) => Err(err),
     }
 }
 

@@ -64,16 +64,16 @@ pub(crate) async fn test_and_record_config(
     }
 
     let elapsed = test_start.elapsed();
-    let output = TestOutputRow::from_parts(
-        &config,
-        &result,
+    let output = TestOutputRow::from_parts(TestOutputParts {
+        config: &config,
+        result: &result,
         ran_icmp,
         ran_tcp,
         ran_real_delay,
         ran_download,
         ran_upload,
         elapsed,
-    );
+    });
     db.insert_connection_test(&output.connection_test_insert(run_id))
         .await?;
 

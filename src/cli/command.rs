@@ -14,7 +14,7 @@ pub enum Command {
     #[command(about = "List persisted nodes or subscriptions.")]
     List(ListArgs),
     #[command(about = "Test connectivity and latency for stored configs.")]
-    Test(TestArgs),
+    Test(Box<TestArgs>),
     #[command(about = "Scan candidate IPs and persist cf_scan_results.")]
     Scan(ScanArgs),
     #[command(about = "Start a managed Xray runtime for a stored config.")]

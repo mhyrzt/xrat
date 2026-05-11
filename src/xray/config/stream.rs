@@ -46,12 +46,12 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         None
     };
 
-    let tcp_settings = if network == "tcp" && node.path.is_some() {
-        Some(TcpSettings {
+    let tcp_settings = if network == "tcp" {
+        node.path.as_ref().map(|path| TcpSettings {
             header: Some(json!({
                 "type": "http",
                 "request": {
-                    "path": [node.path.as_ref().unwrap()]
+                    "path": [path]
                 }
             })),
         })

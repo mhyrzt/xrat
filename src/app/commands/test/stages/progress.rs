@@ -5,7 +5,7 @@ pub(crate) fn merge_failure(
     failure_kind: Option<FailureKind>,
     failure_reason: Option<String>,
 ) {
-    if !matches!(result.failure_kind, None) {
+    if result.failure_kind.is_some() {
         return;
     }
 

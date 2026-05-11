@@ -29,10 +29,10 @@ fn decode_b64_bytes(data: &[u8]) -> Result<String, DecodeError> {
 }
 
 pub fn decode_or_json_text(data: &[u8]) -> Result<String, DecodeError> {
-    if let Ok(decoded_text) = decode_b64_bytes(data) {
-        if !decoded_text.is_empty() {
-            return Ok(decoded_text);
-        }
+    if let Ok(decoded_text) = decode_b64_bytes(data)
+        && !decoded_text.is_empty()
+    {
+        return Ok(decoded_text);
     }
 
     let raw_text = String::from_utf8_lossy(data).trim().to_string();
@@ -46,10 +46,10 @@ pub fn decode_or_json_text(data: &[u8]) -> Result<String, DecodeError> {
 }
 
 pub fn decode_or_raw_text(data: &[u8]) -> Result<String, DecodeError> {
-    if let Ok(decoded_text) = decode_b64_bytes(data) {
-        if !decoded_text.is_empty() {
-            return Ok(decoded_text);
-        }
+    if let Ok(decoded_text) = decode_b64_bytes(data)
+        && !decoded_text.is_empty()
+    {
+        return Ok(decoded_text);
     }
 
     let raw_text = String::from_utf8_lossy(data).trim().to_string();
