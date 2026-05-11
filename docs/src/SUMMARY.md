@@ -15,6 +15,7 @@
   - [Phase 3.6](plan/PHASE_3p6.md)
   - [Phase 4](plan/PHASE_4.md)
   - [Phase 4.5](plan/PHASE_4p5.md)
+  - [Phase 4.6 Auto-Rotating Proxy](plan/PHASE_4p6_AUTO_ROTATING_PROXY.md)
   - [Notes](plan/notes.md)
 - [Validation](validation/index.md)
   - [0. xray-knife vs xrat gap](validation/0_xray-knife_vs_xrat_gap_checklist.md)
