@@ -15,8 +15,8 @@ state updates do not depend on user-initiated commands.
 
 Estimated completion: **100%**
 
-Phase 4.5 scope in this document is complete. Remaining work is follow-up
-polish and next-phase scheduler behavior tracked outside this phase.
+Phase 4.5 scope in this document is complete. Remaining work is follow-up polish
+and next-phase scheduler behavior tracked outside this phase.
 
 ### Completed
 
@@ -28,8 +28,8 @@ polish and next-phase scheduler behavior tracked outside this phase.
 - Wired `connect`/`disconnect`/`status` commands to prefer daemon IPC when
   reachable.
 - Added daemon server tests for startup conflict and shutdown behavior.
-- Runtime `connect`/`disconnect`/`status` no longer silently fall back to
-  direct CLI ownership when daemon IPC is unreachable; they now return explicit
+- Runtime `connect`/`disconnect`/`status` no longer silently fall back to direct
+  CLI ownership when daemon IPC is unreachable; they now return explicit
   `xrat daemon start` guidance.
 - Added command-level regression coverage that asserts daemon-unreachable
   guidance for `connect`, `disconnect`, and `status`.
@@ -46,8 +46,8 @@ polish and next-phase scheduler behavior tracked outside this phase.
     alongside reason codes for diagnostics
 - Extended transition reason writes in runtime lifecycle paths:
   - stale runtime reconciliation now persists `process_exit_unexpected`
-  - replace flow now persists `replace_started`,
-    `replace_validation_failed`, and `replace_rollback_keep_old`
+  - replace flow now persists `replace_started`, `replace_validation_failed`,
+    and `replace_rollback_keep_old`
 
 ### Completed (late-slice items)
 
@@ -61,8 +61,8 @@ polish and next-phase scheduler behavior tracked outside this phase.
 - Startup reattach reconciliation is wired into supervisor boot with strict
   checks (`pid`, executable identity, cmdline config-path ownership) and
   explicit reject reason codes persisted via runtime session failure reason.
-- Added `RuntimeReplace` request/response contract across daemon IPC,
-  supervisor event handling, and runtime service API.
+- Added `RuntimeReplace` request/response contract across daemon IPC, supervisor
+  event handling, and runtime service API.
 - Added focused replace safety coverage:
   - runtime service rejects replace without running session
   - replacement validation failure keeps old runtime active
@@ -72,11 +72,11 @@ polish and next-phase scheduler behavior tracked outside this phase.
   - `runtime_sessions.last_transition_origin` migration for SQLite/Postgres
   - model/repository/database mapping and write-path wiring
 - Runtime replace flow now stages candidate runtime on alternate local inbound
-  ports, marks candidate session running, switches active config, then stops
-  old runtime session (make-before-break baseline).
+  ports, marks candidate session running, switches active config, then stops old
+  runtime session (make-before-break baseline).
 - Added direct-runtime metadata parity for CLI-owned runtime service paths:
   - direct `connect` now persists `manual_connect` + detail + `origin=cli`
-    + `owner_kind=cli`
+    - `owner_kind=cli`
   - direct `disconnect` now persists `manual_disconnect` + detail +
     `origin=cli` + `owner_kind=cli`
 - Added deterministic replace success-path handoff assertion coverage:
@@ -92,14 +92,14 @@ polish and next-phase scheduler behavior tracked outside this phase.
   - `runtime_sessions.last_failed_reason_code`
   - SQLite/Postgres migrations + model/repository row mapping
 - Added initial failure-tracking write paths for scheduler bridge data:
-  - stale reconcile on dead running process now writes
-    `last_failed_at` + `last_failed_reason_code=process_exit_unexpected`
-  - replace candidate spawn failure now writes
-    `last_failed_at` + `last_failed_reason_code=replace_validation_failed`
+  - stale reconcile on dead running process now writes `last_failed_at` +
+    `last_failed_reason_code=process_exit_unexpected`
+  - replace candidate spawn failure now writes `last_failed_at` +
+    `last_failed_reason_code=replace_validation_failed`
 - Added timer-driven supervisor health tick scaffold:
   - supervisor loop runs periodic health ticks (15s interval)
-  - unreachable runtime inbound health now persists
-    `health_check_failed` transition/failure metadata
+  - unreachable runtime inbound health now persists `health_check_failed`
+    transition/failure metadata
   - cooldown bridge value `cooldown_until` is set to now + 300s
 - Added cooldown-aware replace candidate selection for rotation triggers:
   - timer/health-triggered replace now selects from enabled alternatives that
@@ -116,8 +116,8 @@ polish and next-phase scheduler behavior tracked outside this phase.
   - health-triggered replace re-selects an alternative after cooldown expiry
 - Added daemon-level supervisor integration coverage for cooldown chain:
   - direct `HealthTick` event handling writes health-failure cooldown metadata
-  - subsequent `RuntimeReplace { trigger = health_check_failed }` rejects
-    cooled candidate alternatives when ineligible
+  - subsequent `RuntimeReplace { trigger = health_check_failed }` rejects cooled
+    candidate alternatives when ineligible
 
 ### Not Started (outside Phase 4.5)
 

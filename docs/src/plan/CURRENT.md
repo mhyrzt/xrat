@@ -175,9 +175,8 @@ reconciled.
     `last_failed_at`/`last_failed_reason_code=process_exit_unexpected`
   - replacement spawn failure sets
     `last_failed_at`/`last_failed_reason_code=replace_validation_failed`
-- daemon supervisor now runs timer-driven health ticks (15s interval) and
-  writes health-triggered failure metadata when runtime inbounds are
-  unreachable:
+- daemon supervisor now runs timer-driven health ticks (15s interval) and writes
+  health-triggered failure metadata when runtime inbounds are unreachable:
   - `last_transition_reason_code=health_check_failed`
   - `last_failed_reason_code=health_check_failed`
   - `cooldown_until` computed as now + 300s
@@ -269,12 +268,12 @@ tracking.
 Update this table during active implementation. Keep blocker text short and
 actionable.
 
-| Slice                           | Status      | Owner        | Last Updated | Blocker                                              |
-| ------------------------------- | ----------- | ------------ | ------------ | ---------------------------------------------------- |
-| A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-11   | Follow-up: daemon start output/UX polish only     |
-| B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-11   | Optional: expand structured failures for other event types |
-| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-11   | Remaining: broader lifecycle parity and transition coverage |
-| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-11   | Remaining: success-path handoff ordering tests + daemon integration coverage |
+| Slice                           | Status                 | Owner        | Last Updated | Blocker                                                                      |
+| ------------------------------- | ---------------------- | ------------ | ------------ | ---------------------------------------------------------------------------- |
+| A - Daemon command correctness  | Mostly complete        | _unassigned_ | 2026-05-11   | Follow-up: daemon start output/UX polish only                                |
+| B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-11   | Optional: expand structured failures for other event types                   |
+| C - Reattach and reconciliation | In progress            | _unassigned_ | 2026-05-11   | Remaining: broader lifecycle parity and transition coverage                  |
+| D - Replace primitive bridge    | In progress            | _unassigned_ | 2026-05-11   | Remaining: success-path handoff ordering tests + daemon integration coverage |
 
 ## Phase 4.5 Closure Gates
 

@@ -1,5 +1,9 @@
 use super::*;
+use crate::xray::XrayConfig;
 use crate::xray::config::{Inbound, LogConfig, Outbound};
+use std::process::Command;
+use std::time::Duration;
+use tokio::net::TcpStream;
 
 #[tokio::test]
 async fn test_xray_process_lifecycle() {

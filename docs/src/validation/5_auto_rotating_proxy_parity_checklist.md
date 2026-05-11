@@ -64,8 +64,8 @@ Phase 4.5 bridge primitives now present:
 - daemon health-tick path can emit `health_check_failed` transition/failure
   metadata,
 - `RuntimeReplace` daemon contract and make-before-break handoff are available,
-- cooldown/failure fields exist in `runtime_sessions`
-  (`cooldown_until`, `last_failed_at`, `last_failed_reason_code`),
+- cooldown/failure fields exist in `runtime_sessions` (`cooldown_until`,
+  `last_failed_at`, `last_failed_reason_code`),
 - cooldown-aware candidate filtering is wired for health-triggered replace.
 
 ---

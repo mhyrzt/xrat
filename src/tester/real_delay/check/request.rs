@@ -1,8 +1,8 @@
 use reqwest::Proxy;
 use std::time::{Duration, Instant};
 
-use super::model::RealDelayResult;
 use super::super::errors::classify_request_error;
+use super::model::RealDelayResult;
 use crate::tester::FailureKind;
 
 pub(super) async fn make_proxied_request(
@@ -37,14 +37,38 @@ pub(super) async fn make_proxied_request(
             let status = response.status().as_u16();
             let endpoint_ip = response.remote_addr().map(|addr| addr.ip().to_string());
             if response.status().is_success() || status == 204 {
-                RealDelayResult { success: true, latency_ms: Some(ttfb_ms), ttfb_ms: Some(ttfb_ms), http_status: Some(status), endpoint_ip, failure_kind: None, failure_reason: None }
+                RealDelayResult {
+                    success: true,
+                    latency_ms: Some(ttfb_ms),
+                    ttfb_ms: Some(ttfb_ms),
+                    http_status: Some(status),
+                    endpoint_ip,
+                    failure_kind: None,
+                    failure_reason: None,
+                }
             } else {
-                RealDelayResult { success: false, latency_ms: None, ttfb_ms: Some(ttfb_ms), http_status: Some(status), endpoint_ip, failure_kind: Some(FailureKind::Proxy), failure_reason: Some(format!("HTTP status: {}", response.status())) }
+                RealDelayResult {
+                    success: false,
+                    latency_ms: None,
+                    ttfb_ms: Some(ttfb_ms),
+                    http_status: Some(status),
+                    endpoint_ip,
+                    failure_kind: Some(FailureKind::Proxy),
+                    failure_reason: Some(format!("HTTP status: {}", response.status())),
+                }
             }
         }
         Err(error) => {
             let (kind, reason) = classify_request_error(&error);
-            RealDelayResult { success: false, latency_ms: None, ttfb_ms: None, http_status: None, endpoint_ip: None, failure_kind: Some(kind), failure_reason: Some(reason) }
+            RealDelayResult {
+                success: false,
+                latency_ms: None,
+                ttfb_ms: None,
+                http_status: None,
+                endpoint_ip: None,
+                failure_kind: Some(kind),
+                failure_reason: Some(reason),
+            }
         }
     }
 }

@@ -14,9 +14,8 @@ mod tests {
 
     #[test]
     fn classifies_connection_refused_errors() {
-        let (kind, reason) = classify::classify_tcp_error(
-            &Error::new(ErrorKind::ConnectionRefused, "refused"),
-        );
+        let (kind, reason) =
+            classify::classify_tcp_error(&Error::new(ErrorKind::ConnectionRefused, "refused"));
         assert_eq!(kind, FailureKind::Refused);
         assert_eq!(reason, "Connection refused");
     }
@@ -31,9 +30,8 @@ mod tests {
 
     #[test]
     fn classifies_permission_errors() {
-        let (kind, reason) = classify::classify_tcp_error(
-            &Error::new(ErrorKind::PermissionDenied, "blocked"),
-        );
+        let (kind, reason) =
+            classify::classify_tcp_error(&Error::new(ErrorKind::PermissionDenied, "blocked"));
         assert_eq!(kind, FailureKind::PermissionDenied);
         assert_eq!(reason, "Permission denied");
     }

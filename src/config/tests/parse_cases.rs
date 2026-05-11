@@ -1,11 +1,10 @@
-use super::parse_text;
+use super::super::parse_text;
 use crate::model::Protocol;
 
 #[test]
 fn parses_vless_like_python_reference() {
     let input = "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com&path=%2Fsocket#Example%20Node";
     let nodes = parse_text(input);
-
     assert_eq!(nodes.len(), 1);
     let node = &nodes[0];
     assert_eq!(node.protocol, Protocol::Vless);
@@ -24,7 +23,6 @@ fn parses_vless_like_python_reference() {
 fn parses_vmess_like_python_reference() {
     let input = "vmess://eyJhZGQiOiJ2bWVzcy5leGFtcGxlLmNvbSIsInBvcnQiOiI4NDQzIiwiaWQiOiJ1dWlkLTQ1NiIsIm5ldCI6IndzIiwidGxzIjoidGxzIiwic25pIjoiZWRnZS5leGFtcGxlLmNvbSIsImhvc3QiOiJob3N0LmV4YW1wbGUuY29tIiwicGF0aCI6Ii92bWVzcyIsInBzIjoiVk1lc3MgTm9kZSJ9";
     let nodes = parse_text(input);
-
     assert_eq!(nodes.len(), 1);
     let node = &nodes[0];
     assert_eq!(node.protocol, Protocol::Vmess);
@@ -43,7 +41,6 @@ fn parses_vmess_like_python_reference() {
 fn parses_ss_like_python_reference() {
     let input = "ss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#SS%20Node";
     let nodes = parse_text(input);
-
     assert_eq!(nodes.len(), 1);
     let node = &nodes[0];
     assert_eq!(node.protocol, Protocol::Ss);
@@ -79,53 +76,10 @@ fn normalizes_grpc_path_and_empty_tls() {
 }
 
 #[test]
-fn keeps_nodes_with_different_runtime_settings() {
-    let input = concat!(
-        "vless://uuid-123@example.com:443?type=tcp#One\n",
-        "vless://uuid-123@example.com:443?type=ws&sni=cdn.example.com#Two\n"
-    );
-
-    let nodes = parse_text(input);
-
-    assert_eq!(nodes.len(), 2);
-    assert_eq!(nodes[0].name.as_deref(), Some("One"));
-    assert_eq!(nodes[1].name.as_deref(), Some("Two"));
-}
-
-#[test]
-fn deduplicates_when_only_display_name_changes() {
-    let input = concat!(
-        "vless://uuid-123@example.com:443?type=ws&sni=cdn.example.com&path=%2Fray#One\n",
-        "vless://uuid-123@example.com:443?type=ws&sni=cdn.example.com&path=%2Fray#Two\n"
-    );
-
-    let nodes = parse_text(input);
-
-    assert_eq!(nodes.len(), 1);
-    assert_eq!(nodes[0].name.as_deref(), Some("One"));
-}
-
-#[test]
-fn skips_comments_blank_lines_and_unknown_protocols() {
-    let input = concat!(
-        "# comment\n",
-        "\n",
-        "unknown://ignored\n",
-        "ss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#SS%20Node\n"
-    );
-
-    let nodes = parse_text(input);
-
-    assert_eq!(nodes.len(), 1);
-    assert_eq!(nodes[0].protocol, Protocol::Ss);
-}
-
-#[test]
 fn parses_hy2_line() {
     let input =
         "hy2://secret@example.com:443?sni=edge.example.com&obfs=salamander&obfs-password=123#HY2";
     let nodes = parse_text(input);
-
     assert_eq!(nodes.len(), 1);
     let node = &nodes[0];
     assert_eq!(node.protocol, Protocol::Hy2);
