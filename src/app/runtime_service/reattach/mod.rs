@@ -9,20 +9,28 @@ const REASON_REATTACH_REJECTED_CMDLINE_MISMATCH: &str =
     "daemon_restart_reattach_rejected_cmdline_mismatch";
 
 impl<'a> RuntimeService<'a> {
-    pub async fn reconcile_reattach_on_daemon_start(&self) -> crate::app::Result<()> {
-        self.reconcile_reattach_with_inspector(&process::SystemProcessInspector)
+    pub async fn reconcile_reattach_on_daemon_start(
+        &self,
+        daemon_instance_id: &str,
+    ) -> crate::app::Result<()> {
+        self.reconcile_reattach_with_inspector(
+            &process::SystemProcessInspector,
+            daemon_instance_id,
+        )
             .await
     }
 
     pub(super) async fn reconcile_reattach_with_inspector(
         &self,
         inspector: &dyn ProcessInspector,
+        daemon_instance_id: &str,
     ) -> crate::app::Result<()> {
         let Some(session) = self.context.db.get_running_runtime_session().await? else {
             return Ok(());
         };
 
         if !validate_reattach_session(self.context, &session, inspector) {
+            let reject_reason = reattach_reject_reason(self.context, &session, inspector);
             self.context
                 .db
                 .update_runtime_session_state(
@@ -31,10 +39,31 @@ impl<'a> RuntimeService<'a> {
                     None,
                     None,
                     Some(&now_string()),
-                    Some(reattach_reject_reason(self.context, &session, inspector)),
+                    Some(reject_reason),
+                )
+                .await?;
+            self.context
+                .db
+                .update_runtime_session_transition_metadata(
+                    session.id,
+                    Some("daemon"),
+                    Some(daemon_instance_id),
+                    Some(reject_reason),
+                    None,
                 )
                 .await?;
             self.context.db.clear_active_config().await?;
+        } else {
+            self.context
+                .db
+                .update_runtime_session_transition_metadata(
+                    session.id,
+                    Some("daemon"),
+                    Some(daemon_instance_id),
+                    Some("daemon_restart_reattach_ok"),
+                    None,
+                )
+                .await?;
         }
 
         Ok(())

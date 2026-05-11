@@ -43,7 +43,7 @@ async fn reattach_accepts_matching_pid_exec_cmdline() {
         .expect("session should insert");
 
     RuntimeService::new(&context)
-        .reconcile_reattach_with_inspector(&AcceptingInspector)
+        .reconcile_reattach_with_inspector(&AcceptingInspector, "daemon-test")
         .await
         .expect("reattach reconcile should succeed");
 
@@ -56,6 +56,12 @@ async fn reattach_accepts_matching_pid_exec_cmdline() {
     assert_eq!(session.id, session_id);
     assert_eq!(session.status, RuntimeSessionStatus::Running);
     assert!(session.failure_reason.is_none());
+    assert_eq!(session.owner_kind.as_deref(), Some("daemon"));
+    assert_eq!(session.owner_instance_id.as_deref(), Some("daemon-test"));
+    assert_eq!(
+        session.last_transition_reason_code.as_deref(),
+        Some("daemon_restart_reattach_ok")
+    );
     assert_eq!(
         context
             .db

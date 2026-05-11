@@ -98,6 +98,14 @@ async fn replace_validation_failure_keeps_old_runtime_active() {
     assert_eq!(latest.id, session_id);
     assert_eq!(latest.status, RuntimeSessionStatus::Running);
     assert_eq!(latest.process_id, Some(pid));
+    assert_eq!(
+        latest.last_transition_reason_code.as_deref(),
+        Some("replace_rollback_keep_old")
+    );
+    assert_eq!(
+        latest.last_transition_reason_detail.as_deref(),
+        Some("replacement candidate rejected before handoff")
+    );
 
     let active_config = context
         .db

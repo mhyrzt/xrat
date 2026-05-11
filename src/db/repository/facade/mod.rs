@@ -18,5 +18,6 @@ pub use connection_tests::{
 pub use runtime_sessions::{
     get_latest_runtime_session, get_running_runtime_session, get_runtime_session_count,
     insert_runtime_session, mark_runtime_session_stopped, update_runtime_session_state,
+    update_runtime_session_transition_metadata,
 };
 pub use subscriptions::{get_subscription_count, list_subscriptions};

@@ -48,15 +48,16 @@ async fn marks_running_session_with_dead_pid_as_failed() {
         .expect("session state should resolve");
 
     assert!(matches!(state, ActiveSessionState::Stale(_)));
+    let latest = context
+        .db
+        .get_latest_runtime_session()
+        .await
+        .expect("latest should load")
+        .expect("latest should exist");
+    assert_eq!(latest.status, RuntimeSessionStatus::Failed);
     assert_eq!(
-        context
-            .db
-            .get_latest_runtime_session()
-            .await
-            .expect("latest should load")
-            .expect("latest should exist")
-            .status,
-        RuntimeSessionStatus::Failed
+        latest.last_transition_reason_code.as_deref(),
+        Some("process_exit_unexpected")
     );
     assert!(
         context
@@ -115,15 +116,16 @@ async fn marks_stopping_session_with_dead_pid_as_stopped() {
         .expect("session state should resolve");
 
     assert!(matches!(state, ActiveSessionState::Stale(_)));
+    let latest = context
+        .db
+        .get_latest_runtime_session()
+        .await
+        .expect("latest should load")
+        .expect("latest should exist");
+    assert_eq!(latest.status, RuntimeSessionStatus::Stopped);
     assert_eq!(
-        context
-            .db
-            .get_latest_runtime_session()
-            .await
-            .expect("latest should load")
-            .expect("latest should exist")
-            .status,
-        RuntimeSessionStatus::Stopped
+        latest.last_transition_reason_code.as_deref(),
+        Some("manual_disconnect")
     );
     assert!(
         context

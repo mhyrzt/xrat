@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **72%** complete as of **2026-05-10**.
+Current Phase 4.5 progress estimate: **87%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -116,8 +116,9 @@ reconciled.
 - add daemon server skeleton in `src/app/daemon/server.rs`
 - add protocol envelope (`protocol_version`, `code`, `message`, `payload`)
 - route `connect`/`disconnect`/`status` commands via IPC client path
-- **status:** in progress (connect/disconnect/status routes exist; fallback
-  policy still transitional)
+- **status:** in progress (connect/disconnect/status routes exist; runtime
+  commands now fail with explicit daemon-start guidance when daemon is
+  unreachable)
 
 3. **Supervisor ownership loop**
 
@@ -131,7 +132,8 @@ reconciled.
 - implement strict reattach checks (`pid`, executable, cmdline config path)
 - reject mismatches with explicit persisted reason code
 - **status:** in progress (strict checks and reject reasons landed; accepted
-  ownership metadata schema still pending)
+  ownership metadata schema and write path landed; broader reconciliation
+  lifecycle wiring still pending)
 
 5. **Replace bridge for area #5**
 
@@ -146,21 +148,26 @@ reconciled.
 - reattach accept/reject regression coverage
 - unexpected process exit persistence
 - replace success/failure handoff safety
-- **status:** in progress (CLI parse + focused command-path checks; broader
-  daemon integration coverage pending)
+- **status:** in progress (CLI parse + focused command-path checks including
+  daemon-unreachable contract regressions; broader daemon integration coverage
+  pending)
 
 ## Current Gaps to Close
 
-- runtime commands still allow direct fallback behavior when daemon is
-  unreachable; Phase 4.5 target is explicit daemon guidance without silent
-  ownership fallback.
+- runtime commands now require daemon reachability for `connect`/`disconnect`/
+  `status`; targeted regression tests have landed for this contract.
 - daemon status payload is currently a compact summary; full parity with local
   status output shape (inbound endpoint health, failure reason details) is still
   pending.
 - transition reason taxonomy persistence (`reason_code`, `origin`,
-  `reason_detail`) is not implemented in runtime session writes yet.
-- strict reattach verification and restart reconciliation hardening are not
-  fully implemented yet (ownership metadata schema still pending).
+  `reason_detail`) is partially implemented; daemon connect/disconnect/replace
+  success and reattach accept/reject now write reason metadata, but full
+  coverage for all transitions is still pending.
+- `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
+  and `replace_rollback_keep_old` are now persisted in transition metadata;
+  remaining transitions are still pending.
+- strict reattach verification and restart reconciliation are now writing daemon
+  ownership metadata, but broader lifecycle parity remains pending.
 
 ## Immediate Deliverables
 
@@ -232,10 +239,10 @@ actionable.
 
 | Slice                           | Status      | Owner        | Last Updated | Blocker                                              |
 | ------------------------------- | ----------- | ------------ | ------------ | ---------------------------------------------------- |
-| A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-10   | Follow-up: daemon start output/UX polish only     |
-| B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-10   | Optional: expand structured failures for other event types |
-| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-10   | Remaining: owner metadata schema fields |
-| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-10   | Remaining: true make-before-break handoff semantics |
+| A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-11   | Follow-up: daemon start output/UX polish only     |
+| B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-11   | Optional: expand structured failures for other event types |
+| C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-11   | Remaining: broader lifecycle parity and transition coverage |
+| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-11   | Remaining: true make-before-break handoff semantics |
 
 ## Phase 4.5 Closure Gates
 

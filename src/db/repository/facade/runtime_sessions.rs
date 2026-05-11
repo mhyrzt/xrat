@@ -53,3 +53,22 @@ pub async fn mark_runtime_session_stopped(
 ) -> crate::db::Result<()> {
     runtime_sessions::mark_stopped(pool, session_id, stopped_at).await
 }
+
+pub async fn update_runtime_session_transition_metadata(
+    pool: &DbPool,
+    session_id: i64,
+    owner_kind: Option<&str>,
+    owner_instance_id: Option<&str>,
+    reason_code: Option<&str>,
+    reason_detail: Option<&str>,
+) -> crate::db::Result<()> {
+    runtime_sessions::update_transition_metadata(
+        pool,
+        session_id,
+        owner_kind,
+        owner_instance_id,
+        reason_code,
+        reason_detail,
+    )
+    .await
+}

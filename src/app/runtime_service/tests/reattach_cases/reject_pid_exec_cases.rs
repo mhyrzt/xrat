@@ -43,7 +43,7 @@ async fn reattach_rejects_pid_missing_marks_session_failed() {
         .expect("session should insert");
 
     RuntimeService::new(&context)
-        .reconcile_reattach_on_daemon_start()
+        .reconcile_reattach_on_daemon_start("daemon-test")
         .await
         .expect("reattach reconcile should succeed");
 
@@ -56,6 +56,12 @@ async fn reattach_rejects_pid_missing_marks_session_failed() {
     assert_eq!(session.status, RuntimeSessionStatus::Failed);
     assert_eq!(
         session.failure_reason.as_deref(),
+        Some("daemon_restart_reattach_rejected_pid_missing")
+    );
+    assert_eq!(session.owner_kind.as_deref(), Some("daemon"));
+    assert_eq!(session.owner_instance_id.as_deref(), Some("daemon-test"));
+    assert_eq!(
+        session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_pid_missing")
     );
     assert!(
@@ -112,7 +118,7 @@ async fn reattach_rejects_exec_mismatch_marks_session_failed() {
         .expect("session should insert");
 
     RuntimeService::new(&context)
-        .reconcile_reattach_on_daemon_start()
+        .reconcile_reattach_on_daemon_start("daemon-test")
         .await
         .expect("reattach reconcile should succeed");
 
@@ -125,6 +131,12 @@ async fn reattach_rejects_exec_mismatch_marks_session_failed() {
     assert_eq!(session.status, RuntimeSessionStatus::Failed);
     assert_eq!(
         session.failure_reason.as_deref(),
+        Some("daemon_restart_reattach_rejected_exec_mismatch")
+    );
+    assert_eq!(session.owner_kind.as_deref(), Some("daemon"));
+    assert_eq!(session.owner_instance_id.as_deref(), Some("daemon-test"));
+    assert_eq!(
+        session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_exec_mismatch")
     );
     assert!(

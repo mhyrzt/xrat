@@ -11,9 +11,9 @@ reconciliation on the next CLI call. Phase 4.5 moves runtime ownership to a
 single background supervisor so crash detection, rotation triggers, and session
 state updates do not depend on user-initiated commands.
 
-## Progress Report (2026-05-10)
+## Progress Report (2026-05-11)
 
-Estimated completion: **72%**
+Estimated completion: **87%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -28,6 +28,26 @@ not yet complete.
 - Wired `connect`/`disconnect`/`status` commands to prefer daemon IPC when
   reachable.
 - Added daemon server tests for startup conflict and shutdown behavior.
+- Runtime `connect`/`disconnect`/`status` no longer silently fall back to
+  direct CLI ownership when daemon IPC is unreachable; they now return explicit
+  `xrat daemon start` guidance.
+- Added command-level regression coverage that asserts daemon-unreachable
+  guidance for `connect`, `disconnect`, and `status`.
+- Added schema groundwork for ownership/transition metadata on
+  `runtime_sessions` (`owner_kind`, `owner_instance_id`,
+  `last_transition_reason_code`, `last_transition_reason_detail`) with
+  cross-backend migrations and model/repository mapping.
+- Wired daemon ownership + transition metadata writes:
+  - daemon boot now has an instance id
+  - reattach accept/reject persists owner + reason metadata
+  - daemon-driven connect/disconnect/replace-success persists reason codes
+    (`manual_connect`, `manual_disconnect`, `replace_commit_success`)
+  - daemon-driven connect/disconnect/replace-success now persists detail text
+    alongside reason codes for diagnostics
+- Extended transition reason writes in runtime lifecycle paths:
+  - stale runtime reconciliation now persists `process_exit_unexpected`
+  - replace flow now persists `replace_started`,
+    `replace_validation_failed`, and `replace_rollback_keep_old`
 
 ### In Progress / Partial
 

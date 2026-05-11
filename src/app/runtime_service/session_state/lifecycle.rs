@@ -86,6 +86,25 @@ async fn mark_session_stale(
             Some(stale_session_reason(session)),
         )
         .await?;
+    let reason_code = match session.status {
+        RuntimeSessionStatus::Starting | RuntimeSessionStatus::Running => {
+            Some("process_exit_unexpected")
+        }
+        RuntimeSessionStatus::Stopping => Some("manual_disconnect"),
+        RuntimeSessionStatus::Stopped | RuntimeSessionStatus::Failed => None,
+    };
+    if let Some(reason_code) = reason_code {
+        context
+            .db
+            .update_runtime_session_transition_metadata(
+                session.id,
+                None,
+                None,
+                Some(reason_code),
+                Some(stale_session_reason(session)),
+            )
+            .await?;
+    }
     context.db.clear_active_config().await?;
     Ok(())
 }

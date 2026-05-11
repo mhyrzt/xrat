@@ -1,6 +1,5 @@
 use crate::app::daemon::server;
 use crate::app::runtime::AppContext;
-use crate::app::runtime_service::RuntimeService;
 use crate::cli::DisconnectArgs;
 
 pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Result<()> {
@@ -20,8 +19,10 @@ pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Res
             }
         }
         Err(err) if server::daemon_unreachable(&err) => {
-            tracing::info!("daemon not reachable; using direct runtime disconnect path");
-            RuntimeService::new(context).disconnect().await?
+            return Err(crate::app::AppError::InvalidArgument(format!(
+                "daemon is not running. Start it with `xrat daemon start` (socket: {})",
+                socket_path.display()
+            )));
         }
         Err(err) => return Err(err),
     };
@@ -47,4 +48,61 @@ pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Res
         println!("No active runtime session");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::config::AppConfig;
+    use crate::app::AppError;
+    use crate::app::runtime::RuntimePaths;
+    use crate::db::{Database, DatabaseConnectionConfig};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[tokio::test]
+    async fn disconnect_returns_daemon_unreachable_hint() {
+        let context = test_context("disconnect-daemon-hint").await;
+        let err = run(&context, &DisconnectArgs { json: false })
+            .await
+            .expect_err("disconnect should require daemon reachability");
+        match err {
+            AppError::InvalidArgument(message) => {
+                assert!(message.contains("xrat daemon start"));
+                assert!(message.contains("daemon is not running"));
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    async fn test_context(prefix: &str) -> AppContext {
+        let root = std::env::temp_dir().join(format!(
+            "xrat-command-{prefix}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).expect("root should be created");
+        let database_config = DatabaseConnectionConfig::Sqlite {
+            path: root.join("db.sqlite"),
+        };
+        let db = Database::connect(&database_config)
+            .await
+            .expect("database should connect");
+        AppContext {
+            db,
+            app_config: AppConfig::default(),
+            runtime_paths: RuntimePaths {
+                root_dir: root.clone(),
+                database_config,
+                database_path: root.join("db.sqlite"),
+                database_label: root.join("db.sqlite").display().to_string(),
+                config_path: root.join("config.toml"),
+                runtime_dir: root.join("runtime"),
+                xray_path: "xray".into(),
+                v2ray_path: "v2ray".into(),
+                sing_box_path: "sing-box".into(),
+            },
+        }
+    }
 }

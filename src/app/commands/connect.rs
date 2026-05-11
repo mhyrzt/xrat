@@ -1,6 +1,5 @@
 use crate::app::daemon::server;
 use crate::app::runtime::AppContext;
-use crate::app::runtime_service::{ConnectRequest, RuntimeEndpoint, RuntimeService};
 use crate::cli::ConnectArgs;
 
 pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result<()> {
@@ -33,77 +32,68 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
             return Ok(());
         }
         Err(err) if server::daemon_unreachable(&err) => {
-            tracing::info!("daemon not reachable; using direct runtime connect path");
+            return Err(crate::app::AppError::InvalidArgument(format!(
+                "daemon is not running. Start it with `xrat daemon start` (socket: {})",
+                socket_path.display()
+            )));
         }
         Err(err) => return Err(err),
     }
-
-    let result = RuntimeService::new(context)
-        .connect(ConnectRequest { config_id: args.id })
-        .await?;
-
-    if args.json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "status": "connected",
-                "config": {
-                    "id": result.config.id,
-                    "name": &result.config.name,
-                    "protocol": &result.config.protocol,
-                    "address": &result.config.address,
-                    "port": result.config.port,
-                },
-                "session": {
-                    "id": result.session_id,
-                    "pid": result.pid,
-                    "runtime_config": &result.runtime_config_path,
-                },
-                "inbounds": {
-                    "socks": endpoint_json(result.endpoints.socks.as_ref()),
-                    "http": endpoint_json(result.endpoints.http.as_ref()),
-                    "shadowsocks": endpoint_json(result.endpoints.shadowsocks.as_ref()),
-                }
-            }))?
-        );
-        return Ok(());
-    }
-
-    println!("Connected config {}", result.config.id);
-    if let Some(name) = &result.config.name {
-        println!("Name: {name}");
-    }
-    if let Some(inbound) = &result.endpoints.socks {
-        println!(
-            "SOCKS: {}",
-            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
-        );
-    }
-    if let Some(inbound) = &result.endpoints.http {
-        println!(
-            "HTTP: {}",
-            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
-        );
-    }
-    if let Some(inbound) = &result.endpoints.shadowsocks {
-        println!(
-            "Shadowsocks: {}",
-            super::runtime_output::format_inbound_endpoint(&inbound.host, inbound.port)
-        );
-    }
-    println!("PID: {}", result.pid);
-    println!("Runtime config: {}", result.runtime_config_path.display());
-
-    Ok(())
 }
 
-fn endpoint_json(endpoint: Option<&RuntimeEndpoint>) -> serde_json::Value {
-    endpoint
-        .map(|endpoint| {
-            serde_json::json!({
-                "host": &endpoint.host,
-                "port": endpoint.port,
-            })
-        })
-        .unwrap_or(serde_json::Value::Null)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::config::AppConfig;
+    use crate::app::AppError;
+    use crate::app::runtime::RuntimePaths;
+    use crate::db::{Database, DatabaseConnectionConfig};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[tokio::test]
+    async fn connect_returns_daemon_unreachable_hint() {
+        let context = test_context("connect-daemon-hint").await;
+        let err = run(&context, &ConnectArgs { id: 7, json: false })
+            .await
+            .expect_err("connect should require daemon reachability");
+        match err {
+            AppError::InvalidArgument(message) => {
+                assert!(message.contains("xrat daemon start"));
+                assert!(message.contains("daemon is not running"));
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    async fn test_context(prefix: &str) -> AppContext {
+        let root = std::env::temp_dir().join(format!(
+            "xrat-command-{prefix}-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).expect("root should be created");
+        let database_config = DatabaseConnectionConfig::Sqlite {
+            path: root.join("db.sqlite"),
+        };
+        let db = Database::connect(&database_config)
+            .await
+            .expect("database should connect");
+        AppContext {
+            db,
+            app_config: AppConfig::default(),
+            runtime_paths: RuntimePaths {
+                root_dir: root.clone(),
+                database_config,
+                database_path: root.join("db.sqlite"),
+                database_label: root.join("db.sqlite").display().to_string(),
+                config_path: root.join("config.toml"),
+                runtime_dir: root.join("runtime"),
+                xray_path: "xray".into(),
+                v2ray_path: "v2ray".into(),
+                sing_box_path: "sing-box".into(),
+            },
+        }
+    }
 }

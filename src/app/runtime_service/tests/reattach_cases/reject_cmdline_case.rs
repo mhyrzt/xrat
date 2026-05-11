@@ -43,7 +43,7 @@ async fn reattach_rejects_cmdline_mismatch_marks_session_failed() {
         .expect("session should insert");
 
     RuntimeService::new(&context)
-        .reconcile_reattach_with_inspector(&CmdlineMismatchInspector)
+        .reconcile_reattach_with_inspector(&CmdlineMismatchInspector, "daemon-test")
         .await
         .expect("reattach reconcile should succeed");
 
@@ -56,6 +56,12 @@ async fn reattach_rejects_cmdline_mismatch_marks_session_failed() {
     assert_eq!(session.status, RuntimeSessionStatus::Failed);
     assert_eq!(
         session.failure_reason.as_deref(),
+        Some("daemon_restart_reattach_rejected_cmdline_mismatch")
+    );
+    assert_eq!(session.owner_kind.as_deref(), Some("daemon"));
+    assert_eq!(session.owner_instance_id.as_deref(), Some("daemon-test"));
+    assert_eq!(
+        session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_cmdline_mismatch")
     );
     assert!(

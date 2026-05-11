@@ -60,14 +60,18 @@ pub enum DaemonShutdownResult {
     Err { message: String },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupervisorState {
     pub ready: bool,
+    pub instance_id: String,
 }
 
-impl Default for SupervisorState {
-    fn default() -> Self {
-        Self { ready: true }
+impl SupervisorState {
+    pub fn new(instance_id: String) -> Self {
+        Self {
+            ready: true,
+            instance_id,
+        }
     }
 }
 

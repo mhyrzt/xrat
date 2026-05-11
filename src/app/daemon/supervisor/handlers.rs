@@ -49,6 +49,16 @@ pub async fn handle_event(
                 .await
             {
                 Ok(result) => {
+                    let _ = context
+                        .db
+                        .update_runtime_session_transition_metadata(
+                            result.session_id,
+                            Some("daemon"),
+                            Some(&state.instance_id),
+                            Some("manual_connect"),
+                            Some("daemon runtime connect request succeeded"),
+                        )
+                        .await;
                     let _ = respond_to.send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
                         config_id: result.config.id,
                         session_id: result.session_id,
@@ -63,8 +73,29 @@ pub async fn handle_event(
             }
         }
         SupervisorEvent::RuntimeDisconnect { respond_to } => {
+            let active_session_id = context
+                .db
+                .get_running_runtime_session()
+                .await
+                .ok()
+                .flatten()
+                .map(|session| session.id);
             match RuntimeService::new(context).disconnect().await {
                 Ok(result) => {
+                    if result.stopped_session {
+                        if let Some(session_id) = active_session_id {
+                            let _ = context
+                                .db
+                                .update_runtime_session_transition_metadata(
+                                    session_id,
+                                    Some("daemon"),
+                                    Some(&state.instance_id),
+                                    Some("manual_disconnect"),
+                                    Some("daemon runtime disconnect request succeeded"),
+                                )
+                                .await;
+                        }
+                    }
                     let _ =
                         respond_to.send(RuntimeDisconnectResult::Ok(RuntimeDisconnectPayload {
                             stopped_session: result.stopped_session,
@@ -90,6 +121,16 @@ pub async fn handle_event(
                 .await
             {
                 Ok(result) => {
+                    let _ = context
+                        .db
+                        .update_runtime_session_transition_metadata(
+                            result.new_session_id,
+                            Some("daemon"),
+                            Some(&state.instance_id),
+                            Some("replace_commit_success"),
+                            Some("daemon replace handoff completed"),
+                        )
+                        .await;
                     let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
                         trigger,
                         replaced: true,

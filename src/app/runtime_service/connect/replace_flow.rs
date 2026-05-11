@@ -15,11 +15,50 @@ impl<'a> RuntimeService<'a> {
             .unwrap_or(active.config_id.ok_or_else(|| {
                 AppError::InvalidArgument("active runtime session has no config id".to_string())
             })?);
+        self.context
+            .db
+            .update_runtime_session_transition_metadata(
+                active.id,
+                None,
+                None,
+                Some("replace_started"),
+                Some(&format!(
+                    "trigger={:?}, candidate_id={}",
+                    request.trigger, next_config_id
+                )),
+            )
+            .await?;
         let result = self
             .connect(ConnectRequest {
                 config_id: next_config_id,
             })
-            .await?;
+            .await;
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                self.context
+                    .db
+                    .update_runtime_session_transition_metadata(
+                        active.id,
+                        None,
+                        None,
+                        Some("replace_validation_failed"),
+                        Some(&err.to_string()),
+                    )
+                    .await?;
+                self.context
+                    .db
+                    .update_runtime_session_transition_metadata(
+                        active.id,
+                        None,
+                        None,
+                        Some("replace_rollback_keep_old"),
+                        Some("replacement candidate rejected before handoff"),
+                    )
+                    .await?;
+                return Err(err);
+            }
+        };
         Ok(ReplaceResult {
             old_session_id: active.id,
             new_config_id: result.config.id,
