@@ -2,7 +2,7 @@ use super::row::map_runtime_session_row;
 use crate::db::connection::DbPool;
 use crate::db::model::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};
 
-const RUNTIME_SESSION_COLUMNS: &str = "id, config_id, status, socks_host, socks_port, http_host, http_port, shadowsocks_host, shadowsocks_port, process_id, failure_reason, owner_kind, owner_instance_id, last_transition_reason_code, last_transition_reason_detail, started_at, stopped_at, created_at, updated_at";
+const RUNTIME_SESSION_COLUMNS: &str = "id, config_id, status, socks_host, socks_port, http_host, http_port, shadowsocks_host, shadowsocks_port, process_id, failure_reason, owner_kind, owner_instance_id, last_transition_reason_code, last_transition_reason_detail, last_transition_origin, started_at, stopped_at, created_at, updated_at";
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
@@ -141,25 +141,28 @@ pub async fn update_transition_metadata(
     owner_instance_id: Option<&str>,
     reason_code: Option<&str>,
     reason_detail: Option<&str>,
+    transition_origin: Option<&str>,
 ) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(pool) => {
-            sqlx::query("UPDATE runtime_sessions SET owner_kind = COALESCE(?2, owner_kind), owner_instance_id = COALESCE(?3, owner_instance_id), last_transition_reason_code = COALESCE(?4, last_transition_reason_code), last_transition_reason_detail = COALESCE(?5, last_transition_reason_detail), updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+            sqlx::query("UPDATE runtime_sessions SET owner_kind = COALESCE(?2, owner_kind), owner_instance_id = COALESCE(?3, owner_instance_id), last_transition_reason_code = COALESCE(?4, last_transition_reason_code), last_transition_reason_detail = COALESCE(?5, last_transition_reason_detail), last_transition_origin = COALESCE(?6, last_transition_origin), updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
                 .bind(session_id)
                 .bind(owner_kind)
                 .bind(owner_instance_id)
                 .bind(reason_code)
                 .bind(reason_detail)
+                .bind(transition_origin)
                 .execute(pool)
                 .await?;
         }
         DbPool::Postgres(pool) => {
-            sqlx::query("UPDATE runtime_sessions SET owner_kind = COALESCE($2, owner_kind), owner_instance_id = COALESCE($3, owner_instance_id), last_transition_reason_code = COALESCE($4, last_transition_reason_code), last_transition_reason_detail = COALESCE($5, last_transition_reason_detail), updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+            sqlx::query("UPDATE runtime_sessions SET owner_kind = COALESCE($2, owner_kind), owner_instance_id = COALESCE($3, owner_instance_id), last_transition_reason_code = COALESCE($4, last_transition_reason_code), last_transition_reason_detail = COALESCE($5, last_transition_reason_detail), last_transition_origin = COALESCE($6, last_transition_origin), updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
                 .bind(session_id)
                 .bind(owner_kind)
                 .bind(owner_instance_id)
                 .bind(reason_code)
                 .bind(reason_detail)
+                .bind(transition_origin)
                 .execute(pool)
                 .await?;
         }

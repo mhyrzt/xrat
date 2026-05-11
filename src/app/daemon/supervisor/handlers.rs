@@ -57,6 +57,7 @@ pub async fn handle_event(
                             Some(&state.instance_id),
                             Some("manual_connect"),
                             Some("daemon runtime connect request succeeded"),
+                            Some("daemon"),
                         )
                         .await;
                     let _ = respond_to.send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
@@ -92,6 +93,7 @@ pub async fn handle_event(
                                     Some(&state.instance_id),
                                     Some("manual_disconnect"),
                                     Some("daemon runtime disconnect request succeeded"),
+                                    Some("daemon"),
                                 )
                                 .await;
                         }
@@ -129,6 +131,7 @@ pub async fn handle_event(
                             Some(&state.instance_id),
                             Some("replace_commit_success"),
                             Some("daemon replace handoff completed"),
+                            Some("daemon"),
                         )
                         .await;
                     let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {

@@ -62,6 +62,7 @@ async fn reattach_accepts_matching_pid_exec_cmdline() {
         session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_ok")
     );
+    assert_eq!(session.last_transition_origin.as_deref(), Some("daemon"));
     assert_eq!(
         context
             .db

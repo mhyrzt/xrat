@@ -125,6 +125,7 @@ where
         owner_instance_id: row.get("owner_instance_id"),
         last_transition_reason_code: row.get("last_transition_reason_code"),
         last_transition_reason_detail: row.get("last_transition_reason_detail"),
+        last_transition_origin: row.get("last_transition_origin"),
         started_at: row.get("started_at"),
         stopped_at: row.get("stopped_at"),
         created_at: row.get("created_at"),

@@ -44,8 +44,8 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::config::AppConfig;
     use crate::app::AppError;
+    use crate::app::config::AppConfig;
     use crate::app::runtime::RuntimePaths;
     use crate::db::{Database, DatabaseConnectionConfig};
     use std::time::{SystemTime, UNIX_EPOCH};

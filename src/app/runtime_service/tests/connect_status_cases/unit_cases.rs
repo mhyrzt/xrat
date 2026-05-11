@@ -100,6 +100,7 @@ fn runtime_session_with_status(status: RuntimeSessionStatus) -> RuntimeSessionRe
         owner_instance_id: None,
         last_transition_reason_code: None,
         last_transition_reason_detail: None,
+        last_transition_origin: None,
         started_at: Some("1".to_string()),
         stopped_at: None,
         created_at: "1".to_string(),

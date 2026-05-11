@@ -20,7 +20,15 @@ pub(crate) async fn stop_active_session(context: &AppContext) -> crate::app::Res
         context.db.clear_active_config().await?;
         return Ok(false);
     };
+    stop_session(context, &session).await?;
+    context.db.clear_active_config().await?;
+    Ok(true)
+}
 
+pub(crate) async fn stop_session(
+    context: &AppContext,
+    session: &RuntimeSessionRecord,
+) -> crate::app::Result<()> {
     context
         .db
         .update_runtime_session_state(
@@ -52,8 +60,7 @@ pub(crate) async fn stop_active_session(context: &AppContext) -> crate::app::Res
         .db
         .mark_runtime_session_stopped(session.id, Some(&now_string()))
         .await?;
-    context.db.clear_active_config().await?;
-    Ok(true)
+    Ok(())
 }
 
 pub(crate) fn runtime_session_is_alive(session: &RuntimeSessionRecord) -> bool {
@@ -102,6 +109,7 @@ async fn mark_session_stale(
                 None,
                 Some(reason_code),
                 Some(stale_session_reason(session)),
+                Some("daemon"),
             )
             .await?;
     }

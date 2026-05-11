@@ -106,6 +106,7 @@ async fn replace_validation_failure_keeps_old_runtime_active() {
         latest.last_transition_reason_detail.as_deref(),
         Some("replacement candidate rejected before handoff")
     );
+    assert_eq!(latest.last_transition_origin.as_deref(), Some("daemon"));
 
     let active_config = context
         .db
@@ -114,4 +115,81 @@ async fn replace_validation_failure_keeps_old_runtime_active() {
         .expect("active config should load")
         .expect("active config should still exist");
     assert_eq!(active_config.id, config.id);
+}
+
+#[tokio::test]
+async fn replace_spawn_failure_keeps_old_runtime_active() {
+    let mut context = test_context().await;
+    let summary = context
+        .db
+        .import_nodes(&test_source(), &[test_node()])
+        .await
+        .expect("node should import");
+    assert_eq!(summary.imported_configs, 1);
+    let config = context
+        .db
+        .list_configs(&Default::default())
+        .await
+        .expect("configs should load")
+        .into_iter()
+        .next()
+        .expect("config should exist");
+
+    let mut child = Command::new("sleep")
+        .arg("5")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("sleep process should spawn");
+    let pid = i64::from(child.id());
+
+    context.runtime_paths.xray_path = std::path::PathBuf::from("/definitely/missing-xray");
+    context
+        .db
+        .set_active_config(config.id)
+        .await
+        .expect("active config should be set");
+    let old_session_id = context
+        .db
+        .insert_runtime_session(&RuntimeSessionInsert {
+            config_id: Some(config.id),
+            status: RuntimeSessionStatus::Running,
+            socks_host: Some("127.0.0.1".to_string()),
+            socks_port: Some(1080),
+            http_host: None,
+            http_port: None,
+            shadowsocks_host: None,
+            shadowsocks_port: None,
+            process_id: Some(pid),
+            failure_reason: None,
+            started_at: Some("1".to_string()),
+            stopped_at: None,
+        })
+        .await
+        .expect("session should insert");
+
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::Manual,
+            candidate_id: Some(config.id),
+        })
+        .await;
+
+    let _ = child.kill();
+    let _ = child.wait();
+
+    assert!(
+        result.is_err(),
+        "replace should fail when candidate spawn fails"
+    );
+    let running = context
+        .db
+        .get_running_runtime_session()
+        .await
+        .expect("running should load")
+        .expect("old runtime should still be running");
+    assert_eq!(running.id, old_session_id);
+    assert_eq!(running.status, RuntimeSessionStatus::Running);
+    assert_eq!(running.process_id, Some(pid));
 }

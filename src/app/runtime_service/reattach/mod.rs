@@ -13,10 +13,7 @@ impl<'a> RuntimeService<'a> {
         &self,
         daemon_instance_id: &str,
     ) -> crate::app::Result<()> {
-        self.reconcile_reattach_with_inspector(
-            &process::SystemProcessInspector,
-            daemon_instance_id,
-        )
+        self.reconcile_reattach_with_inspector(&process::SystemProcessInspector, daemon_instance_id)
             .await
     }
 
@@ -50,6 +47,7 @@ impl<'a> RuntimeService<'a> {
                     Some(daemon_instance_id),
                     Some(reject_reason),
                     None,
+                    Some("daemon"),
                 )
                 .await?;
             self.context.db.clear_active_config().await?;
@@ -62,6 +60,7 @@ impl<'a> RuntimeService<'a> {
                     Some(daemon_instance_id),
                     Some("daemon_restart_reattach_ok"),
                     None,
+                    Some("daemon"),
                 )
                 .await?;
         }

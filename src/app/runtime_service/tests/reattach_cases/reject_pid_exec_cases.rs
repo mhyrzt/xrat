@@ -64,6 +64,7 @@ async fn reattach_rejects_pid_missing_marks_session_failed() {
         session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_pid_missing")
     );
+    assert_eq!(session.last_transition_origin.as_deref(), Some("daemon"));
     assert!(
         context
             .db
@@ -139,6 +140,7 @@ async fn reattach_rejects_exec_mismatch_marks_session_failed() {
         session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_exec_mismatch")
     );
+    assert_eq!(session.last_transition_origin.as_deref(), Some("daemon"));
     assert!(
         context
             .db

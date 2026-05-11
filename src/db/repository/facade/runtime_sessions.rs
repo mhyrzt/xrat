@@ -61,6 +61,7 @@ pub async fn update_runtime_session_transition_metadata(
     owner_instance_id: Option<&str>,
     reason_code: Option<&str>,
     reason_detail: Option<&str>,
+    transition_origin: Option<&str>,
 ) -> crate::db::Result<()> {
     runtime_sessions::update_transition_metadata(
         pool,
@@ -69,6 +70,7 @@ pub async fn update_runtime_session_transition_metadata(
         owner_instance_id,
         reason_code,
         reason_detail,
+        transition_origin,
     )
     .await
 }

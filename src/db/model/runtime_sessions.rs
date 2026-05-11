@@ -63,6 +63,7 @@ pub struct RuntimeSessionRecord {
     pub owner_instance_id: Option<String>,
     pub last_transition_reason_code: Option<String>,
     pub last_transition_reason_detail: Option<String>,
+    pub last_transition_origin: Option<String>,
     pub started_at: Option<String>,
     pub stopped_at: Option<String>,
     pub created_at: String,

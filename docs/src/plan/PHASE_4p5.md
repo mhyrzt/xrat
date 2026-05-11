@@ -13,7 +13,7 @@ state updates do not depend on user-initiated commands.
 
 ## Progress Report (2026-05-11)
 
-Estimated completion: **87%**
+Estimated completion: **91%**
 
 Current implementation has landed the first daemon/IPC slice, but Phase 4.5 is
 not yet complete.
@@ -66,15 +66,20 @@ not yet complete.
 - Added focused replace safety coverage:
   - runtime service rejects replace without running session
   - replacement validation failure keeps old runtime active
+  - replacement spawn failure keeps old runtime active
   - daemon IPC replace success/error response mapping tests
+- Added transition taxonomy schema extension for origin persistence:
+  - `runtime_sessions.last_transition_origin` migration for SQLite/Postgres
+  - model/repository/database mapping and write-path wiring
+- Runtime replace flow now stages candidate runtime on alternate local inbound
+  ports, marks candidate session running, switches active config, then stops
+  old runtime session (make-before-break baseline).
 
 ### Not Started (Phase 4.5 scope items)
 
-- Full make-before-break replace execution semantics (stage new runtime before
-  stopping old runtime).
-- Transition reason taxonomy persistence and schema additions (`owner_kind`,
-  `owner_instance_id`, transition reason fields, cooldown/failure tracking).
 - Timer-driven health task and rotation-oriented failure signaling.
+- Candidate/proxy cooldown/failure tracking schema fields for scheduler phases
+  (`cooldown_until`, `last_failed_at`, `last_failed_reason_code`).
 
 ### Review Findings Snapshot (current diff)
 
@@ -95,7 +100,8 @@ be resolved before marking Phase 4.5 complete:
 - Closed: reattach coverage now includes explicit `cmdline_mismatch` reject
   regression.
   - `src/app/runtime_service/tests/reattach_cases.rs`
-- Remaining: schema-level owner/reason taxonomy fields from planned migrations.
+- Remaining: full transition origin parity across all CLI/direct ownership
+  paths and candidate cooldown/failure schema fields.
 
 ## Validation Link
 
@@ -428,6 +434,15 @@ Done when:
 - successful replace commits new runtime then drains/stops old runtime
 - failed replace preserves old runtime availability
 - replace responses include reason-coded outcomes for scheduler consumption
+
+Current status update (2026-05-11):
+
+- runtime service replace now stages candidate first (alternate ports), then
+  flips active config and stops old session
+- rollback behavior on validation/spawn failure keeps old runtime active and
+  persists rollback reason metadata
+- remaining: add deterministic success-path test asserting new-runtime-commit
+  then old-runtime-stop ordering, and broaden daemon-level integration coverage
 
 ## Test Closure Checklist
 

@@ -64,6 +64,7 @@ async fn reattach_rejects_cmdline_mismatch_marks_session_failed() {
         session.last_transition_reason_code.as_deref(),
         Some("daemon_restart_reattach_rejected_cmdline_mismatch")
     );
+    assert_eq!(session.last_transition_origin.as_deref(), Some("daemon"));
     assert!(
         context
             .db

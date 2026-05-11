@@ -56,7 +56,7 @@ Stage and execute Phase 4.5 implementation increments so that:
 - runtime transitions are persisted with stable reason taxonomy
 - area #5 rotation can build on supervisor contracts without redesign
 
-Current Phase 4.5 progress estimate: **87%** complete as of **2026-05-11**.
+Current Phase 4.5 progress estimate: **91%** complete as of **2026-05-11**.
 
 ## Phase 4 Boundary (Now Explicit)
 
@@ -140,7 +140,8 @@ reconciled.
 - add make-before-break `RuntimeReplace` primitive
 - keep active runtime when candidate validation fails
 - **status:** in progress (replace IPC/supervisor/runtime contract landed with
-  safety coverage; full make-before-break execution still pending)
+  make-before-break baseline + rollback coverage; remaining success-path
+  deterministic handoff test coverage pending)
 
 6. **Targeted test pass**
 
@@ -160,12 +161,12 @@ reconciled.
   status output shape (inbound endpoint health, failure reason details) is still
   pending.
 - transition reason taxonomy persistence (`reason_code`, `origin`,
-  `reason_detail`) is partially implemented; daemon connect/disconnect/replace
-  success and reattach accept/reject now write reason metadata, but full
-  coverage for all transitions is still pending.
+  `reason_detail`) now includes `last_transition_origin` schema/model/repo
+  wiring and daemon/reattach/replace write paths; full CLI/direct ownership
+  transition coverage is still pending.
 - `process_exit_unexpected`, `replace_started`, `replace_validation_failed`,
-  and `replace_rollback_keep_old` are now persisted in transition metadata;
-  remaining transitions are still pending.
+  and `replace_rollback_keep_old` are persisted in transition metadata with
+  origin metadata; remaining transitions are still pending.
 - strict reattach verification and restart reconciliation are now writing daemon
   ownership metadata, but broader lifecycle parity remains pending.
 
@@ -230,7 +231,8 @@ tracking.
   - add `RuntimeReplace` make-before-break flow
   - validate replacement readiness before ownership switch
   - persist rollback reason while keeping old runtime active on failure
-- status: in progress
+- status: in progress (baseline flow complete; remaining deterministic
+  success-path ordering coverage + broader daemon integration)
 
 ## Daily Progress Board (Phase 4.5)
 
@@ -242,7 +244,7 @@ actionable.
 | A - Daemon command correctness  | Mostly complete | _unassigned_ | 2026-05-11   | Follow-up: daemon start output/UX polish only     |
 | B - Supervisor error semantics  | Complete (status path) | _unassigned_ | 2026-05-11   | Optional: expand structured failures for other event types |
 | C - Reattach and reconciliation | In progress | _unassigned_ | 2026-05-11   | Remaining: broader lifecycle parity and transition coverage |
-| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-11   | Remaining: true make-before-break handoff semantics |
+| D - Replace primitive bridge    | In progress | _unassigned_ | 2026-05-11   | Remaining: success-path handoff ordering tests + daemon integration coverage |
 
 ## Phase 4.5 Closure Gates
 
