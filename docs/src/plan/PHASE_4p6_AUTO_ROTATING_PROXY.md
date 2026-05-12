@@ -65,8 +65,8 @@ history stay outside this phase.
   - `last_trigger`,
   - `last_result`.
 - Added `proxy status` payload and command output with active config, last
-  trigger/result, last candidate/result, cooldown-active flag, next timer
-  epoch, and current rotation config summary.
+  trigger/result, last candidate/result, cooldown-active flag, next timer epoch,
+  and current rotation config summary.
 - Reused existing `runtime replace` flow for manual `proxy rotate`.
 - Added CLI parse tests for all proxy subcommands and `--config-id`.
 - Added `[runtime.rotation]` config surface and defaults:
@@ -104,8 +104,8 @@ history stay outside this phase.
 - Added supervisor success-path coverage for remaining rotation branches:
   - timer-due trigger can complete successful replacement and reschedule next
     timer interval,
-  - manual `RuntimeReplace` with explicit candidate id can override cooldown
-    and still commit a safe handoff.
+  - manual `RuntimeReplace` with explicit candidate id can override cooldown and
+    still commit a safe handoff.
 - Added optional machine-friendly status output:
   - `xrat proxy status --json` now prints daemon proxy rotation status payload
     as pretty JSON.
@@ -129,8 +129,8 @@ history stay outside this phase.
 
 - CLI currently uses `proxy rotate --config-id <id>` instead of `--config <id>`
   to avoid conflict with existing global `--config` flag.
-- Automatic rotation currently enforces tested-candidate selection semantics.
-  If no passing tested candidate exists, current runtime is preserved.
+- Automatic rotation currently enforces tested-candidate selection semantics. If
+  no passing tested candidate exists, current runtime is preserved.
 
 ## Test Plan
 

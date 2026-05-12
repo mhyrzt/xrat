@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-#[cfg(unix)]
 use tokio::net::UnixStream;
 
 use crate::app::daemon::server::{
@@ -10,19 +9,16 @@ use crate::app::daemon::server::{
     RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
 };
 
-#[cfg(unix)]
 pub async fn ping_daemon(socket_path: &Path) -> crate::app::Result<DaemonResponse<PingPayload>> {
     request_response(socket_path, DaemonRequestKind::DaemonPing).await
 }
 
-#[cfg(unix)]
 pub async fn runtime_status_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<RuntimeStatusPayload>> {
     request_response(socket_path, DaemonRequestKind::RuntimeStatus).await
 }
 
-#[cfg(unix)]
 pub async fn runtime_connect_daemon(
     socket_path: &Path,
     config_id: i64,
@@ -30,14 +26,12 @@ pub async fn runtime_connect_daemon(
     request_response(socket_path, DaemonRequestKind::RuntimeConnect { config_id }).await
 }
 
-#[cfg(unix)]
 pub async fn runtime_disconnect_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<RuntimeDisconnectPayload>> {
     request_response(socket_path, DaemonRequestKind::RuntimeDisconnect).await
 }
 
-#[cfg(unix)]
 pub async fn runtime_replace_daemon(
     socket_path: &Path,
     trigger: RotationTrigger,
@@ -53,35 +47,30 @@ pub async fn runtime_replace_daemon(
     .await
 }
 
-#[cfg(unix)]
 pub async fn daemon_shutdown_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
     request_response(socket_path, DaemonRequestKind::DaemonShutdown).await
 }
 
-#[cfg(unix)]
 pub async fn proxy_start_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
     request_response(socket_path, DaemonRequestKind::ProxyStart).await
 }
 
-#[cfg(unix)]
 pub async fn proxy_status_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<ProxyStatusPayload>> {
     request_response(socket_path, DaemonRequestKind::ProxyStatus).await
 }
 
-#[cfg(unix)]
 pub async fn proxy_stop_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
     request_response(socket_path, DaemonRequestKind::ProxyStop).await
 }
 
-#[cfg(unix)]
 async fn request_response<T: serde::de::DeserializeOwned>(
     socket_path: &Path,
     request_kind: DaemonRequestKind,
@@ -90,7 +79,6 @@ async fn request_response<T: serde::de::DeserializeOwned>(
     Ok(serde_json::from_slice::<T>(&response_bytes)?)
 }
 
-#[cfg(unix)]
 async fn send_request(
     socket_path: &Path,
     request_kind: DaemonRequestKind,
@@ -108,75 +96,4 @@ async fn send_request(
     let mut response_bytes = Vec::new();
     stream.read_to_end(&mut response_bytes).await?;
     Ok(response_bytes)
-}
-
-#[cfg(not(unix))]
-pub async fn ping_daemon(_socket_path: &Path) -> crate::app::Result<DaemonResponse<PingPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn runtime_status_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<RuntimeStatusPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn runtime_connect_daemon(
-    _socket_path: &Path,
-    _config_id: i64,
-) -> crate::app::Result<DaemonResponse<RuntimeConnectPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn runtime_disconnect_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<RuntimeDisconnectPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn runtime_replace_daemon(
-    _socket_path: &Path,
-    _trigger: RotationTrigger,
-    _candidate_id: Option<i64>,
-) -> crate::app::Result<DaemonResponse<RuntimeReplacePayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn daemon_shutdown_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn proxy_start_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn proxy_status_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<ProxyStatusPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-pub async fn proxy_stop_daemon(
-    _socket_path: &Path,
-) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
-    unsupported_client()
-}
-
-#[cfg(not(unix))]
-fn unsupported_client<T>() -> crate::app::Result<T> {
-    Err(crate::app::AppError::InvalidArgument(
-        "daemon IPC client is not supported on this platform yet".to_string(),
-    ))
 }

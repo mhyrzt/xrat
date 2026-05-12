@@ -1,0 +1,32 @@
+use super::super::*;
+
+mod bulk;
+mod progress;
+mod single;
+
+pub(super) async fn run_single(
+    args: &TestArgs,
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    config_id: i64,
+) -> crate::app::Result<()> {
+    single::run_single(args, context, settings, config_id).await
+}
+
+pub(super) async fn run_bulk(
+    args: &TestArgs,
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+) -> crate::app::Result<()> {
+    bulk::run_bulk(args, context, settings).await
+}
+
+pub(crate) async fn run_bulk_for_configs(
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    configs: Vec<ConfigRecord>,
+    run_kind: &str,
+    show_progress: bool,
+) -> crate::app::Result<Vec<TestOutputRow>> {
+    bulk::run_bulk_for_configs(context, settings, configs, run_kind, show_progress).await
+}

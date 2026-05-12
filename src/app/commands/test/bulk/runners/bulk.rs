@@ -1,32 +1,7 @@
-use super::super::*;
-
-pub(super) async fn run_single(
-    _args: &TestArgs,
-    context: &AppContext,
-    settings: ResolvedTestSettings,
-    config_id: i64,
-) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(config_id).await?;
-
-    let Some(config) = config else {
-        tracing::warn!(config_id, "config not found");
-        return Ok(());
-    };
-
-    let run_id = context
-        .db
-        .insert_connection_test_run(&ConnectionTestRunInsert {
-            kind: "single".to_string(),
-        })
-        .await?;
-
-    print_single_header(&config);
-    let output =
-        test_and_record_config(context.db.clone(), config, settings, true, Some(run_id)).await?;
-    print_single_summary(&output);
-
-    Ok(())
-}
+use super::progress::{
+    bulk_progress_bar, finish_bulk_progress, spawn_config_test, update_bulk_progress,
+};
+use super::*;
 
 pub(super) async fn run_bulk(
     args: &TestArgs,
@@ -34,18 +9,16 @@ pub(super) async fn run_bulk(
     settings: ResolvedTestSettings,
 ) -> crate::app::Result<()> {
     let configs = context.db.list_configs(&args.config_filter()).await?;
-
     if configs.is_empty() {
         tracing::info!("no configs found for requested test filters");
         write_results(args, &[])?;
         return Ok(());
     }
+
     let mut outputs =
         run_bulk_for_configs(context, settings, configs, "bulk", !args.no_progress).await?;
-
     sort_results(&mut outputs, args.sort_by);
     write_results(args, &outputs)?;
-
     Ok(())
 }
 
@@ -106,49 +79,4 @@ pub(crate) async fn run_bulk_for_configs(
     }
     finish_bulk_progress(progress, completed, failed);
     Ok(outputs)
-}
-
-pub(super) fn bulk_progress_bar(total: usize, enabled: bool) -> Option<ProgressBar> {
-    if !enabled {
-        return None;
-    }
-
-    let progress = ProgressBar::new(total as u64);
-    let style = ProgressStyle::with_template(
-        "{spinner:.green} testing [{bar:32.cyan/blue}] {pos}/{len} failed:{msg}",
-    )
-    .unwrap_or_else(|_| ProgressStyle::default_bar())
-    .progress_chars("=>-");
-    progress.set_style(style);
-    progress.set_message("0");
-
-    Some(progress)
-}
-
-pub(super) fn update_bulk_progress(
-    progress: &Option<ProgressBar>,
-    completed: usize,
-    failed: usize,
-) {
-    if let Some(progress) = progress {
-        progress.set_position(completed as u64);
-        progress.set_message(failed.to_string());
-    }
-}
-
-pub(super) fn finish_bulk_progress(progress: Option<ProgressBar>, completed: usize, failed: usize) {
-    if let Some(progress) = progress {
-        progress.finish_with_message(format!("done: {completed} tested, {failed} failed"));
-    }
-}
-
-pub(super) fn spawn_config_test(
-    join_set: &mut JoinSet<crate::app::Result<TestOutputRow>>,
-    db: Database,
-    config: ConfigRecord,
-    settings: ResolvedTestSettings,
-    run_id: Option<i64>,
-) {
-    join_set
-        .spawn(async move { test_and_record_config(db, config, settings, false, run_id).await });
 }
