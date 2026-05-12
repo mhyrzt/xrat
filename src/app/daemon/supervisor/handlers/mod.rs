@@ -20,6 +20,7 @@ pub async fn handle_event(
     match event {
         SupervisorEvent::HealthTick => {
             let outcome = health::handle_health_tick(state, context).await;
+            state.cooldown_active = outcome.cooldown_active;
             if state.rotation_enabled
                 && state.health_trigger_enabled
                 && outcome.health_failure_recorded

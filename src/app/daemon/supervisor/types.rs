@@ -93,6 +93,9 @@ pub struct SupervisorState {
     pub next_timer_epoch_secs: Option<u64>,
     pub last_trigger: Option<RotationTrigger>,
     pub last_result: String,
+    pub last_candidate_config_id: Option<i64>,
+    pub last_candidate_result: String,
+    pub cooldown_active: bool,
 }
 
 impl SupervisorState {
@@ -107,6 +110,9 @@ impl SupervisorState {
             next_timer_epoch_secs: None,
             last_trigger: None,
             last_result: "never_triggered".to_string(),
+            last_candidate_config_id: None,
+            last_candidate_result: "never_selected".to_string(),
+            cooldown_active: false,
         }
     }
 }

@@ -37,14 +37,17 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         )
                     })?;
                     println!(
-                        "Proxy rotation: enabled={}, interval_secs={}, health_trigger_enabled={}, cooldown_secs={}, active_config={:?}, last_trigger={:?}, last_result={}, next_timer_at={:?}",
+                        "Proxy rotation: enabled={}, interval_secs={}, health_trigger_enabled={}, cooldown_secs={}, cooldown_active={}, active_config={:?}, last_trigger={:?}, last_result={}, last_candidate_config={:?}, last_candidate_result={}, next_timer_at={:?}",
                         payload.rotation_enabled,
                         payload.interval_secs,
                         payload.health_trigger_enabled,
                         payload.cooldown_secs,
+                        payload.cooldown_active,
                         payload.active_config_id,
                         payload.last_trigger,
                         payload.last_result,
+                        payload.last_candidate_config_id,
+                        payload.last_candidate_result,
                         payload.next_timer_epoch_secs
                     );
                 }

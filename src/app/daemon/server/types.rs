@@ -104,6 +104,9 @@ pub struct ProxyStatusPayload {
     pub active_config_id: Option<i64>,
     pub last_trigger: Option<RotationTrigger>,
     pub last_result: String,
+    pub last_candidate_config_id: Option<i64>,
+    pub last_candidate_result: String,
+    pub cooldown_active: bool,
     pub next_timer_epoch_secs: Option<u64>,
 }
 

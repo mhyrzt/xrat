@@ -65,7 +65,8 @@ history stay outside this phase.
   - `last_trigger`,
   - `last_result`.
 - Added `proxy status` payload and command output with active config, last
-  trigger/result, next timer epoch, and current rotation config summary.
+  trigger/result, last candidate/result, cooldown-active flag, next timer
+  epoch, and current rotation config summary.
 - Reused existing `runtime replace` flow for manual `proxy rotate`.
 - Added CLI parse tests for all proxy subcommands and `--config-id`.
 - Added `[runtime.rotation]` config surface and defaults:
@@ -89,17 +90,22 @@ history stay outside this phase.
 - Kept runtime safety behavior explicit:
   - replacement candidate rejection keeps old runtime active,
   - no eligible candidate returns explicit invalid-state error.
+- Added dedicated rotation lifecycle reason-code mapping:
+  - started: `rotation_manual_started`, `rotation_timer_started`,
+    `rotation_health_started`
+  - failures: `rotation_no_candidate`, `rotation_candidate_failed`
+  - success path still converges on `replace_commit_success`.
+- Added supervisor-focused tests for new rotation branches:
+  - timer-due trigger updates rotation state on replacement failure,
+  - manual replacement failure persists `rotation_candidate_failed`,
+  - health-trigger no-candidate branch persists `rotation_no_candidate`,
+  - cooldown-suppressed health tick surfaces `cooldown_active=true`,
+  - proxy status payload includes last-candidate/cooldown fields.
 
 ### In Progress
 
-- Persisted reason-code parity for dedicated rotation lifecycle codes
-  (`rotation_timer_started`, `rotation_manual_started`,
-  `rotation_health_started`, `rotation_no_candidate`,
-  `rotation_candidate_failed`).
-- Enrich `proxy status` with explicit last-candidate and cooldown summary
-  fields (currently partial).
 - Add focused supervisor-level tests for timer/health/manual override branches
-  under the new rotation state machine.
+  under the new rotation state machine (success paths remain).
 - Optional JSON output path for `proxy status` for easier machine checks.
 
 ### Notes

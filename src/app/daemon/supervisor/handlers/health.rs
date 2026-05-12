@@ -7,6 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub(super) struct HealthTickOutcome {
     pub health_failure_recorded: bool,
     pub timer_due: bool,
+    pub cooldown_active: bool,
 }
 
 pub(super) async fn handle_health_tick(
@@ -20,15 +21,18 @@ pub(super) async fn handle_health_tick(
             .is_some_and(|next_timer| now >= next_timer);
 
     let mut health_failure_recorded = false;
+    let mut cooldown_active = false;
     if let Ok(snapshot) = RuntimeService::new(context).status().await
         && let Some(session) = snapshot.session
         && snapshot.pid_running
         && snapshot.inbound_health.has_unreachable_endpoint()
     {
         if !should_record_health_failure(&session) {
+            cooldown_active = true;
             return HealthTickOutcome {
                 health_failure_recorded: false,
                 timer_due,
+                cooldown_active,
             };
         }
         let failed_at = now_epoch_seconds();
@@ -59,6 +63,7 @@ pub(super) async fn handle_health_tick(
     HealthTickOutcome {
         health_failure_recorded,
         timer_due,
+        cooldown_active,
     }
 }
 
