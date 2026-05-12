@@ -22,7 +22,10 @@ pub enum ProxyAction {
 pub struct ProxyStartArgs {}
 
 #[derive(Debug, Args, Default)]
-pub struct ProxyStatusArgs {}
+pub struct ProxyStatusArgs {
+    #[arg(long = "json", help = "Print proxy rotation status as JSON.")]
+    pub json: bool,
+}
 
 #[derive(Debug, Args, Default)]
 pub struct ProxyRotateArgs {

@@ -101,12 +101,29 @@ history stay outside this phase.
   - health-trigger no-candidate branch persists `rotation_no_candidate`,
   - cooldown-suppressed health tick surfaces `cooldown_active=true`,
   - proxy status payload includes last-candidate/cooldown fields.
+- Added supervisor success-path coverage for remaining rotation branches:
+  - timer-due trigger can complete successful replacement and reschedule next
+    timer interval,
+  - manual `RuntimeReplace` with explicit candidate id can override cooldown
+    and still commit a safe handoff.
+- Added optional machine-friendly status output:
+  - `xrat proxy status --json` now prints daemon proxy rotation status payload
+    as pretty JSON.
 
-### In Progress
+### Done Criteria Met
 
-- Add focused supervisor-level tests for timer/health/manual override branches
-  under the new rotation state machine (success paths remain).
-- Optional JSON output path for `proxy status` for easier machine checks.
+- CLI surface and control flow are complete for
+  `xrat proxy start|status|rotate|stop`.
+- Rotation safety behavior is complete:
+  - make-before-break replacement is preserved,
+  - no-candidate and candidate-failure paths keep the current runtime active,
+  - manual explicit candidate override can bypass cooldown when requested.
+- Status visibility is complete:
+  - human-readable `proxy status` output,
+  - machine-friendly `proxy status --json` output.
+- Verification is complete:
+  - targeted supervisor branch tests pass,
+  - broad/full suite pass completed (`cargo test -q`).
 
 ### Notes
 

@@ -10,9 +10,12 @@ fn parses_proxy_subcommands() {
         _ => panic!("expected proxy command"),
     }
 
-    let status = Cli::parse_from(["xrat", "proxy", "status"]);
+    let status = Cli::parse_from(["xrat", "proxy", "status", "--json"]);
     match status.command {
-        Command::Proxy(args) => assert!(matches!(args.action, ProxyAction::Status(_))),
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Status(status_args) => assert!(status_args.json),
+            _ => panic!("expected status subcommand"),
+        },
         _ => panic!("expected proxy command"),
     }
 
@@ -45,4 +48,19 @@ fn proxy_rotate_help_mentions_config_flag() {
         .get_arguments()
         .any(|arg| arg.get_long() == Some("config-id"));
     assert!(has_config, "proxy rotate should expose --config-id");
+}
+
+#[test]
+fn proxy_status_help_mentions_json_flag() {
+    let mut cmd = Cli::command();
+    let proxy_cmd = cmd
+        .find_subcommand_mut("proxy")
+        .expect("proxy subcommand should exist");
+    let status_cmd = proxy_cmd
+        .find_subcommand_mut("status")
+        .expect("proxy status subcommand should exist");
+    let has_json = status_cmd
+        .get_arguments()
+        .any(|arg| arg.get_long() == Some("json"));
+    assert!(has_json, "proxy status should expose --json");
 }

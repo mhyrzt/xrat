@@ -24,7 +24,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                 Err(err) => return Err(err),
             }
         }
-        ProxyAction::Status(_) => {
+        ProxyAction::Status(status_args) => {
             let response = server::proxy_status_daemon(&socket_path).await;
             match response {
                 Ok(response) => {
@@ -36,20 +36,24 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                             "proxy status response missing payload".to_string(),
                         )
                     })?;
-                    println!(
-                        "Proxy rotation: enabled={}, interval_secs={}, health_trigger_enabled={}, cooldown_secs={}, cooldown_active={}, active_config={:?}, last_trigger={:?}, last_result={}, last_candidate_config={:?}, last_candidate_result={}, next_timer_at={:?}",
-                        payload.rotation_enabled,
-                        payload.interval_secs,
-                        payload.health_trigger_enabled,
-                        payload.cooldown_secs,
-                        payload.cooldown_active,
-                        payload.active_config_id,
-                        payload.last_trigger,
-                        payload.last_result,
-                        payload.last_candidate_config_id,
-                        payload.last_candidate_result,
-                        payload.next_timer_epoch_secs
-                    );
+                    if status_args.json {
+                        println!("{}", serde_json::to_string_pretty(&payload)?);
+                    } else {
+                        println!(
+                            "Proxy rotation: enabled={}, interval_secs={}, health_trigger_enabled={}, cooldown_secs={}, cooldown_active={}, active_config={:?}, last_trigger={:?}, last_result={}, last_candidate_config={:?}, last_candidate_result={}, next_timer_at={:?}",
+                            payload.rotation_enabled,
+                            payload.interval_secs,
+                            payload.health_trigger_enabled,
+                            payload.cooldown_secs,
+                            payload.cooldown_active,
+                            payload.active_config_id,
+                            payload.last_trigger,
+                            payload.last_result,
+                            payload.last_candidate_config_id,
+                            payload.last_candidate_result,
+                            payload.next_timer_epoch_secs
+                        );
+                    }
                 }
                 Err(err) if server::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(

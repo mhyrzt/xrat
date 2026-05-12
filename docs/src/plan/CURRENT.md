@@ -57,24 +57,20 @@ make-before-break replacement.
   - manual replace failure reason-code persistence
   - cooldown-suppressed health-tick state tracking
   - proxy-status payload field coverage for candidate/cooldown fields
+  - timer-trigger successful handoff state tracking
+  - manual explicit-candidate cooldown-override successful handoff tracking
 
 ## Current Goal
 
 Finish Phase 4.6 parity so rotation behavior and status visibility match plan
 contracts without introducing new persistence tables.
 
-Progress estimate: **~93%** complete as of **2026-05-12**.
+Progress estimate: **~99%** complete as of **2026-05-12**.
 
 ## Remaining Gaps
 
-1. Close remaining supervisor branch coverage for successful timer/manual
-   replacement paths (failure/no-candidate semantics are now covered).
-2. Optional: add JSON output path for `proxy status`.
+1. Run a broad/full test pass and close out any final polish.
 
 ## Immediate Next Slice
 
-- Test-first pass on supervisor/runtime rotation branches:
-  - timer-trigger selection and scheduling updates
-  - health-trigger replacement fallback behavior
-  - manual override/cooldown branch coverage
-- Then close remaining coverage gaps and optional status JSON output.
+- Execute broad verification and then mark Phase 4.6 complete.
