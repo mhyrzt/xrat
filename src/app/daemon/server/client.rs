@@ -6,8 +6,8 @@ use tokio::net::UnixStream;
 
 use crate::app::daemon::server::{
     DaemonRequest, DaemonRequestKind, DaemonResponse, DaemonShutdownPayload, PROTOCOL_VERSION,
-    PingPayload, RotationTrigger, RuntimeConnectPayload, RuntimeDisconnectPayload,
-    RuntimeReplacePayload, RuntimeStatusPayload,
+    PingPayload, ProxyControlPayload, ProxyStatusPayload, RotationTrigger, RuntimeConnectPayload,
+    RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
 };
 
 #[cfg(unix)]
@@ -58,6 +58,27 @@ pub async fn daemon_shutdown_daemon(
     socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
     request_response(socket_path, DaemonRequestKind::DaemonShutdown).await
+}
+
+#[cfg(unix)]
+pub async fn proxy_start_daemon(
+    socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
+    request_response(socket_path, DaemonRequestKind::ProxyStart).await
+}
+
+#[cfg(unix)]
+pub async fn proxy_status_daemon(
+    socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyStatusPayload>> {
+    request_response(socket_path, DaemonRequestKind::ProxyStatus).await
+}
+
+#[cfg(unix)]
+pub async fn proxy_stop_daemon(
+    socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
+    request_response(socket_path, DaemonRequestKind::ProxyStop).await
 }
 
 #[cfg(unix)]
@@ -129,6 +150,27 @@ pub async fn runtime_replace_daemon(
 pub async fn daemon_shutdown_daemon(
     _socket_path: &Path,
 ) -> crate::app::Result<DaemonResponse<DaemonShutdownPayload>> {
+    unsupported_client()
+}
+
+#[cfg(not(unix))]
+pub async fn proxy_start_daemon(
+    _socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
+    unsupported_client()
+}
+
+#[cfg(not(unix))]
+pub async fn proxy_status_daemon(
+    _socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyStatusPayload>> {
+    unsupported_client()
+}
+
+#[cfg(not(unix))]
+pub async fn proxy_stop_daemon(
+    _socket_path: &Path,
+) -> crate::app::Result<DaemonResponse<ProxyControlPayload>> {
     unsupported_client()
 }
 

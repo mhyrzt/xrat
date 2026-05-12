@@ -1,6 +1,7 @@
 use crate::app::daemon::server::{
     DaemonResponse, DaemonResponseCode, DaemonShutdownPayload, PROTOCOL_VERSION, PingPayload,
-    RuntimeConnectPayload, RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
+    ProxyControlPayload, ProxyStatusPayload, RuntimeConnectPayload, RuntimeDisconnectPayload,
+    RuntimeReplacePayload, RuntimeStatusPayload,
 };
 
 pub fn ping_response() -> DaemonResponse<PingPayload> {
@@ -112,5 +113,48 @@ pub fn daemon_shutdown_response(
         code: DaemonResponseCode::Ok,
         message: "daemon shutdown requested".to_string(),
         payload: Some(payload),
+    }
+}
+
+pub fn proxy_control_response(
+    payload: ProxyControlPayload,
+    message: &str,
+) -> DaemonResponse<ProxyControlPayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: true,
+        code: DaemonResponseCode::Ok,
+        message: message.to_string(),
+        payload: Some(payload),
+    }
+}
+
+pub fn proxy_control_error_response(message: String) -> DaemonResponse<ProxyControlPayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: false,
+        code: DaemonResponseCode::InvalidState,
+        message,
+        payload: None,
+    }
+}
+
+pub fn proxy_status_response(payload: ProxyStatusPayload) -> DaemonResponse<ProxyStatusPayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: true,
+        code: DaemonResponseCode::Ok,
+        message: "proxy rotation status available".to_string(),
+        payload: Some(payload),
+    }
+}
+
+pub fn proxy_status_error_response(message: String) -> DaemonResponse<ProxyStatusPayload> {
+    DaemonResponse {
+        protocol_version: PROTOCOL_VERSION,
+        ok: false,
+        code: DaemonResponseCode::InternalError,
+        message,
+        payload: None,
     }
 }

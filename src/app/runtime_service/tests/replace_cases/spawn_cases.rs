@@ -52,8 +52,8 @@ async fn replace_spawn_failure_keeps_old_runtime_active() {
 }
 
 #[tokio::test]
-async fn replace_health_trigger_uses_alternative_after_cooldown_expires() {
-    let mut context = test_context().await;
+async fn replace_health_trigger_reports_no_candidate_without_passing_test_result() {
+    let context = test_context().await;
     let (active_config, alternate_config) = import_two_configs(&context, "c", "d").await;
 
     let mut child = spawn_sleep(5);
@@ -62,7 +62,6 @@ async fn replace_health_trigger_uses_alternative_after_cooldown_expires() {
 
     insert_failed_cooldown_session(&context, alternate_config.id, "1").await;
 
-    context.runtime_paths.xray_path = std::path::PathBuf::from("/definitely/missing-xray");
     let result = RuntimeService::new(&context)
         .replace(ReplaceRequest {
             trigger: RotationTrigger::HealthCheckFailed,
@@ -76,24 +75,10 @@ async fn replace_health_trigger_uses_alternative_after_cooldown_expires() {
     match result {
         Err(AppError::InvalidArgument(message)) => {
             assert!(
-                !message.contains("no eligible replacement candidate"),
-                "expected expired cooldown to allow candidate selection, got: {message}"
+                message.contains("no eligible replacement candidate"),
+                "expected no candidate without passing tests, got: {message}"
             );
         }
-        Err(_) => {}
-        Ok(_) => panic!("replace should not fully succeed with missing runtime binary"),
+        other => panic!("expected invalid argument, got {other:?}"),
     }
-
-    let latest = context
-        .db
-        .get_latest_runtime_session()
-        .await
-        .expect("latest should load")
-        .expect("latest should exist");
-    assert_eq!(latest.config_id, Some(alternate_config.id));
-    assert_eq!(latest.status, RuntimeSessionStatus::Failed);
-    assert_eq!(
-        latest.last_failed_reason_code.as_deref(),
-        Some("replace_validation_failed")
-    );
 }

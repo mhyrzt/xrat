@@ -9,11 +9,23 @@ use super::super::SecretString;
 pub struct RuntimeSettings {
     pub engine: String,
     pub replace_active_session: bool,
+    pub rotation: RotationSettings,
     pub log: LogSettings,
     pub socks: SocksSettings,
     pub http: HttpSettings,
     pub shadowsocks: ShadowsocksSettings,
     pub sniffing: SniffingSettings,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct RotationSettings {
+    pub enabled: bool,
+    pub interval_secs: u64,
+    pub health_trigger_enabled: bool,
+    pub cooldown_secs: u64,
+    pub test_concurrency: i32,
+    pub test_stages: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]

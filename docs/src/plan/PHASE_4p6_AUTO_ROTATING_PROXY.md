@@ -50,6 +50,65 @@ history stay outside this phase.
   - `test_concurrency = 0`
   - `test_stages = ["real_delay", "download"]`
 
+## Progress (May 12, 2026)
+
+### Implemented
+
+- Added CLI and command wiring for `xrat proxy start|status|rotate|stop`.
+- Added daemon IPC request/response plumbing for proxy start/status/stop.
+- Added supervisor in-memory proxy rotation state:
+  - `rotation_enabled`,
+  - `rotation_interval_secs`,
+  - `health_trigger_enabled`,
+  - `cooldown_secs`,
+  - `next_timer_epoch_secs`,
+  - `last_trigger`,
+  - `last_result`.
+- Added `proxy status` payload and command output with active config, last
+  trigger/result, next timer epoch, and current rotation config summary.
+- Reused existing `runtime replace` flow for manual `proxy rotate`.
+- Added CLI parse tests for all proxy subcommands and `--config-id`.
+- Added `[runtime.rotation]` config surface and defaults:
+  - `enabled = false`
+  - `interval_secs = 1800`
+  - `health_trigger_enabled = true`
+  - `cooldown_secs = 300`
+  - `test_concurrency = 0`
+  - `test_stages = ["real_delay", "download"]`
+- Wired supervisor startup to load rotation config defaults from app config.
+- Added health/timer-trigger hooks in supervisor tick handling:
+  - health failure can trigger replacement when enabled,
+  - timer due can trigger replacement when enabled.
+- Integrated automatic candidate scoring with bulk testing:
+  - automatic flows now run a `rotation` bulk test run over eligible candidates,
+  - candidate ranking then reads latest persisted results.
+- Implemented ranking policy for tested candidates:
+  - lowest `real_delay_ms`,
+  - then highest `download_mbps`,
+  - then lowest config id.
+- Kept runtime safety behavior explicit:
+  - replacement candidate rejection keeps old runtime active,
+  - no eligible candidate returns explicit invalid-state error.
+
+### In Progress
+
+- Persisted reason-code parity for dedicated rotation lifecycle codes
+  (`rotation_timer_started`, `rotation_manual_started`,
+  `rotation_health_started`, `rotation_no_candidate`,
+  `rotation_candidate_failed`).
+- Enrich `proxy status` with explicit last-candidate and cooldown summary
+  fields (currently partial).
+- Add focused supervisor-level tests for timer/health/manual override branches
+  under the new rotation state machine.
+- Optional JSON output path for `proxy status` for easier machine checks.
+
+### Notes
+
+- CLI currently uses `proxy rotate --config-id <id>` instead of `--config <id>`
+  to avoid conflict with existing global `--config` flag.
+- Automatic rotation currently enforces tested-candidate selection semantics.
+  If no passing tested candidate exists, current runtime is preserved.
+
 ## Test Plan
 
 - CLI parsing tests for `proxy start|status|rotate|stop`, including

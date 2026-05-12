@@ -20,6 +20,9 @@ pub enum DaemonRequestKind {
         candidate_id: Option<i64>,
     },
     RuntimeDisconnect,
+    ProxyStart,
+    ProxyStatus,
+    ProxyStop,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -84,6 +87,24 @@ pub struct RuntimeReplacePayload {
     pub new_config_id: i64,
     pub new_session_id: i64,
     pub new_pid: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProxyControlPayload {
+    pub rotation_enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProxyStatusPayload {
+    pub daemon_ready: bool,
+    pub rotation_enabled: bool,
+    pub interval_secs: u64,
+    pub health_trigger_enabled: bool,
+    pub cooldown_secs: u64,
+    pub active_config_id: Option<i64>,
+    pub last_trigger: Option<RotationTrigger>,
+    pub last_result: String,
+    pub next_timer_epoch_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

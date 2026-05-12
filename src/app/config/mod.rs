@@ -22,8 +22,8 @@ pub use parser::ParserSettings;
 pub use paths::PathSettings;
 pub use routing::{RouteList, RoutingSettings};
 pub use runtime::{
-    AuthSettings, HttpSettings, LogSettings, RuntimeSettings, ShadowsocksSettings,
-    SniffingSettings, SocksSettings,
+    AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
+    ShadowsocksSettings, SniffingSettings, SocksSettings,
 };
 pub use secret::{SecretError, SecretString};
 pub use testing::{

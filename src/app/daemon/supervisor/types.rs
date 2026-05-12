@@ -1,8 +1,8 @@
 use tokio::sync::{mpsc, oneshot};
 
 use crate::app::daemon::server::{
-    DaemonShutdownPayload, PingPayload, RotationTrigger, RuntimeConnectPayload,
-    RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
+    DaemonShutdownPayload, PingPayload, ProxyControlPayload, ProxyStatusPayload, RotationTrigger,
+    RuntimeConnectPayload, RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
 };
 
 #[derive(Debug)]
@@ -28,6 +28,15 @@ pub enum SupervisorEvent {
     },
     DaemonShutdown {
         respond_to: oneshot::Sender<DaemonShutdownResult>,
+    },
+    ProxyStart {
+        respond_to: oneshot::Sender<ProxyControlResult>,
+    },
+    ProxyStatus {
+        respond_to: oneshot::Sender<ProxyStatusResult>,
+    },
+    ProxyStop {
+        respond_to: oneshot::Sender<ProxyControlResult>,
     },
 }
 
@@ -61,10 +70,29 @@ pub enum DaemonShutdownResult {
     Err { message: String },
 }
 
+#[derive(Debug)]
+pub enum ProxyControlResult {
+    Ok(ProxyControlPayload),
+    Err { message: String },
+}
+
+#[derive(Debug)]
+pub enum ProxyStatusResult {
+    Ok(ProxyStatusPayload),
+    Err { message: String },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupervisorState {
     pub ready: bool,
     pub instance_id: String,
+    pub rotation_enabled: bool,
+    pub rotation_interval_secs: u64,
+    pub health_trigger_enabled: bool,
+    pub cooldown_secs: u64,
+    pub next_timer_epoch_secs: Option<u64>,
+    pub last_trigger: Option<RotationTrigger>,
+    pub last_result: String,
 }
 
 impl SupervisorState {
@@ -72,6 +100,13 @@ impl SupervisorState {
         Self {
             ready: true,
             instance_id,
+            rotation_enabled: false,
+            rotation_interval_secs: 1800,
+            health_trigger_enabled: true,
+            cooldown_secs: 300,
+            next_timer_epoch_secs: None,
+            last_trigger: None,
+            last_result: "never_triggered".to_string(),
         }
     }
 }

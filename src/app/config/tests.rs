@@ -8,6 +8,10 @@ fn parses_minimal_config_with_defaults() {
     let config: AppConfig = toml::from_str("").expect("empty config should use defaults");
 
     assert_eq!(config.runtime.engine, "xray");
+    assert!(!config.runtime.rotation.enabled);
+    assert_eq!(config.runtime.rotation.interval_secs, 1800);
+    assert!(config.runtime.rotation.health_trigger_enabled);
+    assert_eq!(config.runtime.rotation.cooldown_secs, 300);
     assert_eq!(config.runtime.socks.port, 1080);
     assert_eq!(config.testing.concurrency, 0);
     assert_eq!(
@@ -58,6 +62,10 @@ fn parses_example_config() {
         Some("db.sqlite".as_ref())
     );
     assert_eq!(config.runtime.engine, "xray");
+    assert!(!config.runtime.rotation.enabled);
+    assert_eq!(config.runtime.rotation.interval_secs, 1800);
+    assert!(config.runtime.rotation.health_trigger_enabled);
+    assert_eq!(config.runtime.rotation.cooldown_secs, 300);
     assert_eq!(config.runtime.socks.auth.username.as_deref(), Some("xrat"));
     assert_eq!(
         config.runtime.socks.auth.password,

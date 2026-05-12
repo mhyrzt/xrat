@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use super::super::SecretString;
 use super::super::defaults;
 use super::types::{
-    AuthSettings, HttpSettings, LogSettings, RuntimeSettings, ShadowsocksSettings,
-    SniffingSettings, SocksSettings,
+    AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
+    ShadowsocksSettings, SniffingSettings, SocksSettings,
 };
 
 impl Default for RuntimeSettings {
@@ -12,11 +12,28 @@ impl Default for RuntimeSettings {
         Self {
             engine: defaults::DEFAULT_RUNTIME_ENGINE.to_string(),
             replace_active_session: defaults::DEFAULT_REPLACE_ACTIVE_SESSION,
+            rotation: RotationSettings::default(),
             log: LogSettings::default(),
             socks: SocksSettings::default(),
             http: HttpSettings::default(),
             shadowsocks: ShadowsocksSettings::default(),
             sniffing: SniffingSettings::default(),
+        }
+    }
+}
+
+impl Default for RotationSettings {
+    fn default() -> Self {
+        Self {
+            enabled: defaults::DEFAULT_ROTATION_ENABLED,
+            interval_secs: defaults::DEFAULT_ROTATION_INTERVAL_SECS,
+            health_trigger_enabled: defaults::DEFAULT_ROTATION_HEALTH_TRIGGER_ENABLED,
+            cooldown_secs: defaults::DEFAULT_ROTATION_COOLDOWN_SECS,
+            test_concurrency: defaults::DEFAULT_ROTATION_TEST_CONCURRENCY,
+            test_stages: defaults::DEFAULT_ROTATION_TEST_STAGES
+                .iter()
+                .map(|value| value.to_string())
+                .collect(),
         }
     }
 }

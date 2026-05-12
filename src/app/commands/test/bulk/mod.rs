@@ -23,3 +23,13 @@ pub(super) async fn run_bulk(
 ) -> crate::app::Result<()> {
     runners::run_bulk(args, context, settings).await
 }
+
+pub(crate) async fn run_bulk_for_configs(
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    configs: Vec<ConfigRecord>,
+    run_kind: &str,
+    show_progress: bool,
+) -> crate::app::Result<Vec<TestOutputRow>> {
+    runners::run_bulk_for_configs(context, settings, configs, run_kind, show_progress).await
+}

@@ -7,8 +7,10 @@ use tokio::sync::mpsc;
 
 use crate::app::daemon::server::bridge::{
     daemon_shutdown_response_via_supervisor, ping_response_via_supervisor,
-    runtime_connect_response_via_supervisor, runtime_disconnect_response_via_supervisor,
-    runtime_replace_response_via_supervisor, runtime_status_response_via_supervisor,
+    proxy_start_response_via_supervisor, proxy_status_response_via_supervisor,
+    proxy_stop_response_via_supervisor, runtime_connect_response_via_supervisor,
+    runtime_disconnect_response_via_supervisor, runtime_replace_response_via_supervisor,
+    runtime_status_response_via_supervisor,
 };
 use crate::app::daemon::server::{
     DaemonRequest, DaemonRequestKind, DaemonResponse, DaemonResponseCode, PROTOCOL_VERSION,
@@ -128,6 +130,18 @@ async fn dispatch_request(
         DaemonRequestKind::DaemonShutdown => (
             serde_json::to_vec(&daemon_shutdown_response_via_supervisor(supervisor_tx).await?)?,
             true,
+        ),
+        DaemonRequestKind::ProxyStart => (
+            serde_json::to_vec(&proxy_start_response_via_supervisor(supervisor_tx).await?)?,
+            false,
+        ),
+        DaemonRequestKind::ProxyStatus => (
+            serde_json::to_vec(&proxy_status_response_via_supervisor(supervisor_tx).await?)?,
+            false,
+        ),
+        DaemonRequestKind::ProxyStop => (
+            serde_json::to_vec(&proxy_stop_response_via_supervisor(supervisor_tx).await?)?,
+            false,
         ),
     };
     Ok(response)

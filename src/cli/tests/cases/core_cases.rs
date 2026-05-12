@@ -50,6 +50,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Disconnect(_)
         | Command::Status(_)
         | Command::Daemon(_)
+        | Command::Proxy(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected import command")
@@ -70,6 +71,7 @@ fn parses_add_subcommand() {
         | Command::Disconnect(_)
         | Command::Status(_)
         | Command::Daemon(_)
+        | Command::Proxy(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected add command")
@@ -93,6 +95,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Disconnect(_)
         | Command::Status(_)
         | Command::Daemon(_)
+        | Command::Proxy(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")
@@ -126,6 +129,7 @@ fn parses_list_config_filters() {
         | Command::Disconnect(_)
         | Command::Status(_)
         | Command::Daemon(_)
+        | Command::Proxy(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")

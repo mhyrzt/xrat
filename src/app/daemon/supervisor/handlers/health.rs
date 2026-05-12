@@ -3,19 +3,36 @@ use crate::app::runtime::AppContext;
 use crate::app::runtime_service::RuntimeService;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const HEALTH_FAILURE_COOLDOWN_SECONDS: u64 = 300;
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(super) struct HealthTickOutcome {
+    pub health_failure_recorded: bool,
+    pub timer_due: bool,
+}
 
-pub(super) async fn handle_health_tick(state: &SupervisorState, context: &AppContext) {
+pub(super) async fn handle_health_tick(
+    state: &SupervisorState,
+    context: &AppContext,
+) -> HealthTickOutcome {
+    let now = now_epoch_seconds();
+    let timer_due = state.rotation_enabled
+        && state
+            .next_timer_epoch_secs
+            .is_some_and(|next_timer| now >= next_timer);
+
+    let mut health_failure_recorded = false;
     if let Ok(snapshot) = RuntimeService::new(context).status().await
         && let Some(session) = snapshot.session
         && snapshot.pid_running
         && snapshot.inbound_health.has_unreachable_endpoint()
     {
         if !should_record_health_failure(&session) {
-            return;
+            return HealthTickOutcome {
+                health_failure_recorded: false,
+                timer_due,
+            };
         }
         let failed_at = now_epoch_seconds();
-        let cooldown_until = (failed_at + HEALTH_FAILURE_COOLDOWN_SECONDS).to_string();
+        let cooldown_until = (failed_at + state.cooldown_secs).to_string();
         let failed_at = failed_at.to_string();
         let _ = context
             .db
@@ -37,6 +54,11 @@ pub(super) async fn handle_health_tick(state: &SupervisorState, context: &AppCon
                 Some("health_check_failed"),
             )
             .await;
+        health_failure_recorded = true;
+    }
+    HealthTickOutcome {
+        health_failure_recorded,
+        timer_due,
     }
 }
 

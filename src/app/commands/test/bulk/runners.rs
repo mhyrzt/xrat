@@ -40,16 +40,32 @@ pub(super) async fn run_bulk(
         write_results(args, &[])?;
         return Ok(());
     }
+    let mut outputs =
+        run_bulk_for_configs(context, settings, configs, "bulk", !args.no_progress).await?;
+
+    sort_results(&mut outputs, args.sort_by);
+    write_results(args, &outputs)?;
+
+    Ok(())
+}
+
+pub(crate) async fn run_bulk_for_configs(
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    configs: Vec<ConfigRecord>,
+    run_kind: &str,
+    show_progress: bool,
+) -> crate::app::Result<Vec<TestOutputRow>> {
     let run_id = context
         .db
         .insert_connection_test_run(&ConnectionTestRunInsert {
-            kind: "bulk".to_string(),
+            kind: run_kind.to_string(),
         })
         .await?;
 
     let total = configs.len();
     let concurrency = resolve_concurrency(settings.concurrency)?;
-    let progress = bulk_progress_bar(total, !args.no_progress);
+    let progress = bulk_progress_bar(total, show_progress);
     let mut next_config = configs.into_iter();
     let mut join_set = JoinSet::new();
     let mut completed = 0usize;
@@ -89,11 +105,7 @@ pub(super) async fn run_bulk(
         }
     }
     finish_bulk_progress(progress, completed, failed);
-
-    sort_results(&mut outputs, args.sort_by);
-    write_results(args, &outputs)?;
-
-    Ok(())
+    Ok(outputs)
 }
 
 pub(super) fn bulk_progress_bar(total: usize, enabled: bool) -> Option<ProgressBar> {

@@ -5,9 +5,10 @@ mod disconnect;
 mod import;
 mod list;
 mod parse;
+mod proxy;
 mod scan;
 mod status;
-mod test;
+pub(crate) mod test;
 
 use crate::app::runtime::AppContext;
 use crate::cli::Command;
@@ -23,6 +24,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Disconnect(args) => disconnect::run(context, args).await,
         Command::Status(args) => status::run(context, args).await,
         Command::Daemon(args) => daemon::run(context, args).await,
+        Command::Proxy(args) => proxy::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
     }
 }

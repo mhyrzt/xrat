@@ -1,5 +1,11 @@
 pub const DEFAULT_RUNTIME_ENGINE: &str = "xray";
 pub const DEFAULT_REPLACE_ACTIVE_SESSION: bool = true;
+pub const DEFAULT_ROTATION_ENABLED: bool = false;
+pub const DEFAULT_ROTATION_INTERVAL_SECS: u64 = 1800;
+pub const DEFAULT_ROTATION_HEALTH_TRIGGER_ENABLED: bool = true;
+pub const DEFAULT_ROTATION_COOLDOWN_SECS: u64 = 300;
+pub const DEFAULT_ROTATION_TEST_CONCURRENCY: i32 = 0;
+pub const DEFAULT_ROTATION_TEST_STAGES: &[&str] = &["real_delay", "download"];
 
 pub const DEFAULT_LOG_ENABLED: bool = true;
 pub const DEFAULT_LOG_MASK: &str = "none";

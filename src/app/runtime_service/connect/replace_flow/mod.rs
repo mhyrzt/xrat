@@ -15,7 +15,23 @@ impl<'a> RuntimeService<'a> {
                 ));
             }
         };
-        let next_config_id = self.resolve_replace_candidate_id(&active, &request).await?;
+        let next_config_id = match self.resolve_replace_candidate_id(&active, &request).await {
+            Ok(config_id) => config_id,
+            Err(err) => {
+                self.context
+                    .db
+                    .update_runtime_session_transition_metadata(
+                        active.id,
+                        None,
+                        None,
+                        Some("replace_rollback_keep_old"),
+                        Some("replacement candidate rejected before handoff"),
+                        Some("daemon"),
+                    )
+                    .await?;
+                return Err(err);
+            }
+        };
         self.context
             .db
             .update_runtime_session_transition_metadata(

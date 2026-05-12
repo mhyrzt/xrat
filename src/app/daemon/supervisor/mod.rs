@@ -5,12 +5,14 @@ mod handlers;
 mod types;
 
 pub use types::{
-    DaemonShutdownResult, RuntimeConnectResult, RuntimeDisconnectResult, RuntimeReplaceResult,
-    RuntimeStatusResult, SupervisorEvent, SupervisorState, channel,
+    DaemonShutdownResult, ProxyControlResult, ProxyStatusResult, RuntimeConnectResult,
+    RuntimeDisconnectResult, RuntimeReplaceResult, RuntimeStatusResult, SupervisorEvent,
+    SupervisorState, channel,
 };
 
 use crate::app::runtime::AppContext;
 use crate::app::runtime_service::RuntimeService;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const HEALTH_TICK_SECONDS: u64 = 15;
 
@@ -23,6 +25,13 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
         tracing::warn!(error = %err, "daemon reattach reconciliation failed");
     }
     let mut state = SupervisorState::new(daemon_instance_id);
+    state.rotation_enabled = context.app_config.runtime.rotation.enabled;
+    state.rotation_interval_secs = context.app_config.runtime.rotation.interval_secs;
+    state.health_trigger_enabled = context.app_config.runtime.rotation.health_trigger_enabled;
+    state.cooldown_secs = context.app_config.runtime.rotation.cooldown_secs;
+    if state.rotation_enabled {
+        state.next_timer_epoch_secs = Some(now_epoch_seconds() + state.rotation_interval_secs);
+    }
     let mut health_ticker = time::interval(Duration::from_secs(HEALTH_TICK_SECONDS));
     health_ticker.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
     loop {
@@ -38,4 +47,11 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
             }
         }
     }
+}
+
+fn now_epoch_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0)
 }

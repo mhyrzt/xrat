@@ -6,6 +6,7 @@ mod disconnect;
 mod import;
 mod list;
 mod parse;
+mod proxy;
 mod root;
 mod scan;
 mod status;
@@ -22,6 +23,9 @@ pub use disconnect::DisconnectArgs;
 pub use import::ImportArgs;
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use parse::{ParseArgs, ParseEngine};
+pub use proxy::{
+    ProxyAction, ProxyArgs, ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
+};
 pub use root::Cli;
 pub use scan::ScanArgs;
 pub use status::StatusArgs;

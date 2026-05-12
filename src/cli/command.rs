@@ -1,8 +1,8 @@
 use clap::Subcommand;
 
 use crate::cli::{
-    AddArgs, ConnectArgs, DaemonArgs, DisconnectArgs, ImportArgs, ListArgs, ParseArgs, ScanArgs,
-    StatusArgs, TestArgs,
+    AddArgs, ConnectArgs, DaemonArgs, DisconnectArgs, ImportArgs, ListArgs, ParseArgs, ProxyArgs,
+    ScanArgs, StatusArgs, TestArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -25,6 +25,8 @@ pub enum Command {
     Status(StatusArgs),
     #[command(about = "Run or control the XRAT daemon supervisor process.")]
     Daemon(DaemonArgs),
+    #[command(about = "Control auto-rotating proxy behavior via daemon supervisor.")]
+    Proxy(ProxyArgs),
     #[command(about = "Parse and validate config links without importing to the database.")]
     Parse(ParseArgs),
 }
