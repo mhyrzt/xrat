@@ -1,13 +1,13 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::server;
+use crate::app::daemon::ipc;
 use crate::cli::{ProxyAction, ProxyArgs};
 
 pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<()> {
-    let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
+    let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
 
     match &args.action {
         ProxyAction::Start(_) => {
-            let response = server::proxy_start_daemon(&socket_path).await;
+            let response = ipc::proxy_start_daemon(&socket_path).await;
             match response {
                 Ok(response) => {
                     if !response.ok {
@@ -15,7 +15,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     }
                     println!("Proxy rotation: {}", response.message);
                 }
-                Err(err) if server::daemon_unreachable(&err) => {
+                Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
                         "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                         socket_path.display()
@@ -25,7 +25,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
         }
         ProxyAction::Status(status_args) => {
-            let response = server::proxy_status_daemon(&socket_path).await;
+            let response = ipc::proxy_status_daemon(&socket_path).await;
             match response {
                 Ok(response) => {
                     if !response.ok {
@@ -55,7 +55,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         );
                     }
                 }
-                Err(err) if server::daemon_unreachable(&err) => {
+                Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
                         "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                         socket_path.display()
@@ -65,9 +65,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
         }
         ProxyAction::Rotate(rotate_args) => {
-            let response = server::runtime_replace_daemon(
+            let response = ipc::runtime_replace_daemon(
                 &socket_path,
-                server::RotationTrigger::Manual,
+                ipc::RotationTrigger::Manual,
                 rotate_args.config_id,
             )
             .await;
@@ -90,7 +90,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         payload.new_pid
                     );
                 }
-                Err(err) if server::daemon_unreachable(&err) => {
+                Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
                         "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                         socket_path.display()
@@ -100,7 +100,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
         }
         ProxyAction::Stop(_) => {
-            let response = server::proxy_stop_daemon(&socket_path).await;
+            let response = ipc::proxy_stop_daemon(&socket_path).await;
             match response {
                 Ok(response) => {
                     if !response.ok {
@@ -108,7 +108,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     }
                     println!("Proxy rotation: {}", response.message);
                 }
-                Err(err) if server::daemon_unreachable(&err) => {
+                Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
                         "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                         socket_path.display()

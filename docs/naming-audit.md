@@ -412,7 +412,7 @@ pub enum RuntimeStatusLabel {
 | 12 | MEDIUM | [ ] pending | Misleading `facade/` |
 | 13 | MEDIUM | [ ] pending | `config/support.rs` vs `support/` |
 | 14 | MEDIUM | [x] done | "Runtime" overloaded 5 ways |
-| 15 | MEDIUM | [ ] pending | Unclear `server/` vs `supervisor/` |
+| 15 | MEDIUM | [x] done | Unclear `server/` vs `supervisor/` |
 | 16 | LOW | [ ] pending | Generic `model/` in test |
 | 17 | LOW | [ ] pending | Two "model" modules |
 | 18 | LOW | [ ] pending | Awkward `defaults_impl.rs` |
@@ -425,11 +425,11 @@ pub enum RuntimeStatusLabel {
 | 25 | LOW | [ ] pending | Deep `connect/replace_flow/` |
 | 26 | MEDIUM | [x] done | `path.rs` / `path/` collision |
 | 27 | LOW | [ ] pending | `import_list/` unclear |
-| 28 | LOW | [ ] pending | `server/` submodule inconsistency |
+| 28 | LOW | [x] done | `server/` submodule inconsistency |
 | 29 | LOW | [ ] pending | `tester/` module purpose unclear |
 | 30 | LOW | [ ] pending | Deep `connect_status_cases/connect_case/` |
 
-**Summary:** 7/30 complete · 0 HIGH · 9 MEDIUM · 14 LOW
+**Summary:** 9/30 complete · 0 HIGH · 9 MEDIUM · 12 LOW
 
 ---
 
@@ -478,11 +478,11 @@ Use this checklist when working through the audit. Complete items in priority or
 
 ### Phase 5: Daemon IPC Boundary (Items 15, 28)
 
-- [ ] 5.1 Rename `src/app/daemon/server/` → `src/app/daemon/ipc/`
-- [ ] 5.2 Rename `ipc/bridge/` → `ipc/transport/`
-- [ ] 5.3 Rename `ipc/serve/` → `ipc/handler/`
-- [ ] 5.4 Update all imports
-- [ ] 5.5 Run `cargo build && cargo test -q`
+- [x] 5.1 Rename `src/app/daemon/server/` → `src/app/daemon/ipc/`
+- [x] 5.2 Rename `ipc/bridge/` → `ipc/transport/`
+- [x] 5.3 Rename `ipc/serve/` → `ipc/handler/`
+- [x] 5.4 Update all imports
+- [x] 5.5 Run `cargo build && cargo test -q`
 
 ### Phase 6: Remaining Medium Items (6-13, 22, 24, 26)
 

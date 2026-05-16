@@ -107,7 +107,7 @@ async fn health_tick_cooldown_blocks_health_replace_candidate_selection() {
     handle_event(
         &mut state,
         SupervisorEvent::RuntimeReplace {
-            trigger: crate::app::daemon::server::RotationTrigger::HealthCheckFailed,
+            trigger: crate::app::daemon::ipc::RotationTrigger::HealthCheckFailed,
             candidate_id: None,
             respond_to: tx,
         },
@@ -125,6 +125,6 @@ async fn health_tick_cooldown_blocks_health_replace_candidate_selection() {
     assert_eq!(state.last_candidate_result, "rotation_no_candidate");
     assert_eq!(
         state.last_trigger,
-        Some(crate::app::daemon::server::RotationTrigger::HealthCheckFailed)
+        Some(crate::app::daemon::ipc::RotationTrigger::HealthCheckFailed)
     );
 }

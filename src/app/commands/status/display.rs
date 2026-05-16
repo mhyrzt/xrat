@@ -1,5 +1,4 @@
-use crate::app::daemon::server::DaemonResponse;
-use crate::app::daemon::server::RuntimeStatusPayload;
+use crate::app::daemon::ipc::{DaemonResponse, RuntimeStatusPayload};
 
 pub(super) fn print_daemon_status(
     response: DaemonResponse<RuntimeStatusPayload>,

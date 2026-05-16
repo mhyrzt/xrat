@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tokio::time::timeout;
 
 use super::{shutdown_test_server, spawn_test_supervisor, test_socket_path, wait_until_reachable};
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonRequest, DaemonRequestKind, DaemonResponse, DaemonResponseCode, PROTOCOL_VERSION,
     serve_ping,
 };

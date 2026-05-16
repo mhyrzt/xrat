@@ -1,6 +1,6 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::server::PingPayload;
-use crate::app::daemon::server::RotationTrigger;
+use crate::app::daemon::ipc::PingPayload;
+use crate::app::daemon::ipc::RotationTrigger;
 use crate::app::daemon::supervisor::{SupervisorEvent, SupervisorState};
 use tokio::sync::oneshot;
 

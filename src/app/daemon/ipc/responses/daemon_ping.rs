@@ -1,5 +1,5 @@
 use super::ok_response;
-use crate::app::daemon::server::{DaemonResponse, DaemonShutdownPayload, PingPayload};
+use crate::app::daemon::ipc::{DaemonResponse, DaemonShutdownPayload, PingPayload};
 
 pub fn ping_response() -> DaemonResponse<PingPayload> {
     ok_response("daemon reachable", PingPayload { daemon_ready: true })

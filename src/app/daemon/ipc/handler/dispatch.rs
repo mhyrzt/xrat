@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::DaemonRequestKind;
-use crate::app::daemon::server::bridge::{
+use crate::app::daemon::ipc::DaemonRequestKind;
+use crate::app::daemon::ipc::transport::{
     daemon_shutdown_response_via_supervisor, ping_response_via_supervisor,
     proxy_start_response_via_supervisor, proxy_status_response_via_supervisor,
     proxy_stop_response_via_supervisor, runtime_connect_response_via_supervisor,

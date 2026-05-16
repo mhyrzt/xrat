@@ -4,7 +4,7 @@ use std::path::Path;
 use tokio::net::UnixListener;
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::daemon_unreachable;
+use crate::app::daemon::ipc::daemon_unreachable;
 use crate::app::daemon::supervisor::SupervisorEvent;
 
 #[cfg(unix)]
@@ -21,7 +21,7 @@ pub async fn serve_ping(
         tokio::fs::create_dir_all(parent).await?;
     }
     if socket_path.exists() {
-        match crate::app::daemon::server::ping_daemon(socket_path).await {
+        match crate::app::daemon::ipc::ping_daemon(socket_path).await {
             Ok(_) => {
                 return Err(crate::app::AppError::InvalidArgument(format!(
                     "daemon is already running at {}; stop it first",

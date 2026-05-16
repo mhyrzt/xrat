@@ -69,7 +69,7 @@ async fn manual_rotate_with_explicit_candidate_overrides_cooldown() {
     handle_event(
         &mut state,
         SupervisorEvent::RuntimeReplace {
-            trigger: crate::app::daemon::server::RotationTrigger::Manual,
+            trigger: crate::app::daemon::ipc::RotationTrigger::Manual,
             candidate_id: Some(candidate_config.id),
             respond_to: tx,
         },
@@ -84,7 +84,7 @@ async fn manual_rotate_with_explicit_candidate_overrides_cooldown() {
     assert_eq!(payload.new_config_id, candidate_config.id);
     assert_eq!(
         state.last_trigger,
-        Some(crate::app::daemon::server::RotationTrigger::Manual)
+        Some(crate::app::daemon::ipc::RotationTrigger::Manual)
     );
     assert_eq!(state.last_result, "replace_commit_success");
     assert_eq!(state.last_candidate_config_id, Some(candidate_config.id));

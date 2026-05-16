@@ -26,7 +26,7 @@ pub struct ConnectRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReplaceRequest {
-    pub trigger: crate::app::daemon::server::RotationTrigger,
+    pub trigger: crate::app::daemon::ipc::RotationTrigger,
     pub candidate_id: Option<i64>,
 }
 

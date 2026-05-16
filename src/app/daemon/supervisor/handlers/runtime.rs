@@ -1,5 +1,5 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::server::RotationTrigger;
+use crate::app::daemon::ipc::RotationTrigger;
 use crate::app::daemon::supervisor::{
     DaemonShutdownResult, ProxyControlResult, ProxyStatusResult, RuntimeConnectResult,
     RuntimeDisconnectResult, RuntimeReplaceResult, RuntimeStatusResult, SupervisorState,

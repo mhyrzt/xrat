@@ -1,5 +1,5 @@
 use super::*;
-use crate::app::daemon::server::RotationTrigger;
+use crate::app::daemon::ipc::RotationTrigger;
 
 mod candidate;
 mod ports;

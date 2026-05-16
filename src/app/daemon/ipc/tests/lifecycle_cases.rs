@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 use tokio::time::timeout;
 
 use super::{shutdown_test_server, spawn_test_supervisor, test_socket_path, wait_until_reachable};
-use crate::app::daemon::server::{DaemonResponseCode, serve_ping};
+use crate::app::daemon::ipc::{DaemonResponseCode, serve_ping};
 
 #[tokio::test]
 async fn shutdown_request_returns_payload_and_stops_server() {

@@ -1,7 +1,7 @@
 use super::roundtrip;
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponse, RotationTrigger, RuntimeConnectPayload, RuntimeDisconnectPayload,
     RuntimeReplacePayload, RuntimeStatusPayload, runtime_connect_error_response,
     runtime_connect_response, runtime_disconnect_error_response, runtime_disconnect_response,

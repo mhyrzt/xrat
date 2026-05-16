@@ -3,7 +3,7 @@ use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonRequest, DaemonRequestKind, DaemonResponse, DaemonShutdownPayload, PROTOCOL_VERSION,
     PingPayload, ProxyControlPayload, ProxyStatusPayload, RotationTrigger, RuntimeConnectPayload,
     RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,

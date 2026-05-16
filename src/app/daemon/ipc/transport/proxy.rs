@@ -1,7 +1,7 @@
 use super::roundtrip;
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponse, ProxyControlPayload, ProxyStatusPayload, proxy_control_error_response,
     proxy_control_response, proxy_status_error_response, proxy_status_response,
 };

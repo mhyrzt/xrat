@@ -3,7 +3,7 @@ use tokio::net::UnixStream;
 use tokio::sync::mpsc;
 
 use super::dispatch::dispatch_request;
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonRequest, DaemonResponse, DaemonResponseCode, PROTOCOL_VERSION,
 };
 use crate::app::daemon::supervisor::SupervisorEvent;

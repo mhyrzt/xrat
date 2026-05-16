@@ -1,7 +1,7 @@
 use super::roundtrip;
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponse, DaemonResponseCode, DaemonShutdownPayload, PROTOCOL_VERSION, PingPayload,
     daemon_shutdown_response, ping_response,
 };

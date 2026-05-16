@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponse, DaemonShutdownPayload, PingPayload, ProxyControlPayload, ProxyStatusPayload,
     RotationTrigger, RuntimeConnectPayload, RuntimeDisconnectPayload, RuntimeReplacePayload,
     RuntimeStatusPayload,

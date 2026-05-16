@@ -7,7 +7,7 @@ use super::{
     shutdown_test_server, spawn_test_supervisor, spawn_test_supervisor_replace_error,
     test_socket_path, wait_until_reachable,
 };
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponseCode, RotationTrigger, runtime_replace_daemon, serve_ping,
 };
 

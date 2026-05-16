@@ -1,10 +1,10 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::server;
+use crate::app::daemon::ipc;
 use crate::cli::ConnectArgs;
 
 pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result<()> {
-    let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
-    match server::runtime_connect_daemon(&socket_path, args.id).await {
+    let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
+    match ipc::runtime_connect_daemon(&socket_path, args.id).await {
         Ok(response) => {
             if !response.ok {
                 return Err(crate::app::AppError::InvalidArgument(response.message));
@@ -31,7 +31,7 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
             }
             Ok(())
         }
-        Err(err) if server::daemon_unreachable(&err) => {
+        Err(err) if ipc::daemon_unreachable(&err) => {
             Err(crate::app::AppError::InvalidArgument(format!(
                 "daemon is not running. Start it with `xrat daemon start` (socket: {})",
                 socket_path.display()

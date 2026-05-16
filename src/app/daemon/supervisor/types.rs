@@ -1,6 +1,6 @@
 use tokio::sync::{mpsc, oneshot};
 
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonShutdownPayload, PingPayload, ProxyControlPayload, ProxyStatusPayload, RotationTrigger,
     RuntimeConnectPayload, RuntimeDisconnectPayload, RuntimeReplacePayload, RuntimeStatusPayload,
 };

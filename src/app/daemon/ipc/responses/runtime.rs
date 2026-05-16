@@ -1,5 +1,5 @@
 use super::{error_response, ok_response};
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonResponse, DaemonResponseCode, RuntimeConnectPayload, RuntimeDisconnectPayload,
     RuntimeReplacePayload, RuntimeStatusPayload,
 };

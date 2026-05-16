@@ -1,10 +1,10 @@
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-mod bridge;
 mod client;
+mod handler;
 mod responses;
-mod serve;
+mod transport;
 mod types;
 
 pub use client::{
@@ -19,7 +19,7 @@ pub use responses::{
     runtime_replace_error_response, runtime_replace_response, runtime_status_error_response,
     runtime_status_response,
 };
-pub use serve::serve_ping;
+pub use handler::serve_ping;
 pub use types::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;

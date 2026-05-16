@@ -71,7 +71,7 @@ async fn health_tick_timer_due_success_updates_rotation_state_and_reschedules() 
 
     assert_eq!(
         state.last_trigger,
-        Some(crate::app::daemon::server::RotationTrigger::Timer)
+        Some(crate::app::daemon::ipc::RotationTrigger::Timer)
     );
     assert_eq!(state.last_result, "replace_commit_success");
     assert_eq!(state.last_candidate_result, "replace_commit_success");

@@ -1,5 +1,5 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::server::{
+use crate::app::daemon::ipc::{
     DaemonShutdownPayload, ProxyControlPayload, ProxyStatusPayload, RotationTrigger,
     RuntimeDisconnectPayload, RuntimeReplacePayload,
 };

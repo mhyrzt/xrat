@@ -3,8 +3,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tokio::sync::mpsc;
 
-use crate::app::daemon::server::{
-    DaemonResponse, DaemonShutdownPayload, daemon_shutdown_daemon, ping_daemon,
+use crate::app::daemon::ipc::{
+    DaemonResponse, DaemonShutdownPayload, PingPayload, RuntimeReplacePayload, daemon_shutdown_daemon, ping_daemon,
 };
 use crate::app::daemon::supervisor::{DaemonShutdownResult, RuntimeReplaceResult, SupervisorEvent};
 
@@ -45,7 +45,7 @@ fn spawn_test_supervisor(mut rx: mpsc::Receiver<SupervisorEvent>) -> tokio::task
             match event {
                 SupervisorEvent::DaemonPing { respond_to } => {
                     let _ = respond_to
-                        .send(crate::app::daemon::server::PingPayload { daemon_ready: true });
+                        .send(PingPayload { daemon_ready: true });
                 }
                 SupervisorEvent::DaemonShutdown { respond_to } => {
                     let _ = respond_to.send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
@@ -60,7 +60,7 @@ fn spawn_test_supervisor(mut rx: mpsc::Receiver<SupervisorEvent>) -> tokio::task
                     respond_to,
                 } => {
                     let _ = respond_to.send(RuntimeReplaceResult::Ok(
-                        crate::app::daemon::server::RuntimeReplacePayload {
+                        RuntimeReplacePayload {
                             trigger,
                             replaced: true,
                             old_session_id: 10,
@@ -84,7 +84,7 @@ fn spawn_test_supervisor_replace_error(
             match event {
                 SupervisorEvent::DaemonPing { respond_to } => {
                     let _ = respond_to
-                        .send(crate::app::daemon::server::PingPayload { daemon_ready: true });
+                        .send(PingPayload { daemon_ready: true });
                 }
                 SupervisorEvent::RuntimeReplace { respond_to, .. } => {
                     let _ = respond_to.send(RuntimeReplaceResult::Err {

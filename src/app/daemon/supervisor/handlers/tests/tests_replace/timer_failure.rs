@@ -13,7 +13,7 @@ async fn health_tick_timer_due_attempt_updates_rotation_state_on_failure() {
 
     assert_eq!(
         state.last_trigger,
-        Some(crate::app::daemon::server::RotationTrigger::Timer)
+        Some(crate::app::daemon::ipc::RotationTrigger::Timer)
     );
     assert_eq!(state.last_result, "rotation_candidate_failed");
     assert_eq!(state.last_candidate_result, "rotation_candidate_failed");

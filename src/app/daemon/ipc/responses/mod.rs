@@ -1,4 +1,4 @@
-use crate::app::daemon::server::{DaemonResponse, DaemonResponseCode, PROTOCOL_VERSION};
+use crate::app::daemon::ipc::{DaemonResponse, DaemonResponseCode, PROTOCOL_VERSION};
 
 mod daemon_ping;
 mod proxy;

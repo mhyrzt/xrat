@@ -1,15 +1,15 @@
 use crate::app::context::AppContext;
-use crate::app::daemon::{server, supervisor};
+use crate::app::daemon::{ipc, supervisor};
 use crate::cli::{DaemonAction, DaemonArgs};
 use std::process::Stdio;
 use tokio::time::{Duration, sleep};
 
 pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<()> {
-    let socket_path = server::default_socket_path(&context.runtime_paths.runtime_dir);
+    let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
 
     match args.action {
         DaemonAction::Start(_) => {
-            if server::ping_daemon(&socket_path).await.is_ok() {
+            if ipc::ping_daemon(&socket_path).await.is_ok() {
                 println!("Daemon already running. Socket: {}", socket_path.display());
                 return Ok(());
             }
@@ -21,14 +21,14 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
-            server::serve_ping(&socket_path, tx).await?;
+            ipc::serve_ping(&socket_path, tx).await?;
         }
-        DaemonAction::Status(_) => match server::runtime_status_daemon(&socket_path).await {
+        DaemonAction::Status(_) => match ipc::runtime_status_daemon(&socket_path).await {
             Ok(response) => {
                 if !response.ok {
                     return Err(crate::app::AppError::InvalidArgument(response.message));
                 }
-                let payload = response.payload.unwrap_or(server::RuntimeStatusPayload {
+                let payload = response.payload.unwrap_or(ipc::RuntimeStatusPayload {
                     daemon_ready: false,
                     runtime_owned: false,
                     runtime_status: "unknown".to_string(),
@@ -48,7 +48,7 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     payload.pid_running
                 );
             }
-            Err(err) if server::daemon_unreachable(&err) => {
+            Err(err) if ipc::daemon_unreachable(&err) => {
                 println!(
                     "Daemon status: not running (start with `xrat daemon start`). Socket: {}",
                     socket_path.display()
@@ -56,12 +56,12 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             }
             Err(err) => return Err(err),
         },
-        DaemonAction::Stop(_) => match server::daemon_shutdown_daemon(&socket_path).await {
+        DaemonAction::Stop(_) => match ipc::daemon_shutdown_daemon(&socket_path).await {
             Ok(response) => {
                 if !response.ok {
                     return Err(crate::app::AppError::InvalidArgument(response.message));
                 }
-                let payload = response.payload.unwrap_or(server::DaemonShutdownPayload {
+                let payload = response.payload.unwrap_or(ipc::DaemonShutdownPayload {
                     daemon_ready: false,
                     runtime_disconnected: false,
                 });
@@ -73,7 +73,7 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     payload.runtime_disconnected
                 );
             }
-            Err(err) if server::daemon_unreachable(&err) => {
+            Err(err) if ipc::daemon_unreachable(&err) => {
                 println!(
                     "Daemon stop: not running. Socket: {}",
                     socket_path.display()
@@ -103,7 +103,7 @@ fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
 
 async fn wait_until_daemon_ready(socket_path: &std::path::Path) -> crate::app::Result<()> {
     for _ in 0..20 {
-        if server::ping_daemon(socket_path).await.is_ok() {
+        if ipc::ping_daemon(socket_path).await.is_ok() {
             return Ok(());
         }
         sleep(Duration::from_millis(100)).await;
