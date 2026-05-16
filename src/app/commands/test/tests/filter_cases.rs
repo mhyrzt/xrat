@@ -1,4 +1,4 @@
-use super::super::entrypoints::filter_latest_run_rows;
+use super::super::handlers::filter_latest_run_rows;
 use super::super::*;
 
 #[test]

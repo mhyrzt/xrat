@@ -3,7 +3,9 @@ use url::Url;
 use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
-use super::super::support::{empty_to_none, password_or_none, percent_decode, username_or_none};
+use super::super::parsing_helpers::{
+    empty_to_none, password_or_none, percent_decode, username_or_none,
+};
 
 pub fn parse_socks5(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;

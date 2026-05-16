@@ -1,7 +1,10 @@
 use super::*;
 
+mod bulk_executor;
 mod distribution;
-mod runners;
+mod rotation;
+
+pub(crate) use rotation::run_rotation_bulk_tests;
 
 pub(super) fn print_geo_distribution<'a>(label: &str, values: impl Iterator<Item = &'a str>) {
     distribution::print_geo_distribution(label, values);
@@ -13,7 +16,7 @@ pub(super) async fn run_single(
     settings: ResolvedTestSettings,
     config_id: i64,
 ) -> crate::app::Result<()> {
-    runners::run_single(args, context, settings, config_id).await
+    bulk_executor::run_single(args, context, settings, config_id).await
 }
 
 pub(super) async fn run_bulk(
@@ -21,7 +24,7 @@ pub(super) async fn run_bulk(
     context: &AppContext,
     settings: ResolvedTestSettings,
 ) -> crate::app::Result<()> {
-    runners::run_bulk(args, context, settings).await
+    bulk_executor::run_bulk(args, context, settings).await
 }
 
 pub(crate) async fn run_bulk_for_configs(
@@ -31,5 +34,5 @@ pub(crate) async fn run_bulk_for_configs(
     run_kind: &str,
     show_progress: bool,
 ) -> crate::app::Result<Vec<TestOutputRow>> {
-    runners::run_bulk_for_configs(context, settings, configs, run_kind, show_progress).await
+    bulk_executor::run_bulk_for_configs(context, settings, configs, run_kind, show_progress).await
 }

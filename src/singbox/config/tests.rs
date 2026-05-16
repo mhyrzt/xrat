@@ -1,4 +1,4 @@
-use super::generate_parse_config;
+use super::generate_singbox_probe_config;
 use crate::model::{Node, Protocol};
 use std::collections::BTreeMap;
 
@@ -22,7 +22,7 @@ fn generates_hy2_singbox_config_with_optional_fields() {
         raw_config: "hy2://secret@hy2.example.com:443?sni=edge.example.com&insecure=1&alpn=h3,h2&obfs=salamander&obfs-password=pwd&upmbps=20&downmbps=80#hy2".to_string(),
     };
 
-    let config = generate_parse_config(&node, 1080).expect("hy2 config should generate");
+    let config = generate_singbox_probe_config(&node, 1080).expect("hy2 config should generate");
     let outbound = &config.outbounds[0];
     assert_eq!(outbound["type"], "hysteria2");
     assert_eq!(outbound["tls"]["insecure"], true);
@@ -58,7 +58,7 @@ fn prefers_protocol_extensions_when_present() {
         raw_config: "hy2://secret@hy2.example.com:443#hy2".to_string(),
     };
 
-    let config = generate_parse_config(&node, 1080).expect("hy2 config should generate");
+    let config = generate_singbox_probe_config(&node, 1080).expect("hy2 config should generate");
     let outbound = &config.outbounds[0];
     assert_eq!(outbound["tls"]["insecure"], true);
     assert_eq!(outbound["obfs"]["password"], "pwd");

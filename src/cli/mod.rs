@@ -10,7 +10,7 @@ mod proxy;
 mod root;
 mod scan;
 mod status;
-mod test;
+mod test_cmd;
 mod tests;
 
 pub use add::AddArgs;
@@ -29,7 +29,7 @@ pub use proxy::{
 pub use root::Cli;
 pub use scan::ScanArgs;
 pub use status::StatusArgs;
-pub use test::{TestArgs, TestFormat, TestSortBy};
+pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
 
 use clap::Parser;
 

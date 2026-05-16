@@ -12,6 +12,7 @@ pub use client::{
     proxy_stop_daemon, runtime_connect_daemon, runtime_disconnect_daemon, runtime_replace_daemon,
     runtime_status_daemon,
 };
+pub use handler::serve_ping;
 pub use responses::{
     daemon_shutdown_response, ping_response, proxy_control_error_response, proxy_control_response,
     proxy_status_error_response, proxy_status_response, runtime_connect_error_response,
@@ -19,7 +20,6 @@ pub use responses::{
     runtime_replace_error_response, runtime_replace_response, runtime_status_error_response,
     runtime_status_response,
 };
-pub use handler::serve_ping;
 pub use types::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;

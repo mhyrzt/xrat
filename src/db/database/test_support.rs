@@ -1,5 +1,5 @@
 #[cfg(test)]
-use super::imports::{PathBuf, SystemTime, UNIX_EPOCH};
+use super::types::{PathBuf, SystemTime, UNIX_EPOCH};
 
 #[cfg(test)]
 pub(super) fn test_database_path(prefix: &str) -> PathBuf {

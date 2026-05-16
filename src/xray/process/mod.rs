@@ -1,8 +1,8 @@
 mod errors;
-mod process_impl;
+mod spawn;
 
 pub use errors::XrayProcessError;
-pub use process_impl::XrayProcess;
+pub use spawn::XrayProcess;
 
 #[cfg(test)]
 mod tests;

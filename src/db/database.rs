@@ -1,10 +1,10 @@
 mod connection_and_config;
-mod imports;
 mod runtime_and_state;
 mod test_history;
 mod test_support;
+mod types;
 
-pub use imports::Database;
+pub use types::Database;
 
 #[cfg(test)]
 use crate::db::{

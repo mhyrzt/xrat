@@ -28,7 +28,10 @@ pub struct SingboxInbound {
     pub listen_port: u16,
 }
 
-pub fn generate_parse_config(node: &Node, local_port: u16) -> Result<SingboxConfig, String> {
+pub fn generate_singbox_probe_config(
+    node: &Node,
+    local_port: u16,
+) -> Result<SingboxConfig, String> {
     let outbound = match node.protocol {
         Protocol::Hy2 => hy2::build_hy2_outbound(node)?,
         _ => {

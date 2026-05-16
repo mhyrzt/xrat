@@ -3,8 +3,8 @@ mod import;
 mod line;
 mod normalize;
 mod parse_service;
+mod parsing_helpers;
 mod protocols;
-mod support;
 
 use std::collections::HashSet;
 

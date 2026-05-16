@@ -1,5 +1,5 @@
 use super::Database;
-use super::imports::*;
+use super::types::*;
 
 impl Database {
     pub async fn connect(config: &DatabaseConnectionConfig) -> crate::db::Result<Self> {

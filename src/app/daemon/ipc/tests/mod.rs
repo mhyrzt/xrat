@@ -4,7 +4,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
 
 use crate::app::daemon::ipc::{
-    DaemonResponse, DaemonShutdownPayload, PingPayload, RuntimeReplacePayload, daemon_shutdown_daemon, ping_daemon,
+    DaemonResponse, DaemonShutdownPayload, PingPayload, RuntimeReplacePayload,
+    daemon_shutdown_daemon, ping_daemon,
 };
 use crate::app::daemon::supervisor::{DaemonShutdownResult, RuntimeReplaceResult, SupervisorEvent};
 
@@ -44,8 +45,7 @@ fn spawn_test_supervisor(mut rx: mpsc::Receiver<SupervisorEvent>) -> tokio::task
         while let Some(event) = rx.recv().await {
             match event {
                 SupervisorEvent::DaemonPing { respond_to } => {
-                    let _ = respond_to
-                        .send(PingPayload { daemon_ready: true });
+                    let _ = respond_to.send(PingPayload { daemon_ready: true });
                 }
                 SupervisorEvent::DaemonShutdown { respond_to } => {
                     let _ = respond_to.send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
@@ -59,16 +59,14 @@ fn spawn_test_supervisor(mut rx: mpsc::Receiver<SupervisorEvent>) -> tokio::task
                     candidate_id,
                     respond_to,
                 } => {
-                    let _ = respond_to.send(RuntimeReplaceResult::Ok(
-                        RuntimeReplacePayload {
-                            trigger,
-                            replaced: true,
-                            old_session_id: 10,
-                            new_config_id: candidate_id.unwrap_or(20),
-                            new_session_id: 30,
-                            new_pid: 40,
-                        },
-                    ));
+                    let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
+                        trigger,
+                        replaced: true,
+                        old_session_id: 10,
+                        new_config_id: candidate_id.unwrap_or(20),
+                        new_session_id: 30,
+                        new_pid: 40,
+                    }));
                 }
                 _ => {}
             }
@@ -83,8 +81,7 @@ fn spawn_test_supervisor_replace_error(
         while let Some(event) = rx.recv().await {
             match event {
                 SupervisorEvent::DaemonPing { respond_to } => {
-                    let _ = respond_to
-                        .send(PingPayload { daemon_ready: true });
+                    let _ = respond_to.send(PingPayload { daemon_ready: true });
                 }
                 SupervisorEvent::RuntimeReplace { respond_to, .. } => {
                     let _ = respond_to.send(RuntimeReplaceResult::Err {

@@ -1,7 +1,7 @@
 use crate::app::AppError;
 use crate::config::ResolvedEngine;
 use crate::model::Node;
-use crate::singbox::generate_parse_config as generate_singbox_parse_config;
+use crate::singbox::generate_singbox_probe_config;
 use crate::xray::generate_runtime_config_for_inbounds;
 
 pub(super) fn clean_json_value(value: serde_json::Value) -> Option<serde_json::Value> {
@@ -52,7 +52,7 @@ pub(super) fn build_json_value(
         }
         ResolvedEngine::SingBox => {
             let config =
-                generate_singbox_parse_config(node, 1080).map_err(AppError::InvalidArgument)?;
+                generate_singbox_probe_config(node, 1080).map_err(AppError::InvalidArgument)?;
             serde_json::to_value(config)?
         }
     };
