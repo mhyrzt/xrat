@@ -454,23 +454,23 @@ and `src/app/runtime_service/tests/connect_status/rejection.rs`.
 
 ## Progress Tracker
 
-| #   | Severity | Status      | Notes                                      |
-| --- | -------- | ----------- | ------------------------------------------ |
-| 1   | HIGH     | [x] done    | Duplicate `node_from_record`               |
-| 2   | HIGH     | [x] done    | Duplicate `looks_like_url`                 |
-| 3   | HIGH     | [x] done    | Duplicate `now_epoch_seconds`/`now_string` |
-| 4   | HIGH     | [x] done    | `config/xray/` vs `xray/config/`           |
-| 5   | HIGH     | [x] done    | Three "paths" modules                      |
-| 6   | MEDIUM   | [x] done    | Singular/plural inconsistency              |
-| 7   | MEDIUM   | [x] done    | `test.rs` / `test/` collision              |
-| 8   | MEDIUM   | [x] done    | `database/imports.rs` misnamed             |
-| 9   | MEDIUM   | [x] done    | `generate_parse_config` confusing          |
-| 10  | MEDIUM   | [x] done    | Vague `helpers.rs`                         |
-| 11  | MEDIUM   | [x] done    | Redundant `process_impl.rs`                |
-| 12  | MEDIUM   | [x] done    | Misleading `facade/`                       |
-| 13  | MEDIUM   | [x] done    | `config/support.rs` vs `support/`          |
-| 14  | MEDIUM   | [x] done    | "Runtime" overloaded 5 ways                |
-| 15  | MEDIUM   | [x] done    | Unclear `server/` vs `supervisor/`         |
+| #   | Severity | Status   | Notes                                      |
+| --- | -------- | -------- | ------------------------------------------ |
+| 1   | HIGH     | [x] done | Duplicate `node_from_record`               |
+| 2   | HIGH     | [x] done | Duplicate `looks_like_url`                 |
+| 3   | HIGH     | [x] done | Duplicate `now_epoch_seconds`/`now_string` |
+| 4   | HIGH     | [x] done | `config/xray/` vs `xray/config/`           |
+| 5   | HIGH     | [x] done | Three "paths" modules                      |
+| 6   | MEDIUM   | [x] done | Singular/plural inconsistency              |
+| 7   | MEDIUM   | [x] done | `test.rs` / `test/` collision              |
+| 8   | MEDIUM   | [x] done | `database/imports.rs` misnamed             |
+| 9   | MEDIUM   | [x] done | `generate_parse_config` confusing          |
+| 10  | MEDIUM   | [x] done | Vague `helpers.rs`                         |
+| 11  | MEDIUM   | [x] done | Redundant `process_impl.rs`                |
+| 12  | MEDIUM   | [x] done | Misleading `facade/`                       |
+| 13  | MEDIUM   | [x] done | `config/support.rs` vs `support/`          |
+| 14  | MEDIUM   | [x] done | "Runtime" overloaded 5 ways                |
+| 15  | MEDIUM   | [x] done | Unclear `server/` vs `supervisor/`         |
 | 16  | LOW      | [x] done | Generic `model/` in test                   |
 | 17  | LOW      | [x] done | Two "model" modules                        |
 | 18  | LOW      | [x] done | Awkward `defaults_impl.rs`                 |
