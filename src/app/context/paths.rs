@@ -4,8 +4,8 @@ use std::time::Duration;
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 
 use crate::app::AppError;
+use crate::app::app_paths;
 use crate::app::config::{self, AppConfig, DatabaseBackend};
-use crate::app::path;
 use crate::cli;
 use crate::db::DatabaseConnectionConfig;
 
@@ -23,13 +23,13 @@ pub struct RuntimePaths {
 }
 
 pub fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, AppConfig)> {
-    let app_paths = path::ensure_layout()?;
+    let app_paths = app_paths::ensure_layout()?;
     let config_path = args
         .config
         .clone()
         .unwrap_or_else(|| app_paths.config_path.clone());
 
-    path::ensure_config_file(&config_path)?;
+    app_paths::ensure_config_file(&config_path)?;
     let app_config = config::load(&config_path)?;
     let database_config =
         resolve_database_config(args, &app_config, &config_path, &app_paths.database_path)?;

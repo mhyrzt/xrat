@@ -402,7 +402,7 @@ pub enum RuntimeStatusLabel {
 | 2 | HIGH | [x] done | Duplicate `looks_like_url` |
 | 3 | HIGH | [x] done | Duplicate `now_epoch_seconds`/`now_string` |
 | 4 | HIGH | [x] done | `config/xray/` vs `xray/config/` |
-| 5 | HIGH | [ ] pending | Three "paths" modules |
+| 5 | HIGH | [x] done | Three "paths" modules |
 | 6 | MEDIUM | [ ] pending | Singular/plural inconsistency |
 | 7 | MEDIUM | [ ] pending | `test.rs` / `test/` collision |
 | 8 | MEDIUM | [ ] pending | `database/imports.rs` misnamed |
@@ -423,13 +423,13 @@ pub enum RuntimeStatusLabel {
 | 23 | LOW | [ ] pending | Vague `Serve` variant |
 | 24 | LOW | [ ] pending | Unclear `entrypoints/` |
 | 25 | LOW | [ ] pending | Deep `connect/replace_flow/` |
-| 26 | MEDIUM | [ ] pending | `path.rs` / `path/` collision |
+| 26 | MEDIUM | [x] done | `path.rs` / `path/` collision |
 | 27 | LOW | [ ] pending | `import_list/` unclear |
 | 28 | LOW | [ ] pending | `server/` submodule inconsistency |
 | 29 | LOW | [ ] pending | `tester/` module purpose unclear |
 | 30 | LOW | [ ] pending | Deep `connect_status_cases/connect_case/` |
 
-**Summary:** 5/30 complete · 1 HIGH · 10 MEDIUM · 14 LOW
+**Summary:** 7/30 complete · 0 HIGH · 9 MEDIUM · 14 LOW
 
 ---
 
@@ -470,11 +470,11 @@ Use this checklist when working through the audit. Complete items in priority or
 
 ### Phase 4: Paths Modules (Items 5, 26)
 
-- [ ] 4.1 Rename `src/app/path.rs` → `src/app/app_paths.rs`
-- [ ] 4.2 Rename `src/app/path/` → `src/app/app_paths/`
-- [ ] 4.3 Rename `src/app/config/paths.rs` → `src/app/config/path_settings.rs`
-- [ ] 4.4 Update all imports
-- [ ] 4.5 Run `cargo build && cargo test -q`
+- [x] 4.1 Rename `src/app/path.rs` → `src/app/app_paths.rs`
+- [x] 4.2 Rename `src/app/path/` → `src/app/app_paths/`
+- [x] 4.3 Rename `src/app/config/paths.rs` → `src/app/config/path_settings.rs`
+- [x] 4.4 Update all imports
+- [x] 4.5 Run `cargo build && cargo test -q`
 
 ### Phase 5: Daemon IPC Boundary (Items 15, 28)
 

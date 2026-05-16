@@ -7,7 +7,7 @@ pub(crate) mod defaults;
 mod dns;
 mod geo;
 mod parser;
-mod paths;
+mod path_settings;
 mod proxy;
 mod routing;
 mod secret;
@@ -19,7 +19,7 @@ pub use database::{
 pub use dns::{DnsHostValue, DnsSettings};
 pub use geo::{GeoProfile, GeoSettings};
 pub use parser::ParserSettings;
-pub use paths::PathSettings;
+pub use path_settings::PathSettings;
 pub use proxy::{
     AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
     ShadowsocksSettings, SniffingSettings, SocksSettings,
