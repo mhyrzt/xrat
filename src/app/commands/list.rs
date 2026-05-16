@@ -1,4 +1,4 @@
-use crate::app::runtime::AppContext;
+use crate::app::context::AppContext;
 use crate::cli::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget};
 use crate::db::ConfigListFilter;
 

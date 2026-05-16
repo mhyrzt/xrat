@@ -5,7 +5,7 @@ use super::super::super::*;
 #[test]
 fn resolves_xray_binary_from_runtime_paths() {
     let app_config = AppConfig::default();
-    let runtime_paths = crate::app::runtime::RuntimePaths {
+    let runtime_paths = crate::app::context::RuntimePaths {
         root_dir: "/tmp/xrat".into(),
         database_config: DatabaseConnectionConfig::Sqlite {
             path: "/tmp/xrat/db.sqlite".into(),
@@ -38,7 +38,7 @@ fn resolves_v2ray_binary_when_engine_is_v2ray() {
         ..AppConfig::default()
     };
 
-    let runtime_paths = crate::app::runtime::RuntimePaths {
+    let runtime_paths = crate::app::context::RuntimePaths {
         root_dir: "/tmp/xrat".into(),
         database_config: DatabaseConnectionConfig::Sqlite {
             path: "/tmp/xrat/db.sqlite".into(),

@@ -1,7 +1,7 @@
 mod config;
-mod runtime;
+mod process_mgmt;
 
 pub use config::{SingboxConfig, generate_parse_config};
-pub use runtime::{
+pub use process_mgmt::{
     ManagedSingboxPaths, ManagedSingboxProcess, SingboxRuntimeError, spawn_detached,
 };

@@ -411,7 +411,7 @@ pub enum RuntimeStatusLabel {
 | 11 | MEDIUM | [ ] pending | Redundant `process_impl.rs` |
 | 12 | MEDIUM | [ ] pending | Misleading `facade/` |
 | 13 | MEDIUM | [ ] pending | `config/support.rs` vs `support/` |
-| 14 | MEDIUM | [ ] pending | "Runtime" overloaded 5 ways |
+| 14 | MEDIUM | [x] done | "Runtime" overloaded 5 ways |
 | 15 | MEDIUM | [ ] pending | Unclear `server/` vs `supervisor/` |
 | 16 | LOW | [ ] pending | Generic `model/` in test |
 | 17 | LOW | [ ] pending | Two "model" modules |
@@ -429,7 +429,7 @@ pub enum RuntimeStatusLabel {
 | 29 | LOW | [ ] pending | `tester/` module purpose unclear |
 | 30 | LOW | [ ] pending | Deep `connect_status_cases/connect_case/` |
 
-**Summary:** 3/30 complete · 2 HIGH · 11 MEDIUM · 14 LOW
+**Summary:** 4/30 complete · 2 HIGH · 10 MEDIUM · 14 LOW
 
 ---
 
@@ -452,15 +452,15 @@ Use this checklist when working through the audit. Complete items in priority or
 
 ### Phase 2: Disambiguate "Runtime" (Item 14)
 
-- [ ] 2.1 Rename `src/app/runtime.rs` → `src/app/context.rs`
-- [ ] 2.2 Update all imports referencing `app::runtime`
-- [ ] 2.3 Rename `src/app/config/runtime/` → `src/app/config/proxy.rs` or `src/app/config/inbounds/`
-- [ ] 2.4 Update all imports referencing `app::config::runtime`
-- [ ] 2.5 Rename `src/xray/runtime/` → `src/xray/process_mgmt/`
-- [ ] 2.6 Update all imports referencing `xray::runtime`
-- [ ] 2.7 Rename `src/singbox/runtime.rs` → `src/singbox/process_mgmt.rs`
-- [ ] 2.8 Update all imports referencing `singbox::runtime`
-- [ ] 2.9 Run `cargo build && cargo test -q`
+- [x] 2.1 Rename `src/app/runtime.rs` → `src/app/context.rs`
+- [x] 2.2 Update all imports referencing `app::runtime`
+- [x] 2.3 Rename `src/app/config/runtime/` → `src/app/config/proxy/`
+- [x] 2.4 Update all imports referencing `app::config::runtime`
+- [x] 2.5 Rename `src/xray/runtime/` → `src/xray/process_mgmt/`
+- [x] 2.6 Update all imports referencing `xray::runtime`
+- [x] 2.7 Rename `src/singbox/runtime.rs` → `src/singbox/process_mgmt.rs`
+- [x] 2.8 Update all imports referencing `singbox::runtime`
+- [x] 2.9 Run `cargo build && cargo test -q`
 
 ### Phase 3: Config vs Xray Boundary (Item 4)
 

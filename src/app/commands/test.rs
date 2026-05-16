@@ -19,7 +19,7 @@ use tokio::task::JoinSet;
 use crate::app::AppError;
 use crate::app::config::defaults;
 use crate::app::config::{AppConfig, ConnectionTestStage, TestFailurePolicy};
-use crate::app::runtime::{AppContext, RuntimePaths};
+use crate::app::context::{AppContext, RuntimePaths};
 use crate::cli::{TestArgs, TestFormat, TestSortBy};
 #[cfg(test)]
 use crate::db::DatabaseConnectionConfig;

@@ -1,5 +1,5 @@
+use crate::app::context::AppContext;
 use crate::app::daemon::server;
-use crate::app::runtime::AppContext;
 use crate::cli::DisconnectArgs;
 
 pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Result<()> {
@@ -55,7 +55,7 @@ mod tests {
     use super::*;
     use crate::app::AppError;
     use crate::app::config::AppConfig;
-    use crate::app::runtime::RuntimePaths;
+    use crate::app::context::RuntimePaths;
     use crate::db::{Database, DatabaseConnectionConfig};
     use std::time::{SystemTime, UNIX_EPOCH};
 

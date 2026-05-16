@@ -3,7 +3,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::process::{Child, Command, Stdio};
 
-pub(super) fn write_fake_runtime_script(context: &crate::app::runtime::AppContext) {
+pub(super) fn write_fake_runtime_script(context: &crate::app::context::AppContext) {
     let fake_xray = context.runtime_paths.root_dir.join("fake-xray.py");
     fs::write(
         &fake_xray,
@@ -64,7 +64,7 @@ pub(super) fn spawn_sleep(seconds: u64) -> Child {
 }
 
 pub(super) async fn set_running_session(
-    context: &crate::app::runtime::AppContext,
+    context: &crate::app::context::AppContext,
     config_id: i64,
     pid: i64,
 ) -> i64 {

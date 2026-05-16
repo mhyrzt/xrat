@@ -1,5 +1,5 @@
 use crate::app::config::AppConfig;
-use crate::app::runtime::{AppContext, RuntimePaths};
+use crate::app::context::{AppContext, RuntimePaths};
 use crate::db::{Database, DatabaseConnectionConfig, ImportSource, SourceKind};
 use crate::model::{Node, Protocol};
 use std::path::PathBuf;

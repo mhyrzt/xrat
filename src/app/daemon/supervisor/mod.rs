@@ -10,7 +10,7 @@ pub use types::{
     SupervisorState, channel,
 };
 
-use crate::app::runtime::AppContext;
+use crate::app::context::AppContext;
 use crate::app::runtime_service::RuntimeService;
 use crate::support::time::now_epoch_seconds;
 

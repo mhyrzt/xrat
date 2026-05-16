@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::time::Duration;
 
 use crate::app::AppError;
-use crate::app::runtime::AppContext;
+use crate::app::context::AppContext;
 use crate::cli::ScanArgs;
 use crate::db::CfScanResultUpsert;
 use crate::tester::tcp_check;

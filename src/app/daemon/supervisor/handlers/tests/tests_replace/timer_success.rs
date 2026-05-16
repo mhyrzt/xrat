@@ -91,7 +91,7 @@ async fn health_tick_timer_due_success_updates_rotation_state_and_reschedules() 
     );
     assert_ne!(running.process_id, Some(old_pid));
 
-    let _ = crate::xray::runtime::terminate_process_gracefully(
+    let _ = crate::xray::process_mgmt::terminate_process_gracefully(
         running.process_id.unwrap_or_default(),
         std::time::Duration::from_millis(1500),
     );

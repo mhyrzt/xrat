@@ -1,7 +1,7 @@
 use super::super::super::*;
 
-pub(crate) fn test_runtime_paths() -> crate::app::runtime::RuntimePaths {
-    crate::app::runtime::RuntimePaths {
+pub(crate) fn test_runtime_paths() -> crate::app::context::RuntimePaths {
+    crate::app::context::RuntimePaths {
         root_dir: "/tmp/xrat".into(),
         database_config: DatabaseConnectionConfig::Sqlite {
             path: "/tmp/xrat/db.sqlite".into(),

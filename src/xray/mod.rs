@@ -1,6 +1,6 @@
 pub mod config;
 pub mod process;
-pub mod runtime;
+pub mod process_mgmt;
 
 pub use config::{
     XrayConfig, generate_probe_config, generate_runtime_config,

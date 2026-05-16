@@ -8,8 +8,8 @@ mod dns;
 mod geo;
 mod parser;
 mod paths;
+mod proxy;
 mod routing;
-mod runtime;
 mod secret;
 mod testing;
 
@@ -20,11 +20,11 @@ pub use dns::{DnsHostValue, DnsSettings};
 pub use geo::{GeoProfile, GeoSettings};
 pub use parser::ParserSettings;
 pub use paths::PathSettings;
-pub use routing::{RouteList, RoutingSettings};
-pub use runtime::{
+pub use proxy::{
     AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
     ShadowsocksSettings, SniffingSettings, SocksSettings,
 };
+pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};
 pub use testing::{
     ConnectionTestStage, DownloadTestSettings, GeoIpTestSettings, IcmpTestSettings,

@@ -1,6 +1,6 @@
 use super::super::*;
 use crate::app::config::AppConfig;
-use crate::app::runtime::RuntimePaths;
+use crate::app::context::RuntimePaths;
 use crate::db::{Database, DatabaseConnectionConfig, ImportSource, SourceKind};
 use crate::model::{Node, Protocol};
 use std::time::{SystemTime, UNIX_EPOCH};

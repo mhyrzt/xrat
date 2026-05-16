@@ -1,9 +1,9 @@
+use crate::app::context::AppContext;
 use crate::app::daemon::server::RotationTrigger;
 use crate::app::daemon::supervisor::{
     DaemonShutdownResult, ProxyControlResult, ProxyStatusResult, RuntimeConnectResult,
     RuntimeDisconnectResult, RuntimeReplaceResult, RuntimeStatusResult, SupervisorState,
 };
-use crate::app::runtime::AppContext;
 use tokio::sync::oneshot;
 
 mod runtime_lifecycle;

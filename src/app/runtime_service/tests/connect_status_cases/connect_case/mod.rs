@@ -1,5 +1,5 @@
 use super::*;
-use crate::xray::runtime as xray_runtime;
+use crate::xray::process_mgmt as xray_runtime;
 use std::process::{Command, Stdio};
 
 mod lifecycle_cases;

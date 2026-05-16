@@ -10,7 +10,7 @@ mod scan;
 mod status;
 pub(crate) mod test;
 
-use crate::app::runtime::AppContext;
+use crate::app::context::AppContext;
 use crate::cli::Command;
 
 pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<()> {

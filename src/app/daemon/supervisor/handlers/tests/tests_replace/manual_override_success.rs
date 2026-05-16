@@ -90,7 +90,7 @@ async fn manual_rotate_with_explicit_candidate_overrides_cooldown() {
     assert_eq!(state.last_candidate_config_id, Some(candidate_config.id));
     assert_eq!(state.last_candidate_result, "replace_commit_success");
 
-    let _ = crate::xray::runtime::terminate_process_gracefully(
+    let _ = crate::xray::process_mgmt::terminate_process_gracefully(
         i64::from(payload.new_pid),
         std::time::Duration::from_millis(1500),
     );

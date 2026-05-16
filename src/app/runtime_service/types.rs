@@ -6,13 +6,13 @@ pub(super) use tokio::time::timeout;
 
 pub(super) use crate::app::AppError;
 pub(super) use crate::app::config::defaults;
-pub(super) use crate::app::runtime::AppContext;
+pub(super) use crate::app::context::AppContext;
 pub(super) use crate::db::{
     ConfigListFilter, ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord,
     RuntimeSessionStatus,
 };
 pub(super) use crate::xray::config::Inbound;
-pub(super) use crate::xray::{generate_runtime_config_for_inbounds, runtime as xray_runtime};
+pub(super) use crate::xray::{generate_runtime_config_for_inbounds, process_mgmt as xray_runtime};
 
 pub(super) use crate::support::time::now_string;
 
