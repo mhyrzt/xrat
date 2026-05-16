@@ -1,6 +1,7 @@
 use clap::{Args, Subcommand};
 
 #[derive(Debug, Args)]
+#[command(about = "Control auto-rotating proxy scheduling via the daemon.")]
 pub struct ProxyArgs {
     #[command(subcommand)]
     pub action: ProxyAction,
@@ -8,22 +9,23 @@ pub struct ProxyArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ProxyAction {
-    #[command(about = "Enable daemon-owned proxy rotation scheduling.")]
+    #[command(about = "Enable automatic proxy rotation on a fixed schedule.")]
     Start(ProxyStartArgs),
-    #[command(about = "Show daemon-owned proxy rotation status.")]
+    #[command(about = "Show the current proxy rotation status.")]
     Status(ProxyStatusArgs),
-    #[command(about = "Perform a manual rotation, optionally forcing one config id.")]
+    #[command(about = "Trigger an immediate manual rotation.")]
     Rotate(ProxyRotateArgs),
-    #[command(about = "Disable daemon-owned proxy rotation scheduling.")]
+    #[command(about = "Disable automatic proxy rotation.")]
     Stop(ProxyStopArgs),
 }
 
+/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct ProxyStartArgs {}
 
 #[derive(Debug, Args, Default)]
 pub struct ProxyStatusArgs {
-    #[arg(long = "json", help = "Print proxy rotation status as JSON.")]
+    #[arg(long = "json", help = "Print rotation status as JSON.")]
     pub json: bool,
 }
 
@@ -31,10 +33,11 @@ pub struct ProxyStatusArgs {
 pub struct ProxyRotateArgs {
     #[arg(
         long = "config-id",
-        help = "Target a specific enabled config id for this rotation."
+        help = "Force rotation to a specific enabled config ID."
     )]
     pub config_id: Option<i64>,
 }
 
+/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct ProxyStopArgs {}

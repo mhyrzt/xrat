@@ -1,6 +1,7 @@
 use clap::{Args, Subcommand, ValueEnum};
 
 #[derive(Debug, Args)]
+#[command(about = "List persisted nodes or subscriptions.")]
 pub struct ListArgs {
     #[command(subcommand)]
     pub target: ListTarget,
@@ -24,21 +25,27 @@ pub struct ListConfigsArgs {
     pub selected_only: bool,
     #[arg(
         long = "subscription",
-        help = "Show only configs from one subscription id."
+        help = "Show only configs from the given subscription ID."
     )]
     pub subscription: Option<i64>,
 }
 
 #[derive(Debug, Args, Default)]
 pub struct ListSubscriptionsArgs {
-    #[arg(long = "kind", help = "Filter subscriptions by source kind.")]
+    #[arg(
+        long = "kind",
+        help = "Filter by source kind: url (remote subscription link), file (local file path), or raw-text (inline text)."
+    )]
     pub kind: Option<SubscriptionKind>,
 }
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum SubscriptionKind {
+    /// Remote subscription URL (https://...).
     Url,
+    /// Local file path on disk.
     File,
+    /// Inline raw subscription text.
     RawText,
 }
 

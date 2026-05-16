@@ -1,9 +1,10 @@
 use clap::Args;
 
 #[derive(Debug, Args)]
+#[command(about = "Add a single config URI directly to SQLite.")]
 pub struct AddArgs {
     #[arg(
-        help = "Single config URI/text to add, such as vless://..., vmess://..., ss://..., or trojan://..."
+        help = "Config URI to add, e.g. vless://..., vmess://..., ss://..., trojan://..., or hysteria2://..."
     )]
     pub input: String,
 }

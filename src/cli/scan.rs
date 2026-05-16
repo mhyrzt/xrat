@@ -1,15 +1,16 @@
 use clap::Args;
 
 #[derive(Debug, Clone, Args)]
+#[command(about = "Scan candidate IPs for TCP reachability and persist results.")]
 pub struct ScanArgs {
     #[arg(
         long = "ips",
         value_delimiter = ',',
-        help = "Comma-separated IPs to scan, e.g. 1.1.1.1,8.8.8.8"
+        help = "Comma-separated IPs to scan, e.g. 1.1.1.1,8.8.8.8."
     )]
     pub ips: Vec<String>,
 
-    #[arg(long = "file", help = "Read newline-separated IPs from file.")]
+    #[arg(long = "file", help = "Read newline-separated IPs from a file.")]
     pub file: Option<std::path::PathBuf>,
 
     #[arg(long = "port", default_value_t = 443, help = "Target TCP port.")]
@@ -18,13 +19,14 @@ pub struct ScanArgs {
     #[arg(
         long = "timeout",
         default_value_t = 4000,
-        help = "TCP timeout in milliseconds."
+        help = "TCP connect timeout in milliseconds."
     )]
     pub timeout_ms: u64,
 
     #[arg(
         long = "history",
-        help = "Print latest persisted scanner rows and exit."
+        value_name = "LIMIT",
+        help = "Print the latest N persisted scan results and exit (skips scanning)."
     )]
     pub history: Option<i64>,
 }

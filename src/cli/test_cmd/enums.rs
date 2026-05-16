@@ -2,9 +2,12 @@ use clap::ValueEnum;
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
 pub enum TestFormat {
+    /// Tab-separated values (default, easy to read in terminal).
     #[default]
     Tsv,
+    /// Comma-separated values (spreadsheet compatible).
     Csv,
+    /// JSON output (machine-parseable).
     Json,
 }
 
@@ -20,12 +23,18 @@ impl std::fmt::Display for TestFormat {
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
 pub enum TestSortBy {
+    /// Sort by test result status (alive first, then by failure reason).
     #[default]
     Status,
+    /// Sort by ICMP latency (lowest first).
     Icmp,
+    /// Sort by real-delay latency (lowest first).
     RealDelay,
+    /// Sort by download throughput (highest first).
     DownloadSpeed,
+    /// Sort by protocol type alphabetically.
     Protocol,
+    /// Sort by server address alphabetically.
     Address,
 }
 
