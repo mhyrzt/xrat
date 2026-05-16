@@ -2,7 +2,7 @@ use sqlx::QueryBuilder;
 
 use super::row::map_cf_scan_result_row;
 use crate::db::connection::DbPool;
-use crate::db::model::{CfScanResultRecord, CfScanResultUpsert};
+use crate::db::record::{CfScanResultRecord, CfScanResultUpsert};
 
 pub async fn upsert_batch(pool: &DbPool, results: &[CfScanResultUpsert]) -> crate::db::Result<()> {
     if results.is_empty() {

@@ -17,7 +17,7 @@ fn running_session_with_unreachable_inbound_is_degraded() {
 
     assert_eq!(
         runtime_status_label(&Some(session), &ActiveSessionState::None, true, &health),
-        RuntimeStatusLabel::Degraded
+        RuntimeSessionDisplay::Degraded
     );
 }
 
@@ -38,7 +38,7 @@ fn running_session_with_reachable_inbounds_keeps_persisted_status() {
 
     assert_eq!(
         runtime_status_label(&Some(session), &ActiveSessionState::None, true, &health),
-        RuntimeStatusLabel::Persisted(RuntimeSessionStatus::Running)
+        RuntimeSessionDisplay::Persisted(RuntimeSessionStatus::Running)
     );
 }
 

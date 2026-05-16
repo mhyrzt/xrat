@@ -5,24 +5,24 @@ pub(crate) fn runtime_status_label(
     active_state: &ActiveSessionState,
     pid_running: bool,
     inbound_health: &RuntimeInboundHealth,
-) -> RuntimeStatusLabel {
+) -> RuntimeSessionDisplay {
     match latest {
-        None => RuntimeStatusLabel::Stopped,
+        None => RuntimeSessionDisplay::Stopped,
         Some(_) if matches!(active_state, ActiveSessionState::Stale(_)) => {
-            RuntimeStatusLabel::StaleReconciled
+            RuntimeSessionDisplay::StaleReconciled
         }
         Some(session)
             if matches!(session.status, RuntimeSessionStatus::Running) && !pid_running =>
         {
-            RuntimeStatusLabel::Stale
+            RuntimeSessionDisplay::Stale
         }
         Some(session)
             if matches!(session.status, RuntimeSessionStatus::Running)
                 && inbound_health.has_unreachable_endpoint() =>
         {
-            RuntimeStatusLabel::Degraded
+            RuntimeSessionDisplay::Degraded
         }
-        Some(session) => RuntimeStatusLabel::Persisted(session.status.clone()),
+        Some(session) => RuntimeSessionDisplay::Persisted(session.status.clone()),
     }
 }
 

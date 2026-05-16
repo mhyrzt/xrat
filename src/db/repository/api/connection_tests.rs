@@ -1,5 +1,5 @@
 use crate::db::connection::DbPool;
-use crate::db::model::{
+use crate::db::record::{
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
 };
 use crate::db::repository::connection_tests;

@@ -1,5 +1,5 @@
 use super::*;
-use crate::db::model::{RuntimeSessionInsert, RuntimeSessionStatus};
+use crate::db::record::{RuntimeSessionInsert, RuntimeSessionStatus};
 
 pub async fn insert(pool: &DbPool, session: &RuntimeSessionInsert) -> crate::db::Result<i64> {
     match pool {

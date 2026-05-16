@@ -1,6 +1,6 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
-use crate::db::model::CfScanResultRecord;
+use crate::db::record::CfScanResultRecord;
 
 pub fn map_cf_scan_result_row<R>(row: R) -> CfScanResultRecord
 where

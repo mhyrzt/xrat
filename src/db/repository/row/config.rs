@@ -1,6 +1,6 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
-use crate::db::model::ConfigRecord;
+use crate::db::record::ConfigRecord;
 
 pub fn map_config_row<R>(row: R) -> ConfigRecord
 where

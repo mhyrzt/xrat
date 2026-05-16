@@ -54,7 +54,7 @@ pub struct ReplaceResult {
 
 #[derive(Clone, Debug)]
 pub struct RuntimeStatusSnapshot {
-    pub status: RuntimeStatusLabel,
+    pub status: RuntimeSessionDisplay,
     pub session: Option<RuntimeSessionRecord>,
     pub session_config: Option<ConfigRecord>,
     pub active_config: Option<ConfigRecord>,
@@ -65,7 +65,7 @@ pub struct RuntimeStatusSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RuntimeStatusLabel {
+pub enum RuntimeSessionDisplay {
     Degraded,
     Persisted(RuntimeSessionStatus),
     Stale,
@@ -73,7 +73,7 @@ pub enum RuntimeStatusLabel {
     Stopped,
 }
 
-impl RuntimeStatusLabel {
+impl RuntimeSessionDisplay {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Degraded => "degraded",

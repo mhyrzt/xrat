@@ -6,7 +6,7 @@ pub(super) use std::time::Duration;
 pub(super) use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(super) use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
-pub(super) use crate::db::model::{
+pub(super) use crate::db::record::{
     CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConnectionTestInsert,
     ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource,
     ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,

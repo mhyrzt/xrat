@@ -471,23 +471,23 @@ and `src/app/runtime_service/tests/connect_status/rejection.rs`.
 | 13  | MEDIUM   | [x] done    | `config/support.rs` vs `support/`          |
 | 14  | MEDIUM   | [x] done    | "Runtime" overloaded 5 ways                |
 | 15  | MEDIUM   | [x] done    | Unclear `server/` vs `supervisor/`         |
-| 16  | LOW      | [ ] pending | Generic `model/` in test                   |
-| 17  | LOW      | [ ] pending | Two "model" modules                        |
-| 18  | LOW      | [ ] pending | Awkward `defaults_impl.rs`                 |
-| 19  | LOW      | [ ] pending | Verb-named `generate/` dir                 |
-| 20  | LOW      | [ ] pending | Deeply nested test dirs                    |
-| 21  | LOW      | [ ] pending | `RuntimeStatusLabel` inconsistent          |
-| 22  | LOW      | [x] done    | Vague `runners/`                           |
-| 23  | LOW      | [ ] pending | Vague `Serve` variant                      |
-| 24  | LOW      | [x] done    | Unclear `entrypoints/`                     |
-| 25  | LOW      | [ ] pending | Deep `connect/replace_flow/`               |
-| 26  | MEDIUM   | [x] done    | `path.rs` / `path/` collision              |
-| 27  | LOW      | [ ] pending | `import_list/` unclear                     |
-| 28  | LOW      | [x] done    | `server/` submodule inconsistency          |
-| 29  | LOW      | [ ] pending | `tester/` module purpose unclear           |
-| 30  | LOW      | [ ] pending | Deep `connect_status_cases/connect_case/`  |
+| 16  | LOW      | [x] done | Generic `model/` in test                   |
+| 17  | LOW      | [x] done | Two "model" modules                        |
+| 18  | LOW      | [x] done | Awkward `defaults_impl.rs`                 |
+| 19  | LOW      | [x] done | Verb-named `generate/` dir                 |
+| 20  | LOW      | [x] done | Deeply nested test dirs                    |
+| 21  | LOW      | [x] done | `RuntimeStatusLabel` inconsistent          |
+| 22  | LOW      | [x] done | Vague `runners/`                           |
+| 23  | LOW      | [x] done | Vague `Serve` variant                      |
+| 24  | LOW      | [x] done | Unclear `entrypoints/`                     |
+| 25  | LOW      | [x] done | Deep `connect/replace_flow/`               |
+| 26  | MEDIUM   | [x] done | `path.rs` / `path/` collision              |
+| 27  | LOW      | [x] done | `import_list/` unclear                     |
+| 28  | LOW      | [x] done | `server/` submodule inconsistency          |
+| 29  | LOW      | [x] done | `tester/` module purpose unclear           |
+| 30  | LOW      | [x] done | Deep `connect_status_cases/connect_case/`  |
 
-**Summary:** 19/30 complete · 0 HIGH · 0 MEDIUM · 11 LOW
+**Summary:** 30/30 complete · 0 HIGH · 0 MEDIUM · 0 LOW
 
 ---
 
@@ -561,18 +561,18 @@ order (HIGH → MEDIUM → LOW).
 
 ### Phase 7: Low Items (16-21, 23, 25, 27, 29, 30)
 
-- [ ] 7.1 Rename test `model/` (item 16)
-- [ ] 7.2 Rename `db/model/` → `db/record/` (item 17)
-- [ ] 7.3 Rename `defaults_impl.rs` (item 18)
-- [ ] 7.4 Rename `generate/` → `generator/` (item 19)
-- [ ] 7.5 Flatten test directories (item 20)
-- [ ] 7.6 Rename `RuntimeStatusLabel` (item 21)
-- [ ] 7.7 Rename `Serve` variant (item 23)
-- [ ] 7.8 Flatten `connect/replace_flow/` (item 25)
-- [ ] 7.9 Rename `import_list/` (item 27)
-- [ ] 7.10 Rename `tester/` (item 29)
-- [ ] 7.11 Flatten `connect_status_cases/` (item 30)
-- [ ] 7.12 Run `cargo build && cargo test -q`
+- [x] 7.1 Rename test `model/` (item 16)
+- [x] 7.2 Rename `db/model/` → `db/record/` (item 17)
+- [x] 7.3 Rename `defaults_impl.rs` (item 18)
+- [x] 7.4 Rename `generate/` → `generator/` (item 19)
+- [x] 7.5 Flatten test directories (item 20)
+- [x] 7.6 Rename `RuntimeStatusLabel` (item 21)
+- [x] 7.7 Rename `Serve` variant (item 23)
+- [x] 7.8 Flatten `connect/replace_flow/` (item 25)
+- [x] 7.9 Rename `import_list/` (item 27)
+- [x] 7.10 Rename `tester/` (item 29)
+- [x] 7.11 Flatten `connect_status_cases/` (item 30)
+- [x] 7.12 Run `cargo build && cargo test -q`
 
 ---
 

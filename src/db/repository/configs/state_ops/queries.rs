@@ -1,6 +1,6 @@
-use super::super::import_list::CONFIG_COLUMNS;
+use super::super::import_ops::CONFIG_COLUMNS;
 use crate::db::connection::DbPool;
-use crate::db::model::ConfigRecord;
+use crate::db::record::ConfigRecord;
 use crate::db::repository::row::map_config_row;
 
 pub async fn get_selected(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>> {

@@ -1,7 +1,7 @@
 use sqlx::{Postgres, QueryBuilder, Sqlite};
 
 use crate::db::connection::DbPool;
-use crate::db::model::{ConfigListFilter, ConfigRecord};
+use crate::db::record::{ConfigListFilter, ConfigRecord};
 use crate::db::repository::row::map_config_row;
 
 pub const CONFIG_COLUMNS: &str = "id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at";

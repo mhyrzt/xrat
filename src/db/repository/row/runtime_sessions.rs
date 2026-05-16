@@ -1,7 +1,7 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
 use crate::db::DbError;
-use crate::db::model::{RuntimeSessionRecord, RuntimeSessionStatus};
+use crate::db::record::{RuntimeSessionRecord, RuntimeSessionStatus};
 
 pub fn map_runtime_session_row<R>(row: R) -> crate::db::Result<RuntimeSessionRecord>
 where

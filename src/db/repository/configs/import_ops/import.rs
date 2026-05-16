@@ -1,7 +1,7 @@
 use sqlx::{Postgres, QueryBuilder, Sqlite};
 
 use crate::db::connection::DbPool;
-use crate::db::model::ImportSummary;
+use crate::db::record::ImportSummary;
 use crate::model::Node;
 
 use super::query::get_count;

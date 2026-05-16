@@ -2,7 +2,7 @@ use sqlx::{Postgres, QueryBuilder, Sqlite};
 
 use super::row::map_subscription_row;
 use crate::db::connection::DbPool;
-use crate::db::model::{ImportSource, SourceKind, SubscriptionRecord};
+use crate::db::record::{ImportSource, SourceKind, SubscriptionRecord};
 
 pub async fn insert(pool: &DbPool, source: &ImportSource) -> crate::db::Result<i64> {
     match pool {

@@ -1,5 +1,5 @@
 use crate::db::connection::DbPool;
-use crate::db::model::{ConfigListFilter, ConfigRecord, ImportSource, ImportSummary};
+use crate::db::record::{ConfigListFilter, ConfigRecord, ImportSource, ImportSummary};
 use crate::db::repository::{configs, subscriptions};
 use crate::model::Node;
 

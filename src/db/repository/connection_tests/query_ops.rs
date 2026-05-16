@@ -1,6 +1,6 @@
 use super::super::row::{map_connection_test_row, map_connection_test_run_row};
 use crate::db::connection::DbPool;
-use crate::db::model::{ConnectionTestRecord, ConnectionTestRunRecord};
+use crate::db::record::{ConnectionTestRecord, ConnectionTestRunRecord};
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {

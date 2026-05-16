@@ -1,6 +1,6 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
-use crate::db::model::{ConnectionTestRecord, ConnectionTestRunRecord};
+use crate::db::record::{ConnectionTestRecord, ConnectionTestRunRecord};
 
 pub fn map_connection_test_row<R>(row: R) -> ConnectionTestRecord
 where

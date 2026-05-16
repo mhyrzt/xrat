@@ -6,7 +6,7 @@ use super::model::RealDelayResult;
 use super::port::find_available_port;
 use super::request::make_proxied_request;
 use crate::model::Node;
-use crate::tester::FailureKind;
+use crate::prober::FailureKind;
 use crate::xray::{XrayProcess, generate_probe_config};
 
 pub async fn real_delay_check(

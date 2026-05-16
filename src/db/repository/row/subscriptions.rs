@@ -1,6 +1,6 @@
 use sqlx::{ColumnIndex, Database, Decode, Row, Type};
 
-use crate::db::model::SubscriptionRecord;
+use crate::db::record::SubscriptionRecord;
 
 pub fn map_subscription_row<R>(row: R) -> SubscriptionRecord
 where

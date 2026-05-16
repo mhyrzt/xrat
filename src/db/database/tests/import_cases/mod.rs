@@ -1,5 +1,5 @@
 use super::{ConfigListFilter, Database, ImportSource, test_database_path};
-use crate::db::model::SourceKind;
+use crate::db::record::SourceKind;
 use crate::model::{Node, Protocol};
 
 mod config_state;

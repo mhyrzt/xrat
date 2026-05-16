@@ -1,5 +1,5 @@
 use crate::db::connection::DbPool;
-use crate::db::model::{CfScanResultRecord, CfScanResultUpsert};
+use crate::db::record::{CfScanResultRecord, CfScanResultUpsert};
 use crate::db::repository::cf_scan_results;
 
 pub async fn upsert_cf_scan_results(

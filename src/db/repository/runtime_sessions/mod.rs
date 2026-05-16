@@ -1,6 +1,6 @@
 use super::row::map_runtime_session_row;
 use crate::db::connection::DbPool;
-use crate::db::model::RuntimeSessionRecord;
+use crate::db::record::RuntimeSessionRecord;
 
 mod reads;
 mod writes;

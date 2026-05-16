@@ -1,5 +1,5 @@
 use crate::db::connection::DbPool;
-use crate::db::model::{ConnectionTestInsert, ConnectionTestRunInsert};
+use crate::db::record::{ConnectionTestInsert, ConnectionTestRunInsert};
 
 pub async fn insert(pool: &DbPool, test: &ConnectionTestInsert) -> crate::db::Result<i64> {
     match pool {

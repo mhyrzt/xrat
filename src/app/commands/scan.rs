@@ -5,7 +5,7 @@ use crate::app::AppError;
 use crate::app::context::AppContext;
 use crate::cli::ScanArgs;
 use crate::db::CfScanResultUpsert;
-use crate::tester::tcp_check;
+use crate::prober::tcp_check;
 
 pub async fn run(context: &AppContext, args: &ScanArgs) -> crate::app::Result<()> {
     if let Some(limit) = args.history {

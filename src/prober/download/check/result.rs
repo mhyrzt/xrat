@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::tester::FailureKind;
+use crate::prober::FailureKind;
 
 #[derive(Debug, Clone)]
 pub struct DownloadResult {

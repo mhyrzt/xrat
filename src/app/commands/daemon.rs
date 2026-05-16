@@ -17,7 +17,7 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             wait_until_daemon_ready(&socket_path).await?;
             println!("Daemon started. Socket: {}", socket_path.display());
         }
-        DaemonAction::Serve(_) => {
+        DaemonAction::RunServer(_) => {
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
@@ -93,7 +93,7 @@ fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
         .arg("--config")
         .arg(&context.runtime_paths.config_path)
         .arg("daemon")
-        .arg("serve")
+        .arg("run-server")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());

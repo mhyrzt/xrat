@@ -1,4 +1,4 @@
-mod generate;
+mod generator;
 mod outbound;
 mod stream;
 mod types;
@@ -11,7 +11,7 @@ pub use types::{
 };
 
 pub fn generate_probe_config(node: &Node, local_port: u16) -> Result<XrayConfig, String> {
-    generate::generate_probe_config(node, local_port)
+    generator::generate_probe_config(node, local_port)
 }
 
 pub fn generate_runtime_config(
@@ -19,7 +19,7 @@ pub fn generate_runtime_config(
     socks_port: u16,
     http_port: Option<u16>,
 ) -> Result<XrayConfig, String> {
-    generate::generate_runtime_config(node, socks_port, http_port)
+    generator::generate_runtime_config(node, socks_port, http_port)
 }
 
 pub fn generate_runtime_config_with_inbounds(
@@ -29,7 +29,7 @@ pub fn generate_runtime_config_with_inbounds(
     http_host: Option<&str>,
     http_port: Option<u16>,
 ) -> Result<XrayConfig, String> {
-    generate::generate_runtime_config_with_inbounds(
+    generator::generate_runtime_config_with_inbounds(
         node, socks_host, socks_port, http_host, http_port,
     )
 }
@@ -39,5 +39,5 @@ pub fn generate_runtime_config_for_inbounds(
     socks: Option<(&str, u16, bool)>,
     http: Option<(&str, u16)>,
 ) -> Result<XrayConfig, String> {
-    generate::generate_runtime_config_for_inbounds(node, socks, http)
+    generator::generate_runtime_config_for_inbounds(node, socks, http)
 }

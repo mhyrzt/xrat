@@ -1,4 +1,4 @@
-use crate::tester::FailureKind;
+use crate::prober::FailureKind;
 use crate::xray::XrayProcessError;
 
 pub(super) fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {

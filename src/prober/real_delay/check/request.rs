@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use super::super::errors::classify_request_error;
 use super::model::RealDelayResult;
-use crate::tester::FailureKind;
+use crate::prober::FailureKind;
 
 pub(super) async fn make_proxied_request(
     proxy_port: u16,

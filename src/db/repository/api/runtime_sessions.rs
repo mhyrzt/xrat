@@ -1,5 +1,5 @@
 use crate::db::connection::DbPool;
-use crate::db::model::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};
+use crate::db::record::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};
 use crate::db::repository::runtime_sessions;
 
 pub async fn get_runtime_session_count(pool: &DbPool) -> crate::db::Result<i64> {

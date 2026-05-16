@@ -1,8 +1,8 @@
 mod bulk;
 mod execution;
 mod handlers;
-mod model;
 mod output;
+mod output_types;
 mod settings;
 mod stages;
 
@@ -25,7 +25,7 @@ use crate::cli::{TestArgs, TestFormat, TestSortBy};
 use crate::db::DatabaseConnectionConfig;
 use crate::db::{ConfigRecord, ConnectionTestInsert, ConnectionTestRunInsert, Database};
 use crate::model::Node;
-use crate::tester::{
+use crate::prober::{
     FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
     upload_speed_check,
 };
@@ -35,8 +35,8 @@ pub(crate) use bulk::run_rotation_bulk_tests;
 use bulk::*;
 use execution::*;
 pub use handlers::run;
-use model::*;
 use output::*;
+use output_types::*;
 use settings::*;
 use stages::*;
 
