@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::super::common::{FragmentObject, NoiseObject};
-use crate::config::xray::shared::{Address, DomainStrategy, Network};
+use crate::xray::parsing::shared::{Address, DomainStrategy, Network};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

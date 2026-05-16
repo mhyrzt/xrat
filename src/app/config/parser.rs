@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::config::xray::ParseMode;
+use crate::xray::parsing::ParseMode;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(default)]

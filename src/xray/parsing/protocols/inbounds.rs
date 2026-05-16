@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::config::xray::shared::{Address, PortValue};
-use crate::config::xray::transports::StreamSettingsObject;
+use crate::xray::parsing::shared::{Address, PortValue};
+use crate::xray::parsing::transports::StreamSettingsObject;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

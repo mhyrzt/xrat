@@ -5,8 +5,8 @@ use super::{
     ApiObject, BurstObservatoryObject, DnsObject, FakeDnsObject, LogObject, MetricsObject,
     ObservatoryObject, PolicyObject, ReverseObject, RoutingObject, StatsObject, VersionObject,
 };
-use crate::config::xray::protocols::{InboundObject, OutboundObject};
-use crate::config::xray::transports::TransportObject;
+use crate::xray::parsing::protocols::{InboundObject, OutboundObject};
+use crate::xray::parsing::transports::TransportObject;
 
 #[derive(Debug, Error)]
 pub enum XrayConfigError {
@@ -118,13 +118,13 @@ impl XrayConfig {
     /// Parse from JSON with specified mode
     pub fn from_json_with_mode(
         json: &str,
-        mode: crate::config::xray::ParseMode,
+        mode: crate::xray::parsing::ParseMode,
     ) -> Result<Self, XrayConfigError> {
         match mode {
-            crate::config::xray::ParseMode::Strict => Self::from_json_strict(json),
-            crate::config::xray::ParseMode::Lenient
-            | crate::config::xray::ParseMode::Auto
-            | crate::config::xray::ParseMode::Loose => Self::from_json_loose(json),
+            crate::xray::parsing::ParseMode::Strict => Self::from_json_strict(json),
+            crate::xray::parsing::ParseMode::Lenient
+            | crate::xray::parsing::ParseMode::Auto
+            | crate::xray::parsing::ParseMode::Loose => Self::from_json_loose(json),
         }
     }
 }

@@ -401,7 +401,7 @@ pub enum RuntimeStatusLabel {
 | 1 | HIGH | [x] done | Duplicate `node_from_record` |
 | 2 | HIGH | [x] done | Duplicate `looks_like_url` |
 | 3 | HIGH | [x] done | Duplicate `now_epoch_seconds`/`now_string` |
-| 4 | HIGH | [ ] pending | `config/xray/` vs `xray/config/` |
+| 4 | HIGH | [x] done | `config/xray/` vs `xray/config/` |
 | 5 | HIGH | [ ] pending | Three "paths" modules |
 | 6 | MEDIUM | [ ] pending | Singular/plural inconsistency |
 | 7 | MEDIUM | [ ] pending | `test.rs` / `test/` collision |
@@ -429,7 +429,7 @@ pub enum RuntimeStatusLabel {
 | 29 | LOW | [ ] pending | `tester/` module purpose unclear |
 | 30 | LOW | [ ] pending | Deep `connect_status_cases/connect_case/` |
 
-**Summary:** 4/30 complete · 2 HIGH · 10 MEDIUM · 14 LOW
+**Summary:** 5/30 complete · 1 HIGH · 10 MEDIUM · 14 LOW
 
 ---
 
@@ -464,9 +464,9 @@ Use this checklist when working through the audit. Complete items in priority or
 
 ### Phase 3: Config vs Xray Boundary (Item 4)
 
-- [ ] 3.1 Rename `src/config/xray/` → `src/xray/parsing/`
-- [ ] 3.2 Update all imports referencing `config::xray`
-- [ ] 3.3 Run `cargo build && cargo test -q`
+- [x] 3.1 Rename `src/config/xray/` → `src/xray/parsing/`
+- [x] 3.2 Update all imports referencing `config::xray`
+- [x] 3.3 Run `cargo build && cargo test -q`
 
 ### Phase 4: Paths Modules (Items 5, 26)
 

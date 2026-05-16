@@ -45,7 +45,7 @@ fn parses_minimal_config_with_defaults() {
     );
     assert_eq!(
         config.parser.parse_mode,
-        crate::config::xray::ParseMode::Strict
+        crate::xray::parsing::ParseMode::Strict
     );
 }
 
@@ -104,7 +104,7 @@ fn parses_example_config() {
     assert_eq!(config.testing.tcp.timeout, 5000);
     assert_eq!(
         config.parser.parse_mode,
-        crate::config::xray::ParseMode::Strict
+        crate::xray::parsing::ParseMode::Strict
     );
 }
 
@@ -115,7 +115,7 @@ fn parses_parser_settings() {
 
     assert_eq!(
         config.parser.parse_mode,
-        crate::config::xray::ParseMode::Lenient
+        crate::xray::parsing::ParseMode::Lenient
     );
 }
 

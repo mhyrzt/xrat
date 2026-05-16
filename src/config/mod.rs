@@ -5,7 +5,6 @@ mod normalize;
 mod parse_service;
 mod protocols;
 mod support;
-pub mod xray;
 
 use std::collections::HashSet;
 

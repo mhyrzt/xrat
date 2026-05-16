@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::config::xray::shared::QueryStrategy;
+use crate::xray::parsing::shared::QueryStrategy;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]

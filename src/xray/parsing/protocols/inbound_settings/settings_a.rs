@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::super::clients::*;
 use super::super::common::{FallbackObject, HttpAccountObject};
-use crate::config::xray::shared::{Address, Network};
+use crate::xray::parsing::shared::{Address, Network};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

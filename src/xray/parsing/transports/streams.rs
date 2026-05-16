@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::security::{RealityObject, SockoptObject, TlsObject};
-use crate::config::xray::shared::{Security, StreamNetwork};
+use crate::xray::parsing::shared::{Security, StreamNetwork};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

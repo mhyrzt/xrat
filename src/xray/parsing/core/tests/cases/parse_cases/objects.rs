@@ -19,7 +19,7 @@ fn test_parse_log_object() {
     assert_eq!(log.error.as_deref(), Some("/var/log/xray/error.log"));
     assert_eq!(
         log.loglevel,
-        Some(crate::config::xray::shared::LogLevel::Warning)
+        Some(crate::xray::parsing::shared::LogLevel::Warning)
     );
     assert_eq!(log.dns_log, Some(true));
 }
@@ -59,7 +59,7 @@ fn test_parse_dns_object_with_simple_servers() {
     assert_eq!(dns.servers.as_ref().unwrap().len(), 2);
     assert_eq!(
         dns.query_strategy,
-        Some(crate::config::xray::shared::QueryStrategy::UseIPv4)
+        Some(crate::xray::parsing::shared::QueryStrategy::UseIPv4)
     );
 }
 

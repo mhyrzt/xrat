@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::outbound_settings::*;
-use crate::config::xray::shared::{Address, DomainStrategy};
-use crate::config::xray::transports::StreamSettingsObject;
+use crate::xray::parsing::shared::{Address, DomainStrategy};
+use crate::xray::parsing::transports::StreamSettingsObject;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
