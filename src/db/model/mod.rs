@@ -5,7 +5,7 @@ mod import;
 mod runtime_sessions;
 
 pub use cf_scan_results::{CfScanResultRecord, CfScanResultUpsert};
-pub use configs::{ConfigListFilter, ConfigRecord};
+pub use configs::{ConfigListFilter, ConfigRecord, node_from_record};
 pub use connection_tests::{
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
 };

@@ -8,7 +8,7 @@ use crate::app::daemon::supervisor::{
 };
 use crate::app::runtime::AppContext;
 use crate::app::runtime_service::RuntimeService;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::support::time::now_epoch_seconds;
 use tokio::sync::oneshot;
 
 mod disconnect;
@@ -70,13 +70,6 @@ pub(super) async fn handle_daemon_shutdown(
         daemon_ready: false,
         runtime_disconnected,
     }));
-}
-
-fn now_epoch_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
 }
 
 fn rotation_started_reason(trigger: RotationTrigger) -> &'static str {

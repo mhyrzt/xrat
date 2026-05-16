@@ -12,5 +12,5 @@ pub use model::{
     CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConnectionTestInsert,
     ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource,
     ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SourceKind,
-    SubscriptionRecord,
+    SubscriptionRecord, node_from_record,
 };

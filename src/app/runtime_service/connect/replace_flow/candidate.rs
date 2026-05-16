@@ -1,6 +1,6 @@
 use super::*;
 use crate::app::commands::test::run_rotation_bulk_tests;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::support::time::now_epoch_seconds;
 
 impl<'a> RuntimeService<'a> {
     pub(super) async fn resolve_replace_candidate_id(
@@ -118,11 +118,4 @@ fn compare_optional_f64_desc(left: Option<f64>, right: Option<f64>) -> std::cmp:
         (None, Some(_)) => std::cmp::Ordering::Greater,
         (None, None) => std::cmp::Ordering::Equal,
     }
-}
-
-fn now_epoch_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
 }

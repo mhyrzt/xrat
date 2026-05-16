@@ -4,6 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::db::{ImportSource, SourceKind};
+use crate::support::url::looks_like_url;
 
 pub fn read_input(input: &str) -> crate::app::Result<(ImportSource, Vec<u8>)> {
     if looks_like_url(input) {
@@ -54,11 +55,4 @@ pub fn save_json<T: Serialize>(output_path: &Path, value: &T) -> crate::app::Res
     let body = serde_json::to_string_pretty(value)?;
     fs::write(output_path, body)?;
     Ok(())
-}
-
-fn looks_like_url(input: &str) -> bool {
-    matches!(
-        input.split_once("://").map(|(scheme, _)| scheme),
-        Some("http" | "https")
-    )
 }

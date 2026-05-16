@@ -12,7 +12,7 @@ pub use types::{
 
 use crate::app::runtime::AppContext;
 use crate::app::runtime_service::RuntimeService;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::support::time::now_epoch_seconds;
 
 const HEALTH_TICK_SECONDS: u64 = 15;
 
@@ -47,11 +47,4 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
             }
         }
     }
-}
-
-fn now_epoch_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
 }

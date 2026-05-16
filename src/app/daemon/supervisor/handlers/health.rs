@@ -1,7 +1,7 @@
 use crate::app::daemon::supervisor::SupervisorState;
 use crate::app::runtime::AppContext;
 use crate::app::runtime_service::RuntimeService;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::support::time::now_epoch_seconds;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(super) struct HealthTickOutcome {
@@ -65,13 +65,6 @@ pub(super) async fn handle_health_tick(
         timer_due,
         cooldown_active,
     }
-}
-
-fn now_epoch_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0)
 }
 
 pub(super) fn should_record_health_failure(session: &crate::db::RuntimeSessionRecord) -> bool {

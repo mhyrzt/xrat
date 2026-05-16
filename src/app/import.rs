@@ -5,6 +5,7 @@ use crate::db::ImportSource;
 use crate::db::SourceKind;
 use crate::model::Node;
 use crate::support::decode::decode_or_raw_text;
+use crate::support::url::looks_like_url;
 
 pub fn load_nodes(input: &str) -> crate::app::Result<(ImportSource, Vec<Node>)> {
     let (source, input_data) = read_input(input)?;
@@ -69,13 +70,6 @@ fn expand_url_list(input: &str) -> crate::app::Result<String> {
     } else {
         Ok(input.to_string())
     }
-}
-
-fn looks_like_url(input: &str) -> bool {
-    matches!(
-        input.split_once("://").map(|(scheme, _)| scheme),
-        Some("http" | "https")
-    )
 }
 
 #[cfg(test)]
