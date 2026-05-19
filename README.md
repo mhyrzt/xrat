@@ -1,5 +1,7 @@
 # XRAT
 
+> **Under Development**
+
 XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
 proxy configurations.
 
@@ -38,7 +40,7 @@ cargo run -- parse --json --engine auto 'hy2://...'
 
 ## Documentation
 
-Planning notes live in `docs/plan/`.
+Planning notes and validation checklists live in `docs/src/backlog/`.
 
 ## GeoIP Database (Optional)
 
