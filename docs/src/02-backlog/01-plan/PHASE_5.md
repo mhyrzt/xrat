@@ -161,7 +161,7 @@ Return configs as a JSON array. Supports filtering and sorting.
 Query parameters:
 
 | Param      | Type    | Required | Description                                      |
-|------------|---------|----------|--------------------------------------------------|
+| ---------- | ------- | -------- | ------------------------------------------------ |
 | `key`      | string  | No       | API key (required if `server.key` is configured) |
 | `top`      | integer | No       | Return only the top N configs by real delay      |
 | `enabled`  | bool    | No       | Filter to only enabled configs (default: true)   |
@@ -210,13 +210,13 @@ Return a paginated list of all stored configs with full metadata.
 
 Query parameters:
 
-| Param      | Type    | Required | Description                                      |
-|------------|---------|----------|--------------------------------------------------|
-| `key`      | string  | No       | API key                                          |
-| `page`     | integer | No       | Page number (1-based, default: 1)                |
-| `per_page` | integer | No       | Items per page (default: 50, max: 200)           |
-| `enabled`  | bool    | No       | Filter to only enabled configs                   |
-| `protocol` | string  | No       | Filter by protocol                               |
+| Param      | Type    | Required | Description                            |
+| ---------- | ------- | -------- | -------------------------------------- |
+| `key`      | string  | No       | API key                                |
+| `page`     | integer | No       | Page number (1-based, default: 1)      |
+| `per_page` | integer | No       | Items per page (default: 50, max: 200) |
+| `enabled`  | bool    | No       | Filter to only enabled configs         |
+| `protocol` | string  | No       | Filter by protocol                     |
 
 Response:
 
@@ -253,9 +253,9 @@ Return a single config by ID with its latest test result.
 
 Query parameters:
 
-| Param | Type   | Required | Description   |
-|-------|--------|----------|---------------|
-| `key` | string | No       | API key       |
+| Param | Type   | Required | Description |
+| ----- | ------ | -------- | ----------- |
+| `key` | string | No       | API key     |
 
 Response:
 
@@ -515,7 +515,7 @@ Phase 5 can be considered complete when:
 8. [ ] `/configs` returns paginated config list
 9. [ ] `/configs/:id` returns a single config with latest test or `404`
 10. [ ] when `server.key` is set, requests without a matching `?key=` are
-      rejected with `401`
+        rejected with `401`
 11. [ ] server shuts down cleanly on SIGINT/SIGTERM
 
 ## Open Questions
