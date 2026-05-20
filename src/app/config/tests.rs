@@ -51,9 +51,8 @@ fn parses_minimal_config_with_defaults() {
 
 #[test]
 fn parses_example_config() {
-    let config: AppConfig =
-        toml::from_str(include_str!("../../../docs/src/plan/config.example.toml"))
-            .expect("example config should parse");
+    let config: AppConfig = toml::from_str(include_str!("../../../testdata/config.example.toml"))
+        .expect("example config should parse");
 
     assert_eq!(config.paths.database.as_deref(), Some("db.sqlite".as_ref()));
     assert_eq!(config.database.backend, DatabaseBackend::Sqlite);
