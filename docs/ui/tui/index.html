@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XRAT TUI v2 - Optimized Layout</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="terminal-shell" aria-label="XRAT terminal UI prototype v2">
+      <section class="screen-frame">
+        <!-- Compact status bar: single line with all key info -->
+        <header class="status-bar">
+          <div class="status-left">
+            <span class="app-name">XRAT</span>
+            <span class="mode-badge">[CONFIGS]</span>
+            <span class="filter-info">enabled · sort:delay</span>
+          </div>
+          <div class="status-center">
+            <span class="runtime-status">● RUNNING</span>
+            <span class="runtime-addr">127.0.0.1:10808</span>
+          </div>
+          <div class="status-right">
+            <span class="stats">248 total · 221 on · 18 sel · 7 fail</span>
+          </div>
+        </header>
+
+        <!-- Single-focus main content area -->
+        <div class="main-content">
+          <!-- VIEW 1: CONFIG LIST (default view) -->
+          <section class="view active" id="view-configs">
+            <div class="view-header">
+              <span class="title">Configs (221 enabled)</span>
+              <span class="hint"
+                >c:copy · y:QR · Y:multi QR · p:paste · tab:subs</span
+              >
+            </div>
+
+            <div class="pane-grid">
+              <div class="table-container">
+                <table class="config-table">
+                  <thead>
+                    <tr>
+                      <th class="w-id" scope="col">ID</th>
+                      <th class="w-name" scope="col">Name</th>
+                      <th class="w-proto" scope="col">Proto</th>
+                      <th class="w-addr" scope="col">Address:Port</th>
+                      <th class="w-net" scope="col">Net</th>
+                      <th class="w-delay" scope="col">Delay</th>
+                      <th class="w-stat" scope="col">St</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      class="selected active"
+                      tabindex="0"
+                      data-id="184"
+                      data-name="Zurich · Relay A"
+                      data-uri="vless://a1b2c3d4@edge-zrh.example.net:443?type=ws&amp;security=tls&amp;sni=front.example.net#Zurich%20Relay%20A"
+                    >
+                      <td>184</td>
+                      <td>Zurich · Relay A</td>
+                      <td>vless</td>
+                      <td>edge-zrh.example.net:443</td>
+                      <td>ws+tls</td>
+                      <td class="good">118ms</td>
+                      <td>✓★▶</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-id="209"
+                      data-name="Tokyo cold path"
+                      data-uri="vmess://eyJhZGQiOiJqcC0wMi5leGFtcGxlLm9yZyIsInBvcnQiOjg0NDMsInBzIjoiVG9reW8gY29sZCBwYXRoIn0="
+                    >
+                      <td>209</td>
+                      <td>Tokyo cold path</td>
+                      <td>vmess</td>
+                      <td>jp-02.example.org:8443</td>
+                      <td>grpc+tls</td>
+                      <td class="good">151ms</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-id="117"
+                      data-name="Amsterdam shadow"
+                      data-uri="ss://YWVzLTI1Ni1nY206cGFzcw@ams-gw.example.net:8388#Amsterdam%20shadow"
+                    >
+                      <td>117</td>
+                      <td>Amsterdam shadow</td>
+                      <td>ss</td>
+                      <td>ams-gw.example.net:8388</td>
+                      <td>tcp</td>
+                      <td class="ok">260ms</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      class="disabled"
+                      tabindex="0"
+                      data-id="066"
+                      data-name="Berlin stale import"
+                      data-uri="trojan://password@de-old.example.com:443?security=tls#Berlin%20stale%20import"
+                    >
+                      <td>066</td>
+                      <td>Berlin stale import</td>
+                      <td>trojan</td>
+                      <td>de-old.example.com:443</td>
+                      <td>tcp+tls</td>
+                      <td class="fail">FAIL</td>
+                      <td>✗</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-id="231"
+                      data-name="SF worker 7"
+                      data-uri="vless://b2c3d4e5@us-west.example.dev:443?type=ws&amp;security=tls#SF%20worker%207"
+                    >
+                      <td>231</td>
+                      <td>SF worker 7</td>
+                      <td>vless</td>
+                      <td>us-west.example.dev:443</td>
+                      <td>ws+tls</td>
+                      <td class="good">203ms</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      class="selected"
+                      tabindex="0"
+                      data-id="145"
+                      data-name="Singapore edge"
+                      data-uri="vmess://eyJhZGQiOiJzZy0wMS5leGFtcGxlLmNvbSIsInBvcnQiOjQ0MywicHMiOiJTaW5nYXBvcmUgZWRnZSJ9"
+                    >
+                      <td>145</td>
+                      <td>Singapore edge</td>
+                      <td>vmess</td>
+                      <td>sg-01.example.com:443</td>
+                      <td>ws+tls</td>
+                      <td class="ok">312ms</td>
+                      <td>✓★</td>
+                    </tr>
+                    <tr
+                      class="selected"
+                      tabindex="0"
+                      data-id="098"
+                      data-name="London backup"
+                      data-uri="vless://c3d4e5f6@uk-gw.example.net:8443?type=grpc&amp;security=tls#London%20backup"
+                    >
+                      <td>098</td>
+                      <td>London backup</td>
+                      <td>vless</td>
+                      <td>uk-gw.example.net:8443</td>
+                      <td>grpc+tls</td>
+                      <td class="good">189ms</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-id="172"
+                      data-name="Paris direct"
+                      data-uri="vmess://eyJhZGQiOiJmci0wMS5leGFtcGxlLm5ldCIsInBvcnQiOjQ0MywicHMiOiJQYXJpcyBkaXJlY3QifQ=="
+                    >
+                      <td>172</td>
+                      <td>Paris direct</td>
+                      <td>vmess</td>
+                      <td>fr-01.example.net:443</td>
+                      <td>ws+tls</td>
+                      <td class="good">142ms</td>
+                      <td>✓</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="detail-pane" id="config-detail-pane">
+                <div class="detail-header">
+                  <span class="id">#184</span>
+                  <span class="name">Zurich · Relay A</span>
+                  <span class="health">Health: 94/100</span>
+                </div>
+                <div class="detail-body">
+                  <div class="col">
+                    <div class="row"><span>Protocol</span><b>vless</b></div>
+                    <div class="row"><span>Transport</span><b>ws / tls</b></div>
+                    <div class="row">
+                      <span>SNI</span><b>front.example.net</b>
+                    </div>
+                    <div class="row"><span>UUID</span><b>a1b2c3d4-...</b></div>
+                  </div>
+                  <div class="col">
+                    <div class="row">
+                      <span>Real Delay</span><b class="good">118ms</b>
+                    </div>
+                    <div class="row">
+                      <span>TCP Ping</span><b class="good">31ms</b>
+                    </div>
+                    <div class="row">
+                      <span>ICMP Ping</span><b class="good">42ms</b>
+                    </div>
+                    <div class="row"><span>Last Test</span><b>2m ago</b></div>
+                  </div>
+                  <div class="col">
+                    <div class="row">
+                      <span>Subscription</span><b>#12 daily-feed</b>
+                    </div>
+                    <div class="row"><span>Imported</span><b>2025-01-15</b></div>
+                    <div class="row"><span>Updated</span><b>2025-01-18</b></div>
+                    <div class="row"><span>Tests</span><b>47</b></div>
+                  </div>
+                </div>
+                <div class="command-line" aria-live="polite">
+                  <span class="label">cmd</span>
+                  <span class="cmd-output">copy active | copy selected | qr active | qr selected | paste</span>
+                </div>
+                <div class="detail-footer">
+                  <span class="hint"
+                    >Enter:activate · Space:select · c:copy active · C:copy
+                    selected · y:QR active · Y:QR selected · p:paste</span
+                  >
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW 2: SUBSCRIPTIONS -->
+          <section class="view" id="view-subs">
+            <div class="view-header">
+              <span class="title">Subscriptions (3 total)</span>
+              <span class="hint">c:copy url · y:QR · p:paste · r:refresh</span>
+            </div>
+
+            <div class="pane-grid">
+              <div class="table-container">
+                <table class="sub-table">
+                  <thead>
+                    <tr>
+                      <th class="w-id" scope="col">ID</th>
+                      <th class="w-name" scope="col">Name</th>
+                      <th class="w-type" scope="col">Type</th>
+                      <th class="w-count" scope="col">Configs</th>
+                      <th class="w-updated" scope="col">Updated</th>
+                      <th class="w-stat" scope="col">St</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      class="selected active"
+                      tabindex="0"
+                      data-sub-id="12"
+                      data-sub-name="daily-feed"
+                      data-sub-type="URL"
+                      data-sub-url="https://provider.example/sub/base64.txt"
+                      data-sub-count="168"
+                      data-sub-updated="2h ago"
+                    >
+                      <td>12</td>
+                      <td>daily-feed</td>
+                      <td>url</td>
+                      <td>168</td>
+                      <td>2h ago</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-sub-id="13"
+                      data-sub-name="manual lab"
+                      data-sub-type="raw_text"
+                      data-sub-url="raw://manual-lab"
+                      data-sub-count="21"
+                      data-sub-updated="5d ago"
+                    >
+                      <td>13</td>
+                      <td>manual lab</td>
+                      <td>raw_text</td>
+                      <td>21</td>
+                      <td>5d ago</td>
+                      <td>✓</td>
+                    </tr>
+                    <tr
+                      tabindex="0"
+                      data-sub-id="14"
+                      data-sub-name="vendor-file"
+                      data-sub-type="file"
+                      data-sub-url="file:///etc/xrat/vendor-file.txt"
+                      data-sub-count="59"
+                      data-sub-updated="1d ago"
+                    >
+                      <td>14</td>
+                      <td>vendor-file</td>
+                      <td>file</td>
+                      <td>59</td>
+                      <td>1d ago</td>
+                      <td>✓</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="detail-pane" id="sub-detail-pane">
+                <div class="detail-header">
+                  <span class="id">#12</span>
+                  <span class="name">daily-feed</span>
+                </div>
+                <div class="detail-body">
+                  <div class="col">
+                    <div class="row"><span>Type</span><b data-field="sub-type">URL</b></div>
+                    <div class="row">
+                      <span>URL</span
+                      ><b data-field="sub-url">https://provider.example/sub/base64.txt</b>
+                    </div>
+                    <div class="row"><span>Configs</span><b data-field="sub-count">168</b></div>
+                    <div class="row">
+                      <span>Importable</span><b>all enabled configs</b>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="row"><span>Created</span><b>2024-12-01</b></div>
+                    <div class="row"><span>Last Fetch</span><b data-field="sub-updated">2h ago</b></div>
+                    <div class="row">
+                      <span>Auto Refresh</span><b>enabled (6h)</b>
+                    </div>
+                    <div class="row">
+                      <span>Share</span><b>copy / QR / paste</b>
+                    </div>
+                  </div>
+                </div>
+                <div class="command-line" aria-live="polite">
+                  <span class="label">cmd</span>
+                  <span class="cmd-output">refresh selected subscription | copy url | QR | paste</span>
+                </div>
+                <div class="detail-footer">
+                  <span class="hint"
+                    >Enter:view configs · r:refresh · c:copy url · y:QR ·
+                    p:paste</span
+                  >
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW 3: TESTING -->
+          <section class="view" id="view-test">
+            <div class="view-header">
+              <span class="title">Testing (18 selected configs)</span>
+              <span class="hint">s:start · c:cancel · Esc:back</span>
+            </div>
+
+            <div class="progress-section">
+              <div class="progress-bar">
+                <div class="fill" style="width: 61%"></div>
+              </div>
+              <div class="progress-stats">
+                <span>11/18</span>
+                <span class="ok">OK: 9</span>
+                <span class="fail">FAIL: 2</span>
+                <span>ETA: 00:34</span>
+              </div>
+            </div>
+
+            <div class="log-section">
+              <div class="log-header">Test Log (live)</div>
+              <div class="log-body" aria-live="polite" aria-atomic="false">
+                <div class="log-line ok">
+                  <span class="id">184</span
+                  ><span>OK real-delay=118ms tcp=31ms</span>
+                </div>
+                <div class="log-line fail">
+                  <span class="id">066</span
+                  ><span>FAIL tls handshake timeout</span>
+                </div>
+                <div class="log-line ok">
+                  <span class="id">231</span
+                  ><span>OK real-delay=203ms tcp=28ms</span>
+                </div>
+                <div class="log-line ok">
+                  <span class="id">145</span
+                  ><span>OK real-delay=312ms tcp=89ms</span>
+                </div>
+                <div class="log-line ok">
+                  <span class="id">098</span
+                  ><span>OK real-delay=189ms tcp=44ms</span>
+                </div>
+                <div class="log-line running">
+                  <span class="id">209</span><span>Testing...</span>
+                </div>
+                <div class="log-line ok">
+                  <span class="id">172</span
+                  ><span>OK real-delay=142ms tcp=38ms</span>
+                </div>
+                <div class="log-line ok">
+                  <span class="id">117</span
+                  ><span>OK real-delay=260ms tcp=71ms</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VIEW 4: RUNTIME -->
+          <section class="view" id="view-runtime">
+            <div class="view-header">
+              <span class="title">Runtime Control</span>
+              <span class="hint">s:start · x:stop · r:restart · l:logs</span>
+            </div>
+
+            <div class="info-section">
+              <div class="info-grid">
+                <div class="item">
+                  <span>Status</span><b class="running">RUNNING</b>
+                </div>
+                <div class="item"><span>PID</span><b>12847</b></div>
+                <div class="item"><span>Uptime</span><b>02:14:33</b></div>
+                <div class="item">
+                  <span>Active Config</span><b>#184 Zurich · Relay A</b>
+                </div>
+                <div class="item">
+                  <span>Listen</span><b>127.0.0.1:10808</b>
+                </div>
+                <div class="item"><span>Protocol</span><b>SOCKS5</b></div>
+              </div>
+            </div>
+
+            <div class="log-section">
+              <div class="log-header">Runtime Log (last 50 lines)</div>
+              <div class="log-body" aria-live="polite" aria-atomic="false">
+                <div class="log-line">
+                  <span class="time">14:23:11</span
+                  ><span class="level info">INFO</span
+                  ><span>inbound/socks listening on 127.0.0.1:10808</span>
+                </div>
+                <div class="log-line">
+                  <span class="time">14:23:11</span
+                  ><span class="level info">INFO</span
+                  ><span>outbound/proxy using config #184</span>
+                </div>
+                <div class="log-line">
+                  <span class="time">14:23:12</span
+                  ><span class="level debug">DEBUG</span
+                  ><span>connection established to edge-zrh.example.net</span>
+                </div>
+                <div class="log-line">
+                  <span class="time">14:25:34</span
+                  ><span class="level info">INFO</span
+                  ><span>tcp connection from 127.0.0.1:54321</span>
+                </div>
+                <div class="log-line">
+                  <span class="time">14:25:35</span
+                  ><span class="level debug">DEBUG</span
+                  ><span>proxying to example.com:443</span>
+                </div>
+                <div class="log-line">
+                  <span class="time">14:26:12</span
+                  ><span class="level info">INFO</span
+                  ><span>connection closed after 37s</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Compact footer with mode switching and common keys -->
+        <footer class="key-bar">
+          <div class="group">
+            <span class="label">Mode:</span>
+            <span><kbd>1</kbd>configs</span>
+            <span><kbd>2</kbd>subs</span>
+            <span><kbd>3</kbd>test</span>
+            <span><kbd>4</kbd>runtime</span>
+          </div>
+          <div class="group">
+            <span><kbd>j/k</kbd>move</span>
+            <span><kbd>↵</kbd>select</span>
+            <span><kbd>␣</kbd>toggle</span>
+          </div>
+          <div class="group">
+            <span><kbd>/</kbd>search</span>
+            <span><kbd>c/y/p</kbd>share</span>
+            <span><kbd>?</kbd>help</span>
+            <span><kbd>q</kbd>quit</span>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        activeView: 0,
+        activeRow: 0,
+        activeSubscriptionRow: 0,
+        mockClipboard: "",
+        copyFeedbackTimer: null,
+      };
+
+      const views = ["view-configs", "view-subs", "view-test", "view-runtime"];
+      const modes = ["[CONFIGS]", "[SUBS]", "[TEST]", "[RUNTIME]"];
+      const defaultCmdMessages = [
+        "copy active | copy selected | qr active | qr selected | paste",
+        "refresh selected subscription | copy url | QR | paste",
+        "s:start · c:cancel",
+        "s:start · x:stop · r:restart · l:logs",
+      ];
+
+      const getRows = () => [...document.querySelectorAll(".config-table tbody tr")];
+      const getSubscriptionRows = () => [
+        ...document.querySelectorAll(".sub-table tbody tr"),
+      ];
+      const getActiveRow = () => getRows()[state.activeRow];
+      const getActiveSubscriptionRow = () => getSubscriptionRows()[state.activeSubscriptionRow];
+      const getSelectedRows = () =>
+        getRows().filter((row) => row.classList.contains("selected"));
+      const getTotalRows = () => getRows().length;
+      const getEnabledRows = () => getRows().filter((row) => !row.classList.contains("disabled"));
+      const getFailedRows = () => getRows().filter((row) => {
+        const delayCell = row.querySelector("td:nth-child(6)");
+        return delayCell && delayCell.classList.contains("fail");
+      });
+
+      const rowToConfig = (row) => ({
+        id: row.dataset.id,
+        name: row.dataset.name,
+        uri: row.dataset.uri,
+      });
+
+      const buildConfigPayload = (rows) =>
+        rows.map((row) => rowToConfig(row).uri).join("\n");
+
+      const buildProfilePayload = () => {
+        const activeRow = getActiveRow();
+        if (!activeRow) return "error: no active config selected";
+
+        const profile = {
+          type: "xrat-profile",
+          name: "XRAT local SOCKS5",
+          listen: "127.0.0.1:10808",
+          protocol: "socks5",
+          active_config_id: rowToConfig(activeRow).id,
+          selected_config_ids: getSelectedRows().map((row) => row.dataset.id),
+        };
+        return `xrat://profile/${encodeBase64(JSON.stringify(profile))}`;
+      };
+
+      const writeClipboard = async (text) => {
+        state.mockClipboard = text;
+        try {
+          await navigator.clipboard.writeText(text);
+          showCopyFeedback();
+        } catch {
+          showCopyFeedback("clipboard blocked");
+        }
+      };
+
+      const showCopyFeedback = (message = "copied") => {
+        const bar = document.querySelector(".key-bar");
+        if (!bar) return;
+        const existing = bar.querySelector(".copy-feedback");
+        if (existing) existing.remove();
+
+        const el = document.createElement("span");
+        el.className = "copy-feedback";
+        el.textContent = message;
+        bar.appendChild(el);
+
+        if (state.copyFeedbackTimer) clearTimeout(state.copyFeedbackTimer);
+        state.copyFeedbackTimer = setTimeout(() => el.remove(), 1500);
+      };
+
+      const setView = (idx) => {
+        state.activeView = idx;
+        document
+          .querySelectorAll(".view")
+          .forEach((view) => view.classList.remove("active"));
+        document.getElementById(views[idx]).classList.add("active");
+        document.querySelector(".mode-badge").textContent = modes[idx];
+        resetCommandLine(idx);
+        focusView(idx);
+      };
+
+      const resetCommandLine = (viewIdx) => {
+        const activeView = document.getElementById(views[viewIdx]);
+        if (!activeView) return;
+        const cmdOutput = activeView.querySelector(".cmd-output");
+        if (cmdOutput) {
+          cmdOutput.textContent = defaultCmdMessages[viewIdx] || "ready";
+        }
+        const health = activeView.querySelector(".detail-header .health");
+        if (health && viewIdx === 0) {
+          const activeRow = getActiveRow();
+          health.textContent = activeRow ? `Health: 94/100` : "";
+        }
+      };
+
+      const focusView = (viewIdx) => {
+        if (viewIdx === 0) {
+          const row = getActiveRow();
+          row?.focus();
+        } else if (viewIdx === 1) {
+          const row = getActiveSubscriptionRow();
+          row?.focus();
+        }
+      };
+
+      const refreshSelectionCount = () => {
+        const total = getTotalRows();
+        const enabled = getEnabledRows().length;
+        const selected = getSelectedRows().length;
+        const failed = getFailedRows().length;
+        const title = document.querySelector("#view-configs .view-header .title");
+        const stats = document.querySelector(".stats");
+        title.textContent = `Configs (${enabled} enabled · ${selected} selected)`;
+        stats.textContent = `${total} total · ${enabled} on · ${selected} sel · ${failed} fail`;
+      };
+
+      const setActiveRow = (nextIndex) => {
+        const rows = getRows();
+        if (!rows.length) return;
+        state.activeRow = (nextIndex + rows.length) % rows.length;
+        rows.forEach((row) => row.classList.remove("active"));
+        const row = getActiveRow();
+        row.classList.add("active");
+        row.scrollIntoView({ block: "nearest" });
+        row.focus();
+        const config = rowToConfig(row);
+        document.querySelector("#view-configs .detail-header .id").textContent = `#${config.id}`;
+        document.querySelector("#view-configs .detail-header .name").textContent = config.name;
+      };
+
+      const setActiveSubscriptionRow = (nextIndex) => {
+        const rows = getSubscriptionRows();
+        if (!rows.length) return;
+        state.activeSubscriptionRow = (nextIndex + rows.length) % rows.length;
+        rows.forEach((row) => row.classList.remove("active"));
+        const row = getActiveSubscriptionRow();
+        row.classList.add("active");
+        row.scrollIntoView({ block: "nearest" });
+        row.focus();
+        document.querySelector("#view-subs .detail-header .id").textContent =
+          `#${row.dataset.subId}`;
+        document.querySelector("#view-subs .detail-header .name").textContent =
+          row.dataset.subName;
+        document.querySelector('[data-field="sub-type"]').textContent =
+          row.dataset.subType;
+        document.querySelector('[data-field="sub-url"]').textContent =
+          row.dataset.subUrl;
+        document.querySelector('[data-field="sub-count"]').textContent =
+          row.dataset.subCount;
+        document.querySelector('[data-field="sub-updated"]').textContent =
+          row.dataset.subUpdated;
+      };
+
+      const encodeBase64 = (value) => {
+        try {
+          return btoa(unescape(encodeURIComponent(value)));
+        } catch {
+          return btoa(value);
+        }
+      };
+
+      const setTerminalMessage = (selector, message) => {
+        const node = document.querySelector(selector);
+        if (node) node.textContent = message;
+      };
+
+      const renderAsciiQr = (payload) => {
+        const size = 21;
+        const hashSeed = [...payload].reduce(
+          (seed, char) => Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0,
+          2166136261,
+        );
+        const rows = [];
+        for (let y = 0; y < size; y += 1) {
+          let line = "";
+          for (let x = 0; x < size; x += 1) {
+            const isFinder =
+              (x < 7 && y < 7) ||
+              (x > size - 8 && y < 7) ||
+              (x < 7 && y > size - 8);
+            const bit = (Math.imul(hashSeed + x * 31 + y * 17, 2654435761) >>> 0) & 1;
+            line += isFinder || bit ? "██" : "  ";
+          }
+          rows.push(line);
+        }
+        return rows.join("\n");
+      };
+
+      const openPayloadView = (title, payload, meta, kind) => {
+        const activeView = document.getElementById("view-configs");
+        if (!activeView) return;
+        const cmdOutput = activeView.querySelector(".cmd-output");
+        const cmdLabel = activeView.querySelector(".command-line .label");
+        const health = activeView.querySelector(".detail-header .health");
+        if (cmdOutput) cmdOutput.textContent = kind === "QR" ? renderAsciiQr(payload) : payload;
+        if (cmdLabel) cmdLabel.textContent = kind;
+        if (health) health.textContent = meta;
+      };
+
+      const parsePaste = (value) => {
+        const lines = value.split(/\n+/).filter(Boolean);
+        const configs = lines.filter((line) =>
+          /^(vless|vmess|ss|trojan):\/\//.test(line),
+        );
+        const profiles = lines.filter((line) => line.startsWith("xrat://profile/"));
+        const urls = lines.filter((line) => /^https?:\/\//.test(line));
+        return `${configs.length} configs · ${profiles.length} profiles · ${urls.length} URLs`;
+      };
+
+      const setCmdOutput = (viewId, message) => {
+        const view = document.getElementById(viewId);
+        if (!view) return;
+        const cmdOutput = view.querySelector(".cmd-output");
+        if (cmdOutput) cmdOutput.textContent = message;
+      };
+
+      document.addEventListener("keydown", (e) => {
+        const isTyping =
+          e.target.matches("textarea, input") || e.target.isContentEditable;
+        if (isTyping && e.key !== "Escape") return;
+
+        const keys = ["1", "2", "3", "4"];
+        const idx = keys.indexOf(e.key);
+        if (idx !== -1) setView(idx);
+        if (e.key === "Escape") {
+          setView(state.activeView);
+        }
+        if (state.activeView === 0) {
+          if (e.key === "j" || e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveRow(state.activeRow + 1);
+          }
+          if (e.key === "k" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveRow(state.activeRow - 1);
+          }
+          if (e.key === " ") {
+            e.preventDefault();
+            getActiveRow().classList.toggle("selected");
+            refreshSelectionCount();
+          }
+          if (e.key === "c") {
+            const config = rowToConfig(getActiveRow());
+            writeClipboard(config.uri);
+            setCmdOutput("view-configs", config.uri);
+          }
+          if (e.key === "C") {
+            const rows = getSelectedRows();
+            if (!rows.length) {
+              setCmdOutput("view-configs", "no configs selected");
+              return;
+            }
+            const payload = buildConfigPayload(rows);
+            writeClipboard(payload);
+            setCmdOutput("view-configs", payload);
+          }
+          if (e.key === "y") {
+            const config = rowToConfig(getActiveRow());
+            const payload = config.uri;
+            writeClipboard(payload);
+            openPayloadView(`single QR for #${config.id}`, payload, config.name, "QR");
+          }
+          if (e.key === "Y") {
+            const rows = getSelectedRows();
+            if (!rows.length) {
+              setCmdOutput("view-configs", "no configs selected");
+              return;
+            }
+            const payload = buildConfigPayload(rows);
+            writeClipboard(payload);
+            openPayloadView(`multi QR (${rows.length})`, payload, `${rows.length} configs`, "QR");
+          }
+          if (e.key === "p") {
+            const clipboardValue = state.mockClipboard;
+            setCmdOutput("view-configs", parsePaste(clipboardValue));
+          }
+          if (e.key === "P") {
+            const payload = buildProfilePayload();
+            if (payload.startsWith("error:")) {
+              setCmdOutput("view-configs", payload);
+              return;
+            }
+            writeClipboard(payload);
+            openPayloadView("profile xrat:// payload", payload, "127.0.0.1:10808", "PROFILE");
+          }
+        }
+        if (state.activeView === 1) {
+          if (e.key === "j" || e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveSubscriptionRow(state.activeSubscriptionRow + 1);
+          }
+          if (e.key === "k" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveSubscriptionRow(state.activeSubscriptionRow - 1);
+          }
+          if (e.key === "c") {
+            const sub = getActiveSubscriptionRow();
+            const payload = sub.dataset.subUrl;
+            writeClipboard(payload);
+            setCmdOutput("view-subs", `copied ${payload}`);
+          }
+          if (e.key === "y") {
+            const sub = getActiveSubscriptionRow();
+            const payload = sub.dataset.subUrl;
+            const qr = renderAsciiQr(payload);
+            writeClipboard(payload);
+            setCmdOutput("view-subs", qr);
+          }
+          if (e.key === "p") {
+            setCmdOutput("view-subs", `paste import: ${state.mockClipboard || "clipboard empty"}`);
+          }
+          if (e.key === "r") {
+            const sub = getActiveSubscriptionRow();
+            setCmdOutput("view-subs", `refresh started for #${sub.dataset.subId} ${sub.dataset.subName}…`);
+          }
+        }
+        if (state.activeView === 2) {
+          if (e.key === "s") {
+            setCmdOutput("view-test", "test started on 18 selected configs…");
+          }
+          if (e.key === "c") {
+            setCmdOutput("view-test", "test cancelled");
+          }
+        }
+        if (state.activeView === 3) {
+          if (e.key === "s") setCmdOutput("view-runtime", "Runtime starting…");
+          if (e.key === "x") setCmdOutput("view-runtime", "Runtime stopping…");
+          if (e.key === "r") setCmdOutput("view-runtime", "Runtime restarting…");
+          if (e.key === "l") setCmdOutput("view-runtime", "loading logs…");
+        }
+      });
+
+      setCmdOutput("view-configs", "ready");
+      setCmdOutput("view-subs", "ready");
+      refreshSelectionCount();
+    </script>
+  </body>
+</html>
