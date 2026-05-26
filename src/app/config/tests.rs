@@ -47,6 +47,10 @@ fn parses_minimal_config_with_defaults() {
         config.parser.parse_mode,
         crate::xray::parsing::ParseMode::Strict
     );
+    assert!(!config.server.enabled);
+    assert_eq!(config.server.host, "127.0.0.1");
+    assert_eq!(config.server.port, 8080);
+    assert_eq!(config.server.key, None);
 }
 
 #[test]
@@ -104,6 +108,37 @@ fn parses_example_config() {
     assert_eq!(
         config.parser.parse_mode,
         crate::xray::parsing::ParseMode::Strict
+    );
+    assert!(!config.server.enabled);
+    assert_eq!(config.server.host, "127.0.0.1");
+    assert_eq!(config.server.port, 8080);
+    assert_eq!(
+        config.server.key,
+        Some(SecretString::Env {
+            env: "XRAT_API_KEY".to_string()
+        })
+    );
+}
+
+#[test]
+fn parses_server_settings() {
+    let config: AppConfig = toml::from_str(
+        r#"
+[server]
+enabled = true
+host = "0.0.0.0"
+port = 9090
+key = "local-secret"
+"#,
+    )
+    .expect("config should parse");
+
+    assert!(config.server.enabled);
+    assert_eq!(config.server.host, "0.0.0.0");
+    assert_eq!(config.server.port, 9090);
+    assert_eq!(
+        config.server.key,
+        Some(SecretString::Literal("local-secret".to_string()))
     );
 }
 

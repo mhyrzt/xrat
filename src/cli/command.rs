@@ -2,7 +2,7 @@ use clap::Subcommand;
 
 use crate::cli::{
     AddArgs, ConnectArgs, DaemonArgs, DisconnectArgs, ImportArgs, ListArgs, ParseArgs, ProxyArgs,
-    ScanArgs, StatusArgs, TestArgs,
+    ScanArgs, ServeArgs, StatusArgs, TestArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -27,6 +27,8 @@ pub enum Command {
     Daemon(DaemonArgs),
     #[command(about = "Control auto-rotating proxy scheduling via the daemon.")]
     Proxy(ProxyArgs),
+    #[command(about = "Start the local Axum HTTP API server.")]
+    Serve(ServeArgs),
     #[command(about = "Parse and validate config links without persisting.")]
     Parse(ParseArgs),
 }

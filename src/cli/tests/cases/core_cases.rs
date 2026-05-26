@@ -51,6 +51,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Status(_)
         | Command::Daemon(_)
         | Command::Proxy(_)
+        | Command::Serve(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected import command")
@@ -72,6 +73,7 @@ fn parses_add_subcommand() {
         | Command::Status(_)
         | Command::Daemon(_)
         | Command::Proxy(_)
+        | Command::Serve(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected add command")
@@ -96,6 +98,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Status(_)
         | Command::Daemon(_)
         | Command::Proxy(_)
+        | Command::Serve(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")
@@ -130,9 +133,23 @@ fn parses_list_config_filters() {
         | Command::Status(_)
         | Command::Daemon(_)
         | Command::Proxy(_)
+        | Command::Serve(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")
         }
+    }
+}
+
+#[test]
+fn parses_serve_overrides() {
+    let cli = Cli::parse_from(["xrat", "serve", "--host", "0.0.0.0", "--port", "9090"]);
+
+    match cli.command {
+        Command::Serve(args) => {
+            assert_eq!(args.host.as_deref(), Some("0.0.0.0"));
+            assert_eq!(args.port, Some(9090));
+        }
+        _ => panic!("expected serve command"),
     }
 }

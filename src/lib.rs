@@ -4,6 +4,7 @@ pub mod config;
 pub mod db;
 pub mod model;
 pub mod prober;
+pub mod server;
 pub mod singbox;
 pub mod support;
 pub mod xray;

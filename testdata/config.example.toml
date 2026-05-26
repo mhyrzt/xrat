@@ -22,6 +22,12 @@ max_connections = 10
 min_connections = 1
 connect_timeout_secs = 10
 
+[server]
+enabled = false
+host = "127.0.0.1"
+port = 8080
+# key accepts either a literal string or { env = "XRAT_API_KEY" }.
+key = { env = "XRAT_API_KEY" }
 
 [runtime]
 engine = "xray" # xray | v2ray | sing-box

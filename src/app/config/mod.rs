@@ -11,6 +11,7 @@ mod path_settings;
 mod proxy;
 mod routing;
 mod secret;
+mod server;
 mod testing;
 
 pub use database::{
@@ -26,6 +27,7 @@ pub use proxy::{
 };
 pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};
+pub use server::ServerSettings;
 pub use testing::{
     ConnectionTestStage, DownloadTestSettings, GeoIpTestSettings, IcmpTestSettings,
     RealDelayTestSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
@@ -42,6 +44,7 @@ pub struct AppConfig {
     pub dns: DnsSettings,
     pub parser: ParserSettings,
     pub testing: TestingSettings,
+    pub server: ServerSettings,
 }
 
 pub fn load(config_path: &Path) -> crate::app::Result<AppConfig> {

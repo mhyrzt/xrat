@@ -9,6 +9,7 @@ mod parse;
 mod proxy;
 mod root;
 mod scan;
+mod serve;
 mod status;
 mod test_cmd;
 mod tests;
@@ -28,6 +29,7 @@ pub use proxy::{
 };
 pub use root::Cli;
 pub use scan::ScanArgs;
+pub use serve::ServeArgs;
 pub use status::StatusArgs;
 pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
 

@@ -7,6 +7,7 @@ mod list;
 mod parse;
 mod proxy;
 mod scan;
+mod serve;
 mod status;
 pub(crate) mod test;
 
@@ -25,6 +26,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Status(args) => status::run(context, args).await,
         Command::Daemon(args) => daemon::run(context, args).await,
         Command::Proxy(args) => proxy::run(context, args).await,
+        Command::Serve(args) => serve::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
     }
 }

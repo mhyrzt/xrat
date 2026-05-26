@@ -60,3 +60,7 @@ pub const DEFAULT_TEST_GEOIP_ENABLED: bool = false;
 pub const DEFAULT_TEST_GEOIP_COUNTRY_PATH: &str = "geoip/GeoLite2-Country.mmdb";
 pub const DEFAULT_TEST_GEOIP_CITY_PATH: &str = "geoip/GeoLite2-City.mmdb";
 pub const DEFAULT_TEST_GEOIP_ASN_PATH: &str = "geoip/GeoLite2-ASN.mmdb";
+
+pub const DEFAULT_SERVER_ENABLED: bool = false;
+pub const DEFAULT_SERVER_HOST: &str = "127.0.0.1";
+pub const DEFAULT_SERVER_PORT: u16 = 8080;

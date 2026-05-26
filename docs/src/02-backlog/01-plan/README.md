@@ -118,11 +118,13 @@ Suggested metrics to store:
 - Run a lightweight Axum-based HTTP server alongside the app.
 - Expose `/json` to return configs in JSON form.
 - Expose `/b64` to return configs encoded as base64 subscription text.
+- Expose `/health`, `/configs`, and `/configs/:id` for health checks and
+  management-oriented metadata.
 - Support a query parameter for returning the top `n` configs sorted by real
   delay.
 - Support an optional `key` query parameter for simple request authentication.
-- Optionally add endpoints like `/health`, `/configs`, and `/configs/:id` later.
-- Decide whether the server is always on or only started when enabled.
+- Start standalone through `xrat serve`; optionally start alongside the daemon
+  when `server.enabled = true`.
 
 ### Phase 6: TUI Application
 

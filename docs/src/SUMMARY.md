@@ -17,6 +17,7 @@
     - [Phase 4](02-backlog/01-plan/PHASE_4.md)
     - [Phase 4.5](02-backlog/01-plan/PHASE_4p5.md)
     - [Phase 4.6 Auto-Rotating Proxy](02-backlog/01-plan/PHASE_4p6_AUTO_ROTATING_PROXY.md)
+    - [Phase 5 HTTP API](02-backlog/01-plan/PHASE_5.md)
     - [Notes](02-backlog/01-plan/notes.md)
   - [Validation](02-backlog/02-validation/index.md)
     - [0. xray-knife vs xrat gap](02-backlog/02-validation/0_xray-knife_vs_xrat_gap_checklist.md)

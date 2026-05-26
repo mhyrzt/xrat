@@ -3,37 +3,90 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>XRAT TUI v2 - Optimized Layout</title>
+    <title>XRAT TUI - Operations Console</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="terminal-shell" aria-label="XRAT terminal UI prototype v2">
       <section class="screen-frame">
-        <!-- Compact status bar: single line with all key info -->
         <header class="status-bar">
           <div class="status-left">
             <span class="app-name">XRAT</span>
             <span class="mode-badge">[CONFIGS]</span>
-            <span class="filter-info">enabled · sort:delay</span>
+            <span class="filter-info">enabled · selected · sort:real-delay</span>
           </div>
           <div class="status-center">
             <span class="runtime-status">● RUNNING</span>
             <span class="runtime-addr">127.0.0.1:10808</span>
+            <span class="runtime-config">#184 Zurich · Relay A</span>
           </div>
           <div class="status-right">
+            <span class="sync-state">last import 2h ago</span>
             <span class="stats">248 total · 221 on · 18 sel · 7 fail</span>
           </div>
         </header>
 
-        <!-- Single-focus main content area -->
         <div class="main-content">
+          <aside class="mode-rail" aria-label="Primary TUI modes">
+            <button type="button" data-view="0" aria-current="page">
+              <span class="rail-key">1</span>
+              <span>
+                <b>Configs</b>
+                <small>221 usable</small>
+              </span>
+            </button>
+            <button type="button" data-view="1">
+              <span class="rail-key">2</span>
+              <span>
+                <b>Sources</b>
+                <small>3 feeds</small>
+              </span>
+            </button>
+            <button type="button" data-view="2">
+              <span class="rail-key">3</span>
+              <span>
+                <b>Tests</b>
+                <small>11 / 18</small>
+              </span>
+            </button>
+            <button type="button" data-view="3">
+              <span class="rail-key">4</span>
+              <span>
+                <b>Runtime</b>
+                <small>02:14:33</small>
+              </span>
+            </button>
+            <div class="rail-meter" aria-label="Fleet health">
+              <span>Health</span>
+              <b>89%</b>
+              <i><em style="height: 89%"></em></i>
+            </div>
+          </aside>
+
           <!-- VIEW 1: CONFIG LIST (default view) -->
           <section class="view active" id="view-configs">
             <div class="view-header">
-              <span class="title">Configs (221 enabled)</span>
+              <span class="title">Configs (221 enabled · 18 selected)</span>
               <span class="hint"
-                >c:copy · y:QR · Y:multi QR · p:paste · tab:subs</span
+                >/:search · f:filters · c:copy · y:QR · p:paste</span
               >
+            </div>
+
+            <div class="command-strip" aria-label="Current filters and search">
+              <div class="search-field">
+                <span>/</span>
+                <b>country:zrh OR delay&lt;200</b>
+              </div>
+              <div class="filter-chips">
+                <span class="chip active">enabled</span>
+                <span class="chip active">selected</span>
+                <span class="chip">failed hidden</span>
+                <span class="chip accent">real delay ↑</span>
+              </div>
+              <div class="queue-state">
+                <span>scan queue</span>
+                <b>4 pending</b>
+              </div>
             </div>
 
             <div class="pane-grid">
@@ -60,11 +113,11 @@
                     >
                       <td>184</td>
                       <td>Zurich · Relay A</td>
-                      <td>vless</td>
+                      <td><span class="proto-badge">vless</span></td>
                       <td>edge-zrh.example.net:443</td>
-                      <td>ws+tls</td>
+                      <td><span class="net-badge">ws+tls</span></td>
                       <td class="good">118ms</td>
-                      <td>✓★▶</td>
+                      <td><span class="state-badges">✓ ★ ▶</span></td>
                     </tr>
                     <tr
                       tabindex="0"
@@ -74,11 +127,11 @@
                     >
                       <td>209</td>
                       <td>Tokyo cold path</td>
-                      <td>vmess</td>
+                      <td><span class="proto-badge">vmess</span></td>
                       <td>jp-02.example.org:8443</td>
-                      <td>grpc+tls</td>
+                      <td><span class="net-badge">grpc+tls</span></td>
                       <td class="good">151ms</td>
-                      <td>✓</td>
+                      <td><span class="state-badges">✓</span></td>
                     </tr>
                     <tr
                       tabindex="0"
@@ -88,11 +141,11 @@
                     >
                       <td>117</td>
                       <td>Amsterdam shadow</td>
-                      <td>ss</td>
+                      <td><span class="proto-badge">ss</span></td>
                       <td>ams-gw.example.net:8388</td>
-                      <td>tcp</td>
+                      <td><span class="net-badge">tcp</span></td>
                       <td class="ok">260ms</td>
-                      <td>✓</td>
+                      <td><span class="state-badges">✓</span></td>
                     </tr>
                     <tr
                       class="disabled"
@@ -103,11 +156,11 @@
                     >
                       <td>066</td>
                       <td>Berlin stale import</td>
-                      <td>trojan</td>
+                      <td><span class="proto-badge">trojan</span></td>
                       <td>de-old.example.com:443</td>
-                      <td>tcp+tls</td>
+                      <td><span class="net-badge">tcp+tls</span></td>
                       <td class="fail">FAIL</td>
-                      <td>✗</td>
+                      <td><span class="state-badges fail">✗</span></td>
                     </tr>
                     <tr
                       tabindex="0"
@@ -117,11 +170,11 @@
                     >
                       <td>231</td>
                       <td>SF worker 7</td>
-                      <td>vless</td>
+                      <td><span class="proto-badge">vless</span></td>
                       <td>us-west.example.dev:443</td>
-                      <td>ws+tls</td>
+                      <td><span class="net-badge">ws+tls</span></td>
                       <td class="good">203ms</td>
-                      <td>✓</td>
+                      <td><span class="state-badges">✓</span></td>
                     </tr>
                     <tr
                       class="selected"
@@ -132,11 +185,11 @@
                     >
                       <td>145</td>
                       <td>Singapore edge</td>
-                      <td>vmess</td>
+                      <td><span class="proto-badge">vmess</span></td>
                       <td>sg-01.example.com:443</td>
-                      <td>ws+tls</td>
+                      <td><span class="net-badge">ws+tls</span></td>
                       <td class="ok">312ms</td>
-                      <td>✓★</td>
+                      <td><span class="state-badges">✓ ★</span></td>
                     </tr>
                     <tr
                       class="selected"
@@ -147,11 +200,11 @@
                     >
                       <td>098</td>
                       <td>London backup</td>
-                      <td>vless</td>
+                      <td><span class="proto-badge">vless</span></td>
                       <td>uk-gw.example.net:8443</td>
-                      <td>grpc+tls</td>
+                      <td><span class="net-badge">grpc+tls</span></td>
                       <td class="good">189ms</td>
-                      <td>✓</td>
+                      <td><span class="state-badges">✓</span></td>
                     </tr>
                     <tr
                       tabindex="0"
@@ -161,11 +214,11 @@
                     >
                       <td>172</td>
                       <td>Paris direct</td>
-                      <td>vmess</td>
+                      <td><span class="proto-badge">vmess</span></td>
                       <td>fr-01.example.net:443</td>
-                      <td>ws+tls</td>
+                      <td><span class="net-badge">ws+tls</span></td>
                       <td class="good">142ms</td>
-                      <td>✓</td>
+                      <td><span class="state-badges">✓</span></td>
                     </tr>
                   </tbody>
                 </table>
@@ -175,7 +228,31 @@
                 <div class="detail-header">
                   <span class="id">#184</span>
                   <span class="name">Zurich · Relay A</span>
-                  <span class="health">Health: 94/100</span>
+                  <span class="health">Health 94/100</span>
+                </div>
+                <div class="primary-actions" aria-label="Focused config actions">
+                  <button type="button">Activate</button>
+                  <button type="button">Test</button>
+                  <button type="button">Copy URI</button>
+                  <button type="button">QR</button>
+                </div>
+                <div class="signal-strip" aria-label="Latest test summary">
+                  <div>
+                    <span>real delay</span>
+                    <b class="good">118ms</b>
+                  </div>
+                  <div>
+                    <span>tcp</span>
+                    <b class="good">31ms</b>
+                  </div>
+                  <div>
+                    <span>success</span>
+                    <b>46 / 47</b>
+                  </div>
+                  <div>
+                    <span>rank</span>
+                    <b>#3</b>
+                  </div>
                 </div>
                 <div class="detail-body">
                   <div class="col">
@@ -300,6 +377,11 @@
                   <span class="id">#12</span>
                   <span class="name">daily-feed</span>
                 </div>
+                <div class="primary-actions" aria-label="Subscription actions">
+                  <button type="button">Refresh</button>
+                  <button type="button">Copy URL</button>
+                  <button type="button">Import</button>
+                </div>
                 <div class="detail-body">
                   <div class="col">
                     <div class="row"><span>Type</span><b data-field="sub-type">URL</b></div>
@@ -345,6 +427,12 @@
             </div>
 
             <div class="progress-section">
+              <div class="summary-grid" aria-label="Current test batch summary">
+                <div><span>Scope</span><b>18 selected</b></div>
+                <div><span>Mode</span><b>real-delay + tcp</b></div>
+                <div><span>Target</span><b>https://cp.cloudflare.com</b></div>
+                <div><span>Concurrency</span><b>6 workers</b></div>
+              </div>
               <div class="progress-bar">
                 <div class="fill" style="width: 61%"></div>
               </div>
@@ -402,6 +490,12 @@
             </div>
 
             <div class="info-section">
+              <div class="primary-actions" aria-label="Runtime controls">
+                <button type="button">Start</button>
+                <button type="button">Stop</button>
+                <button type="button">Restart</button>
+                <button type="button">Open Logs</button>
+              </div>
               <div class="info-grid">
                 <div class="item">
                   <span>Status</span><b class="running">RUNNING</b>
@@ -569,6 +663,10 @@
           .forEach((view) => view.classList.remove("active"));
         document.getElementById(views[idx]).classList.add("active");
         document.querySelector(".mode-badge").textContent = modes[idx];
+        document.querySelectorAll(".mode-rail button").forEach((button) => {
+          const active = Number(button.dataset.view) === idx;
+          button.toggleAttribute("aria-current", active);
+        });
         resetCommandLine(idx);
         focusView(idx);
       };
@@ -733,6 +831,12 @@
             getActiveRow().classList.toggle("selected");
             refreshSelectionCount();
           }
+          if (e.key === "Enter") {
+            const config = rowToConfig(getActiveRow());
+            document.querySelector(".runtime-config").textContent =
+              `#${config.id} ${config.name}`;
+            setCmdOutput("view-configs", `activated #${config.id} ${config.name}`);
+          }
           if (e.key === "c") {
             const config = rowToConfig(getActiveRow());
             writeClipboard(config.uri);
@@ -826,6 +930,9 @@
 
       setCmdOutput("view-configs", "ready");
       setCmdOutput("view-subs", "ready");
+      document.querySelectorAll(".mode-rail button").forEach((button) => {
+        button.addEventListener("click", () => setView(Number(button.dataset.view)));
+      });
       refreshSelectionCount();
     </script>
   </body>
