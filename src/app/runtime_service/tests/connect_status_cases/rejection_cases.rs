@@ -47,3 +47,23 @@ async fn connect_rejects_when_runtime_running_and_replace_disabled() {
 
     assert!(matches!(result, Err(AppError::RuntimeSessionAlreadyActive)));
 }
+
+#[tokio::test]
+async fn connect_rejects_sing_box_runtime_engine_until_supported() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
+    let config = import_single_config(&context).await;
+
+    let result = RuntimeService::new(&context)
+        .connect(ConnectRequest {
+            config_id: config.id,
+        })
+        .await;
+
+    match result {
+        Err(AppError::InvalidArgument(message)) => {
+            assert!(message.contains("managed runtime engine \"sing-box\" is not supported yet"));
+        }
+        other => panic!("expected invalid argument, got {other:?}"),
+    }
+}

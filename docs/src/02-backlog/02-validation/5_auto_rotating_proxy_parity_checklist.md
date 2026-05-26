@@ -47,26 +47,26 @@ Behavioral source narrative:
 - Runtime control exists for one managed session:
   - `xrat connect <id>` / `disconnect` / `status`
   - `src/app/runtime_service.rs`
-- Session replacement policy exists:
-  - `[runtime].replace_active_session`
-- Command-driven stale-state reconciliation exists:
-  - stale PID/session handling in `src/app/runtime_service.rs`
+- Daemon supervisor ownership exists with timer health ticks and IPC routing.
+- `RuntimeReplace` exists and performs make-before-break replacement.
+- `xrat proxy start|status|rotate|stop` exists and controls daemon rotation
+  state.
+- Candidate scoring reuses the bulk test pipeline and ranks by real-delay first,
+  then download Mbps, then config id.
+- Automatic timer and health-failure triggers are wired when rotation is enabled.
+- Cooldown/failure fields exist in `runtime_sessions` (`cooldown_until`,
+  `last_failed_at`, `last_failed_reason_code`).
+- Manual explicit candidate rotation can override cooldown.
 
-Missing today:
+Remaining gaps:
 
-- no `proxy` command with long-running rotation loop,
-- no scheduler that continuously re-tests candidates and rotates active proxy,
-- no blacklist/cooldown/drain rotation state model,
-- no netns/sysproxy chain orchestration equivalents.
-
-Phase 4.5 bridge primitives now present:
-
-- daemon health-tick path can emit `health_check_failed` transition/failure
-  metadata,
-- `RuntimeReplace` daemon contract and make-before-break handoff are available,
-- cooldown/failure fields exist in `runtime_sessions` (`cooldown_until`,
-  `last_failed_at`, `last_failed_reason_code`),
-- cooldown-aware candidate filtering is wired for health-triggered replace.
+- no dedicated durable rotation events table yet,
+- `proxy start|stop` state is mostly daemon-session memory and falls back to
+  config defaults after daemon restart,
+- fresh rotation test failures are not yet a hard boundary because candidate
+  selection ranks from latest persisted test results,
+- no netns/sysproxy chain orchestration equivalents,
+- no detailed blacklist/strike policy beyond cooldown bridge fields.
 
 ---
 
@@ -74,47 +74,54 @@ Phase 4.5 bridge primitives now present:
 
 ### `../xray-knife/QA/5_auto_rotating_proxy.md` alignment
 
-- [ ] Add `proxy` command surface in xrat CLI (start/stop/status/rotate).
-- [ ] Implement long-running rotation service (`runRotationMode` equivalent).
-- [ ] Implement candidate batch testing + ranking + promotion logic.
-- [ ] Add timer-based rotate trigger (`--rotate` style semantics).
-- [ ] Add manual force-rotate trigger/command path.
-- [ ] Add active-path health-check trigger and failure-based rotation.
-- [ ] Add strike/blacklist/cooldown policy for unstable configs.
-- [ ] Add controlled handoff semantics (start replacement then drain/stop old).
-- [ ] Define no-healthy-candidate behavior and reporting contract.
-- [ ] Persist rotation state/events if feature needs crash-safe continuity.
+- [x] Add `proxy` command surface in xrat CLI (start/stop/status/rotate).
+- [x] Implement daemon-hosted rotation service state.
+- [x] Implement candidate batch testing + ranking + promotion logic.
+- [x] Add timer-based rotate trigger.
+- [x] Add manual force-rotate trigger/command path.
+- [x] Add active-path health-check trigger and failure-based rotation.
+- [x] Add cooldown policy for unstable configs.
+- [x] Add controlled handoff semantics (start replacement then drain/stop old).
+- [x] Define no-healthy-candidate behavior and reporting contract.
+- [ ] Persist detailed rotation state/events if crash-safe continuity is required.
+- [ ] Add explicit strike/blacklist policy beyond cooldown fields.
 
 Gap status summary:
 
-- **MISSING** for scheduler-level auto-rotation behavior.
-- **PARTIAL FOUNDATION** from Phase 4 + 4.5 runtime/daemon building blocks,
-  including health-triggered replace and cooldown bridge metadata.
+- **PARTIAL/MOSTLY IMPLEMENTED** for v1 scheduler-level auto-rotation behavior.
+- **MISSING** for xray-knife netns/sysproxy/chain breadth and detailed durable
+  rotation-event history.
 
 ---
 
 ## Suggested implementation order
 
-1. [ ] Define product contract for `xrat proxy` (foreground loop first).
-2. [ ] Reuse test pipeline to score candidate set and select best config.
-3. [ ] Add rotate triggers (timer + health-failure) and safe swap behavior.
-4. [ ] Add blacklist/cooldown state in memory, then persist if needed.
-5. [ ] Add operator UX (`proxy status`, `proxy rotate`, structured JSON output).
+1. [x] Define product contract for `xrat proxy` as daemon-hosted rotation.
+2. [x] Reuse test pipeline to score candidate set and select best config.
+3. [x] Add rotate triggers (timer + health-failure) and safe swap behavior.
+4. [x] Add cooldown bridge state.
+5. [x] Add operator UX (`proxy status`, `proxy rotate`, structured JSON output).
+6. [ ] Decide whether detailed rotation event history and blacklist/strike policy
+       are product goals.
 
 ---
 
 ## Exit criteria
 
-- [ ] xrat can run an explicit proxy-rotation loop against stored configs.
-- [ ] Automatic switching occurs on timer and health failures.
-- [ ] Rotation does not leave orphaned processes or mismatched active state.
-- [ ] Rotation outcomes are observable via CLI and persisted runtime records.
+- [x] xrat can run an explicit daemon-owned proxy-rotation loop against stored
+      configs.
+- [x] Automatic switching occurs on timer and health failures.
+- [x] Rotation does not leave orphaned processes or mismatched active state.
+- [x] Rotation outcomes are observable via CLI and persisted runtime records.
+- [ ] Detailed rotation event history, blacklist/strike policy, and system proxy
+      integration are implemented or documented as non-goals.
 
 ---
 
 ## Summary
 
 - xray-knife area #5 is a dedicated long-running rotation subsystem.
-- xrat currently has managed single-session runtime control, but no scheduler.
-- Phase 4.5 supervisor model is now available as a rotation foundation.
-- Remaining work is scheduler policy, ranking, and dedicated `proxy` UX parity.
+- xrat now has daemon-owned rotation scheduling and dedicated `proxy` UX.
+- Remaining work is deeper parity: durable rotation history, blacklist/strike
+  policy, netns/sysproxy/chain features, and tighter fresh-test candidate
+  semantics.

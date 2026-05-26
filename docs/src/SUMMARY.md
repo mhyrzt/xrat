@@ -20,6 +20,7 @@
     - [Phase 5 HTTP API](02-backlog/01-plan/PHASE_5.md)
     - [Notes](02-backlog/01-plan/notes.md)
   - [Validation](02-backlog/02-validation/index.md)
+    - [Current implementation review](02-backlog/02-validation/current-implementation-review.md)
     - [0. xray-knife vs xrat gap](02-backlog/02-validation/0_xray-knife_vs_xrat_gap_checklist.md)
     - [1. Parse + validate config parity](02-backlog/02-validation/1_parse_validate_config_parity_checklist.md)
     - [2. Storage persistence parity](02-backlog/02-validation/2_storage_persistence_parity_checklist.md)

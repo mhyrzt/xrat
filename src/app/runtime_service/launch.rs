@@ -6,6 +6,11 @@ impl<'a> RuntimeService<'a> {
         config: &ConfigRecord,
     ) -> crate::app::Result<ResolvedLaunch> {
         let runtime = &self.context.app_config.runtime;
+        if runtime.engine == "sing-box" {
+            return Err(AppError::InvalidArgument(
+                "managed runtime engine \"sing-box\" is not supported yet; use xray/v2ray for connect or parse --engine sing-box for diagnostics".to_string(),
+            ));
+        }
         let socks = runtime.socks.enabled.then_some((
             runtime.socks.host.as_str(),
             runtime.socks.port,
@@ -60,7 +65,6 @@ impl<'a> RuntimeService<'a> {
         let binary_path = match runtime.engine.as_str() {
             "xray" => self.context.runtime_paths.xray_path.clone(),
             "v2ray" => self.context.runtime_paths.v2ray_path.clone(),
-            "sing-box" => self.context.runtime_paths.sing_box_path.clone(),
             other => PathBuf::from(other),
         };
 

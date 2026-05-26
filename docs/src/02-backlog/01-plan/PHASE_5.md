@@ -89,6 +89,20 @@ Phase 5 should not yet cover:
 
 Those belong to later phases or future iterations.
 
+Deletion policy note for Phase 5/6:
+
+- XRAT should support both soft delete and hard delete for stored configs.
+- Soft delete is the safer default for user-facing flows because it preserves
+  runtime history, connection-test history, and recovery options.
+- Hard delete should be an explicit destructive action selected by the user, not
+  an accidental default.
+- Phase 5 HTTP API should expose deleted-state metadata when returning config
+  detail/list data once the schema supports it, but should not add mutation
+  endpoints in v1.
+- Phase 6 TUI should make the distinction clear in the UI, for example:
+  `Delete` = soft delete, `Purge` or `Hard delete` = permanent removal with
+  confirmation.
+
 ## Desired User Experience
 
 The first usable version should feel like this:
@@ -260,6 +274,7 @@ Query parameters:
 | `per_page` | integer | No       | Items per page (default: 50, max: 200) |
 | `enabled`  | bool    | No       | Filter to only enabled configs         |
 | `protocol` | string  | No       | Filter by protocol                     |
+| `deleted`  | bool    | No       | Include or filter soft-deleted configs once supported |
 
 Response:
 
@@ -282,6 +297,7 @@ Response:
       "is_active": false,
       "is_enabled": true,
       "is_selected": false,
+      "is_deleted": false,
       "imported_at": "...",
       "created_at": "...",
       "updated_at": "..."
@@ -316,6 +332,7 @@ Response:
   "is_active": false,
   "is_enabled": true,
   "is_selected": false,
+  "is_deleted": false,
   "imported_at": "...",
   "created_at": "...",
   "updated_at": "...",
@@ -624,8 +641,9 @@ Tasks:
   - `PaginatedResponse<T>`
   - `ApiErrorResponse`
 - [ ] Keep DTOs independent from SQLx row structs.
-- [ ] Map protocol, address, port, name, network, TLS, active/enabled/selected,
-      import timestamps, and latest-test fields explicitly.
+- [ ] Map protocol, address, port, name, network, TLS,
+      active/enabled/selected/deleted, import timestamps, and latest-test fields
+      explicitly once soft-delete fields exist.
 - [ ] Decide nullability for latest-test fields and document it in code tests.
 - [ ] Add serde tests or route tests that assert representative JSON keys.
 
@@ -654,6 +672,7 @@ Tasks:
   - enabled status
   - protocol
   - selected status if trivial with existing fields
+  - deleted status once soft-delete fields exist
 - [ ] Use the existing DB backend pattern for SQLite and PostgreSQL query
       differences.
 - [ ] Clamp pagination in application code before hitting the DB.
@@ -673,8 +692,10 @@ Goal: keep route handlers deterministic and defensive.
 Tasks:
 
 - [ ] Add query structs for:
-  - `/json` and `/b64`: `top`, `enabled`, `protocol`, `selected`, `key`
-  - `/configs`: `page`, `per_page`, `enabled`, `protocol`, `selected`, `key`
+  - `/json` and `/b64`: `top`, `enabled`, `protocol`, `selected`, `deleted`,
+    `key`
+  - `/configs`: `page`, `per_page`, `enabled`, `protocol`, `selected`,
+    `deleted`, `key`
 - [ ] Default `enabled` to `true` for `/json` and `/b64`.
 - [ ] Default `page` to `1`.
 - [ ] Default `per_page` to `50`.
@@ -900,6 +921,8 @@ Tasks:
 - [ ] Add curl examples for health, JSON, b64, config list, and config detail.
 - [ ] Document default filters and pagination bounds.
 - [ ] Document auth behavior and the local/trusted-network security assumption.
+- [ ] Document config deletion semantics: soft delete is the safe default; hard
+      delete/purge is explicit and destructive.
 - [ ] Add a decoded `/b64` example showing one URI per line.
 - [ ] Add systemd user-service examples and troubleshooting commands.
 - [ ] Update `docs/progress.md` when the phase starts or completes.
@@ -926,6 +949,7 @@ Required tests:
 - [ ] `/b64` default output, decoded URI lines, empty result.
 - [ ] `/configs` pagination and bounds.
 - [ ] `/configs/:id` found, missing, latest-test null.
+- [ ] Deleted-state filtering/serialization once soft-delete schema fields exist.
 - [ ] Repository top-N ordering.
 - [ ] Repository latest-test join chooses the newest test.
 - [ ] Server bind failure maps to an app error.
@@ -964,34 +988,54 @@ explicitly expands scope:
 
 ## Implementation Progress
 
-Estimated completion: 0%.
+Estimated completion: 45%.
 
-This phase has not yet started. The following work is planned:
+Phase 5 has started. The following slices are implemented in code:
 
-- add `ServerSettings` to `AppConfig` with `enabled`, `host`, `port`, `key`
-- create `src/server/` module tree with Axum router and state
-- implement `/health`, `/json`, `/b64`, `/configs`, `/configs/:id` endpoints
-- add auth middleware for optional API key enforcement
-- add DB query helpers for config-with-test joins and pagination
-- add `xrat serve` CLI command
-- write tests for routes, auth, queries, and CLI parsing
+- `ServerSettings` exists in `AppConfig` with `enabled`, `host`, `port`, and
+  optional `key`.
+- `src/server/` exists with Axum router, state, auth, response, error, and route
+  modules.
+- `GET /health`, `GET /json`, `GET /b64`, `GET /configs`, and
+  `GET /configs/{id}` handlers exist.
+- optional query-string API key enforcement exists for non-health routes.
+- `xrat serve` exists with `--host` and `--port` overrides.
+- focused config parsing, CLI parsing, and auth tests exist.
+
+Remaining work before Phase 5 is complete:
+
+- add soft-delete state to config records or explicitly gate deleted-state API
+  fields until the Phase 6 config-management slice lands.
+- move latest-test joins, top-N real-delay sorting, and pagination into
+  repository-level helpers instead of doing route-local in-memory filtering and
+  N+1 latest-test queries.
+- add route-level tests for `/health`, `/json`, `/b64`, `/configs`, and
+  `/configs/{id}`.
+- wire `[server].enabled = true` into daemon startup and shutdown.
+- extend daemon status output with HTTP API enabled/listening state.
+- add systemd user-service examples for daemon-hosted API and standalone
+  `xrat serve`.
+- verify daemon-hosted serving in an environment that permits sockets, ephemeral
+  ports, and runtime process tests.
 
 ## Completion Criteria
 
 Phase 5 can be considered complete when:
 
-1. [ ] `cargo build` succeeds with new `src/server/` module
+1. [x] `cargo build` succeeds with new `src/server/` module
 2. [ ] `cargo test -q` passes including new server route and DB query tests
-3. [ ] `xrat serve` starts an HTTP listener on the configured host/port
-4. [ ] `/health` returns `{"status":"ok"}` without auth
-5. [ ] `/json` returns a JSON array of configs with test metadata
-6. [ ] `/json?top=5` returns the 5 fastest configs by real delay
-7. [ ] `/b64` returns base64-encoded subscription text
-8. [ ] `/configs` returns paginated config list
-9. [ ] `/configs/:id` returns a single config with latest test or `404`
-10. [ ] when `server.key` is set, requests without a matching `?key=` are
+3. [x] `xrat serve` starts an HTTP listener on the configured host/port
+4. [x] `/health` returns `{"status":"ok"}` without auth
+5. [x] `/json` returns a JSON array of configs with test metadata
+6. [x] `/json?top=5` returns the 5 fastest configs by real delay
+7. [x] `/b64` returns base64-encoded subscription text
+8. [x] `/configs` returns paginated config list
+9. [x] `/configs/:id` returns a single config with latest test or `404`
+10. [x] when `server.key` is set, requests without a matching `?key=` are
         rejected with `401`
-11. [ ] server shuts down cleanly on SIGINT/SIGTERM
+11. [x] server shuts down cleanly on SIGINT/SIGTERM
+12. [ ] `[server].enabled = true` starts HTTP alongside the daemon
+13. [ ] daemon status reports HTTP API enabled/listening state
 
 ## Open Questions
 
@@ -1009,3 +1053,5 @@ the phase:
   startup/shutdown and errors, no per-request logging in v1)
 - should the daemon-hosted server share the same router or run a separate Axum
   instance? (recommended: separate instance, simpler isolation)
+- should deletion controls first land in CLI, HTTP, or TUI? (recommended: schema
+  and repository first, TUI/CLI controls next, HTTP mutation endpoints deferred)

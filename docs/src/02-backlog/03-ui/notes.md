@@ -39,3 +39,25 @@ TUI implementation.
 - `i`: open import drawer.
 - `/`: search/filter configs.
 - `q`: quit or close modal.
+
+## Config Deletion UX
+
+XRAT should support both soft delete and hard delete, with the user choosing the
+behavior explicitly.
+
+- Soft delete should be the default destructive-looking action in Phase 6 UI.
+- Soft-deleted configs stay in the database with history intact and can be shown
+  through a deleted/archived filter.
+- Restore should be available for soft-deleted configs.
+- Hard delete should be labeled as `Purge` or `Hard delete`, require a stronger
+  confirmation, and explain that the config row is permanently removed.
+- The UI should show deleted state in the table/detail panel once the DB schema
+  exposes `is_deleted`/`deleted_at` or equivalent fields.
+- Phase 5 API list/detail responses should surface deleted-state metadata once
+  available, but mutation endpoints can remain deferred.
+
+Suggested keybinding direction:
+
+- `d`: soft delete focused config.
+- `r`: restore focused soft-deleted config.
+- `D`: hard delete/purge focused config after confirmation.
