@@ -260,6 +260,9 @@ Response:
 - Content-Type: `text/plain`
 - Only `enabled` configs are included by default.
 - When `top` is specified, the same real-delay sort applies before encoding.
+- Security note: decoded share links contain proxy credentials. Keep non-local
+  binds protected with `server.key`; query-string auth is a v1 local/trusted
+  network mechanism, not a replacement for TLS or a full auth layer.
 
 ### `GET /configs`
 

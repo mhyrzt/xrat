@@ -151,10 +151,10 @@ Relevant files:
 - `src/server/auth.rs`
 - `src/server/routes/`
 
-Recommended action:
+Status:
 
-- add router-level tests for `/health`, `/json`, `/b64`, `/configs`, and
-  `/configs/{id}` including auth and error cases
+- follow-up slice added direct route-level coverage for `/health`, `/json`,
+  `/b64`, `/configs`, and `/configs/{id}` including auth and not-found behavior
 
 ### Rotation Candidate Selection Can Use Stale Data
 
@@ -227,9 +227,9 @@ Relevant file:
 
 - `src/server/mod.rs`
 
-Recommended action:
+Status:
 
-- parse host and port with IPv6-safe socket address construction
+- follow-up slice added IPv6-safe bind address parsing
 
 ### `/b64` Exposes Raw Share Links By Design
 
@@ -241,10 +241,10 @@ Relevant file:
 
 - `src/server/routes/b64.rs`
 
-Recommended action:
+Status:
 
-- make docs explicit that non-local binds should use `server.key`, and that
-  query-string auth is only a v1 local/trusted-network mechanism
+- follow-up slice documented that decoded `/b64` output includes credentials and
+  non-local binds should use `server.key`
 
 ## Documentation Drift To Fix
 

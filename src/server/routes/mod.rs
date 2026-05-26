@@ -1,7 +1,7 @@
-mod b64;
-mod configs;
-mod health;
-mod json;
+pub(crate) mod b64;
+pub(crate) mod configs;
+pub(crate) mod health;
+pub(crate) mod json;
 
 use axum::Router;
 use axum::routing::get;
