@@ -5,16 +5,16 @@ and running local proxy services.
 
 ## Core Features
 
-| Feature | Description |
-|---------|-------------|
-| [Importing](importing.md) | Import subscriptions from URLs, files, raw text, base64, JSON |
-| [Testing](testing.md) | 5-stage probe pipeline with failure classification |
-| [Runtime Management](runtime-management.md) | Connect lifecycle, session state, reattach |
-| [Daemon and IPC](daemon-and-ipc.md) | Supervisor process with Unix socket IPC |
-| [Auto-Rotation](auto-rotation.md) | Scheduled proxy switching with cooldown |
-| [IP Scanning](ip-scanning.md) | TCP reachability scanning with persistence |
-| [HTTP API](http-api.md) | RESTful API for config access and monitoring |
-| [Deduplication](deduplication.md) | Versioned dedup keys for config uniqueness |
+| Feature                                     | Description                                                   |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| [Importing](importing.md)                   | Import subscriptions from URLs, files, raw text, base64, JSON |
+| [Testing](testing.md)                       | 5-stage probe pipeline with failure classification            |
+| [Runtime Management](runtime-management.md) | Connect lifecycle, session state, reattach                    |
+| [Daemon and IPC](daemon-and-ipc.md)         | Supervisor process with Unix socket IPC                       |
+| [Auto-Rotation](auto-rotation.md)           | Scheduled proxy switching with cooldown                       |
+| [IP Scanning](ip-scanning.md)               | TCP reachability scanning with persistence                    |
+| [HTTP API](http-api.md)                     | RESTful API for config access and monitoring                  |
+| [Deduplication](deduplication.md)           | Versioned dedup keys for config uniqueness                    |
 
 ## Feature Highlights
 

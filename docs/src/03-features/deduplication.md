@@ -30,20 +30,20 @@ v1|protocol=<len>:<value>|address=<len>:<value>|port=<len>:<value>|...
 
 ### Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field      | Type     | Description                            |
+| ---------- | -------- | -------------------------------------- |
 | `protocol` | required | Protocol name (vless, vmess, ss, etc.) |
-| `address` | required | Server address |
-| `port` | required | Server port |
-| `username` | optional | Username (HTTP/SOCKS5) |
-| `uuid` | optional | UUID (VLESS/VMess) |
-| `password` | optional | Password (Trojan/SS/SOCKS5) |
-| `method` | optional | Encryption method (Shadowsocks) |
-| `network` | required | Network type (tcp, ws, grpc) |
-| `tls` | optional | TLS mode (tls, none) |
-| `sni` | optional | SNI hostname |
-| `host` | optional | Host header (WebSocket) |
-| `path` | optional | Path (WebSocket/gRPC) |
+| `address`  | required | Server address                         |
+| `port`     | required | Server port                            |
+| `username` | optional | Username (HTTP/SOCKS5)                 |
+| `uuid`     | optional | UUID (VLESS/VMess)                     |
+| `password` | optional | Password (Trojan/SS/SOCKS5)            |
+| `method`   | optional | Encryption method (Shadowsocks)        |
+| `network`  | required | Network type (tcp, ws, grpc)           |
+| `tls`      | optional | TLS mode (tls, none)                   |
+| `sni`      | optional | SNI hostname                           |
+| `host`     | optional | Host header (WebSocket)                |
+| `path`     | optional | Path (WebSocket/gRPC)                  |
 
 ### Length Prefix
 
@@ -70,8 +70,8 @@ username=0:         # Empty string
 username=4:user     # "user"
 ```
 
-This distinction is important because some protocols treat None and empty
-string differently.
+This distinction is important because some protocols treat None and empty string
+differently.
 
 ## Example Keys
 
@@ -121,7 +121,7 @@ impl Node {
             path: self.path.clone(),
         }
     }
-    
+
     pub fn dedup_key_string(&self) -> String {
         self.dedup_key().to_string()
     }
@@ -178,7 +178,8 @@ CREATE TABLE configs (
 );
 ```
 
-The `UNIQUE` constraint on `dedup_key` enforces uniqueness at the database level.
+The `UNIQUE` constraint on `dedup_key` enforces uniqueness at the database
+level.
 
 ## Import Behavior
 
@@ -188,17 +189,17 @@ When importing configs:
 pub async fn import_nodes(&self, nodes: Vec<Node>, subscription_id: i64) -> Result<ImportSummary> {
     let mut inserted = 0;
     let mut duplicates = 0;
-    
+
     for node in nodes {
         let dedup_key = node.dedup_key_string();
-        
+
         match self.insert_config(&node, subscription_id, &dedup_key).await {
             Ok(_) => inserted += 1,
             Err(DbError::UniqueViolation) => duplicates += 1,
             Err(e) => return Err(e),
         }
     }
-    
+
     Ok(ImportSummary { inserted, duplicates })
 }
 ```
@@ -212,8 +213,8 @@ unique violation error, which is caught and counted as a duplicate.
 
 ### Different Names, Same Config
 
-Two configs with different display names but identical connection parameters
-are considered duplicates:
+Two configs with different display names but identical connection parameters are
+considered duplicates:
 
 ```
 vless://uuid@example.com:443?type=ws#Node1
@@ -234,8 +235,7 @@ let key2 = NodeDedupKey { password: Some("".to_string()), .. };
 assert_ne!(key1.to_string(), key2.to_string());
 ```
 
-Key 1: `|password=-`
-Key 2: `|password=0:`
+Key 1: `|password=-` Key 2: `|password=0:`
 
 ### Protocol Differences
 
@@ -255,8 +255,8 @@ The `v1` prefix allows future format changes without breaking existing data:
 - **v1**: Current format (length-prefixed)
 - **v2**: Future format (if needed)
 
-When reading dedup keys, xrat checks the version prefix and handles each
-version appropriately.
+When reading dedup keys, xrat checks the version prefix and handles each version
+appropriately.
 
 ## Testing
 
@@ -283,7 +283,7 @@ fn distinguishes_none_from_empty_string() {
         password: Some(String::new()),
         ..none_key.clone()
     };
-    
+
     assert_ne!(none_key.to_string(), empty_key.to_string());
     assert!(empty_key.to_string().contains("|password=0:"));
 }

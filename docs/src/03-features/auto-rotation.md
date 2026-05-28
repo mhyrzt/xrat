@@ -26,14 +26,14 @@ test_concurrency = 0
 test_stages = ["real_delay", "download"]
 ```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `enabled` | Enable scheduled rotation | `false` |
-| `interval_secs` | Rotation interval in seconds | `1800` (30 minutes) |
-| `health_trigger_enabled` | Trigger rotation on health check failure | `true` |
-| `cooldown_secs` | Minimum time between rotations | `300` (5 minutes) |
-| `test_concurrency` | Concurrent test workers (`0` = auto) | `0` |
-| `test_stages` | Test stages to run for candidate selection | `["real_delay", "download"]` |
+| Field                    | Description                                | Default                      |
+| ------------------------ | ------------------------------------------ | ---------------------------- |
+| `enabled`                | Enable scheduled rotation                  | `false`                      |
+| `interval_secs`          | Rotation interval in seconds               | `1800` (30 minutes)          |
+| `health_trigger_enabled` | Trigger rotation on health check failure   | `true`                       |
+| `cooldown_secs`          | Minimum time between rotations             | `300` (5 minutes)            |
+| `test_concurrency`       | Concurrent test workers (`0` = auto)       | `0`                          |
+| `test_stages`            | Test stages to run for candidate selection | `["real_delay", "download"]` |
 
 ## Rotation Triggers
 
@@ -88,6 +88,7 @@ cooldown_secs = 300  # 5 minutes
 ```
 
 During cooldown:
+
 - Timer triggers are delayed until cooldown expires
 - Health check triggers are suppressed (unless critical)
 - Manual triggers are allowed (user override)
@@ -132,6 +133,7 @@ test_stages = ["real_delay", "download"]
 ```
 
 For each candidate:
+
 1. Generate a probe config
 2. Spawn a short-lived Xray process
 3. Run the specified test stages
@@ -184,13 +186,13 @@ The replace flow ensures minimal downtime:
 async fn replace_session(old_id: i64, new_config_id: i64) -> Result<()> {
     // 1. Start new session
     let new_session = connect(new_config_id).await?;
-    
+
     // 2. Wait for new session to be ready
     wait_for_ready(new_session.socks_port).await?;
-    
+
     // 3. Stop old session
     disconnect(old_id).await?;
-    
+
     Ok(())
 }
 ```
@@ -323,6 +325,7 @@ The active session is persisted and reattached on daemon restart.
 **Symptom**: Timer fires but rotation doesn't happen
 
 **Check**:
+
 - Is cooldown active? `xrat proxy status`
 - Are there enabled configs? `xrat list configs --enabled-only`
 - Do candidates pass testing? `xrat test --enabled-only`
@@ -332,6 +335,7 @@ The active session is persisted and reattached on daemon restart.
 **Symptom**: Rotation triggers but new session fails to connect
 
 **Check**:
+
 - Test the target config manually: `xrat test <id>`
 - Check daemon logs for errors
 - Verify Xray binary is available

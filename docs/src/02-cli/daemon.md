@@ -8,11 +8,11 @@ xrat daemon <action>
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
-| `start` | Start the long-lived daemon process |
+| Action   | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `start`  | Start the long-lived daemon process                   |
 | `status` | Show daemon IPC reachability and protocol information |
-| `stop` | Request daemon shutdown via local IPC |
+| `stop`   | Request daemon shutdown via local IPC                 |
 
 ---
 
@@ -36,10 +36,14 @@ xrat daemon start
 
 ### Daemon Features
 
-- **IPC server**: Listens for commands from `xrat connect`, `xrat disconnect`, etc.
-- **Health monitoring**: Periodically checks proxy liveness, triggers rotation on failure
-- **Auto-rotation**: Scheduled proxy switching with cooldown and candidate testing
-- **Session reconciliation**: Detects and recovers from stale sessions on restart
+- **IPC server**: Listens for commands from `xrat connect`, `xrat disconnect`,
+  etc.
+- **Health monitoring**: Periodically checks proxy liveness, triggers rotation
+  on failure
+- **Auto-rotation**: Scheduled proxy switching with cooldown and candidate
+  testing
+- **Session reconciliation**: Detects and recovers from stale sessions on
+  restart
 
 ---
 
@@ -88,17 +92,17 @@ The daemon uses JSON over Unix domain socket with protocol version 1.
 
 ### Request Types
 
-| Request | Description |
-|---------|-------------|
-| `DaemonPing` | Check daemon reachability |
-| `DaemonShutdown` | Request graceful shutdown |
-| `RuntimeStatus` | Get proxy runtime status |
-| `RuntimeConnect` | Start a proxy session |
-| `RuntimeReplace` | Atomic disconnect-old + connect-new |
-| `RuntimeDisconnect` | Stop the active proxy session |
-| `ProxyStart` | Enable auto-rotation |
-| `ProxyStatus` | Get rotation status |
-| `ProxyStop` | Disable auto-rotation |
+| Request             | Description                         |
+| ------------------- | ----------------------------------- |
+| `DaemonPing`        | Check daemon reachability           |
+| `DaemonShutdown`    | Request graceful shutdown           |
+| `RuntimeStatus`     | Get proxy runtime status            |
+| `RuntimeConnect`    | Start a proxy session               |
+| `RuntimeReplace`    | Atomic disconnect-old + connect-new |
+| `RuntimeDisconnect` | Stop the active proxy session       |
+| `ProxyStart`        | Enable auto-rotation                |
+| `ProxyStatus`       | Get rotation status                 |
+| `ProxyStop`         | Disable auto-rotation               |
 
 ### Response Envelope
 

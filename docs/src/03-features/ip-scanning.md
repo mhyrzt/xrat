@@ -54,13 +54,13 @@ xrat scan --history 20
 
 ## Configuration
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--ips <list>` | Comma-separated IPs to scan | - |
-| `--file <path>` | File with newline-separated IPs | - |
-| `--port <port>` | Target TCP port | `443` |
-| `--timeout <ms>` | TCP connect timeout | `4000` |
-| `--history <n>` | Print latest N results and exit | - |
+| Flag             | Description                     | Default |
+| ---------------- | ------------------------------- | ------- |
+| `--ips <list>`   | Comma-separated IPs to scan     | -       |
+| `--file <path>`  | File with newline-separated IPs | -       |
+| `--port <port>`  | Target TCP port                 | `443`   |
+| `--timeout <ms>` | TCP connect timeout             | `4000`  |
+| `--history <n>`  | Print latest N results and exit | -       |
 
 ## Scan Process
 
@@ -90,7 +90,7 @@ For each IP, attempt a TCP connection:
 async fn tcp_connect(ip: &str, port: u16, timeout: Duration) -> Result<Duration> {
     let start = Instant::now();
     let addr = format!("{}:{}", ip, port);
-    
+
     match timeout(timeout, TcpStream::connect(&addr)).await {
         Ok(Ok(_)) => Ok(start.elapsed()),
         Ok(Err(e)) => Err(e.into()),
@@ -134,13 +134,13 @@ IP              Port    Latency    Status
 
 Scan results are persisted to the `cf_scan_results` table:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | INTEGER | Primary key |
-| `ip` | TEXT | IP address (unique) |
-| `latency_ms` | INTEGER | Connection latency (NULL if failed) |
-| `error` | TEXT | Error message (NULL if successful) |
-| `last_scanned_at` | TIMESTAMP | Last scan timestamp |
+| Column            | Type      | Description                         |
+| ----------------- | --------- | ----------------------------------- |
+| `id`              | INTEGER   | Primary key                         |
+| `ip`              | TEXT      | IP address (unique)                 |
+| `latency_ms`      | INTEGER   | Connection latency (NULL if failed) |
+| `error`           | TEXT      | Error message (NULL if successful)  |
+| `last_scanned_at` | TIMESTAMP | Last scan timestamp                 |
 
 ### Upsert Behavior
 
@@ -233,20 +233,20 @@ IP              Port    Latency    Status
 
 ### Error Types
 
-| Error | Description |
-|-------|-------------|
-| `timeout` | Connection timed out |
-| `refused` | Connection refused (port closed) |
-| `unreachable` | Network unreachable |
-| `dns` | DNS resolution failed (for hostnames) |
-| `io` | I/O error |
+| Error         | Description                           |
+| ------------- | ------------------------------------- |
+| `timeout`     | Connection timed out                  |
+| `refused`     | Connection refused (port closed)      |
+| `unreachable` | Network unreachable                   |
+| `dns`         | DNS resolution failed (for hostnames) |
+| `io`          | I/O error                             |
 
 ## Performance
 
 ### Concurrency
 
-Scans are performed sequentially to avoid overwhelming the network. For large
-IP lists, consider splitting into multiple runs.
+Scans are performed sequentially to avoid overwhelming the network. For large IP
+lists, consider splitting into multiple runs.
 
 ### Timeout
 
@@ -267,4 +267,5 @@ Adjust timeout based on network conditions:
 
 - [`scan` CLI](../02-cli/scan.md) — command reference
 - [Testing](testing.md) — test stored proxy configs (not raw IPs)
-- [Database Schema](../05-reference/database-schema.md) — `cf_scan_results` table
+- [Database Schema](../05-reference/database-schema.md) — `cf_scan_results`
+  table

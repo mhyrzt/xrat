@@ -8,85 +8,85 @@ xrat test [id] [flags]
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Config ID to test. Omit to bulk-test matching configs |
+| Argument | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `id`     | Config ID to test. Omit to bulk-test matching configs |
 
 ## Filter Flags
 
 When testing multiple configs (no `id` specified):
 
-| Flag | Description |
-|------|-------------|
-| `--enabled-only` | Filter: only enabled configs |
-| `--active-only` | Filter: only the active config |
-| `--selected-only` | Filter: only the selected config |
+| Flag                  | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `--enabled-only`      | Filter: only enabled configs                        |
+| `--active-only`       | Filter: only the active config                      |
+| `--selected-only`     | Filter: only the selected config                    |
 | `--subscription <id>` | Filter: only configs from the given subscription ID |
 
 ## Stage Skip Flags
 
-| Flag | Description |
-|------|-------------|
-| `--skip-icmp` | Skip the ICMP ping stage |
-| `--skip-tcp` | Skip the TCP connectivity stage |
-| `--skip-real-delay` | Skip the real-delay (HTTP round-trip) stage |
-| `--skip-download` | Skip the download speed stage |
-| `--skip-upload` | Skip the upload speed stage (disabled by default) |
+| Flag                | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `--skip-icmp`       | Skip the ICMP ping stage                          |
+| `--skip-tcp`        | Skip the TCP connectivity stage                   |
+| `--skip-real-delay` | Skip the real-delay (HTTP round-trip) stage       |
+| `--skip-download`   | Skip the download speed stage                     |
+| `--skip-upload`     | Skip the upload speed stage (disabled by default) |
 
 ## URL Override Flags
 
-| Flag | Description |
-|------|-------------|
-| `--test-url <url>` | Override the URL used for real-delay checks |
-| `--download-url <url>` | Override the URL used for download speed checks |
-| `--upload-url <url>` | Enable upload speed stage and set the HTTP POST target URL |
+| Flag                   | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| `--test-url <url>`     | Override the URL used for real-delay checks                |
+| `--download-url <url>` | Override the URL used for download speed checks            |
+| `--upload-url <url>`   | Enable upload speed stage and set the HTTP POST target URL |
 
 ## Timeout Override Flags
 
-| Flag | Description |
-|------|-------------|
-| `--icmp-timeout <ms>` | Override ICMP timeout in milliseconds |
-| `--tcp-timeout <ms>` | Override TCP connect timeout in milliseconds |
+| Flag                        | Description                                              |
+| --------------------------- | -------------------------------------------------------- |
+| `--icmp-timeout <ms>`       | Override ICMP timeout in milliseconds                    |
+| `--tcp-timeout <ms>`        | Override TCP connect timeout in milliseconds             |
 | `--real-delay-timeout <ms>` | Override real-delay HTTP request timeout in milliseconds |
-| `--download-timeout <ms>` | Override download speed request timeout in milliseconds |
-| `--upload-timeout <ms>` | Override upload speed request timeout in milliseconds |
+| `--download-timeout <ms>`   | Override download speed request timeout in milliseconds  |
+| `--upload-timeout <ms>`     | Override upload speed request timeout in milliseconds    |
 
 ## Concurrency and Output Flags
 
-| Flag | Description |
-|------|-------------|
-| `--concurrency <n>` | Bulk-test concurrency. `0` = auto-detect |
-| `--format <format>` | Output format: `tsv`, `csv`, `json` (default: `tsv`) |
-| `--output <file>` | Write bulk results to a file instead of stdout |
+| Flag                | Description                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `--concurrency <n>` | Bulk-test concurrency. `0` = auto-detect                                                                |
+| `--format <format>` | Output format: `tsv`, `csv`, `json` (default: `tsv`)                                                    |
+| `--output <file>`   | Write bulk results to a file instead of stdout                                                          |
 | `--sort-by <field>` | Sort order: `status`, `icmp`, `real-delay`, `download-speed`, `protocol`, `address` (default: `status`) |
-| `--no-progress` | Hide the animated progress bar |
+| `--no-progress`     | Hide the animated progress bar                                                                          |
 
 ## Ping Loop Flags
 
-| Flag | Description |
-|------|-------------|
-| `--ping` | Continuously ping one config until Ctrl+C, printing a live summary |
-| `--ping-interval <ms>` | Interval between ping-loop iterations (default: `1000`) |
+| Flag                   | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `--ping`               | Continuously ping one config until Ctrl+C, printing a live summary |
+| `--ping-interval <ms>` | Interval between ping-loop iterations (default: `1000`)            |
 
 ## Historical Summary Flags
 
-| Flag | Description |
-|------|-------------|
-| `--latest-run-summary` | Print a summary of the latest persisted test run and exit |
-| `--country <iso>` | Filter latest-run summary by endpoint country ISO code (e.g. `US`, `DE`) |
-| `--asn <filter>` | Filter latest-run summary by ASN (case-insensitive substring match) |
+| Flag                   | Description                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `--latest-run-summary` | Print a summary of the latest persisted test run and exit                |
+| `--country <iso>`      | Filter latest-run summary by endpoint country ISO code (e.g. `US`, `DE`) |
+| `--asn <filter>`       | Filter latest-run summary by ASN (case-insensitive substring match)      |
 
 ## Test Stages
 
 The test command runs up to 5 stages in sequence:
 
-| Stage | Measures | Default |
-|-------|----------|---------|
-| **ICMP** | ICMP ping success and latency | Enabled |
-| **TCP** | TCP connect success and latency | Enabled |
-| **Real Delay** | HTTP round-trip latency through proxy | Enabled |
-| **Download** | Download throughput through proxy | Disabled |
-| **Upload** | Upload throughput through proxy | Disabled |
+| Stage          | Measures                              | Default  |
+| -------------- | ------------------------------------- | -------- |
+| **ICMP**       | ICMP ping success and latency         | Enabled  |
+| **TCP**        | TCP connect success and latency       | Enabled  |
+| **Real Delay** | HTTP round-trip latency through proxy | Enabled  |
+| **Download**   | Download throughput through proxy     | Disabled |
+| **Upload**     | Upload throughput through proxy       | Disabled |
 
 ### Stage Order
 
@@ -184,18 +184,18 @@ Machine-parseable JSON array with full test result details.
 
 Test failures are classified into categories:
 
-| Category | Description |
-|----------|-------------|
-| `DNS` | DNS resolution failed |
-| `Timeout` | Connection or request timed out |
-| `Refused` | Connection refused |
-| `Unreachable` | Network unreachable |
-| `PermissionDenied` | Permission denied |
-| `TLS` | TLS handshake failed |
-| `Auth` | Authentication failed |
-| `Process` | Proxy process failed to start |
-| `Proxy` | Proxy returned an error |
-| `Unknown` | Unclassified failure |
+| Category           | Description                     |
+| ------------------ | ------------------------------- |
+| `DNS`              | DNS resolution failed           |
+| `Timeout`          | Connection or request timed out |
+| `Refused`          | Connection refused              |
+| `Unreachable`      | Network unreachable             |
+| `PermissionDenied` | Permission denied               |
+| `TLS`              | TLS handshake failed            |
+| `Auth`             | Authentication failed           |
+| `Process`          | Proxy process failed to start   |
+| `Proxy`            | Proxy returned an error         |
+| `Unknown`          | Unclassified failure            |
 
 ## Related
 

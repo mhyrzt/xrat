@@ -1,17 +1,21 @@
 # XRAT Systemd Service Setup
 
-This directory contains systemd service files for running XRAT as a background service.
+This directory contains systemd service files for running XRAT as a background
+service.
 
 ## Service Files
 
-- `xrat-daemon.service` - Runs the XRAT daemon with supervisor and optional HTTP API
-- `xrat-api.service` - Runs the standalone HTTP API server (if not using daemon mode)
+- `xrat-daemon.service` - Runs the XRAT daemon with supervisor and optional HTTP
+  API
+- `xrat-api.service` - Runs the standalone HTTP API server (if not using daemon
+  mode)
 
 ## Installation (User Service)
 
 ### Option 1: Daemon Mode (Recommended)
 
-The daemon mode includes the supervisor, auto-rotation, and optionally the HTTP API.
+The daemon mode includes the supervisor, auto-rotation, and optionally the HTTP
+API.
 
 ```bash
 # Copy service file
@@ -65,7 +69,8 @@ Both services support these environment variables:
 
 - `XRAT_PATH` - Configuration directory (default: `~/.config/xrat`)
 - `XRAT_API_KEY` - API authentication key (optional, recommended for production)
-- `RUST_LOG` - Log level (default: `info`, options: `trace`, `debug`, `info`, `warn`, `error`)
+- `RUST_LOG` - Log level (default: `info`, options: `trace`, `debug`, `info`,
+  `warn`, `error`)
 
 ### HTTP API Configuration
 
@@ -180,7 +185,9 @@ systemctl --user daemon-reload
 
 ## Notes
 
-- User services run only when the user is logged in (unless `loginctl enable-linger` is used)
-- For always-on services, use system-wide installation or enable lingering: `loginctl enable-linger $USER`
+- User services run only when the user is logged in (unless
+  `loginctl enable-linger` is used)
+- For always-on services, use system-wide installation or enable lingering:
+  `loginctl enable-linger $USER`
 - The daemon service includes auto-rotation and supervisor features
 - The standalone API service is simpler but lacks daemon features

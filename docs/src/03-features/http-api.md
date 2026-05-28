@@ -51,22 +51,22 @@ port = 8080
 key = { env = "XRAT_API_KEY" }
 ```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `enabled` | Enable daemon-hosted API | `false` |
-| `host` | Bind host | `127.0.0.1` |
-| `port` | Bind port | `8080` |
-| `key` | Optional API key for authentication | - |
+| Field     | Description                         | Default     |
+| --------- | ----------------------------------- | ----------- |
+| `enabled` | Enable daemon-hosted API            | `false`     |
+| `host`    | Bind host                           | `127.0.0.1` |
+| `port`    | Bind port                           | `8080`      |
+| `key`     | Optional API key for authentication | -           |
 
 ## Routes
 
-| Route | Method | Description | Auth Required |
-|-------|--------|-------------|---------------|
-| `/health` | GET | Health check | No |
-| `/json` | GET | List configs as JSON array | Yes (if key set) |
-| `/b64` | GET | Base64 subscription text | Yes (if key set) |
-| `/configs` | GET | Paginated config list | Yes (if key set) |
-| `/configs/{id}` | GET | Single config detail | Yes (if key set) |
+| Route           | Method | Description                | Auth Required    |
+| --------------- | ------ | -------------------------- | ---------------- |
+| `/health`       | GET    | Health check               | No               |
+| `/json`         | GET    | List configs as JSON array | Yes (if key set) |
+| `/b64`          | GET    | Base64 subscription text   | Yes (if key set) |
+| `/configs`      | GET    | Paginated config list      | Yes (if key set) |
+| `/configs/{id}` | GET    | Single config detail       | Yes (if key set) |
 
 ## Authentication
 
@@ -114,13 +114,13 @@ List configs with latest test results as a JSON array.
 
 **Query Parameters**:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | string | API key (if authentication enabled) |
-| `top` | integer | Return top N configs sorted by real-delay |
-| `enabled` | boolean | Filter: `true` for enabled configs only |
-| `protocol` | string | Filter by protocol: `vless`, `vmess`, `ss`, `trojan`, `hy2` |
-| `selected` | boolean | Filter: `true` for selected configs only |
+| Parameter  | Type    | Description                                                 |
+| ---------- | ------- | ----------------------------------------------------------- |
+| `key`      | string  | API key (if authentication enabled)                         |
+| `top`      | integer | Return top N configs sorted by real-delay                   |
+| `enabled`  | boolean | Filter: `true` for enabled configs only                     |
+| `protocol` | string  | Filter by protocol: `vless`, `vmess`, `ss`, `trojan`, `hy2` |
+| `selected` | boolean | Filter: `true` for selected configs only                    |
 
 **Request**:
 
@@ -186,9 +186,9 @@ clients.
 
 **Query Parameters**:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | string | API key (if authentication enabled) |
+| Parameter | Type   | Description                         |
+| --------- | ------ | ----------------------------------- |
+| `key`     | string | API key (if authentication enabled) |
 
 **Request**:
 
@@ -221,14 +221,14 @@ Paginated config list with details.
 
 **Query Parameters**:
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `key` | string | API key (if authentication enabled) | - |
-| `page` | integer | Page number | `1` |
-| `per_page` | integer | Items per page | `20` |
-| `enabled` | boolean | Filter: `true` for enabled configs only | - |
-| `protocol` | string | Filter by protocol | - |
-| `selected` | boolean | Filter: `true` for selected configs only | - |
+| Parameter  | Type    | Description                              | Default |
+| ---------- | ------- | ---------------------------------------- | ------- |
+| `key`      | string  | API key (if authentication enabled)      | -       |
+| `page`     | integer | Page number                              | `1`     |
+| `per_page` | integer | Items per page                           | `20`    |
+| `enabled`  | boolean | Filter: `true` for enabled configs only  | -       |
+| `protocol` | string  | Filter by protocol                       | -       |
+| `selected` | boolean | Filter: `true` for selected configs only | -       |
 
 **Request**:
 
@@ -287,15 +287,15 @@ Single config detail with latest test results.
 
 **Path Parameters**:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | integer | Config ID |
+| Parameter | Type    | Description |
+| --------- | ------- | ----------- |
+| `id`      | integer | Config ID   |
 
 **Query Parameters**:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `key` | string | API key (if authentication enabled) |
+| Parameter | Type   | Description                         |
+| --------- | ------ | ----------------------------------- |
+| `key`     | string | API key (if authentication enabled) |
 
 **Request**:
 
@@ -424,11 +424,11 @@ curl "http://localhost:8080/configs?key=secret&enabled=true"
 Build a web dashboard that queries the API:
 
 ```javascript
-fetch('http://localhost:8080/configs?key=secret&page=1&per_page=20')
-  .then(r => r.json())
-  .then(data => {
+fetch("http://localhost:8080/configs?key=secret&page=1&per_page=20")
+  .then((r) => r.json())
+  .then((data) => {
     console.log(`Total configs: ${data.total}`);
-    data.configs.forEach(c => {
+    data.configs.forEach((c) => {
       console.log(`${c.name}: ${c.latest_test?.real_delay_ms}ms`);
     });
   });
@@ -463,8 +463,8 @@ externally:
 host = "0.0.0.0"
 ```
 
-**Warning**: Only expose externally if authentication is enabled and the
-network is trusted.
+**Warning**: Only expose externally if authentication is enabled and the network
+is trusted.
 
 ### API Key
 
@@ -498,10 +498,10 @@ for TLS termination:
 server {
     listen 443 ssl;
     server_name xrat.example.com;
-    
+
     ssl_certificate /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
-    
+
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;

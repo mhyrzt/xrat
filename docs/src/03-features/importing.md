@@ -15,8 +15,10 @@ xrat import https://example.com/subscription
 ```
 
 xrat:
+
 1. Fetches the URL content
-2. Parses `subscription-userinfo` headers for metadata (upload, download, total, expire)
+2. Parses `subscription-userinfo` headers for metadata (upload, download, total,
+   expire)
 3. Detects format (base64, plain list, JSON)
 4. Parses and normalizes each node
 5. Persists to database with subscription tracking
@@ -52,6 +54,7 @@ vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com&path=%
 ```
 
 Supported schemes:
+
 - `vless://`
 - `vmess://`
 - `ss://`
@@ -69,6 +72,7 @@ dmxlc3M6Ly91dWlkQGV4YW1wbGUuY29tOjQ0Mz90eXBlPXdzJnNlY3VyaXR5PXRscyNNeSBOb2RlCnZt
 ```
 
 xrat:
+
 1. Base64-decodes the payload
 2. Splits into lines
 3. Parses each line as a share link
@@ -128,39 +132,40 @@ xrat extracts outbound configs and converts them to internal nodes.
 
 xrat automatically detects the input format using heuristics:
 
-| Condition | Detected Format |
-|-----------|----------------|
-| Starts with `{` and contains `"version"` or `"inbounds"` | Xray JSON |
-| Starts with `{` and contains `"servers"` | SIP008 JSON |
-| Single line starting with a protocol scheme | Single share link |
-| Multiple lines, first line starts with protocol scheme | Plain link list |
-| Otherwise | Base64 subscription |
+| Condition                                                | Detected Format     |
+| -------------------------------------------------------- | ------------------- |
+| Starts with `{` and contains `"version"` or `"inbounds"` | Xray JSON           |
+| Starts with `{` and contains `"servers"`                 | SIP008 JSON         |
+| Single line starting with a protocol scheme              | Single share link   |
+| Multiple lines, first line starts with protocol scheme   | Plain link list     |
+| Otherwise                                                | Base64 subscription |
 
 ## Normalization
 
 After parsing, xrat normalizes each node:
 
 1. **Network defaults**: Empty network → `tcp`
-2. **WebSocket defaults**: Missing `host` → copy from `sni`, missing `path` → `/`
+2. **WebSocket defaults**: Missing `host` → copy from `sni`, missing `path` →
+   `/`
 3. **gRPC defaults**: Missing `path` → `/`
 4. **TLS cleanup**: Empty string `tls` → `None`
 
 ## Deduplication
 
-Before persisting, xrat generates a dedup key for each node and skips duplicates.
-See [Deduplication](deduplication.md) for details.
+Before persisting, xrat generates a dedup key for each node and skips
+duplicates. See [Deduplication](deduplication.md) for details.
 
 ## Subscription Tracking
 
 Each import creates or updates a `subscriptions` record:
 
-| Field | Description |
-|-------|-------------|
-| `source_url` | Original URL or file path |
-| `source_kind` | `url`, `file`, or `raw_text` |
-| `name` | Optional name (from URL or user-provided) |
-| `created_at` | First import timestamp |
-| `updated_at` | Latest import timestamp |
+| Field         | Description                               |
+| ------------- | ----------------------------------------- |
+| `source_url`  | Original URL or file path                 |
+| `source_kind` | `url`, `file`, or `raw_text`              |
+| `name`        | Optional name (from URL or user-provided) |
+| `created_at`  | First import timestamp                    |
+| `updated_at`  | Latest import timestamp                   |
 
 Configs are linked to their subscription via `subscription_id` foreign key.
 
@@ -173,6 +178,7 @@ subscription-userinfo: upload=1024; download=2048; total=10240; expire=123456789
 ```
 
 Parsed fields:
+
 - `upload` — bytes uploaded
 - `download` — bytes downloaded
 - `total` — total quota

@@ -7,17 +7,17 @@ Override with `--config <path>` or the `XRAT_PATH` environment variable.
 
 ## Sections
 
-| Section | Purpose |
-|---------|---------|
-| `[paths]` | Binary paths for xray, v2ray, sing-box |
-| `[database]` | Backend selection and connection settings |
-| `[runtime]` | Engine, rotation, logging, inbound settings |
-| `[routing]` | Domain strategy, direct/block rules |
-| `[geo]` | GeoIP auto-update settings |
-| `[dns]` | DNS query strategy, servers, hosts |
-| `[parser]` | Xray JSON schema validation mode |
-| `[testing]` | Concurrency, stage order, per-stage settings |
-| `[server]` | HTTP API host, port, API key |
+| Section      | Purpose                                      |
+| ------------ | -------------------------------------------- |
+| `[paths]`    | Binary paths for xray, v2ray, sing-box       |
+| `[database]` | Backend selection and connection settings    |
+| `[runtime]`  | Engine, rotation, logging, inbound settings  |
+| `[routing]`  | Domain strategy, direct/block rules          |
+| `[geo]`      | GeoIP auto-update settings                   |
+| `[dns]`      | DNS query strategy, servers, hosts           |
+| `[parser]`   | Xray JSON schema validation mode             |
+| `[testing]`  | Concurrency, stage order, per-stage settings |
+| `[server]`   | HTTP API host, port, API key                 |
 
 ## Example
 

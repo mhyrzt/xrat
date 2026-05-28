@@ -1,7 +1,7 @@
 # Module Structure
 
-xrat follows a modular architecture with clear separation of concerns across
-CLI parsing, command handlers, config parsing, database access, and engine
+xrat follows a modular architecture with clear separation of concerns across CLI
+parsing, command handlers, config parsing, database access, and engine
 integration.
 
 ## Source Tree
@@ -153,18 +153,18 @@ src/
 
 ## Module Responsibilities
 
-| Module | Responsibility |
-|--------|---------------|
-| `cli/` | Define CLI interface with Clap. Parse args and flags. Test parsing. |
-| `app/` | Orchestrate command execution. Manage app lifecycle (context, config, daemon). |
-| `model/` | Shared domain types (Node, Protocol, NodeDedupKey). No dependencies on other modules. |
-| `config/` | Parse proxy URIs. Normalize nodes. Detect import formats. |
-| `db/` | Database connection, migrations, queries, repositories. |
-| `xray/` | Generate Xray JSON configs. Parse Xray JSON. Manage Xray processes. |
-| `singbox/` | Generate sing-box JSON configs. Manage sing-box processes. |
-| `prober/` | Connection testing probes: ICMP, TCP, HTTP real-delay, download, upload. |
-| `server/` | HTTP API server using Axum. Auth, routes, response types. |
-| `support/` | Shared utilities: base64 decode, GeoIP, network helpers. |
+| Module     | Responsibility                                                                        |
+| ---------- | ------------------------------------------------------------------------------------- |
+| `cli/`     | Define CLI interface with Clap. Parse args and flags. Test parsing.                   |
+| `app/`     | Orchestrate command execution. Manage app lifecycle (context, config, daemon).        |
+| `model/`   | Shared domain types (Node, Protocol, NodeDedupKey). No dependencies on other modules. |
+| `config/`  | Parse proxy URIs. Normalize nodes. Detect import formats.                             |
+| `db/`      | Database connection, migrations, queries, repositories.                               |
+| `xray/`    | Generate Xray JSON configs. Parse Xray JSON. Manage Xray processes.                   |
+| `singbox/` | Generate sing-box JSON configs. Manage sing-box processes.                            |
+| `prober/`  | Connection testing probes: ICMP, TCP, HTTP real-delay, download, upload.              |
+| `server/`  | HTTP API server using Axum. Auth, routes, response types.                             |
+| `support/` | Shared utilities: base64 decode, GeoIP, network helpers.                              |
 
 ## Data Flow
 
@@ -243,7 +243,8 @@ server/                   cli/ ──> main.rs
 ## File Conventions
 
 - **`mod.rs`**: Module root, pub re-exports
-- **Names**: Snake_case for files/modules, PascalCase for types, snake_case for functions
+- **Names**: Snake_case for files/modules, PascalCase for types, snake_case for
+  functions
 - **Tests**: `#[cfg(test)] mod tests { ... }` in same file or `tests/` submodule
 - **Records/DTOs**: In `db/record/` — thin structs matching DB rows
 - **Repository**: In `db/repository/` — SQL query functions separated by entity

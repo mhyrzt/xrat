@@ -12,7 +12,8 @@ When you run `xrat connect <id>`:
 2. **Generate runtime config** — Create Xray JSON with local inbounds
 3. **Spawn process** — Launch Xray/V2Ray as a child process
 4. **Wait for readiness** — Poll the SOCKS port until it accepts connections
-5. **Persist session** — Insert a `runtime_sessions` record with status `running`
+5. **Persist session** — Insert a `runtime_sessions` record with status
+   `running`
 6. **Return result** — Print connection details (ports, PID, config info)
 
 ### Runtime Config Generation
@@ -49,17 +50,22 @@ Example generated config:
       "tag": "proxy",
       "protocol": "vless",
       "settings": {
-        "vnext": [{
-          "address": "example.com",
-          "port": 443,
-          "users": [{ "id": "uuid-123", "encryption": "none" }]
-        }]
+        "vnext": [
+          {
+            "address": "example.com",
+            "port": 443,
+            "users": [{ "id": "uuid-123", "encryption": "none" }]
+          }
+        ]
       },
       "stream_settings": {
         "network": "ws",
         "security": "tls",
         "tls_settings": { "server_name": "cdn.example.com" },
-        "ws_settings": { "path": "/ray", "headers": { "Host": "cdn.example.com" } }
+        "ws_settings": {
+          "path": "/ray",
+          "headers": { "Host": "cdn.example.com" }
+        }
       }
     }
   ]
@@ -73,7 +79,8 @@ xrat spawns the proxy process with:
 - **Config file**: Written to `<runtime_dir>/session-<id>.json`
 - **Stdout**: Redirected to `<runtime_dir>/session-<id>.out.log`
 - **Stderr**: Redirected to `<runtime_dir>/session-<id>.err.log`
-- **Detached mode**: Process continues running after CLI exits (when using daemon)
+- **Detached mode**: Process continues running after CLI exits (when using
+  daemon)
 
 ### Readiness Check
 
@@ -87,13 +94,13 @@ After spawning, xrat polls the SOCKS port every 100ms until:
 
 Each runtime session has a status:
 
-| Status | Description |
-|--------|-------------|
-| `starting` | Process spawned, waiting for port readiness |
-| `running` | Port is ready, proxy is active |
-| `stopping` | Graceful shutdown in progress |
-| `stopped` | Process terminated cleanly |
-| `failed` | Process exited unexpectedly or startup failed |
+| Status     | Description                                   |
+| ---------- | --------------------------------------------- |
+| `starting` | Process spawned, waiting for port readiness   |
+| `running`  | Port is ready, proxy is active                |
+| `stopping` | Graceful shutdown in progress                 |
+| `stopped`  | Process terminated cleanly                    |
+| `failed`   | Process exited unexpectedly or startup failed |
 
 ### State Transitions
 
@@ -107,19 +114,19 @@ starting → running → stopping → stopped
 
 Persisted to `runtime_sessions` table:
 
-| Field | Description |
-|-------|-------------|
-| `id` | Session ID (primary key) |
-| `config_id` | Foreign key to configs table |
-| `status` | Current status |
-| `process_id` | OS process ID (PID) |
-| `socks_host`, `socks_port` | SOCKS inbound address |
-| `http_host`, `http_port` | HTTP inbound address |
-| `shadowsocks_host`, `shadowsocks_port` | Shadowsocks inbound address |
-| `failure_reason` | Error message (if failed) |
-| `owner_kind` | `cli` or `daemon` |
-| `owner_instance_id` | Daemon instance ID (if daemon-owned) |
-| `started_at`, `stopped_at` | Timestamps |
+| Field                                  | Description                          |
+| -------------------------------------- | ------------------------------------ |
+| `id`                                   | Session ID (primary key)             |
+| `config_id`                            | Foreign key to configs table         |
+| `status`                               | Current status                       |
+| `process_id`                           | OS process ID (PID)                  |
+| `socks_host`, `socks_port`             | SOCKS inbound address                |
+| `http_host`, `http_port`               | HTTP inbound address                 |
+| `shadowsocks_host`, `shadowsocks_port` | Shadowsocks inbound address          |
+| `failure_reason`                       | Error message (if failed)            |
+| `owner_kind`                           | `cli` or `daemon`                    |
+| `owner_instance_id`                    | Daemon instance ID (if daemon-owned) |
+| `started_at`, `stopped_at`             | Timestamps                           |
 
 ## Disconnect Flow
 
@@ -152,17 +159,18 @@ When you run `xrat status`:
 
 1. **Load active session** — Find the latest session (any status)
 2. **Check PID liveness** — Verify process is still running
-3. **Check inbound health** — Test TCP reachability of SOCKS/HTTP/Shadowsocks ports
+3. **Check inbound health** — Test TCP reachability of SOCKS/HTTP/Shadowsocks
+   ports
 4. **Return snapshot** — Print status with config details and health
 
 ### Health Check
 
 For each inbound port:
 
-| Status | Description |
-|--------|-------------|
-| `reachable` | TCP connection succeeded |
-| `unreachable` | TCP connection failed |
+| Status        | Description                      |
+| ------------- | -------------------------------- |
+| `reachable`   | TCP connection succeeded         |
+| `unreachable` | TCP connection failed            |
 | `not_checked` | Inbound is disabled or port is 0 |
 
 ## Session Replacement
@@ -186,11 +194,14 @@ This is useful for switching proxies without manual disconnect.
 When the daemon starts, it reconciles stale sessions:
 
 1. **Find stale sessions** — Query for `running` sessions with no `stopped_at`
-2. **Check PID liveness** — For each stale session, check if PID is still running
-3. **Verify process identity** — Compare `/proc/<pid>/cmdline` with expected binary path
+2. **Check PID liveness** — For each stale session, check if PID is still
+   running
+3. **Verify process identity** — Compare `/proc/<pid>/cmdline` with expected
+   binary path
 4. **Reattach or mark failed**:
    - PID alive + cmdline matches → reattach (keep as `running`)
-   - PID alive + cmdline mismatch → mark as `failed` (different process reused PID)
+   - PID alive + cmdline mismatch → mark as `failed` (different process reused
+     PID)
    - PID dead → mark as `failed`
 
 ### Reattach Validation
@@ -204,7 +215,8 @@ fn validate_reattach(pid: i64, expected_binary: &Path) -> bool {
 }
 ```
 
-This prevents reattaching to a different process that happens to have the same PID.
+This prevents reattaching to a different process that happens to have the same
+PID.
 
 ## Inbound Configuration
 
@@ -221,13 +233,13 @@ udp = true
 auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `enabled` | Enable SOCKS inbound |
-| `host` | Bind address |
-| `port` | Bind port |
-| `udp` | Enable UDP support |
-| `auth` | Optional username/password authentication |
+| Field     | Description                               |
+| --------- | ----------------------------------------- |
+| `enabled` | Enable SOCKS inbound                      |
+| `host`    | Bind address                              |
+| `port`    | Bind port                                 |
+| `udp`     | Enable UDP support                        |
+| `auth`    | Optional username/password authentication |
 
 ### HTTP
 
@@ -278,14 +290,14 @@ level = "warning"  # "debug" | "info" | "warning" | "error"
 keep = true
 ```
 
-| Field | Description |
-|-------|-------------|
-| `enabled` | Enable logging to files |
-| `mask` | Mask IP addresses in logs |
-| `dir` | Log directory (relative to config dir or absolute) |
-| `dns_log` | Enable DNS query logging |
-| `level` | Log level |
-| `keep` | Keep log files after session stops |
+| Field     | Description                                        |
+| --------- | -------------------------------------------------- |
+| `enabled` | Enable logging to files                            |
+| `mask`    | Mask IP addresses in logs                          |
+| `dir`     | Log directory (relative to config dir or absolute) |
+| `dns_log` | Enable DNS query logging                           |
+| `level`   | Log level                                          |
+| `keep`    | Keep log files after session stops                 |
 
 ## Engine Selection
 
@@ -296,10 +308,10 @@ Choose the proxy engine in `config.toml`:
 engine = "xray"  # "xray" | "v2ray" | "sing-box"
 ```
 
-| Engine | Binary | Protocols |
-|--------|--------|-----------|
-| `xray` | `xray` | All except Hysteria2 |
-| `v2ray` | `v2ray` | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5 |
+| Engine     | Binary     | Protocols                                            |
+| ---------- | ---------- | ---------------------------------------------------- |
+| `xray`     | `xray`     | All except Hysteria2                                 |
+| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5      |
 | `sing-box` | `sing-box` | All protocols (currently only Hysteria2 implemented) |
 
 ## Related
@@ -307,4 +319,5 @@ engine = "xray"  # "xray" | "v2ray" | "sing-box"
 - [`connect` CLI](../02-cli/runtime.md#connect) — command reference
 - [Daemon and IPC](daemon-and-ipc.md) — daemon-managed sessions
 - [Auto-Rotation](auto-rotation.md) — automatic proxy switching
-- [Config Generation](../06-architecture/config-generation.md) — how configs are generated
+- [Config Generation](../06-architecture/config-generation.md) — how configs are
+  generated

@@ -8,10 +8,10 @@ xrat list <target> [flags]
 
 ## Targets
 
-| Target | Alias | Description |
-|--------|-------|-------------|
-| `configs` | `nodes` | List stored proxy configs |
-| `subscriptions` | `subs` | List stored subscription sources |
+| Target          | Alias   | Description                      |
+| --------------- | ------- | -------------------------------- |
+| `configs`       | `nodes` | List stored proxy configs        |
+| `subscriptions` | `subs`  | List stored subscription sources |
 
 ---
 
@@ -23,13 +23,13 @@ xrat list configs [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--enabled-only` | Show only enabled configs |
-| `--active-only` | Show only the active config |
-| `--selected-only` | Show only the selected config |
-| `--deleted` | Show only soft-deleted configs |
-| `--all` | Include soft-deleted configs in results |
+| Flag                  | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `--enabled-only`      | Show only enabled configs                        |
+| `--active-only`       | Show only the active config                      |
+| `--selected-only`     | Show only the selected config                    |
+| `--deleted`           | Show only soft-deleted configs                   |
+| `--all`               | Include soft-deleted configs in results          |
 | `--subscription <id>` | Show only configs from the given subscription ID |
 
 ### Examples
@@ -62,8 +62,8 @@ xrat list subscriptions [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag            | Description                                         |
+| --------------- | --------------------------------------------------- |
 | `--kind <kind>` | Filter by source kind: `url`, `file`, or `raw-text` |
 
 ### Examples

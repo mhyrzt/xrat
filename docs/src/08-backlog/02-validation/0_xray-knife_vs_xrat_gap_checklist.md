@@ -61,7 +61,7 @@ Status legend:
 | ----------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pkg/http/examiner.go` (`ExamineConfig`)                          | `src/app/commands/test.rs`, `src/tester/real_delay.rs`, `src/tester/download.rs` | **PARTIAL**        | Both evaluate config health. xray-knife focuses on HTTP probe metrics (delay/ttfb/connect/http code). xrat includes ICMP+TCP gating plus proxy real-delay/download. |
 | `cmd/http/http.go` (batch test, flags)                            | `src/cli/test.rs`, `src/app/commands/test.rs`                                    | **MATCHED**        | Both support batch testing knobs and filtering.                                                                                                                     |
-| `cmd/http/http.go` (`--ping` continuous mode)                     | `src/app/commands/test/handlers/ping.rs`                                             | **MATCHED**        | xrat implements continuous HTTP ping loop with Ctrl+C summary stats and persisted `ping_loop` run grouping.                                                        |
+| `cmd/http/http.go` (`--ping` continuous mode)                     | `src/app/commands/test/handlers/ping.rs`                                         | **MATCHED**        | xrat implements continuous HTTP ping loop with Ctrl+C summary stats and persisted `ping_loop` run grouping.                                                         |
 | `pkg/http/examiner.go` (`semi-passed`, `timeout`, `broken`, etc.) | `src/app/commands/test.rs` status model                                          | **PARTIAL**        | Status vocabulary differs; xrat uses `passed/failed/skipped` style from staged checks.                                                                              |
 | `pkg/http/examiner.go` speed/IP-info enrichment                   | `src/tester/download.rs`                                                         | **PARTIAL**        | xrat supports download Mbps, not full IP trace info fields as primary result model.                                                                                 |
 | `cmd/net/icmp.go`, `cmd/net/tcp.go`                               | `src/tester/icmp.rs`, `src/tester/tcp.rs`                                        | **MATCHED**        | Equivalent test primitives exist in xrat.                                                                                                                           |
@@ -108,12 +108,12 @@ Planning note:
   ownership/reconciliation behavior must stay consistent with Phase 4/4.5
   decisions.
 
-| xray-knife file(s)                                                      | xrat file(s)                                                                                                                | Current gap status | Notes / action                                                                              |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| xray-knife file(s)                                                      | xrat file(s)                                                                            | Current gap status | Notes / action                                                                                                                                                                             |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `pkg/proxy/service.go` (rotation loop, health checks, blacklist, drain) | `src/app/runtime_service.rs`, `src/app/daemon/supervisor/`, `src/app/commands/proxy.rs` | **PARTIAL**        | xrat has daemon-owned rotation scheduler with timer/health/manual triggers, cooldown policy, and make-before-break replacement. Missing: durable rotation events, blacklist/strike policy. |
-| `cmd/proxy/proxy.go`                                                    | `src/cli/proxy.rs`, `src/app/commands/proxy.rs`                                                                             | **PARTIAL**        | `xrat proxy start\|status\|rotate\|stop` exists. Missing: netns/sysproxy/chain features.    |
-| `pkg/proxy/netns/*`, `pkg/proxy/sysproxy/*`                             | N/A                                                                                                                         | **MISSING**        | Namespace/system proxy management features are not present in xrat.                         |
-| `pkg/proxy/chain.go` (multi-hop chain)                                  | N/A                                                                                                                         | **MISSING**        | No outbound chain/multi-hop orchestration in xrat.                                          |
+| `cmd/proxy/proxy.go`                                                    | `src/cli/proxy.rs`, `src/app/commands/proxy.rs`                                         | **PARTIAL**        | `xrat proxy start\|status\|rotate\|stop` exists. Missing: netns/sysproxy/chain features.                                                                                                   |
+| `pkg/proxy/netns/*`, `pkg/proxy/sysproxy/*`                             | N/A                                                                                     | **MISSING**        | Namespace/system proxy management features are not present in xrat.                                                                                                                        |
+| `pkg/proxy/chain.go` (multi-hop chain)                                  | N/A                                                                                     | **MISSING**        | No outbound chain/multi-hop orchestration in xrat.                                                                                                                                         |
 
 ### Checklist tasks for this area
 
@@ -147,13 +147,13 @@ Planning note:
 
 ## 7) Deduplication Mechanisms
 
-| xray-knife file(s)                                   | xrat file(s)                                              | Current gap status | Notes / action                                                                        |
-| ---------------------------------------------------- | --------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------- |
-| `cmd/subs/subscription.go` (`RemoveDuplicate`)       | `src/config/mod.rs` (`HashSet` dedup)                     | **MATCHED**        | Both remove duplicate configs in-memory before/while ingesting.                       |
-| `pkg/http/httptester.go` (`DeduplicateLinks`)        | `src/config/mod.rs`, `src/model/node_dedup_key.rs`        | **PARTIAL**        | xray-knife dedups raw strings; xrat dedups canonicalized semantic key fields.         |
-| `database/queries.go` (`ON CONFLICT(config_link)`)   | `src/db/repository/configs.rs` (`ON CONFLICT(dedup_key)`) | **MATCHED**        | Both enforce DB-level uniqueness with upsert.                                         |
-| `cmd/cfscanner/cfscanner.go` (`finalResultsMap[ip]`) | `src/app/commands/scan.rs` (`BTreeSet` IP dedup)            | **PARTIAL**        | Scanner IP-level dedup exists via `BTreeSet` before probing. DB `UNIQUE(ip)` upsert also enforced. |
-| N/A                                                  | `migrations/*/0003_canonical_config_dedup_key.sql`        | **xrat strength**  | xrat has explicit dedup key migration/versioning (`v1`) for deterministic uniqueness. |
+| xray-knife file(s)                                   | xrat file(s)                                              | Current gap status | Notes / action                                                                                     |
+| ---------------------------------------------------- | --------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------- |
+| `cmd/subs/subscription.go` (`RemoveDuplicate`)       | `src/config/mod.rs` (`HashSet` dedup)                     | **MATCHED**        | Both remove duplicate configs in-memory before/while ingesting.                                    |
+| `pkg/http/httptester.go` (`DeduplicateLinks`)        | `src/config/mod.rs`, `src/model/node_dedup_key.rs`        | **PARTIAL**        | xray-knife dedups raw strings; xrat dedups canonicalized semantic key fields.                      |
+| `database/queries.go` (`ON CONFLICT(config_link)`)   | `src/db/repository/configs.rs` (`ON CONFLICT(dedup_key)`) | **MATCHED**        | Both enforce DB-level uniqueness with upsert.                                                      |
+| `cmd/cfscanner/cfscanner.go` (`finalResultsMap[ip]`) | `src/app/commands/scan.rs` (`BTreeSet` IP dedup)          | **PARTIAL**        | Scanner IP-level dedup exists via `BTreeSet` before probing. DB `UNIQUE(ip)` upsert also enforced. |
+| N/A                                                  | `migrations/*/0003_canonical_config_dedup_key.sql`        | **xrat strength**  | xrat has explicit dedup key migration/versioning (`v1`) for deterministic uniqueness.              |
 
 ### Checklist tasks for this area
 
@@ -209,8 +209,10 @@ Planning note:
 ## Summary
 
 - xrat already has strong foundations for **parsing, canonical dedup, DB
-  persistence, staged testing, managed runtime sessions, and auto-rotating proxy**.
-- Remaining feature gaps versus xray-knife QA are: **sing-box auto engine routing,
-  advanced cfscanner parity, durable rotation events, and netns/sysproxy/chain features**.
+  persistence, staged testing, managed runtime sessions, and auto-rotating
+  proxy**.
+- Remaining feature gaps versus xray-knife QA are: **sing-box auto engine
+  routing, advanced cfscanner parity, durable rotation events, and
+  netns/sysproxy/chain features**.
 - Continuous HTTP ping mode and proxy rotation scheduler are now implemented.
 - If strict parity is the goal, implement remaining P2/P3 items above in order.

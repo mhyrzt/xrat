@@ -88,9 +88,9 @@ Gap status summary:
 ## Suggested implementation order
 
 1. [x] Finalize scanner scope for xrat (latency-only vs latency+speedtest).
-   **Decision (2026-05-28):** Current scope is latency-only TCP probing with
-   persistence. CIDR expansion, bounded concurrency, resume, speedtest, and
-   proxy-assisted modes remain backlog items pending product decision.
+       **Decision (2026-05-28):** Current scope is latency-only TCP probing with
+       persistence. CIDR expansion, bounded concurrency, resume, speedtest, and
+       proxy-assisted modes remain backlog items pending product decision.
 2. [ ] Build scanner service module and command UX (`scan cf` or dedicated cmd).
 3. [ ] Wire DB persistence + resume behavior end-to-end.
 4. [ ] Add optional proxy-assisted mode and reality extensions if approved.

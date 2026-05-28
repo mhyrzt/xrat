@@ -8,12 +8,12 @@ xrat scan [flags]
 
 ## Flags
 
-| Flag | Description |
-|------|-------------|
-| `--ips <ips>` | Comma-separated IPs to scan, e.g. `1.1.1.1,8.8.8.8` |
-| `--file <path>` | Read newline-separated IPs from a file |
-| `--port <port>` | Target TCP port (default: `443`) |
-| `--timeout <ms>` | TCP connect timeout in milliseconds (default: `4000`) |
+| Flag                | Description                                                         |
+| ------------------- | ------------------------------------------------------------------- |
+| `--ips <ips>`       | Comma-separated IPs to scan, e.g. `1.1.1.1,8.8.8.8`                 |
+| `--file <path>`     | Read newline-separated IPs from a file                              |
+| `--port <port>`     | Target TCP port (default: `443`)                                    |
+| `--timeout <ms>`    | TCP connect timeout in milliseconds (default: `4000`)               |
 | `--history <limit>` | Print the latest N persisted scan results and exit (skips scanning) |
 
 ## Examples
@@ -68,8 +68,8 @@ IP              Port    Latency    Status
 ## Persistence
 
 Results are persisted to the database and can be retrieved with `--history`.
-This allows tracking IP reachability over time and identifying consistently
-fast endpoints.
+This allows tracking IP reachability over time and identifying consistently fast
+endpoints.
 
 ## Related
 

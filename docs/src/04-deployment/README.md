@@ -5,10 +5,10 @@ to multi-user server deployments with PostgreSQL.
 
 ## Deployment Options
 
-| Option | Description | Use Case |
-|--------|-------------|----------|
-| [systemd](systemd.md) | Run as a systemd user service | Persistent daemon, auto-start on boot |
-| [Database Backends](database-backends.md) | SQLite vs PostgreSQL | Single-user vs multi-user deployments |
+| Option                                    | Description                   | Use Case                              |
+| ----------------------------------------- | ----------------------------- | ------------------------------------- |
+| [systemd](systemd.md)                     | Run as a systemd user service | Persistent daemon, auto-start on boot |
+| [Database Backends](database-backends.md) | SQLite vs PostgreSQL          | Single-user vs multi-user deployments |
 
 ## Quick Deployment Checklist
 
@@ -26,25 +26,25 @@ to multi-user server deployments with PostgreSQL.
 
 xrat respects these environment variables:
 
-| Variable | Description |
-|----------|-------------|
-| `XRAT_PATH` | Config directory path (default: `~/.config/xrat`) |
-| `RUST_LOG` | Log level (overrides `--verbose`/`--quiet`) |
-| `XRAT_API_KEY` | HTTP API authentication key |
-| `XRAT_SOCKS_PASSWORD` | SOCKS inbound password |
-| `XRAT_SHADOWSOCKS_PASSWORD` | Shadowsocks inbound password |
-| `XRAT_POSTGRES_USER` | PostgreSQL username |
-| `XRAT_POSTGRES_PASSWORD` | PostgreSQL password |
+| Variable                    | Description                                       |
+| --------------------------- | ------------------------------------------------- |
+| `XRAT_PATH`                 | Config directory path (default: `~/.config/xrat`) |
+| `RUST_LOG`                  | Log level (overrides `--verbose`/`--quiet`)       |
+| `XRAT_API_KEY`              | HTTP API authentication key                       |
+| `XRAT_SOCKS_PASSWORD`       | SOCKS inbound password                            |
+| `XRAT_SHADOWSOCKS_PASSWORD` | Shadowsocks inbound password                      |
+| `XRAT_POSTGRES_USER`        | PostgreSQL username                               |
+| `XRAT_POSTGRES_PASSWORD`    | PostgreSQL password                               |
 
 ## Binary Dependencies
 
 xrat requires external proxy binaries:
 
-| Binary | Required For | Installation |
-|--------|--------------|--------------|
-| `xray` | All protocols except Hysteria2 | [Xray-core releases](https://github.com/XTLS/Xray-core/releases) |
-| `v2ray` | Alternative to Xray | [V2Ray releases](https://github.com/v2fly/v2ray-core/releases) |
-| `sing-box` | Hysteria2 protocol | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
+| Binary     | Required For                   | Installation                                                       |
+| ---------- | ------------------------------ | ------------------------------------------------------------------ |
+| `xray`     | All protocols except Hysteria2 | [Xray-core releases](https://github.com/XTLS/Xray-core/releases)   |
+| `v2ray`    | Alternative to Xray            | [V2Ray releases](https://github.com/v2fly/v2ray-core/releases)     |
+| `sing-box` | Hysteria2 protocol             | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
 
 Ensure binaries are in `PATH` or specify paths in `config.toml`:
 
@@ -173,6 +173,7 @@ tar czf ~/backup/xrat-config.$(date +%Y%m%d).tar.gz ~/.config/xrat/
 ### Daemon Won't Start
 
 **Check**:
+
 - Is a daemon already running? `xrat daemon status`
 - Check logs: `RUST_LOG=debug xrat daemon start`
 - Verify socket directory is writable
@@ -180,6 +181,7 @@ tar czf ~/backup/xrat-config.$(date +%Y%m%d).tar.gz ~/.config/xrat/
 ### Connection Failed
 
 **Check**:
+
 - Is Xray binary available? `which xray`
 - Test config manually: `xrat test <id>`
 - Check runtime logs: `~/.config/xrat/runtime/session-*.err.log`
@@ -189,6 +191,7 @@ tar czf ~/backup/xrat-config.$(date +%Y%m%d).tar.gz ~/.config/xrat/
 **Symptom**: "database is locked" errors
 
 **Fix**:
+
 - Only one process can write to SQLite at a time
 - Use PostgreSQL for multi-user deployments
 - Increase busy timeout in config.toml (if supported)
@@ -197,4 +200,5 @@ tar czf ~/backup/xrat-config.$(date +%Y%m%d).tar.gz ~/.config/xrat/
 
 - [systemd](systemd.md) — systemd service examples
 - [Database Backends](database-backends.md) — SQLite vs PostgreSQL
-- [Configuration](../01-getting-started/configuration.md) — config.toml reference
+- [Configuration](../01-getting-started/configuration.md) — config.toml
+  reference

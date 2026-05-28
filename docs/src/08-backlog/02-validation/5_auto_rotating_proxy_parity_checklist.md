@@ -53,7 +53,8 @@ Behavioral source narrative:
   state.
 - Candidate scoring reuses the bulk test pipeline and ranks by real-delay first,
   then download Mbps, then config id.
-- Automatic timer and health-failure triggers are wired when rotation is enabled.
+- Automatic timer and health-failure triggers are wired when rotation is
+  enabled.
 - Cooldown/failure fields exist in `runtime_sessions` (`cooldown_until`,
   `last_failed_at`, `last_failed_reason_code`).
 - Manual explicit candidate rotation can override cooldown.
@@ -83,7 +84,8 @@ Remaining gaps:
 - [x] Add cooldown policy for unstable configs.
 - [x] Add controlled handoff semantics (start replacement then drain/stop old).
 - [x] Define no-healthy-candidate behavior and reporting contract.
-- [ ] Persist detailed rotation state/events if crash-safe continuity is required.
+- [ ] Persist detailed rotation state/events if crash-safe continuity is
+      required.
 - [ ] Add explicit strike/blacklist policy beyond cooldown fields.
 
 Gap status summary:
@@ -101,8 +103,8 @@ Gap status summary:
 3. [x] Add rotate triggers (timer + health-failure) and safe swap behavior.
 4. [x] Add cooldown bridge state.
 5. [x] Add operator UX (`proxy status`, `proxy rotate`, structured JSON output).
-6. [ ] Decide whether detailed rotation event history and blacklist/strike policy
-       are product goals.
+6. [ ] Decide whether detailed rotation event history and blacklist/strike
+       policy are product goals.
 
 ---
 

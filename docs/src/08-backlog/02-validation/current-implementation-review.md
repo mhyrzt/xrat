@@ -75,7 +75,8 @@ Status: **complete**
 
 - Subcommand-based CLI with global `--database` and `--config` flags.
 - `import`, `add`, `list`, lifecycle commands, `show`, `status`, `test`,
-  `connect`, `disconnect`, `parse`, `scan`, `proxy`, `daemon`, `serve` all exist.
+  `connect`, `disconnect`, `parse`, `scan`, `proxy`, `daemon`, `serve` all
+  exist.
 - Clean split between `src/cli/` (Clap structs) and `src/app/commands/`
   (handlers).
 
@@ -162,8 +163,8 @@ Status: **~85% complete, foreground mode usable**
   alongside daemon IPC; daemon status reports HTTP API state.
 - Systemd service templates added in `packaging/systemd/`.
 
-Remaining: Some route handlers still use legacy per-item helpers instead of
-new repository helpers (partial migration in progress).
+Remaining: Some route handlers still use legacy per-item helpers instead of new
+repository helpers (partial migration in progress).
 
 ## High Priority Findings
 
@@ -175,8 +176,8 @@ The Phase 2 soft-delete gap has been addressed:
 
 - Migration 0015 adds `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` and
   `deleted_at TIMESTAMP NULL` to `configs` (both SQLite and PostgreSQL).
-- `delete_config()` now issues `UPDATE configs SET is_deleted = TRUE,
-  deleted_at = CURRENT_TIMESTAMP WHERE id = ?`.
+- `delete_config()` now issues
+  `UPDATE configs SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP WHERE id = ?`.
 - `restore_config()` clears `is_deleted` and `deleted_at`.
 - `hard_delete_config()` issues physical `DELETE` for destructive removal.
 - `SoftDelete::ExcludeDeleted` is the default filter in `ListFilter`; list/query
@@ -212,16 +213,16 @@ preferred source of truth. The aggregate document serves as a summary index.
 
 Repository query helpers have been added and routes updated:
 
-- `list_configs_with_latest_tests()`: single query with lateral/correlated
-  join; eliminates the N+1 pattern in `/configs` and `/json`.
+- `list_configs_with_latest_tests()`: single query with lateral/correlated join;
+  eliminates the N+1 pattern in `/configs` and `/json`.
 - `list_top_by_real_delay(limit, filter)`: SQL-level sorting by `real_delay_ms`
   for `?top=N`.
-- `list_configs_paginated(page, per_page, filter)`: SQL-level COUNT + LIMIT/OFFSET
-  for `/configs` pagination.
+- `list_configs_paginated(page, per_page, filter)`: SQL-level COUNT +
+  LIMIT/OFFSET for `/configs` pagination.
 - `/b64`: simplified query path (`list_configs` without test joins); no wasted
   latest-test queries.
-- Filter support: `enabled`, `protocol`, `selected`, `soft_delete` pushed to
-  SQL (both SQLite and PostgreSQL).
+- Filter support: `enabled`, `protocol`, `selected`, `soft_delete` pushed to SQL
+  (both SQLite and PostgreSQL).
 - Repository tests verify cross-backend query semantics.
 
 ### Daemon-Hosted HTTP API Is Now Wired
@@ -270,15 +271,19 @@ back to configured defaults. This is now explicitly documented:
 The scanner baseline is implemented and scope decision is documented:
 
 Latest implementation:
-- `scan --ips` and `scan --file` with IP dedup, sequential TCP probing, configurable timeout
+
+- `scan --ips` and `scan --file` with IP dedup, sequential TCP probing,
+  configurable timeout
 - Persisted `cf_scan_results` with `UNIQUE(ip)` upsert
 - `scan --history` for querying persisted results
-- 7 scanner tests cover IP input parsing, dedup, file reading, sorting, and edge cases
+- 7 scanner tests cover IP input parsing, dedup, file reading, sorting, and edge
+  cases
 
 Scope decision (2026-05-28):
+
 - Current scope: latency-only TCP probing
-- Deferred (pending product decision): CIDR expansion, bounded concurrency, resume,
-  speedtest, proxy-assisted mode, reality-specific flow
+- Deferred (pending product decision): CIDR expansion, bounded concurrency,
+  resume, speedtest, proxy-assisted mode, reality-specific flow
 - See `6_powerful_ip_scanner_parity_checklist.md` for full scope documentation
 
 ## Low Priority Findings
@@ -329,8 +334,8 @@ Canonical dedup now has 10+ focused edge-case tests in `node_dedup_key.rs`:
 
 **Status: resolved**
 
-CURRENT.md has been updated. Route tests are no longer listed as a gap (11
-tests exist). The remaining-gaps section now reflects the actual remaining work:
+CURRENT.md has been updated. Route tests are no longer listed as a gap (11 tests
+exist). The remaining-gaps section now reflects the actual remaining work:
 repository query helper tests.
 
 ## Documentation Drift: Previously Noted Items
@@ -348,8 +353,8 @@ The following drift items were noted at review time and are now resolved:
 
 ### Schema Integrity After Physical Delete
 
-**Status: mitigated.** Soft delete is now the default behavior; physical
-(hard) delete is explicit. Soft delete preserves all FK relationships.
+**Status: mitigated.** Soft delete is now the default behavior; physical (hard)
+delete is explicit. Soft delete preserves all FK relationships.
 `PRAGMA foreign_keys = ON` is enabled for SQLite connections.
 
 ### `/b64` Route Now Uses Simple Query Path
@@ -399,14 +404,15 @@ completion is verifiable, not subjective.
 Tasks:
 
 - [x] Add cross-backend migrations (SQLite + PostgreSQL) for
-      `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` and `deleted_at TIMESTAMP NULL`
-      on `configs`
+      `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` and
+      `deleted_at TIMESTAMP NULL` on `configs`
 - [x] Update `ConfigRecord` and related models to include deleted-state fields
-- [x] Change `delete_config()` to `UPDATE configs SET is_deleted = TRUE,
-      deleted_at = CURRENT_TIMESTAMP WHERE id = ?`
+- [x] Change `delete_config()` to
+      `UPDATE configs SET is_deleted = TRUE,     deleted_at = CURRENT_TIMESTAMP WHERE id = ?`
 - [x] Add explicit `hard_delete_config()` / `purge_config()` for destructive
       removal
-- [x] Update all list/query repository methods to exclude deleted rows by default
+- [x] Update all list/query repository methods to exclude deleted rows by
+      default
 - [x] Add `--include-deleted` or `--all` filter support to list commands
 - [x] Update HTTP API DTOs to expose `is_deleted` and `deleted_at` fields
 - [x] Add repository tests for soft delete, restore, and hard delete paths
@@ -415,14 +421,16 @@ Tasks:
 Done when:
 
 - [x] Migrations run cleanly on empty and existing databases (both backends)
-- [x] `xrat delete <id>` soft-deletes by default (row remains, `is_deleted = true`)
+- [x] `xrat delete <id>` soft-deletes by default (row remains,
+      `is_deleted = true`)
 - [x] `xrat list configs` excludes deleted configs unless `--include-deleted`
 - [x] `xrat restore <id>` clears `is_deleted` and `deleted_at`
 - [x] Hard delete/purge command exists and is explicit
 - [x] FK integrity preserved: `connection_tests`, `runtime_sessions`,
       `cf_scan_results` remain linked after soft delete
 - [x] HTTP API `/configs` and `/configs/{id}` return deleted-state metadata
-- [x] Repository tests cover soft delete, restore, hard delete, and list filtering
+- [x] Repository tests cover soft delete, restore, hard delete, and list
+      filtering
 - [ ] PHASE_2.md updated to match implementation
 
 #### 1.2 Fix Referential Integrity Risks
@@ -432,8 +440,8 @@ fail on FK violations depending on backend and PRAGMA settings.
 
 Tasks:
 
-- [x] Audit all FK relationships from `configs` to dependent tables
-      (migration 0015 makes deletion a soft update, preserving relationships)
+- [x] Audit all FK relationships from `configs` to dependent tables (migration
+      0015 makes deletion a soft update, preserving relationships)
 - [x] Ensure SQLite connections enable `PRAGMA foreign_keys = ON`
 - [x] Document FK cascade behavior for soft vs hard delete
 - [x] Add tests that verify dependent rows survive soft delete
@@ -442,7 +450,8 @@ Tasks:
 Done when:
 
 - [x] Soft delete preserves all dependent rows
-- [ ] Hard delete behavior is explicit and tested (cascade or reject with clear error)
+- [ ] Hard delete behavior is explicit and tested (cascade or reject with clear
+      error)
 - [x] SQLite FK enforcement is enabled and tested
 - [ ] PostgreSQL FK behavior matches SQLite
 
@@ -450,16 +459,18 @@ Done when:
 
 #### 2.1 Repository Query Helpers
 
-**Problem solved.** Repository query helpers implemented and routes updated.
-All filtering, sorting, and pagination pushed to SQL.
+**Problem solved.** Repository query helpers implemented and routes updated. All
+filtering, sorting, and pagination pushed to SQL.
 
 Tasks:
 
-- [x] Add `ConfigWithLatestTest` record type combining config + latest test fields
+- [x] Add `ConfigWithLatestTest` record type combining config + latest test
+      fields
 - [x] Add `list_configs_with_latest_tests(filter)` using lateral join or
       correlated subquery
 - [x] Add `list_top_by_real_delay(limit, filter)` with SQL-level sorting
-- [x] Add `list_configs_paginated(page, per_page, filter)` with COUNT + LIMIT/OFFSET
+- [x] Add `list_configs_paginated(page, per_page, filter)` with COUNT +
+      LIMIT/OFFSET
 - [x] Add `get_config_with_latest_test(id)` for single-config detail
 - [x] Add filter support: `enabled`, `protocol`, `selected`, `deleted`
 - [x] Push all filtering and sorting into SQL (both SQLite and PostgreSQL)
@@ -541,11 +552,11 @@ Tasks:
 
 Done when:
 
-- [x] Rotation ranking uses only fresh test results from current run
-      (falls back to DB query when fresh results are empty)
+- [x] Rotation ranking uses only fresh test results from current run (falls back
+      to DB query when fresh results are empty)
 - [x] Candidates that fail fresh tests are not promoted
-- [ ] Proxy status distinguishes "no eligible candidate" from
-      "all candidates failed fresh tests"
+- [ ] Proxy status distinguishes "no eligible candidate" from "all candidates
+      failed fresh tests"
 - [ ] Transition detail includes rotation test run summary
 - [ ] Tests verify fresh-result ranking behavior
 
@@ -557,10 +568,11 @@ Tasks:
 
 - [x] Decide: document as daemon-session state only, or persist user override
       (chose daemon-session state only)
-- [ ] If persisting: add schema/repository for proxy rotation state
-      (n/a -- chose volatile)
+- [ ] If persisting: add schema/repository for proxy rotation state (n/a --
+      chose volatile)
 - [x] If volatile: document clearly in CLI help and user docs
-- [x] Update proxy status output to clarify state source (config vs runtime override)
+- [x] Update proxy status output to clarify state source (config vs runtime
+      override)
 
 Done when:
 
@@ -576,10 +588,10 @@ Done when:
 
 Tasks:
 
-- [x] Update section 3: mark continuous HTTP ping as **MATCHED**
-      (`test --ping` exists)
-- [x] Update section 5: mark auto-rotating proxy as **PARTIAL**
-      (rotation command/scheduler exist)
+- [x] Update section 3: mark continuous HTTP ping as **MATCHED** (`test --ping`
+      exists)
+- [x] Update section 5: mark auto-rotating proxy as **PARTIAL** (rotation
+      command/scheduler exist)
 - [x] Update section 6: note scanner IP dedup exists; mark as **PARTIAL**
 - [x] Update prioritized backlog: mark P2 proxy rotation and P2 CF scanner as
       partially implemented
@@ -659,7 +671,8 @@ Tasks:
 Done when:
 
 - [x] Decode behavior has focused test coverage (16 tests in `decode.rs`)
-- [x] Mixed-input ingestion has focused test coverage (14 tests in `import/mod.rs`)
+- [x] Mixed-input ingestion has focused test coverage (14 tests in
+      `import/mod.rs`)
 - [x] Phase 1 completion criteria can be marked done
 
 #### 5.3 Add Scanner Tests
@@ -682,12 +695,13 @@ Done when:
 
 #### 6.1 Decide Scanner Scope
 
-**Problem solved.** Scope decision documented in `6_powerful_ip_scanner_parity_checklist.md`.
+**Problem solved.** Scope decision documented in
+`6_powerful_ip_scanner_parity_checklist.md`.
 
 Tasks:
 
-- [x] Decide: latency-only vs latency+speedtest+proxy-assisted
-      (chose latency-only for current scope)
+- [x] Decide: latency-only vs latency+speedtest+proxy-assisted (chose
+      latency-only for current scope)
 - [ ] If full parity: split scanner into service module before adding features
       (n/a -- deferred)
 - [x] If latency-only: document as intentional non-goal
@@ -705,9 +719,10 @@ Done when:
 
 #### 7.1 Add Request-Level Error Handling in Server
 
-**Status: already implemented.** Server routes already differentiate between
-404 (not found), 400 (bad request/invalid query), 401 (auth), and 500 (database
-error) via `ServerError` enum and `IntoResponse` impl. See `src/server/error.rs`.
+**Status: already implemented.** Server routes already differentiate between 404
+(not found), 400 (bad request/invalid query), 401 (auth), and 500 (database
+error) via `ServerError` enum and `IntoResponse` impl. See
+`src/server/error.rs`.
 
 Done when:
 

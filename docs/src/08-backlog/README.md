@@ -1,6 +1,7 @@
 # Backlog
 
-This section tracks planning, validation checklists, and UI notes for xrat development.
+This section tracks planning, validation checklists, and UI notes for xrat
+development.
 
 - [Plan](01-plan/README.md) — phased implementation roadmap
 - [Validation](02-validation/index.md) — parity checklists across subsystems

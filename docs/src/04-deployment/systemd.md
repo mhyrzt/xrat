@@ -9,6 +9,7 @@ systemd user services run under your user account (not root) and are managed
 with `systemctl --user`.
 
 Benefits:
+
 - **Auto-start**: Service starts on login
 - **Restart on failure**: Automatically restarts if the process crashes
 - **Logging**: Integrated with `journalctl` for log management
@@ -344,12 +345,14 @@ xrat.example.com {
 ### Service Won't Start
 
 **Check**:
+
 ```bash
 systemctl --user status xrat-daemon
 journalctl --user -u xrat-daemon -n 50
 ```
 
 **Common issues**:
+
 - Binary not found: Check `ExecStart` path
 - Permission denied: Check file permissions
 - Port already in use: Check if another service is using the port
@@ -357,11 +360,13 @@ journalctl --user -u xrat-daemon -n 50
 ### Service Stops Unexpectedly
 
 **Check**:
+
 ```bash
 journalctl --user -u xrat-daemon --since "1 hour ago"
 ```
 
 **Common issues**:
+
 - Out of memory: Check `LimitNOFILE` and system resources
 - Network unavailable: Ensure `After=network-online.target`
 - Configuration error: Test config manually with `xrat daemon start`
@@ -369,6 +374,7 @@ journalctl --user -u xrat-daemon --since "1 hour ago"
 ### Logs Not Appearing
 
 **Check**:
+
 ```bash
 journalctl --user -u xrat-daemon
 ```

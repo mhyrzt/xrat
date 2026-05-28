@@ -52,10 +52,12 @@ The API should support three operating modes:
   - `get_config_with_latest_test()` for single-config detail
   - `count_filtered()` for pagination totals
 - Route-level tests added (11 tests covering routes and auth).
-- Daemon integration wired: `[server].enabled = true` starts HTTP API alongside daemon IPC.
+- Daemon integration wired: `[server].enabled = true` starts HTTP API alongside
+  daemon IPC.
 - Daemon status output reports `http_api_enabled` and `http_api_addr` fields.
 - Systemd service examples added under `packaging/systemd/`.
-- Soft delete implementation for configs with `is_deleted` and `deleted_at` columns.
+- Soft delete implementation for configs with `is_deleted` and `deleted_at`
+  columns.
 - HTTP API DTOs expose `is_deleted` and `deleted_at` fields.
 
 ## Current Goal
@@ -78,8 +80,7 @@ Progress estimate: **~90%** complete.
 
 ## Immediate Next Slice
 
-1. Verify daemon-hosted serving in an environment that permits sockets, ephemeral
-   ports, and runtime process tests.
+1. Verify daemon-hosted serving in an environment that permits sockets,
+   ephemeral ports, and runtime process tests.
 2. Add repository-level tests for joined reads, top-N ordering, pagination, and
    protocol filtering.
-

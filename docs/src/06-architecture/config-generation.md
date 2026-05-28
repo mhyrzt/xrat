@@ -8,7 +8,8 @@ both Xray-core and sing-box engines.
 The config generation pipeline:
 
 1. **Node** (domain model) → Protocol-specific mapping → JSON config
-2. Supports probe configs (short-lived, for testing) and runtime configs (long-lived)
+2. Supports probe configs (short-lived, for testing) and runtime configs
+   (long-lived)
 
 ## Xray Config Generation
 
@@ -119,14 +120,18 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "vnext": [{
-    "address": "example.com",
-    "port": 443,
-    "users": [{
-      "id": "uuid-123",
-      "encryption": "none"
-    }]
-  }]
+  "vnext": [
+    {
+      "address": "example.com",
+      "port": 443,
+      "users": [
+        {
+          "id": "uuid-123",
+          "encryption": "none"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -134,15 +139,19 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "vnext": [{
-    "address": "example.com",
-    "port": 443,
-    "users": [{
-      "id": "uuid-456",
-      "alterId": 0,
-      "security": "auto"
-    }]
-  }]
+  "vnext": [
+    {
+      "address": "example.com",
+      "port": 443,
+      "users": [
+        {
+          "id": "uuid-456",
+          "alterId": 0,
+          "security": "auto"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -150,11 +159,13 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "servers": [{
-    "address": "example.com",
-    "port": 443,
-    "password": "password"
-  }]
+  "servers": [
+    {
+      "address": "example.com",
+      "port": 443,
+      "password": "password"
+    }
+  ]
 }
 ```
 
@@ -162,12 +173,14 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "servers": [{
-    "address": "example.com",
-    "port": 8388,
-    "method": "aes-256-gcm",
-    "password": "secret"
-  }]
+  "servers": [
+    {
+      "address": "example.com",
+      "port": 8388,
+      "method": "aes-256-gcm",
+      "password": "secret"
+    }
+  ]
 }
 ```
 
@@ -175,14 +188,18 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "servers": [{
-    "address": "example.com",
-    "port": 1080,
-    "users": [{
-      "user": "username",
-      "pass": "password"
-    }]
-  }]
+  "servers": [
+    {
+      "address": "example.com",
+      "port": 1080,
+      "users": [
+        {
+          "user": "username",
+          "pass": "password"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -190,14 +207,18 @@ Each protocol maps to a specific outbound format:
 
 ```json
 {
-  "servers": [{
-    "address": "example.com",
-    "port": 8080,
-    "users": [{
-      "user": "username",
-      "pass": "password"
-    }]
-  }]
+  "servers": [
+    {
+      "address": "example.com",
+      "port": 8080,
+      "users": [
+        {
+          "user": "username",
+          "pass": "password"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -216,12 +237,12 @@ Generated based on node fields:
 ```rust
 fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> {
     let network = node.network.as_str();
-    
+
     // SOCKS5 and HTTP have no stream settings
     if matches!(node.protocol, Protocol::Socks5 | Protocol::Http) {
         return Ok(None);
     }
-    
+
     // Network-specific settings
     StreamSettings {
         network,          // "tcp" | "ws" | "grpc" | "kcp" | "http"
@@ -436,11 +457,11 @@ xrat includes a full Xray JSON config parser for reading existing configs.
 
 ### Parser Modes
 
-| Mode | Behavior |
-|------|----------|
-| `strict` | Rejects unknown fields using `#[serde(deny_unknown_fields)]` |
-| `lenient` | Allows unknown fields (default) |
-| `auto` | Same as lenient (reserved for future source-aware parsing) |
+| Mode      | Behavior                                                     |
+| --------- | ------------------------------------------------------------ |
+| `strict`  | Rejects unknown fields using `#[serde(deny_unknown_fields)]` |
+| `lenient` | Allows unknown fields (default)                              |
+| `auto`    | Same as lenient (reserved for future source-aware parsing)   |
 
 ### Parsed Structures
 

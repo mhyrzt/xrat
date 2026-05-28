@@ -99,9 +99,8 @@ Deletion policy note for Phase 5/6:
 - Phase 5 HTTP API should expose deleted-state metadata when returning config
   detail/list data once the schema supports it, but should not add mutation
   endpoints in v1.
-- Phase 6 TUI should make the distinction clear in the UI, for example:
-  `Delete` = soft delete, `Purge` or `Hard delete` = permanent removal with
-  confirmation.
+- Phase 6 TUI should make the distinction clear in the UI, for example: `Delete`
+  = soft delete, `Purge` or `Hard delete` = permanent removal with confirmation.
 
 ## Desired User Experience
 
@@ -270,13 +269,13 @@ Return a paginated list of all stored configs with full metadata.
 
 Query parameters:
 
-| Param      | Type    | Required | Description                            |
-| ---------- | ------- | -------- | -------------------------------------- |
-| `key`      | string  | No       | API key                                |
-| `page`     | integer | No       | Page number (1-based, default: 1)      |
-| `per_page` | integer | No       | Items per page (default: 50, max: 200) |
-| `enabled`  | bool    | No       | Filter to only enabled configs         |
-| `protocol` | string  | No       | Filter by protocol                     |
+| Param      | Type    | Required | Description                                           |
+| ---------- | ------- | -------- | ----------------------------------------------------- |
+| `key`      | string  | No       | API key                                               |
+| `page`     | integer | No       | Page number (1-based, default: 1)                     |
+| `per_page` | integer | No       | Items per page (default: 50, max: 200)                |
+| `enabled`  | bool    | No       | Filter to only enabled configs                        |
+| `protocol` | string  | No       | Filter by protocol                                    |
 | `deleted`  | bool    | No       | Include or filter soft-deleted configs once supported |
 
 Response:
@@ -553,8 +552,8 @@ To keep risk low, build this phase in the following order:
 ## Detailed Backlog
 
 This backlog is intentionally ordered so each slice compiles and can be tested
-before moving to the next one. Keep route logic thin: handlers should parse
-HTTP input, call repository helpers, and map domain records into response DTOs.
+before moving to the next one. Keep route logic thin: handlers should parse HTTP
+input, call repository helpers, and map domain records into response DTOs.
 
 ### P5.1 Server configuration
 
@@ -574,8 +573,7 @@ Tasks:
   - `key: Option<SecretString>`
 - [ ] Add `server: ServerSettings` to `AppConfig`.
 - [ ] Add `Default` implementation and serde defaults.
-- [ ] Update `testdata/config.example.toml` with commented `[server]`
-      examples.
+- [ ] Update `testdata/config.example.toml` with commented `[server]` examples.
 - [ ] Add config tests for empty config defaults, literal key, env key, and
       host/port override.
 
@@ -618,8 +616,8 @@ Tasks:
 - [ ] Resolve `server.key` once when building `ServerState`.
 - [ ] Store only the resolved value needed for comparison in `ServerState`.
 - [ ] Parse `key` from query string.
-- [ ] Return `401` with `{"error":"missing api key"}` when a key is required
-      but absent.
+- [ ] Return `401` with `{"error":"missing api key"}` when a key is required but
+      absent.
 - [ ] Return `401` with `{"error":"invalid api key"}` when a key mismatches.
 - [ ] Allow requests when no server key is configured.
 - [ ] Ensure `/health` remains unauthenticated.
@@ -731,8 +729,8 @@ Tasks:
 Acceptance:
 
 - [ ] `GET /json` returns only enabled configs by default.
-- [ ] `GET /json?enabled=false` can return disabled configs if supported by
-      the filter contract.
+- [ ] `GET /json?enabled=false` can return disabled configs if supported by the
+      filter contract.
 - [ ] `GET /json?top=5` returns at most five configs sorted by real delay.
 - [ ] No raw secrets are included in JSON output.
 
@@ -862,8 +860,8 @@ Acceptance:
 
 ### P5.12a Systemd and systemctl integration
 
-Goal: make XRAT installable as a long-running service without inventing a
-second daemon model.
+Goal: make XRAT installable as a long-running service without inventing a second
+daemon model.
 
 Tasks:
 
@@ -952,7 +950,8 @@ Required tests:
 - [ ] `/b64` default output, decoded URI lines, empty result.
 - [ ] `/configs` pagination and bounds.
 - [ ] `/configs/:id` found, missing, latest-test null.
-- [ ] Deleted-state filtering/serialization once soft-delete schema fields exist.
+- [ ] Deleted-state filtering/serialization once soft-delete schema fields
+      exist.
 - [ ] Repository top-N ordering.
 - [ ] Repository latest-test join chooses the newest test.
 - [ ] Server bind failure maps to an app error.

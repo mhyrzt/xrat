@@ -44,12 +44,12 @@ v2ray = "/usr/local/bin/v2ray"
 sing_box = "/usr/local/bin/sing-box"
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `database` | string | - | Database path (deprecated, use `[database.sqlite].path`) |
-| `xray` | string | `xray` | Xray-core binary path |
-| `v2ray` | string | `v2ray` | V2Ray binary path |
-| `sing_box` | string | `sing-box` | sing-box binary path |
+| Field      | Type   | Default    | Description                                              |
+| ---------- | ------ | ---------- | -------------------------------------------------------- |
+| `database` | string | -          | Database path (deprecated, use `[database.sqlite].path`) |
+| `xray`     | string | `xray`     | Xray-core binary path                                    |
+| `v2ray`    | string | `v2ray`    | V2Ray binary path                                        |
+| `sing_box` | string | `sing-box` | sing-box binary path                                     |
 
 ---
 
@@ -75,18 +75,18 @@ min_connections = 1
 connect_timeout_secs = 10
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `backend` | enum | `sqlite` | `sqlite` or `postgres` |
-| `[sqlite].path` | string | `db.sqlite` | SQLite database file path |
-| `[postgres].user` | string/env | - | PostgreSQL username |
-| `[postgres].password` | string/env | - | PostgreSQL password |
-| `[postgres].host` | string | `localhost` | PostgreSQL host |
-| `[postgres].port` | integer | `5432` | PostgreSQL port |
-| `[postgres].db_name` | string | - | PostgreSQL database name |
-| `[postgres].max_connections` | integer | `10` | Connection pool max size |
-| `[postgres].min_connections` | integer | `1` | Connection pool min size |
-| `[postgres].connect_timeout_secs` | integer | `10` | Connection timeout |
+| Field                             | Type       | Default     | Description               |
+| --------------------------------- | ---------- | ----------- | ------------------------- |
+| `backend`                         | enum       | `sqlite`    | `sqlite` or `postgres`    |
+| `[sqlite].path`                   | string     | `db.sqlite` | SQLite database file path |
+| `[postgres].user`                 | string/env | -           | PostgreSQL username       |
+| `[postgres].password`             | string/env | -           | PostgreSQL password       |
+| `[postgres].host`                 | string     | `localhost` | PostgreSQL host           |
+| `[postgres].port`                 | integer    | `5432`      | PostgreSQL port           |
+| `[postgres].db_name`              | string     | -           | PostgreSQL database name  |
+| `[postgres].max_connections`      | integer    | `10`        | Connection pool max size  |
+| `[postgres].min_connections`      | integer    | `1`         | Connection pool min size  |
+| `[postgres].connect_timeout_secs` | integer    | `10`        | Connection timeout        |
 
 ---
 
@@ -102,12 +102,12 @@ port = 8080
 key = { env = "XRAT_API_KEY" }
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable daemon-hosted API |
-| `host` | string | `127.0.0.1` | Bind host |
-| `port` | integer | `8080` | Bind port |
-| `key` | string/env | - | API key for authentication |
+| Field     | Type       | Default     | Description                |
+| --------- | ---------- | ----------- | -------------------------- |
+| `enabled` | boolean    | `false`     | Enable daemon-hosted API   |
+| `host`    | string     | `127.0.0.1` | Bind host                  |
+| `port`    | integer    | `8080`      | Bind port                  |
+| `key`     | string/env | -           | API key for authentication |
 
 ---
 
@@ -121,10 +121,10 @@ engine = "xray"     # "xray" | "v2ray" | "sing-box"
 replace_active_session = true
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `engine` | enum | `xray` | Proxy engine: `xray`, `v2ray`, `sing-box` |
-| `replace_active_session` | boolean | `true` | Auto-disconnect on new connect |
+| Field                    | Type    | Default | Description                               |
+| ------------------------ | ------- | ------- | ----------------------------------------- |
+| `engine`                 | enum    | `xray`  | Proxy engine: `xray`, `v2ray`, `sing-box` |
+| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect            |
 
 ---
 
@@ -142,14 +142,14 @@ test_concurrency = 0
 test_stages = ["real_delay", "download"]
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable scheduled rotation |
-| `interval_secs` | integer | `1800` | Rotation interval in seconds |
-| `health_trigger_enabled` | boolean | `true` | Trigger rotation on health failure |
-| `cooldown_secs` | integer | `300` | Minimum time between rotations |
-| `test_concurrency` | integer | `0` | Test workers (0 = auto) |
-| `test_stages` | string[] | `["real_delay", "download"]` | Candidate test stages |
+| Field                    | Type     | Default                      | Description                        |
+| ------------------------ | -------- | ---------------------------- | ---------------------------------- |
+| `enabled`                | boolean  | `false`                      | Enable scheduled rotation          |
+| `interval_secs`          | integer  | `1800`                       | Rotation interval in seconds       |
+| `health_trigger_enabled` | boolean  | `true`                       | Trigger rotation on health failure |
+| `cooldown_secs`          | integer  | `300`                        | Minimum time between rotations     |
+| `test_concurrency`       | integer  | `0`                          | Test workers (0 = auto)            |
+| `test_stages`            | string[] | `["real_delay", "download"]` | Candidate test stages              |
 
 ---
 
@@ -167,14 +167,14 @@ level = "warning" # "debug" | "info" | "warning" | "error"
 keep = true
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable logging to files |
-| `mask` | enum | `none` | IP address masking |
-| `dir` | string | `logs` | Log directory |
-| `dns_log` | boolean | `false` | Enable DNS query logging |
-| `level` | enum | `warning` | Log level |
-| `keep` | boolean | `true` | Keep logs after session stop |
+| Field     | Type    | Default   | Description                  |
+| --------- | ------- | --------- | ---------------------------- |
+| `enabled` | boolean | `true`    | Enable logging to files      |
+| `mask`    | enum    | `none`    | IP address masking           |
+| `dir`     | string  | `logs`    | Log directory                |
+| `dns_log` | boolean | `false`   | Enable DNS query logging     |
+| `level`   | enum    | `warning` | Log level                    |
+| `keep`    | boolean | `true`    | Keep logs after session stop |
 
 ---
 
@@ -191,15 +191,15 @@ udp = true
 auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable SOCKS inbound |
-| `host` | string | `0.0.0.0` | Bind address |
-| `port` | integer | `1080` | Bind port |
-| `udp` | boolean | `true` | Enable UDP support |
-| `auth.enabled` | boolean | `false` | Enable authentication |
-| `auth.username` | string | `xrat` | SOCKS username |
-| `auth.password` | string/env | - | SOCKS password |
+| Field           | Type       | Default   | Description           |
+| --------------- | ---------- | --------- | --------------------- |
+| `enabled`       | boolean    | `true`    | Enable SOCKS inbound  |
+| `host`          | string     | `0.0.0.0` | Bind address          |
+| `port`          | integer    | `1080`    | Bind port             |
+| `udp`           | boolean    | `true`    | Enable UDP support    |
+| `auth.enabled`  | boolean    | `false`   | Enable authentication |
+| `auth.username` | string     | `xrat`    | SOCKS username        |
+| `auth.password` | string/env | -         | SOCKS password        |
 
 ---
 
@@ -214,11 +214,11 @@ host = "0.0.0.0"
 port = 8080
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable HTTP inbound |
-| `host` | string | `0.0.0.0` | Bind address |
-| `port` | integer | `8080` | Bind port |
+| Field     | Type    | Default   | Description         |
+| --------- | ------- | --------- | ------------------- |
+| `enabled` | boolean | `false`   | Enable HTTP inbound |
+| `host`    | string  | `0.0.0.0` | Bind address        |
+| `port`    | integer | `8080`    | Bind port           |
 
 ---
 
@@ -236,14 +236,14 @@ password = { env = "XRAT_SHADOWSOCKS_PASSWORD" }
 network = "tcp,udp"
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable Shadowsocks inbound |
-| `host` | string | `0.0.0.0` | Bind address |
-| `port` | integer | `1081` | Bind port |
-| `method` | string | `aes-128-gcm` | Encryption method |
-| `password` | string/env | - | Shadowsocks password |
-| `network` | string | `tcp,udp` | Network type |
+| Field      | Type       | Default       | Description                |
+| ---------- | ---------- | ------------- | -------------------------- |
+| `enabled`  | boolean    | `false`       | Enable Shadowsocks inbound |
+| `host`     | string     | `0.0.0.0`     | Bind address               |
+| `port`     | integer    | `1081`        | Bind port                  |
+| `method`   | string     | `aes-128-gcm` | Encryption method          |
+| `password` | string/env | -             | Shadowsocks password       |
+| `network`  | string     | `tcp,udp`     | Network type               |
 
 ---
 
@@ -261,14 +261,14 @@ domains_excluded = []
 ips_excluded = []
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable traffic sniffing |
-| `dest_override` | string[] | `["http", "tls", "quic"]` | Protocols for destination override |
-| `route_only` | boolean | `true` | Only sniff for routing |
-| `metadata_only` | boolean | `false` | Only sniff metadata |
-| `domains_excluded` | string[] | `[]` | Excluded domains |
-| `ips_excluded` | string[] | `[]` | Excluded IPs |
+| Field              | Type     | Default                   | Description                        |
+| ------------------ | -------- | ------------------------- | ---------------------------------- |
+| `enabled`          | boolean  | `true`                    | Enable traffic sniffing            |
+| `dest_override`    | string[] | `["http", "tls", "quic"]` | Protocols for destination override |
+| `route_only`       | boolean  | `true`                    | Only sniff for routing             |
+| `metadata_only`    | boolean  | `false`                   | Only sniff metadata                |
+| `domains_excluded` | string[] | `[]`                      | Excluded domains                   |
+| `ips_excluded`     | string[] | `[]`                      | Excluded IPs                       |
 
 ---
 
@@ -293,17 +293,17 @@ geosite = []
 geoip = []
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `domain_strategy` | enum | `IPIfNonMatch` | Xray domain resolution strategy |
-| `[direct].domain` | string[] | `[]` | Direct-route domains |
-| `[direct].ip` | string[] | `[]` | Direct-route IPs |
-| `[direct].geosite` | string[] | `[]` | Direct-route geosite categories |
-| `[direct].geoip` | string[] | `[]` | Direct-route geoip categories |
-| `[block].domain` | string[] | `[]` | Blocked domains |
-| `[block].ip` | string[] | `[]` | Blocked IPs |
-| `[block].geosite` | string[] | `[]` | Blocked geosite categories |
-| `[block].geoip` | string[] | `[]` | Blocked geoip categories |
+| Field              | Type     | Default        | Description                     |
+| ------------------ | -------- | -------------- | ------------------------------- |
+| `domain_strategy`  | enum     | `IPIfNonMatch` | Xray domain resolution strategy |
+| `[direct].domain`  | string[] | `[]`           | Direct-route domains            |
+| `[direct].ip`      | string[] | `[]`           | Direct-route IPs                |
+| `[direct].geosite` | string[] | `[]`           | Direct-route geosite categories |
+| `[direct].geoip`   | string[] | `[]`           | Direct-route geoip categories   |
+| `[block].domain`   | string[] | `[]`           | Blocked domains                 |
+| `[block].ip`       | string[] | `[]`           | Blocked IPs                     |
+| `[block].geosite`  | string[] | `[]`           | Blocked geosite categories      |
+| `[block].geoip`    | string[] | `[]`           | Blocked geoip categories        |
 
 ---
 
@@ -327,13 +327,13 @@ geosite = "geo/local/geosite.dat"
 geoip = "geo/local/geoip.dat"
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `auto_update` | boolean | `false` | Enable periodic geo asset updates |
-| `update_interval_hours` | integer | `168` | Update interval in hours |
-| `[[profiles]].name` | string | - | Profile name |
-| `[[profiles]].geosite` | string | - | Geosite file path or URL |
-| `[[profiles]].geoip` | string | - | GeoIP file path or URL |
+| Field                   | Type    | Default | Description                       |
+| ----------------------- | ------- | ------- | --------------------------------- |
+| `auto_update`           | boolean | `false` | Enable periodic geo asset updates |
+| `update_interval_hours` | integer | `168`   | Update interval in hours          |
+| `[[profiles]].name`     | string  | -       | Profile name                      |
+| `[[profiles]].geosite`  | string  | -       | Geosite file path or URL          |
+| `[[profiles]].geoip`    | string  | -       | GeoIP file path or URL            |
 
 ---
 
@@ -346,8 +346,8 @@ Xray JSON schema validation mode.
 parse_mode = "strict" # "strict" | "lenient" | "auto"
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
+| Field        | Type | Default  | Description               |
+| ------------ | ---- | -------- | ------------------------- |
 | `parse_mode` | enum | `strict` | Xray JSON validation mode |
 
 ---
@@ -373,15 +373,15 @@ enable_parallel_query = true
 "domain:lan.test" = ["192.168.1.10", "192.168.1.11"]
 ```
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `query_strategy` | enum | `UseSystem` | DNS query strategy |
-| `servers` | string[] | - | DNS server list |
-| `use_system_hosts` | boolean | `true` | Use system hosts file |
-| `disable_cache` | boolean | `false` | Disable DNS cache |
-| `disable_fallback` | boolean | `false` | Disable fallback DNS |
-| `enable_parallel_query` | boolean | `true` | Enable parallel queries |
-| `[hosts]` | map | - | Static DNS entries |
+| Field                   | Type     | Default     | Description             |
+| ----------------------- | -------- | ----------- | ----------------------- |
+| `query_strategy`        | enum     | `UseSystem` | DNS query strategy      |
+| `servers`               | string[] | -           | DNS server list         |
+| `use_system_hosts`      | boolean  | `true`      | Use system hosts file   |
+| `disable_cache`         | boolean  | `false`     | Disable DNS cache       |
+| `disable_fallback`      | boolean  | `false`     | Disable fallback DNS    |
+| `enable_parallel_query` | boolean  | `true`      | Enable parallel queries |
+| `[hosts]`               | map      | -           | Static DNS entries      |
 
 ---
 
@@ -420,25 +420,25 @@ url = "https://example.com/upload"
 timeout = 30_000
 ```
 
-| Section | Field | Type | Default | Description |
-|---------|-------|------|---------|-------------|
-| `[testing]` | `concurrency` | integer | `0` | Test workers (0 = auto) |
-| `[testing]` | `order` | string[] | `["icmp", "real_delay", "download"]` | Stage execution order |
-| `[testing]` | `failure_policy` | enum | `continue` | Behavior on stage failure |
-| `[icmp]` | `enabled` | boolean | `true` | Enable ICMP stage |
-| `[icmp]` | `timeout` | integer | `3000` | ICMP timeout (ms) |
-| `[icmp]` | `attempts` | integer | `3` | ICMP attempt count |
-| `[tcp]` | `enabled` | boolean | `true` | Enable TCP stage |
-| `[tcp]` | `timeout` | integer | `5000` | TCP timeout (ms) |
-| `[real_delay]` | `enabled` | boolean | `true` | Enable real-delay stage |
-| `[real_delay]` | `url` | string | `https://www.google.com/generate_204` | Test URL |
-| `[real_delay]` | `timeout` | integer | `10000` | HTTP request timeout (ms) |
-| `[download]` | `enabled` | boolean | `false` | Enable download stage |
-| `[download]` | `url` | string | - | Download URL |
-| `[download]` | `timeout` | integer | `30000` | Download timeout (ms) |
-| `[upload]` | `enabled` | boolean | `false` | Enable upload stage |
-| `[upload]` | `url` | string | - | Upload URL |
-| `[upload]` | `timeout` | integer | `30000` | Upload timeout (ms) |
+| Section        | Field            | Type     | Default                               | Description               |
+| -------------- | ---------------- | -------- | ------------------------------------- | ------------------------- |
+| `[testing]`    | `concurrency`    | integer  | `0`                                   | Test workers (0 = auto)   |
+| `[testing]`    | `order`          | string[] | `["icmp", "real_delay", "download"]`  | Stage execution order     |
+| `[testing]`    | `failure_policy` | enum     | `continue`                            | Behavior on stage failure |
+| `[icmp]`       | `enabled`        | boolean  | `true`                                | Enable ICMP stage         |
+| `[icmp]`       | `timeout`        | integer  | `3000`                                | ICMP timeout (ms)         |
+| `[icmp]`       | `attempts`       | integer  | `3`                                   | ICMP attempt count        |
+| `[tcp]`        | `enabled`        | boolean  | `true`                                | Enable TCP stage          |
+| `[tcp]`        | `timeout`        | integer  | `5000`                                | TCP timeout (ms)          |
+| `[real_delay]` | `enabled`        | boolean  | `true`                                | Enable real-delay stage   |
+| `[real_delay]` | `url`            | string   | `https://www.google.com/generate_204` | Test URL                  |
+| `[real_delay]` | `timeout`        | integer  | `10000`                               | HTTP request timeout (ms) |
+| `[download]`   | `enabled`        | boolean  | `false`                               | Enable download stage     |
+| `[download]`   | `url`            | string   | -                                     | Download URL              |
+| `[download]`   | `timeout`        | integer  | `30000`                               | Download timeout (ms)     |
+| `[upload]`     | `enabled`        | boolean  | `false`                               | Enable upload stage       |
+| `[upload]`     | `url`            | string   | -                                     | Upload URL                |
+| `[upload]`     | `timeout`        | integer  | `30000`                               | Upload timeout (ms)       |
 
 ---
 
@@ -456,15 +456,15 @@ password = { env = "XRAT_SOCKS_PASSWORD" }
 
 Supported on these fields:
 
-| Section | Field |
-|---------|-------|
-| `[server]` | `key` |
-| `[runtime.socks]` | `auth.password` |
-| `[runtime.shadowsocks]` | `password` |
-| `[database.postgres]` | `user` |
-| `[database.postgres]` | `password` |
+| Section                 | Field           |
+| ----------------------- | --------------- |
+| `[server]`              | `key`           |
+| `[runtime.socks]`       | `auth.password` |
+| `[runtime.shadowsocks]` | `password`      |
+| `[database.postgres]`   | `user`          |
+| `[database.postgres]`   | `password`      |
 
 ## Example Config
 
-See `testdata/config.example.toml` in the repository for a complete example
-with all sections and comments.
+See `testdata/config.example.toml` in the repository for a complete example with
+all sections and comments.

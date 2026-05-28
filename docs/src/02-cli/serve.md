@@ -8,8 +8,8 @@ xrat serve [flags]
 
 ## Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag            | Description                 |
+| --------------- | --------------------------- |
 | `--host <host>` | Override HTTP API bind host |
 | `--port <port>` | Override HTTP API bind port |
 
@@ -39,12 +39,12 @@ port = 8080
 key = { env = "XRAT_API_KEY" }
 ```
 
-| Field | Description |
-|-------|-------------|
+| Field     | Description                          |
+| --------- | ------------------------------------ |
 | `enabled` | Enable daemon-hosted API (see below) |
-| `host` | Bind host (default: `127.0.0.1`) |
-| `port` | Bind port (default: `8080`) |
-| `key` | Optional API key for authentication |
+| `host`    | Bind host (default: `127.0.0.1`)     |
+| `port`    | Bind port (default: `8080`)          |
+| `key`     | Optional API key for authentication  |
 
 ## Operating Modes
 
@@ -78,48 +78,48 @@ WantedBy=default.target
 
 ## API Routes
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/health` | GET | Health check (no auth required) |
-| `/json` | GET | List configs with latest test results as JSON array |
-| `/b64` | GET | Base64-encoded subscription text payload |
-| `/configs` | GET | Paginated config list with details |
-| `/configs/{id}` | GET | Single config detail with latest test results |
+| Route           | Method | Description                                         |
+| --------------- | ------ | --------------------------------------------------- |
+| `/health`       | GET    | Health check (no auth required)                     |
+| `/json`         | GET    | List configs with latest test results as JSON array |
+| `/b64`          | GET    | Base64-encoded subscription text payload            |
+| `/configs`      | GET    | Paginated config list with details                  |
+| `/configs/{id}` | GET    | Single config detail with latest test results       |
 
 ### Query Parameters
 
 #### `/json`
 
-| Parameter | Description |
-|-----------|-------------|
-| `key` | API key (if authentication is enabled) |
-| `top` | Return top N configs sorted by real-delay |
-| `enabled` | Filter: `true` for enabled configs only |
+| Parameter  | Description                                                 |
+| ---------- | ----------------------------------------------------------- |
+| `key`      | API key (if authentication is enabled)                      |
+| `top`      | Return top N configs sorted by real-delay                   |
+| `enabled`  | Filter: `true` for enabled configs only                     |
 | `protocol` | Filter by protocol: `vless`, `vmess`, `ss`, `trojan`, `hy2` |
-| `selected` | Filter: `true` for selected configs only |
+| `selected` | Filter: `true` for selected configs only                    |
 
 #### `/b64`
 
-| Parameter | Description |
-|-----------|-------------|
-| `key` | API key (if authentication is enabled) |
+| Parameter | Description                            |
+| --------- | -------------------------------------- |
+| `key`     | API key (if authentication is enabled) |
 
 #### `/configs`
 
-| Parameter | Description |
-|-----------|-------------|
-| `key` | API key (if authentication is enabled) |
-| `page` | Page number (default: `1`) |
-| `per_page` | Items per page (default: `20`) |
-| `enabled` | Filter: `true` for enabled configs only |
-| `protocol` | Filter by protocol |
+| Parameter  | Description                              |
+| ---------- | ---------------------------------------- |
+| `key`      | API key (if authentication is enabled)   |
+| `page`     | Page number (default: `1`)               |
+| `per_page` | Items per page (default: `20`)           |
+| `enabled`  | Filter: `true` for enabled configs only  |
+| `protocol` | Filter by protocol                       |
 | `selected` | Filter: `true` for selected configs only |
 
 #### `/configs/{id}`
 
-| Parameter | Description |
-|-----------|-------------|
-| `key` | API key (if authentication is enabled) |
+| Parameter | Description                            |
+| --------- | -------------------------------------- |
+| `key`     | API key (if authentication is enabled) |
 
 ## Authentication
 

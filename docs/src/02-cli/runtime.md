@@ -14,14 +14,14 @@ xrat connect <id> [flags]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Config ID to start as the active local proxy session |
+| Argument | Description                                          |
+| -------- | ---------------------------------------------------- |
+| `id`     | Config ID to start as the active local proxy session |
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description              |
+| -------- | ------------------------ |
 | `--json` | Print the result as JSON |
 
 ### Examples
@@ -45,11 +45,11 @@ xrat connect 42 --json
 
 ### Default Inbounds
 
-| Protocol | Host | Port | Notes |
-|----------|------|------|-------|
-| SOCKS5 | `0.0.0.0` | `1080` | UDP support enabled by default |
-| HTTP | `0.0.0.0` | `8080` | Disabled by default in config.toml |
-| Shadowsocks | `0.0.0.0` | `1081` | Disabled by default, aes-128-gcm |
+| Protocol    | Host      | Port   | Notes                              |
+| ----------- | --------- | ------ | ---------------------------------- |
+| SOCKS5      | `0.0.0.0` | `1080` | UDP support enabled by default     |
+| HTTP        | `0.0.0.0` | `8080` | Disabled by default in config.toml |
+| Shadowsocks | `0.0.0.0` | `1081` | Disabled by default, aes-128-gcm   |
 
 Configure inbounds in `config.toml` under `[runtime.socks]`, `[runtime.http]`,
 and `[runtime.shadowsocks]`.
@@ -71,8 +71,8 @@ xrat disconnect [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description              |
+| -------- | ------------------------ |
 | `--json` | Print the result as JSON |
 
 ### Examples
@@ -101,8 +101,8 @@ xrat status [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description              |
+| -------- | ------------------------ |
 | `--json` | Print the status as JSON |
 
 ### Examples

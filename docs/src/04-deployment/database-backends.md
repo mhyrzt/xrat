@@ -5,10 +5,10 @@ flexibility from single-user desktop deployments to multi-user server setups.
 
 ## Overview
 
-| Backend | Use Case | Concurrency | Setup Complexity |
-|---------|----------|-------------|------------------|
-| **SQLite** | Single-user, desktop, testing | Single writer | Zero configuration |
-| **PostgreSQL** | Multi-user, production, high concurrency | Connection pooling | Requires server |
+| Backend        | Use Case                                 | Concurrency        | Setup Complexity   |
+| -------------- | ---------------------------------------- | ------------------ | ------------------ |
+| **SQLite**     | Single-user, desktop, testing            | Single writer      | Zero configuration |
+| **PostgreSQL** | Multi-user, production, high concurrency | Connection pooling | Requires server    |
 
 Both backends use the same schema and support all xrat features.
 
@@ -117,16 +117,19 @@ PostgreSQL is recommended for multi-user deployments and high concurrency.
 Install PostgreSQL:
 
 **Ubuntu/Debian**:
+
 ```bash
 sudo apt install postgresql postgresql-contrib
 ```
 
 **macOS**:
+
 ```bash
 brew install postgresql
 ```
 
 **Docker**:
+
 ```bash
 docker run -d \
   --name xrat-postgres \
@@ -190,11 +193,11 @@ xrat import https://example.com/sub.txt
 
 xrat uses a connection pool for PostgreSQL:
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `max_connections` | Maximum pool size | `10` |
-| `min_connections` | Minimum idle connections | `1` |
-| `connect_timeout_secs` | Connection timeout | `10` |
+| Setting                | Description              | Default |
+| ---------------------- | ------------------------ | ------- |
+| `max_connections`      | Maximum pool size        | `10`    |
+| `min_connections`      | Minimum idle connections | `1`     |
+| `connect_timeout_secs` | Connection timeout       | `10`    |
 
 Tune based on your workload:
 
@@ -341,7 +344,7 @@ SELECT count(*) FROM pg_stat_activity WHERE datname = 'xrat';
 Check table sizes:
 
 ```sql
-SELECT 
+SELECT
     schemaname,
     tablename,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
@@ -386,4 +389,5 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO xrat_read;
 
 - [Deployment](README.md) — deployment overview
 - [Database Schema](../05-reference/database-schema.md) — table definitions
-- [Configuration](../01-getting-started/configuration.md) — config.toml reference
+- [Configuration](../01-getting-started/configuration.md) — config.toml
+  reference

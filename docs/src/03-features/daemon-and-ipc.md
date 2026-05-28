@@ -79,27 +79,27 @@ Default: `~/.config/xrat/runtime/daemon.sock`
 
 ### Request Types
 
-| Type | Description | Payload |
-|------|-------------|---------|
-| `DaemonPing` | Check daemon reachability | None |
-| `DaemonShutdown` | Request graceful shutdown | None |
-| `RuntimeStatus` | Get proxy runtime status | None |
-| `RuntimeConnect` | Start a proxy session | `{ config_id: i64 }` |
-| `RuntimeReplace` | Atomic disconnect + connect | `{ config_id: i64 }` |
-| `RuntimeDisconnect` | Stop the active proxy session | None |
-| `ProxyStart` | Enable auto-rotation | None |
-| `ProxyStatus` | Get rotation status | None |
-| `ProxyStop` | Disable auto-rotation | None |
+| Type                | Description                   | Payload              |
+| ------------------- | ----------------------------- | -------------------- |
+| `DaemonPing`        | Check daemon reachability     | None                 |
+| `DaemonShutdown`    | Request graceful shutdown     | None                 |
+| `RuntimeStatus`     | Get proxy runtime status      | None                 |
+| `RuntimeConnect`    | Start a proxy session         | `{ config_id: i64 }` |
+| `RuntimeReplace`    | Atomic disconnect + connect   | `{ config_id: i64 }` |
+| `RuntimeDisconnect` | Stop the active proxy session | None                 |
+| `ProxyStart`        | Enable auto-rotation          | None                 |
+| `ProxyStatus`       | Get rotation status           | None                 |
+| `ProxyStop`         | Disable auto-rotation         | None                 |
 
 ### Response Codes
 
-| Code | Description |
-|------|-------------|
-| `200` | Success |
-| `400` | Bad request (invalid payload) |
-| `404` | Not found (no active session) |
+| Code  | Description                        |
+| ----- | ---------------------------------- |
+| `200` | Success                            |
+| `400` | Bad request (invalid payload)      |
+| `404` | Not found (no active session)      |
 | `409` | Conflict (session already running) |
-| `500` | Internal error |
+| `500` | Internal error                     |
 
 ## Daemon Lifecycle
 
@@ -157,15 +157,15 @@ Every 15 seconds, the daemon:
 ```rust
 async fn check_proxy_health() -> HealthStatus {
     let session = db.get_latest_running_session().await?;
-    
+
     if !process_is_running(session.process_id) {
         return HealthStatus::ProcessDead;
     }
-    
+
     if !tcp_connect(session.socks_host, session.socks_port).await {
         return HealthStatus::PortUnreachable;
     }
-    
+
     HealthStatus::Healthy
 }
 ```
@@ -186,6 +186,7 @@ When the daemon starts, it reconciles stale sessions from previous runs.
 ### Stale Session Detection
 
 Query for sessions with:
+
 - `status = 'running'`
 - `stopped_at IS NULL`
 
@@ -194,10 +195,12 @@ Query for sessions with:
 For each stale session:
 
 1. **Check PID liveness** — Is the process still running?
-2. **Verify process identity** — Does `/proc/<pid>/cmdline` match the expected binary?
+2. **Verify process identity** — Does `/proc/<pid>/cmdline` match the expected
+   binary?
 3. **Decision**:
    - PID alive + cmdline matches → **reattach** (keep as `running`)
-   - PID alive + cmdline mismatch → **mark failed** (different process reused PID)
+   - PID alive + cmdline mismatch → **mark failed** (different process reused
+     PID)
    - PID dead → **mark failed**
 
 ### Reattach Validation
@@ -210,7 +213,8 @@ fn validate_reattach(pid: i64, expected_binary: &Path) -> bool {
 }
 ```
 
-This prevents reattaching to a different process that happens to have the same PID.
+This prevents reattaching to a different process that happens to have the same
+PID.
 
 ## IPC Client
 
@@ -249,15 +253,15 @@ Hint: start the daemon with 'xrat daemon start'
 
 When the daemon is running, these commands route through IPC:
 
-| Command | IPC Request |
-|---------|-------------|
-| `xrat connect <id>` | `RuntimeConnect` |
-| `xrat disconnect` | `RuntimeDisconnect` |
-| `xrat status` | `RuntimeStatus` |
-| `xrat proxy start` | `ProxyStart` |
-| `xrat proxy status` | `ProxyStatus` |
-| `xrat proxy rotate` | `RuntimeReplace` |
-| `xrat proxy stop` | `ProxyStop` |
+| Command             | IPC Request         |
+| ------------------- | ------------------- |
+| `xrat connect <id>` | `RuntimeConnect`    |
+| `xrat disconnect`   | `RuntimeDisconnect` |
+| `xrat status`       | `RuntimeStatus`     |
+| `xrat proxy start`  | `ProxyStart`        |
+| `xrat proxy status` | `ProxyStatus`       |
+| `xrat proxy rotate` | `RuntimeReplace`    |
+| `xrat proxy stop`   | `ProxyStop`         |
 
 ### Direct Mode (No Daemon)
 
@@ -268,6 +272,7 @@ If the daemon is not running, CLI commands can operate in direct mode:
 - `xrat disconnect` — terminates process directly
 
 Direct mode is useful for:
+
 - Development and testing
 - Single-use scenarios
 - Systems where a daemon is not desired
@@ -355,6 +360,7 @@ authentication.
 **Symptom**: `xrat daemon start` fails or exits immediately
 
 **Check**:
+
 - Is a daemon already running? `xrat daemon status`
 - Check logs: `RUST_LOG=debug xrat daemon start`
 - Verify socket directory exists and is writable
@@ -364,6 +370,7 @@ authentication.
 **Symptom**: CLI commands fail with "daemon socket not reachable"
 
 **Check**:
+
 - Is the daemon running? `ps aux | grep xrat`
 - Does the socket file exist? `ls -la ~/.config/xrat/runtime/daemon.sock`
 - Check socket permissions
@@ -373,6 +380,7 @@ authentication.
 **Symptom**: `xrat status` shows a session but no proxy is running
 
 **Fix**:
+
 ```bash
 xrat disconnect
 xrat daemon stop

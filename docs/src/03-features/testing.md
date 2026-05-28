@@ -7,13 +7,13 @@ latency, and throughput for stored proxy configs.
 
 The test command runs up to 5 stages in sequence:
 
-| Stage | Measures | Default | Implementation |
-|-------|----------|---------|----------------|
-| **ICMP** | Ping success and latency | Enabled | Spawns system `ping` command |
-| **TCP** | TCP connect success and latency | Enabled | Direct TCP socket connection |
-| **Real Delay** | HTTP round-trip latency through proxy | Enabled | Spawns proxy, makes HTTP request |
-| **Download** | Download throughput through proxy | Disabled | Downloads file through proxy |
-| **Upload** | Upload throughput through proxy | Disabled | POSTs data through proxy |
+| Stage          | Measures                              | Default  | Implementation                   |
+| -------------- | ------------------------------------- | -------- | -------------------------------- |
+| **ICMP**       | Ping success and latency              | Enabled  | Spawns system `ping` command     |
+| **TCP**        | TCP connect success and latency       | Enabled  | Direct TCP socket connection     |
+| **Real Delay** | HTTP round-trip latency through proxy | Enabled  | Spawns proxy, makes HTTP request |
+| **Download**   | Download throughput through proxy     | Disabled | Downloads file through proxy     |
+| **Upload**     | Upload throughput through proxy       | Disabled | POSTs data through proxy         |
 
 ### Stage Configuration
 
@@ -65,11 +65,11 @@ order = ["real_delay", "download"]
 
 Controls behavior when a stage fails:
 
-| Policy | Behavior |
-|--------|----------|
-| `continue` | Run all stages regardless of failures |
+| Policy           | Behavior                                     |
+| ---------------- | -------------------------------------------- |
+| `continue`       | Run all stages regardless of failures        |
 | `skip_remaining` | Stop testing this config after first failure |
-| `mark_failed` | Mark config as failed, skip remaining stages |
+| `mark_failed`    | Mark config as failed, skip remaining stages |
 
 ## ICMP Stage
 
@@ -117,18 +117,18 @@ timeout = 5000  # ms
 
 TCP failures are classified into categories:
 
-| Category | Description |
-|----------|-------------|
-| `DNS` | DNS resolution failed |
-| `Timeout` | Connection timed out |
-| `Refused` | Connection refused (port closed) |
-| `Unreachable` | Network unreachable |
-| `PermissionDenied` | Permission denied |
-| `TLS` | TLS handshake failed |
-| `Auth` | Authentication failed |
-| `Process` | Proxy process failed to start |
-| `Proxy` | Proxy returned an error |
-| `Unknown` | Unclassified failure |
+| Category           | Description                      |
+| ------------------ | -------------------------------- |
+| `DNS`              | DNS resolution failed            |
+| `Timeout`          | Connection timed out             |
+| `Refused`          | Connection refused (port closed) |
+| `Unreachable`      | Network unreachable              |
+| `PermissionDenied` | Permission denied                |
+| `TLS`              | TLS handshake failed             |
+| `Auth`             | Authentication failed            |
+| `Process`          | Proxy process failed to start    |
+| `Proxy`            | Proxy returned an error          |
+| `Unknown`          | Unclassified failure             |
 
 ## Real Delay Stage
 
@@ -251,24 +251,24 @@ Testing configs ━━━━━━━━━━━━━━━━━━━━ 45/
 
 ### Output Formats
 
-| Format | Description |
-|--------|-------------|
-| `tsv` | Tab-separated values (default, terminal-friendly) |
-| `csv` | Comma-separated values (spreadsheet-friendly) |
-| `json` | JSON array with full details |
+| Format | Description                                       |
+| ------ | ------------------------------------------------- |
+| `tsv`  | Tab-separated values (default, terminal-friendly) |
+| `csv`  | Comma-separated values (spreadsheet-friendly)     |
+| `json` | JSON array with full details                      |
 
 ### Sorting
 
 Sort results by:
 
-| Field | Description |
-|-------|-------------|
-| `status` | Alive first, then by failure reason |
-| `icmp` | Lowest ICMP latency |
-| `real-delay` | Lowest real-delay latency |
-| `download-speed` | Highest download throughput |
-| `protocol` | Protocol name alphabetically |
-| `address` | Server address alphabetically |
+| Field            | Description                         |
+| ---------------- | ----------------------------------- |
+| `status`         | Alive first, then by failure reason |
+| `icmp`           | Lowest ICMP latency                 |
+| `real-delay`     | Lowest real-delay latency           |
+| `download-speed` | Highest download throughput         |
+| `protocol`       | Protocol name alphabetically        |
+| `address`        | Server address alphabetically       |
 
 ## Ping Loop
 
@@ -309,10 +309,10 @@ When enabled, test results include:
 
 Tests are grouped into runs for historical analysis:
 
-| Table | Purpose |
-|-------|---------|
+| Table                  | Purpose                                    |
+| ---------------------- | ------------------------------------------ |
 | `connection_test_runs` | Groups test results (id, kind, created_at) |
-| `connection_tests` | Individual test results linked to a run |
+| `connection_tests`     | Individual test results linked to a run    |
 
 View the latest run summary:
 
@@ -330,18 +330,18 @@ xrat test --latest-run-summary --country US --asn cloudflare
 
 All test results are persisted to the database:
 
-| Field | Description |
-|-------|-------------|
-| `config_id` | Foreign key to configs table |
-| `run_id` | Foreign key to connection_test_runs |
-| `icmp_ok`, `icmp_ms` | ICMP results |
-| `tcp_ok`, `tcp_ms` | TCP results |
-| `real_delay_ok`, `real_delay_ms` | Real delay results |
-| `connect_ms`, `ttfb_ms`, `http_status` | HTTP details |
-| `download_mbps`, `upload_mbps` | Throughput |
-| `failure_kind`, `failure_reason` | Failure details |
-| `endpoint_ip`, `endpoint_country`, `endpoint_asn` | GeoIP |
-| `tested_at` | Timestamp |
+| Field                                             | Description                         |
+| ------------------------------------------------- | ----------------------------------- |
+| `config_id`                                       | Foreign key to configs table        |
+| `run_id`                                          | Foreign key to connection_test_runs |
+| `icmp_ok`, `icmp_ms`                              | ICMP results                        |
+| `tcp_ok`, `tcp_ms`                                | TCP results                         |
+| `real_delay_ok`, `real_delay_ms`                  | Real delay results                  |
+| `connect_ms`, `ttfb_ms`, `http_status`            | HTTP details                        |
+| `download_mbps`, `upload_mbps`                    | Throughput                          |
+| `failure_kind`, `failure_reason`                  | Failure details                     |
+| `endpoint_ip`, `endpoint_country`, `endpoint_asn` | GeoIP                               |
+| `tested_at`                                       | Timestamp                           |
 
 ## Related
 

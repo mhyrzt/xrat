@@ -8,12 +8,12 @@ xrat proxy <action> [flags]
 
 ## Actions
 
-| Action | Description |
-|--------|-------------|
-| `start` | Enable automatic proxy rotation on a fixed schedule |
-| `status` | Show the current proxy rotation status |
-| `rotate` | Trigger an immediate manual rotation |
-| `stop` | Disable automatic proxy rotation |
+| Action   | Description                                         |
+| -------- | --------------------------------------------------- |
+| `start`  | Enable automatic proxy rotation on a fixed schedule |
+| `status` | Show the current proxy rotation status              |
+| `rotate` | Trigger an immediate manual rotation                |
+| `stop`   | Disable automatic proxy rotation                    |
 
 ---
 
@@ -44,11 +44,11 @@ test_stages = ["real_delay", "download"]
 
 ### Rotation Triggers
 
-| Trigger | Description |
-|---------|-------------|
-| **Timer** | Scheduled rotation every `interval_secs` |
+| Trigger          | Description                                                           |
+| ---------------- | --------------------------------------------------------------------- |
+| **Timer**        | Scheduled rotation every `interval_secs`                              |
 | **Health check** | Triggered when proxy health check fails (if `health_trigger_enabled`) |
-| **Manual** | Triggered by `xrat proxy rotate` |
+| **Manual**       | Triggered by `xrat proxy rotate`                                      |
 
 ### Cooldown
 
@@ -67,8 +67,8 @@ xrat proxy status [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description                   |
+| -------- | ----------------------------- |
 | `--json` | Print rotation status as JSON |
 
 ### Output
@@ -111,8 +111,8 @@ xrat proxy rotate [flags]
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag               | Description                                    |
+| ------------------ | ---------------------------------------------- |
 | `--config-id <id>` | Force rotation to a specific enabled config ID |
 
 ### Examples

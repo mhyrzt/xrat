@@ -7,24 +7,24 @@ classifications.
 
 `AppError` is the primary error type returned by command handlers and services.
 
-| Variant | Description | Use Case |
-|---------|-------------|----------|
-| `ConfigNotFound` | Config ID not found in database | `xrat connect <id>` with invalid ID |
-| `NoActiveSession` | No active proxy session | `xrat disconnect` with no session |
-| `XraySpawn` | Failed to spawn Xray process | Xray binary not found or invalid |
-| `XrayExited` | Xray process exited unexpectedly | Process crashed during startup |
-| `XrayStartupTimeout` | Xray port not ready within timeout | Slow startup or port conflict |
-| `DaemonNotRunning` | Daemon IPC socket not reachable | `xrat proxy start` without daemon |
-| `DaemonConnect` | Failed to connect to daemon socket | Permission denied or socket missing |
-| `Database` | Database query or connection error | Connection failure or constraint violation |
-| `Io` | Filesystem I/O error | Permission denied or disk full |
-| `Config` | Configuration file error | Invalid TOML or missing required field |
-| `MissingPostgresUser` | PostgreSQL user not configured | `database.postgres.user` is empty |
-| `MissingPostgresDatabaseName` | PostgreSQL database name not configured | `database.postgres.db_name` is empty |
-| `InvalidConfigValue` | Invalid configuration value | Unknown enum variant or out-of-range |
-| `Serialization` | JSON serialization/deserialization error | Invalid JSON or schema mismatch |
-| `Probe` | Probe test execution error | ICMP ping command failed |
-| `Parse` | Config link parsing error | Invalid URI format or unsupported scheme |
+| Variant                       | Description                              | Use Case                                   |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------ |
+| `ConfigNotFound`              | Config ID not found in database          | `xrat connect <id>` with invalid ID        |
+| `NoActiveSession`             | No active proxy session                  | `xrat disconnect` with no session          |
+| `XraySpawn`                   | Failed to spawn Xray process             | Xray binary not found or invalid           |
+| `XrayExited`                  | Xray process exited unexpectedly         | Process crashed during startup             |
+| `XrayStartupTimeout`          | Xray port not ready within timeout       | Slow startup or port conflict              |
+| `DaemonNotRunning`            | Daemon IPC socket not reachable          | `xrat proxy start` without daemon          |
+| `DaemonConnect`               | Failed to connect to daemon socket       | Permission denied or socket missing        |
+| `Database`                    | Database query or connection error       | Connection failure or constraint violation |
+| `Io`                          | Filesystem I/O error                     | Permission denied or disk full             |
+| `Config`                      | Configuration file error                 | Invalid TOML or missing required field     |
+| `MissingPostgresUser`         | PostgreSQL user not configured           | `database.postgres.user` is empty          |
+| `MissingPostgresDatabaseName` | PostgreSQL database name not configured  | `database.postgres.db_name` is empty       |
+| `InvalidConfigValue`          | Invalid configuration value              | Unknown enum variant or out-of-range       |
+| `Serialization`               | JSON serialization/deserialization error | Invalid JSON or schema mismatch            |
+| `Probe`                       | Probe test execution error               | ICMP ping command failed                   |
+| `Parse`                       | Config link parsing error                | Invalid URI format or unsupported scheme   |
 
 ### Error Messages
 
@@ -40,34 +40,34 @@ Error: Xray process failed to start: No such file or directory (os error 2)
 
 `DbError` represents database-specific errors.
 
-| Variant | Description |
-|---------|-------------|
-| `Query` | SQL query execution error |
-| `Pool` | Connection pool acquisition error |
-| `Connection` | Database connection error |
-| `UniqueViolation` | Duplicate key violation (used for dedup) |
-| `ForeignKeyViolation` | Referential integrity violation |
-| `NotFound` | Expected row not found |
-| `Migration` | Schema migration error |
-| `Config` | Database configuration error |
+| Variant               | Description                              |
+| --------------------- | ---------------------------------------- |
+| `Query`               | SQL query execution error                |
+| `Pool`                | Connection pool acquisition error        |
+| `Connection`          | Database connection error                |
+| `UniqueViolation`     | Duplicate key violation (used for dedup) |
+| `ForeignKeyViolation` | Referential integrity violation          |
+| `NotFound`            | Expected row not found                   |
+| `Migration`           | Schema migration error                   |
+| `Config`              | Database configuration error             |
 
 ## FailureKind
 
 `FailureKind` classifies test stage failures. Used by the testing pipeline and
 displayed in test results.
 
-| Category | Description | Example |
-|----------|-------------|---------|
-| `DNS` | DNS resolution failed | `nodename nor servname provided, or not known` |
-| `Timeout` | Connection or request timed out | `connection timed out after 5000ms` |
-| `Refused` | Connection refused | `Connection refused (os error 111)` |
-| `Unreachable` | Network unreachable | `No route to host (os error 113)` |
-| `PermissionDenied` | Permission denied | `Operation not permitted` |
-| `TLS` | TLS handshake failed | `tls: first record does not look like a TLS handshake` |
-| `Auth` | Authentication failed | `proxy authentication required` |
-| `Process` | Proxy process failed to start | `xray binary not found` |
-| `Proxy` | Proxy returned an error status | `HTTP 503 Service Unavailable` |
-| `Unknown` | Unclassified failure | Any other error |
+| Category           | Description                     | Example                                                |
+| ------------------ | ------------------------------- | ------------------------------------------------------ |
+| `DNS`              | DNS resolution failed           | `nodename nor servname provided, or not known`         |
+| `Timeout`          | Connection or request timed out | `connection timed out after 5000ms`                    |
+| `Refused`          | Connection refused              | `Connection refused (os error 111)`                    |
+| `Unreachable`      | Network unreachable             | `No route to host (os error 113)`                      |
+| `PermissionDenied` | Permission denied               | `Operation not permitted`                              |
+| `TLS`              | TLS handshake failed            | `tls: first record does not look like a TLS handshake` |
+| `Auth`             | Authentication failed           | `proxy authentication required`                        |
+| `Process`          | Proxy process failed to start   | `xray binary not found`                                |
+| `Proxy`            | Proxy returned an error status  | `HTTP 503 Service Unavailable`                         |
+| `Unknown`          | Unclassified failure            | Any other error                                        |
 
 ### Failure Classification Logic
 
@@ -103,44 +103,44 @@ fn classify_tcp_error(error: &io::Error) -> FailureKind {
 
 `ConfigParseError` is returned by the config parser when parsing share links.
 
-| Variant | Description |
-|---------|-------------|
-| `Url` | Invalid URL format |
-| `Json` | Invalid JSON (vmess://) |
-| `Decode` | Invalid base64 payload |
-| `ParseInt` | Invalid numeric value |
-| `MissingAddressOrPort` | URI missing address or port |
-| `MissingBase64Userinfo` | URI missing base64-encoded userinfo |
+| Variant                      | Description                         |
+| ---------------------------- | ----------------------------------- |
+| `Url`                        | Invalid URL format                  |
+| `Json`                       | Invalid JSON (vmess://)             |
+| `Decode`                     | Invalid base64 payload              |
+| `ParseInt`                   | Invalid numeric value               |
+| `MissingAddressOrPort`       | URI missing address or port         |
+| `MissingBase64Userinfo`      | URI missing base64-encoded userinfo |
 | `InvalidShadowsocksUserinfo` | Invalid Shadowsocks userinfo format |
-| `MissingRequiredField` | Required field not found in JSON |
-| `UnsupportedScheme` | Unknown protocol scheme |
+| `MissingRequiredField`       | Required field not found in JSON    |
+| `UnsupportedScheme`          | Unknown protocol scheme             |
 
 ## XrayProcessError
 
 `XrayProcessError` is returned by the Xray process manager.
 
-| Variant | Description |
-|---------|-------------|
-| `TempFileError` | Failed to create temporary config file |
-| `SerializationError` | Failed to serialize config JSON |
-| `SpawnError` | Failed to spawn Xray process |
-| `StartupTimeout` | Xray failed to start within timeout |
-| `ProcessExited` | Xray exited unexpectedly (with stderr) |
-| `PortNotReady` | Inbound port not ready within timeout |
+| Variant              | Description                            |
+| -------------------- | -------------------------------------- |
+| `TempFileError`      | Failed to create temporary config file |
+| `SerializationError` | Failed to serialize config JSON        |
+| `SpawnError`         | Failed to spawn Xray process           |
+| `StartupTimeout`     | Xray failed to start within timeout    |
+| `ProcessExited`      | Xray exited unexpectedly (with stderr) |
+| `PortNotReady`       | Inbound port not ready within timeout  |
 
 ## ImportParseError
 
 `ImportParseError` is returned by the import parser.
 
-| Variant | Description |
-|---------|-------------|
-| `InvalidShareLink` | Input is not a valid share link |
-| `Decode` | Invalid base64 decoding |
-| `Json` | Invalid JSON |
-| `MissingSip008Servers` | SIP008 JSON missing `servers` array |
-| `MissingSip008Field` | SIP008 server missing required field |
-| `Xray` | Invalid Xray JSON |
-| `Config` | Invalid config node |
+| Variant                | Description                          |
+| ---------------------- | ------------------------------------ |
+| `InvalidShareLink`     | Input is not a valid share link      |
+| `Decode`               | Invalid base64 decoding              |
+| `Json`                 | Invalid JSON                         |
+| `MissingSip008Servers` | SIP008 JSON missing `servers` array  |
+| `MissingSip008Field`   | SIP008 server missing required field |
+| `Xray`                 | Invalid Xray JSON                    |
+| `Config`               | Invalid config node                  |
 
 ## Error Handling Best Practices
 

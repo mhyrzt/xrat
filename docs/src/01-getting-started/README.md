@@ -1,9 +1,9 @@
 # Getting Started
 
-xrat is a Rust-based CLI tool and daemon for managing proxy configurations.
-It imports subscription links, parses and normalizes proxy URIs, tests
-connectivity and performance, generates runtime configs for Xray-core and
-sing-box, manages a local proxy runtime process, and exposes an HTTP API.
+xrat is a Rust-based CLI tool and daemon for managing proxy configurations. It
+imports subscription links, parses and normalizes proxy URIs, tests connectivity
+and performance, generates runtime configs for Xray-core and sing-box, manages a
+local proxy runtime process, and exposes an HTTP API.
 
 ## Prerequisites
 

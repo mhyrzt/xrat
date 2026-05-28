@@ -2,8 +2,8 @@
 
 ## Goal
 
-Create user-facing and developer-facing documentation for xrat under `docs/src/`,
-focused on xrat itself (not Xray/V2Ray/sing-box internals).
+Create user-facing and developer-facing documentation for xrat under
+`docs/src/`, focused on xrat itself (not Xray/V2Ray/sing-box internals).
 
 ## Current Structure
 
@@ -66,13 +66,16 @@ docs/src/
 
 ## Key Decisions
 
-1. **Renumber existing sections** — `01-config/` → `07-config/`, `02-backlog/` → `08-backlog/`
-2. **`01-getting-started/`** — onboarding: install, quickstart, config.toml overview
+1. **Renumber existing sections** — `01-config/` → `07-config/`, `02-backlog/` →
+   `08-backlog/`
+2. **`01-getting-started/`** — onboarding: install, quickstart, config.toml
+   overview
 3. **`02-cli/`** — one page per command group, all flags with examples
 4. **`03-features/`** — conceptual deep-dives into each major subsystem
 5. **`04-deployment/`** — operational concerns (systemd, DB backends)
 6. **`05-reference/`** — lookup material (protocols, schema, errors)
-7. **`06-architecture/`** — developer-oriented module map and config generation pipeline
+7. **`06-architecture/`** — developer-oriented module map and config generation
+   pipeline
 
 ## What's NOT Included
 
@@ -83,11 +86,13 @@ docs/src/
 ## Checklist
 
 ### 01-getting-started/
+
 - [x] `README.md` — installation, building from source
 - [x] `quickstart.md` — import → test → connect flow
 - [x] `configuration.md` — config.toml reference overview
 
 ### 02-cli/
+
 - [x] `README.md` — global flags, command overview
 - [x] `import.md` — import + add
 - [x] `list.md` — list configs + list subscriptions
@@ -100,6 +105,7 @@ docs/src/
 - [x] `serve.md` — HTTP API server
 
 ### 03-features/
+
 - [x] `README.md` — feature overview
 - [x] `importing.md` — subscription URLs, files, raw text, base64 decoding
 - [x] `testing.md` — 5-stage probe pipeline, failure classification
@@ -111,11 +117,13 @@ docs/src/
 - [x] `deduplication.md` — dedup key format, versioning
 
 ### 04-deployment/
+
 - [x] `README.md`
 - [x] `systemd.md` — user service examples
 - [x] `database-backends.md` — SQLite vs Postgres setup
 
 ### 05-reference/
+
 - [x] `README.md`
 - [x] `protocols.md` — supported protocols, URI schemes, engine routing
 - [x] `config-file.md` — config.toml full reference
@@ -123,11 +131,13 @@ docs/src/
 - [x] `error-codes.md` — AppError variants, FailureKind categories
 
 ### 06-architecture/
+
 - [x] `README.md` — module map, data flow
 - [x] `config-generation.md` — Node → Xray/sing-box JSON pipeline
 - [x] `module-structure.md` — src/ tree, responsibilities
 
 ### Housekeeping
+
 - [x] Rename `01-config/` → `07-config/`
 - [x] Rename `02-backlog/` → `08-backlog/`
 - [x] Update `SUMMARY.md` with new structure

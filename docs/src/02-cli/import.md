@@ -8,23 +8,23 @@ xrat import <input>
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `input` | Subscription source: a URL, local file path, or raw subscription text |
+| Argument | Description                                                           |
+| -------- | --------------------------------------------------------------------- |
+| `input`  | Subscription source: a URL, local file path, or raw subscription text |
 
 ## Input Formats
 
 xrat automatically detects the input format:
 
-| Format | Detection |
-|--------|-----------|
-| **Subscription URL** | Starts with `http://` or `https://` |
-| **Local file** | Path to an existing file on disk |
-| **Single share link** | Single line starting with a supported protocol scheme |
-| **Base64 subscription** | Multi-line or single-line base64-encoded text |
-| **Plain link list** | Multiple lines, each a valid share link |
-| **SIP008 JSON** | JSON with `"servers"` array |
-| **Xray JSON** | JSON with `"version"` or `"inbounds"` fields |
+| Format                  | Detection                                             |
+| ----------------------- | ----------------------------------------------------- |
+| **Subscription URL**    | Starts with `http://` or `https://`                   |
+| **Local file**          | Path to an existing file on disk                      |
+| **Single share link**   | Single line starting with a supported protocol scheme |
+| **Base64 subscription** | Multi-line or single-line base64-encoded text         |
+| **Plain link list**     | Multiple lines, each a valid share link               |
+| **SIP008 JSON**         | JSON with `"servers"` array                           |
+| **Xray JSON**           | JSON with `"version"` or `"inbounds"` fields          |
 
 ## Examples
 
@@ -79,9 +79,9 @@ xrat add <input>
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `input` | Config URI: `vless://...`, `vmess://...`, `ss://...`, `trojan://...`, `hysteria2://...`, etc. |
+| Argument | Description                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------- |
+| `input`  | Config URI: `vless://...`, `vmess://...`, `ss://...`, `trojan://...`, `hysteria2://...`, etc. |
 
 ## Examples
 
