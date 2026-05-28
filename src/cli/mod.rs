@@ -13,6 +13,7 @@ mod serve;
 mod status;
 mod test_cmd;
 mod tests;
+mod tui;
 
 pub use add::AddArgs;
 pub use command::Command;
@@ -32,6 +33,7 @@ pub use scan::ScanArgs;
 pub use serve::ServeArgs;
 pub use status::StatusArgs;
 pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
+pub use tui::TuiArgs;
 
 use clap::Parser;
 

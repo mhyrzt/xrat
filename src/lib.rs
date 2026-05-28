@@ -7,4 +7,5 @@ pub mod prober;
 pub mod server;
 pub mod singbox;
 pub mod support;
+pub mod tui;
 pub mod xray;

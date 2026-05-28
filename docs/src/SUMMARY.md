@@ -51,6 +51,7 @@
     - [Phase 4.5](08-backlog/01-plan/PHASE_4p5.md)
     - [Phase 4.6 Auto-Rotating Proxy](08-backlog/01-plan/PHASE_4p6_AUTO_ROTATING_PROXY.md)
     - [Phase 5 HTTP API](08-backlog/01-plan/PHASE_5.md)
+    - [Phase 6 TUI Application](08-backlog/01-plan/PHASE_6.md)
     - [Notes](08-backlog/01-plan/notes.md)
   - [Validation](08-backlog/02-validation/index.md)
     - [Current implementation review](08-backlog/02-validation/current-implementation-review.md)

@@ -128,12 +128,19 @@ Suggested metrics to store:
 
 ### Phase 6: TUI Application
 
+- See the detailed phase plan in `PHASE_6.md`.
+- Use `docs/ui/tui/index.html` as the UX/layout prototype for the Ratatui
+  implementation.
 - Build the main interface with Ratatui.
 - Show subscription sources, config list, test results, and runtime state.
 - Allow importing, refreshing, testing, filtering, sorting, and selecting
   configs.
 - Allow starting/stopping Xray and switching the active config.
 - Surface logs and recent failures in a minimal diagnostics view.
+- Add QR/copy/paste share workflows for focused configs, selected configs,
+  subscription URLs, and local profile payloads.
+- Plan needed TUI crates explicitly, including `crossterm`, `tui-qrcode`, and
+  field/modal helpers such as `tui-input` or `tui-textarea`.
 - Bring richer config-management actions into the main UX here or in the phase
   that formalizes config management, such as:
   - `show`

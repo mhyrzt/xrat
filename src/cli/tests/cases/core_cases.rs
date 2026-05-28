@@ -52,6 +52,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Daemon(_)
         | Command::Proxy(_)
         | Command::Serve(_)
+        | Command::Tui(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected import command")
@@ -74,6 +75,7 @@ fn parses_add_subcommand() {
         | Command::Daemon(_)
         | Command::Proxy(_)
         | Command::Serve(_)
+        | Command::Tui(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected add command")
@@ -99,6 +101,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Daemon(_)
         | Command::Proxy(_)
         | Command::Serve(_)
+        | Command::Tui(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")
@@ -134,6 +137,7 @@ fn parses_list_config_filters() {
         | Command::Daemon(_)
         | Command::Proxy(_)
         | Command::Serve(_)
+        | Command::Tui(_)
         | Command::Parse(_)
         | Command::Scan(_) => {
             panic!("expected list command")
@@ -151,5 +155,15 @@ fn parses_serve_overrides() {
             assert_eq!(args.port, Some(9090));
         }
         _ => panic!("expected serve command"),
+    }
+}
+
+#[test]
+fn parses_tui_subcommand() {
+    let cli = Cli::parse_from(["xrat", "tui"]);
+
+    match cli.command {
+        Command::Tui(_) => {}
+        _ => panic!("expected tui command"),
     }
 }

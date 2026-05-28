@@ -4101,6 +4101,7 @@ dependencies = [
  "axum",
  "base64",
  "clap",
+ "crossterm",
  "indicatif",
  "maxminddb",
  "percent-encoding",

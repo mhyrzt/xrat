@@ -10,6 +10,7 @@ mod scan;
 mod serve;
 mod status;
 pub(crate) mod test;
+mod tui;
 
 use crate::app::context::AppContext;
 use crate::cli::Command;
@@ -27,6 +28,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Daemon(args) => daemon::run(context, args).await,
         Command::Proxy(args) => proxy::run(context, args).await,
         Command::Serve(args) => serve::run(context, args).await,
+        Command::Tui(args) => tui::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
     }
 }
