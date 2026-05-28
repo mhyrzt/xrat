@@ -1,0 +1,24 @@
+[Unit]
+Description=XRAT Standalone HTTP API Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/xrat serve
+Restart=on-failure
+RestartSec=5
+
+# Environment variables
+Environment=XRAT_PATH=%h/.config/xrat
+Environment=XRAT_API_KEY=
+Environment=RUST_LOG=info
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/xrat
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

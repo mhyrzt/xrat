@@ -1,0 +1,203 @@
+# test
+
+Test connectivity and latency for stored configs.
+
+```bash
+xrat test [id] [flags]
+```
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Config ID to test. Omit to bulk-test matching configs |
+
+## Filter Flags
+
+When testing multiple configs (no `id` specified):
+
+| Flag | Description |
+|------|-------------|
+| `--enabled-only` | Filter: only enabled configs |
+| `--active-only` | Filter: only the active config |
+| `--selected-only` | Filter: only the selected config |
+| `--subscription <id>` | Filter: only configs from the given subscription ID |
+
+## Stage Skip Flags
+
+| Flag | Description |
+|------|-------------|
+| `--skip-icmp` | Skip the ICMP ping stage |
+| `--skip-tcp` | Skip the TCP connectivity stage |
+| `--skip-real-delay` | Skip the real-delay (HTTP round-trip) stage |
+| `--skip-download` | Skip the download speed stage |
+| `--skip-upload` | Skip the upload speed stage (disabled by default) |
+
+## URL Override Flags
+
+| Flag | Description |
+|------|-------------|
+| `--test-url <url>` | Override the URL used for real-delay checks |
+| `--download-url <url>` | Override the URL used for download speed checks |
+| `--upload-url <url>` | Enable upload speed stage and set the HTTP POST target URL |
+
+## Timeout Override Flags
+
+| Flag | Description |
+|------|-------------|
+| `--icmp-timeout <ms>` | Override ICMP timeout in milliseconds |
+| `--tcp-timeout <ms>` | Override TCP connect timeout in milliseconds |
+| `--real-delay-timeout <ms>` | Override real-delay HTTP request timeout in milliseconds |
+| `--download-timeout <ms>` | Override download speed request timeout in milliseconds |
+| `--upload-timeout <ms>` | Override upload speed request timeout in milliseconds |
+
+## Concurrency and Output Flags
+
+| Flag | Description |
+|------|-------------|
+| `--concurrency <n>` | Bulk-test concurrency. `0` = auto-detect |
+| `--format <format>` | Output format: `tsv`, `csv`, `json` (default: `tsv`) |
+| `--output <file>` | Write bulk results to a file instead of stdout |
+| `--sort-by <field>` | Sort order: `status`, `icmp`, `real-delay`, `download-speed`, `protocol`, `address` (default: `status`) |
+| `--no-progress` | Hide the animated progress bar |
+
+## Ping Loop Flags
+
+| Flag | Description |
+|------|-------------|
+| `--ping` | Continuously ping one config until Ctrl+C, printing a live summary |
+| `--ping-interval <ms>` | Interval between ping-loop iterations (default: `1000`) |
+
+## Historical Summary Flags
+
+| Flag | Description |
+|------|-------------|
+| `--latest-run-summary` | Print a summary of the latest persisted test run and exit |
+| `--country <iso>` | Filter latest-run summary by endpoint country ISO code (e.g. `US`, `DE`) |
+| `--asn <filter>` | Filter latest-run summary by ASN (case-insensitive substring match) |
+
+## Test Stages
+
+The test command runs up to 5 stages in sequence:
+
+| Stage | Measures | Default |
+|-------|----------|---------|
+| **ICMP** | ICMP ping success and latency | Enabled |
+| **TCP** | TCP connect success and latency | Enabled |
+| **Real Delay** | HTTP round-trip latency through proxy | Enabled |
+| **Download** | Download throughput through proxy | Disabled |
+| **Upload** | Upload throughput through proxy | Disabled |
+
+### Stage Order
+
+The default order is configurable via `config.toml`:
+
+```toml
+[testing]
+order = ["icmp", "real_delay", "download"]
+```
+
+### Failure Policy
+
+Controls behavior when a stage fails:
+
+```toml
+[testing]
+failure_policy = "continue"  # "continue" | "skip_remaining" | "mark_failed"
+```
+
+## Examples
+
+Test a single config:
+
+```bash
+xrat test 42
+```
+
+Bulk-test all enabled configs with 4 workers:
+
+```bash
+xrat test --enabled-only --concurrency 4
+```
+
+Test with custom URLs and timeouts:
+
+```bash
+xrat test 1 \
+  --test-url https://example.com/generate_204 \
+  --download-url https://example.com/10mb.test \
+  --real-delay-timeout 5000 \
+  --download-timeout 15000
+```
+
+Skip ICMP and download stages:
+
+```bash
+xrat test 1 --skip-icmp --skip-download
+```
+
+Export results to CSV:
+
+```bash
+xrat test --enabled-only --format csv --output results.csv
+```
+
+Continuous ping loop:
+
+```bash
+xrat test 1 --ping --ping-interval 2000
+```
+
+View latest test run summary:
+
+```bash
+xrat test --latest-run-summary
+```
+
+Filter by country and ASN:
+
+```bash
+xrat test --latest-run-summary --country US --asn cloudflare
+```
+
+## Output Formats
+
+### TSV (default)
+
+Tab-separated values, easy to read in terminal:
+
+```
+ID	Protocol	Address	ICMP	TCP	Real Delay	Download	Status
+1	vless	example.com:443	15ms	12ms	145ms	-	alive
+2	vmess	edge.com:8443	-	-	-	-	timeout
+```
+
+### CSV
+
+Comma-separated values, spreadsheet compatible.
+
+### JSON
+
+Machine-parseable JSON array with full test result details.
+
+## Failure Classification
+
+Test failures are classified into categories:
+
+| Category | Description |
+|----------|-------------|
+| `DNS` | DNS resolution failed |
+| `Timeout` | Connection or request timed out |
+| `Refused` | Connection refused |
+| `Unreachable` | Network unreachable |
+| `PermissionDenied` | Permission denied |
+| `TLS` | TLS handshake failed |
+| `Auth` | Authentication failed |
+| `Process` | Proxy process failed to start |
+| `Proxy` | Proxy returned an error |
+| `Unknown` | Unclassified failure |
+
+## Related
+
+- [`list configs`](list.md#list-configs) — view configs before testing
+- [`connect`](runtime.md#connect) — start a proxy for a tested config
