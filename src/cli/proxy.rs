@@ -9,13 +9,17 @@ pub struct ProxyArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ProxyAction {
-    #[command(about = "Enable automatic proxy rotation on a fixed schedule.")]
+    #[command(
+        about = "Enable automatic proxy rotation on a fixed schedule. State is volatile and resets to config defaults on daemon restart."
+    )]
     Start(ProxyStartArgs),
     #[command(about = "Show the current proxy rotation status.")]
     Status(ProxyStatusArgs),
     #[command(about = "Trigger an immediate manual rotation.")]
     Rotate(ProxyRotateArgs),
-    #[command(about = "Disable automatic proxy rotation.")]
+    #[command(
+        about = "Disable automatic proxy rotation. State is volatile and resets to config defaults on daemon restart."
+    )]
     Stop(ProxyStopArgs),
 }
 

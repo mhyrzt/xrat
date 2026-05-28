@@ -14,6 +14,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         return Err(crate::app::AppError::InvalidArgument(response.message));
                     }
                     println!("Proxy rotation: {}", response.message);
+                    println!(
+                        "Note: This state is volatile and resets to config defaults on daemon restart."
+                    );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
@@ -107,6 +110,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         return Err(crate::app::AppError::InvalidArgument(response.message));
                     }
                     println!("Proxy rotation: {}", response.message);
+                    println!(
+                        "Note: This state is volatile and resets to config defaults on daemon restart."
+                    );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
                     return Err(crate::app::AppError::InvalidArgument(format!(
