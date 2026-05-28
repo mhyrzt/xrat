@@ -92,5 +92,6 @@ fn build_config_list_filter(args: &ListConfigsArgs) -> ConfigListFilter {
         only_selected: args.selected_only,
         only_active: args.active_only,
         subscription_id: args.subscription,
+        protocol: None,
     }
 }

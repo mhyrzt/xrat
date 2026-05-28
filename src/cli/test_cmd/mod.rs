@@ -152,6 +152,7 @@ impl TestArgs {
             only_selected: self.selected_only,
             only_active: self.active_only,
             subscription_id: self.subscription,
+            protocol: None,
         }
     }
 }

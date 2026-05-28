@@ -9,6 +9,14 @@ pub(super) async fn handle_runtime_status(
     context: &AppContext,
     respond_to: oneshot::Sender<RuntimeStatusResult>,
 ) {
+    let server = &context.app_config.server;
+    let http_api_enabled = server.enabled;
+    let http_api_addr = if http_api_enabled {
+        Some(format!("{}:{}", server.host, server.port))
+    } else {
+        None
+    };
+
     match RuntimeService::new(context).status().await {
         Ok(snapshot) => {
             let _ = respond_to.send(RuntimeStatusResult::Ok(RuntimeStatusPayload {
@@ -18,6 +26,8 @@ pub(super) async fn handle_runtime_status(
                 session_id: snapshot.session.as_ref().map(|session| session.id),
                 active_config_id: snapshot.active_config.as_ref().map(|config| config.id),
                 pid_running: snapshot.pid_running,
+                http_api_enabled,
+                http_api_addr,
             }));
         }
         Err(err) => {

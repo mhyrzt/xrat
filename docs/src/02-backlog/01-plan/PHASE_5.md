@@ -991,7 +991,7 @@ explicitly expands scope:
 
 ## Implementation Progress
 
-Estimated completion: 45%.
+Estimated completion: 80%.
 
 Phase 5 has started. The following slices are implemented in code:
 
@@ -1004,18 +1004,26 @@ Phase 5 has started. The following slices are implemented in code:
 - optional query-string API key enforcement exists for non-health routes.
 - `xrat serve` exists with `--host` and `--port` overrides.
 - focused config parsing, CLI parsing, and auth tests exist.
+- `ConfigListFilter` supports `protocol` filtering at the SQL level.
+- `ConfigWithLatestTest` record type combines config and latest test fields.
+- repository-level helpers exist for `list_with_latest_tests`,
+  `list_top_by_real_delay`, `list_paginated_with_latest_tests`,
+  `count_filtered`, and `get_with_latest_test` — eliminating N+1 queries and
+  in-memory filtering.
+- all route handlers (`/json`, `/b64`, `/configs`, `/configs/{id}`) use
+  repository-level JOINs instead of per-config queries.
+- `[server].enabled = true` starts the HTTP server alongside the daemon IPC
+  listener with graceful shutdown coordination.
+- daemon status reports `http_api_enabled` and `http_api_addr` fields.
+- route-level tests cover top-N sorting, protocol filtering, pagination bounds,
+  invalid query rejection, and null latest-test handling.
+- repository-level tests cover joined reads, top-N ordering, pagination,
+  protocol filtering, and config-with-latest-test detail.
 
 Remaining work before Phase 5 is complete:
 
 - add soft-delete state to config records or explicitly gate deleted-state API
   fields until the Phase 6 config-management slice lands.
-- move latest-test joins, top-N real-delay sorting, and pagination into
-  repository-level helpers instead of doing route-local in-memory filtering and
-  N+1 latest-test queries.
-- add route-level tests for `/health`, `/json`, `/b64`, `/configs`, and
-  `/configs/{id}`.
-- wire `[server].enabled = true` into daemon startup and shutdown.
-- extend daemon status output with HTTP API enabled/listening state.
 - add systemd user-service examples for daemon-hosted API and standalone
   `xrat serve`.
 - verify daemon-hosted serving in an environment that permits sockets, ephemeral
@@ -1026,7 +1034,7 @@ Remaining work before Phase 5 is complete:
 Phase 5 can be considered complete when:
 
 1. [x] `cargo build` succeeds with new `src/server/` module
-2. [ ] `cargo test -q` passes including new server route and DB query tests
+2. [x] `cargo test -q` passes including new server route and DB query tests
 3. [x] `xrat serve` starts an HTTP listener on the configured host/port
 4. [x] `/health` returns `{"status":"ok"}` without auth
 5. [x] `/json` returns a JSON array of configs with test metadata
@@ -1037,8 +1045,8 @@ Phase 5 can be considered complete when:
 10. [x] when `server.key` is set, requests without a matching `?key=` are
         rejected with `401`
 11. [x] server shuts down cleanly on SIGINT/SIGTERM
-12. [ ] `[server].enabled = true` starts HTTP alongside the daemon
-13. [ ] daemon status reports HTTP API enabled/listening state
+12. [x] `[server].enabled = true` starts HTTP alongside the daemon
+13. [x] daemon status reports HTTP API enabled/listening state
 
 ## Open Questions
 

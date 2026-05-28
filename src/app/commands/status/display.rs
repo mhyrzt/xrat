@@ -21,6 +21,8 @@ pub(super) fn print_daemon_status(
                 "session_id": payload.session_id,
                 "active_config_id": payload.active_config_id,
                 "pid_running": payload.pid_running,
+                "http_api_enabled": payload.http_api_enabled,
+                "http_api_addr": payload.http_api_addr,
             }))?
         );
         return Ok(());
@@ -35,5 +37,13 @@ pub(super) fn print_daemon_status(
         println!("Active config: {config_id}");
     }
     println!("PID running: {}", payload.pid_running);
+    if payload.http_api_enabled {
+        println!(
+            "HTTP API: enabled ({})",
+            payload.http_api_addr.as_deref().unwrap_or("unknown")
+        );
+    } else {
+        println!("HTTP API: disabled");
+    }
     Ok(())
 }

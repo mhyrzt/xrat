@@ -65,6 +65,8 @@ pub struct RuntimeStatusPayload {
     pub session_id: Option<i64>,
     pub active_config_id: Option<i64>,
     pub pid_running: bool,
+    pub http_api_enabled: bool,
+    pub http_api_addr: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

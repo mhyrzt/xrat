@@ -45,6 +45,7 @@ fn push_filter<'args, DB>(builder: &mut QueryBuilder<'args, DB>, filter: &Config
 where
     DB: sqlx::Database,
     i64: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
+    String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
 {
     if filter.only_enabled {
         builder.push(" AND is_enabled = 1");
@@ -58,6 +59,10 @@ where
     if let Some(subscription_id) = filter.subscription_id {
         builder.push(" AND subscription_id = ");
         builder.push_bind(subscription_id);
+    }
+    if let Some(protocol) = &filter.protocol {
+        builder.push(" AND protocol = ");
+        builder.push_bind(protocol.clone());
     }
     builder.push(" ORDER BY id ASC");
 }

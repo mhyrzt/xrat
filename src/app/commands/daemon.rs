@@ -21,7 +21,29 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
+
+            let http_handle = if context.app_config.server.enabled {
+                let server_settings = context.app_config.server.clone();
+                let db = context.db.clone();
+                let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
+                let handle = tokio::spawn(async move {
+                    if let Err(err) =
+                        crate::server::serve_with_shutdown(db, &server_settings, shutdown_rx).await
+                    {
+                        tracing::error!(error = %err, "HTTP API server failed");
+                    }
+                });
+                Some((handle, shutdown_tx))
+            } else {
+                None
+            };
+
             ipc::serve_ping(&socket_path, tx).await?;
+
+            if let Some((handle, shutdown_tx)) = http_handle {
+                let _ = shutdown_tx.send(());
+                let _ = handle.await;
+            }
         }
         DaemonAction::Status(_) => match ipc::runtime_status_daemon(&socket_path).await {
             Ok(response) => {
@@ -35,9 +57,11 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     session_id: None,
                     active_config_id: None,
                     pid_running: false,
+                    http_api_enabled: false,
+                    http_api_addr: None,
                 });
                 println!(
-                    "Daemon status: {} (protocol v{}, ready={}, runtime_owned={}, runtime={}, session={:?}, active_config={:?}, pid_running={})",
+                    "Daemon status: {} (protocol v{}, ready={}, runtime_owned={}, runtime={}, session={:?}, active_config={:?}, pid_running={}, http_api={}, http_addr={})",
                     response.message,
                     response.protocol_version,
                     payload.daemon_ready,
@@ -45,7 +69,9 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     payload.runtime_status,
                     payload.session_id,
                     payload.active_config_id,
-                    payload.pid_running
+                    payload.pid_running,
+                    payload.http_api_enabled,
+                    payload.http_api_addr.as_deref().unwrap_or("disabled"),
                 );
             }
             Err(err) if ipc::daemon_unreachable(&err) => {

@@ -4,6 +4,25 @@ pub struct ConfigListFilter {
     pub only_selected: bool,
     pub only_active: bool,
     pub subscription_id: Option<i64>,
+    pub protocol: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConfigWithLatestTest {
+    pub config: ConfigRecord,
+    pub test_id: Option<i64>,
+    pub tcp_ok: Option<bool>,
+    pub tcp_ms: Option<i64>,
+    pub real_delay_ok: Option<bool>,
+    pub real_delay_ms: Option<i64>,
+    pub download_mbps: Option<f64>,
+    pub upload_mbps: Option<f64>,
+    pub connect_ms: Option<i64>,
+    pub ttfb_ms: Option<i64>,
+    pub http_status: Option<i64>,
+    pub failure_kind: Option<String>,
+    pub failure_reason: Option<String>,
+    pub tested_at: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

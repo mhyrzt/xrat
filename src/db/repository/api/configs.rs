@@ -1,5 +1,7 @@
 use crate::db::connection::DbPool;
-use crate::db::record::{ConfigListFilter, ConfigRecord, ImportSource, ImportSummary};
+use crate::db::record::{
+    ConfigListFilter, ConfigRecord, ConfigWithLatestTest, ImportSource, ImportSummary,
+};
 use crate::db::repository::{configs, subscriptions};
 use crate::model::Node;
 
@@ -62,4 +64,42 @@ pub async fn clear_active_config(pool: &DbPool) -> crate::db::Result<()> {
 
 pub async fn set_config_enabled(pool: &DbPool, id: i64, is_enabled: bool) -> crate::db::Result<()> {
     configs::set_enabled(pool, id, is_enabled).await
+}
+
+pub async fn list_configs_with_latest_tests(
+    pool: &DbPool,
+    filter: &ConfigListFilter,
+) -> crate::db::Result<Vec<ConfigWithLatestTest>> {
+    configs::list_with_latest_tests(pool, filter).await
+}
+
+pub async fn list_top_configs_by_real_delay(
+    pool: &DbPool,
+    limit: i64,
+    filter: &ConfigListFilter,
+) -> crate::db::Result<Vec<ConfigWithLatestTest>> {
+    configs::list_top_by_real_delay(pool, limit, filter).await
+}
+
+pub async fn count_filtered_configs(
+    pool: &DbPool,
+    filter: &ConfigListFilter,
+) -> crate::db::Result<i64> {
+    configs::count_filtered(pool, filter).await
+}
+
+pub async fn list_configs_paginated_with_latest_tests(
+    pool: &DbPool,
+    filter: &ConfigListFilter,
+    offset: i64,
+    limit: i64,
+) -> crate::db::Result<Vec<ConfigWithLatestTest>> {
+    configs::list_paginated_with_latest_tests(pool, filter, offset, limit).await
+}
+
+pub async fn get_config_with_latest_test(
+    pool: &DbPool,
+    id: i64,
+) -> crate::db::Result<Option<ConfigWithLatestTest>> {
+    configs::get_with_latest_test(pool, id).await
 }

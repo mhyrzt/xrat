@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::db::{ConfigRecord, ConnectionTestRecord};
+use crate::db::ConfigWithLatestTest;
 
 #[derive(Debug, Serialize)]
 pub struct ApiErrorResponse {
@@ -73,64 +73,55 @@ pub struct PaginatedResponse<T> {
     pub items: Vec<T>,
 }
 
-pub fn latest_test_response(test: ConnectionTestRecord) -> ApiLatestTest {
-    ApiLatestTest {
-        tcp_ok: test.tcp_ok,
-        tcp_ms: test.tcp_ms,
-        real_delay_ok: test.real_delay_ok,
-        real_delay_ms: test.real_delay_ms,
-        download_mbps: test.download_mbps,
-        upload_mbps: test.upload_mbps,
-        connect_ms: test.connect_ms,
-        ttfb_ms: test.ttfb_ms,
-        http_status: test.http_status,
-        failure_kind: test.failure_kind,
-        failure_reason: test.failure_reason,
-        tested_at: test.tested_at,
-    }
-}
-
-pub fn summary_response(
-    config: &ConfigRecord,
-    latest_test: Option<&ConnectionTestRecord>,
-) -> ApiConfigSummary {
+pub fn summary_from_joined(row: &ConfigWithLatestTest) -> ApiConfigSummary {
     ApiConfigSummary {
-        id: config.id,
-        name: config.name.clone(),
-        protocol: config.protocol.clone(),
-        address: config.address.clone(),
-        port: config.port,
-        network: config.network.clone(),
-        tls: config.tls.clone(),
-        real_delay_ms: latest_test.and_then(|test| test.real_delay_ms),
-        tcp_ok: latest_test.and_then(|test| test.tcp_ok),
-        last_tested_at: latest_test.map(|test| test.tested_at.clone()),
+        id: row.config.id,
+        name: row.config.name.clone(),
+        protocol: row.config.protocol.clone(),
+        address: row.config.address.clone(),
+        port: row.config.port,
+        network: row.config.network.clone(),
+        tls: row.config.tls.clone(),
+        real_delay_ms: row.real_delay_ms,
+        tcp_ok: row.tcp_ok,
+        last_tested_at: row.tested_at.clone(),
     }
 }
 
-pub fn detail_response(
-    config: ConfigRecord,
-    latest_test: Option<ConnectionTestRecord>,
-) -> ApiConfigDetail {
+pub fn detail_from_joined(row: ConfigWithLatestTest) -> ApiConfigDetail {
+    let latest_test = row.test_id.map(|_| ApiLatestTest {
+        tcp_ok: row.tcp_ok,
+        tcp_ms: row.tcp_ms,
+        real_delay_ok: row.real_delay_ok,
+        real_delay_ms: row.real_delay_ms,
+        download_mbps: row.download_mbps,
+        upload_mbps: row.upload_mbps,
+        connect_ms: row.connect_ms,
+        ttfb_ms: row.ttfb_ms,
+        http_status: row.http_status,
+        failure_kind: row.failure_kind,
+        failure_reason: row.failure_reason,
+        tested_at: row.tested_at.unwrap_or_default(),
+    });
     ApiConfigDetail {
-        id: config.id,
-        subscription_id: config.subscription_id,
-        dedup_key: config.dedup_key,
-        protocol: config.protocol,
-        address: config.address,
-        port: config.port,
-        name: config.name,
-        network: config.network,
-        tls: config.tls,
-        sni: config.sni,
-        host: config.host,
-        path: config.path,
-        is_active: config.is_active,
-        is_enabled: config.is_enabled,
-        is_selected: config.is_selected,
-        imported_at: config.imported_at,
-        created_at: config.created_at,
-        updated_at: config.updated_at,
-        latest_test: latest_test.map(latest_test_response),
+        id: row.config.id,
+        subscription_id: row.config.subscription_id,
+        dedup_key: row.config.dedup_key,
+        protocol: row.config.protocol,
+        address: row.config.address,
+        port: row.config.port,
+        name: row.config.name,
+        network: row.config.network,
+        tls: row.config.tls,
+        sni: row.config.sni,
+        host: row.config.host,
+        path: row.config.path,
+        is_active: row.config.is_active,
+        is_enabled: row.config.is_enabled,
+        is_selected: row.config.is_selected,
+        imported_at: row.config.imported_at,
+        created_at: row.config.created_at,
+        updated_at: row.config.updated_at,
+        latest_test,
     }
 }

@@ -9,8 +9,8 @@ pub use connection::DatabaseConnectionConfig;
 pub use database::Database;
 pub use error::{DbError, Result};
 pub use record::{
-    CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConnectionTestInsert,
-    ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord, ImportSource,
-    ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SourceKind,
-    SubscriptionRecord, node_from_record,
+    CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConfigWithLatestTest,
+    ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
+    ImportSource, ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
+    SourceKind, SubscriptionRecord, node_from_record,
 };

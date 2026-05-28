@@ -6,8 +6,10 @@ mod subscriptions;
 
 pub use cf_scan::{list_cf_scan_history, list_cf_scan_results, upsert_cf_scan_results};
 pub use configs::{
-    clear_active_config, delete_config, get_active_config, get_config_by_id, get_config_count,
-    get_config_flags, get_selected_config, import_nodes, list_configs, set_active_config,
+    clear_active_config, count_filtered_configs, delete_config, get_active_config,
+    get_config_by_id, get_config_count, get_config_flags, get_config_with_latest_test,
+    get_selected_config, import_nodes, list_configs, list_configs_paginated_with_latest_tests,
+    list_configs_with_latest_tests, list_top_configs_by_real_delay, set_active_config,
     set_config_enabled, set_selected_config,
 };
 pub use connection_tests::{
