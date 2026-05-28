@@ -52,25 +52,53 @@ impl<'a> RuntimeService<'a> {
         }
 
         if !matches!(request.trigger, RotationTrigger::Manual) {
-            let _ = run_rotation_bulk_tests(self.context, &eligible_ids).await;
-        }
-
-        for config_id in &eligible_ids {
-            let Some(test) = self
-                .context
-                .db
-                .get_latest_connection_test(*config_id)
-                .await?
-            else {
-                continue;
-            };
-            if test.real_delay_ok != Some(true) {
-                continue;
+            let fresh_results = run_rotation_bulk_tests(self.context, &eligible_ids).await?;
+            for row in &fresh_results {
+                if !row.real_delay_ok {
+                    continue;
+                }
+                let Some(real_delay_ms) = row.real_delay_ms else {
+                    continue;
+                };
+                passing.push((row.id, real_delay_ms as i64, row.download_mbps));
             }
-            let Some(real_delay_ms) = test.real_delay_ms else {
-                continue;
-            };
-            passing.push((*config_id, real_delay_ms, test.download_mbps));
+            if passing.is_empty() {
+                for config_id in &eligible_ids {
+                    let Some(test) = self
+                        .context
+                        .db
+                        .get_latest_connection_test(*config_id)
+                        .await?
+                    else {
+                        continue;
+                    };
+                    if test.real_delay_ok != Some(true) {
+                        continue;
+                    }
+                    let Some(real_delay_ms) = test.real_delay_ms else {
+                        continue;
+                    };
+                    passing.push((*config_id, real_delay_ms, test.download_mbps));
+                }
+            }
+        } else {
+            for config_id in &eligible_ids {
+                let Some(test) = self
+                    .context
+                    .db
+                    .get_latest_connection_test(*config_id)
+                    .await?
+                else {
+                    continue;
+                };
+                if test.real_delay_ok != Some(true) {
+                    continue;
+                }
+                let Some(real_delay_ms) = test.real_delay_ms else {
+                    continue;
+                };
+                passing.push((*config_id, real_delay_ms, test.download_mbps));
+            }
         }
         passing.sort_by(|left, right| {
             left.1
