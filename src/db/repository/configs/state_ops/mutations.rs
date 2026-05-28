@@ -73,7 +73,35 @@ pub async fn set_enabled(pool: &DbPool, id: i64, enabled: bool) -> crate::db::Re
     Ok(())
 }
 
-pub async fn delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+pub async fn soft_delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, is_active = 0, is_selected = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+                .bind(id).execute(pool).await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP::TEXT, is_active = 0, is_selected = 0, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+                .bind(id).execute(pool).await?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn restore(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("UPDATE configs SET is_deleted = 0, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+                .bind(id).execute(pool).await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("UPDATE configs SET is_deleted = 0, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+                .bind(id).execute(pool).await?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn hard_delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     execute_id(
         pool,
         "DELETE FROM configs WHERE id = ?1",

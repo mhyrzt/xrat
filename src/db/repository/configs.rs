@@ -8,6 +8,6 @@ pub use server_ops::{
     list_with_latest_tests,
 };
 pub use state_ops::{
-    clear_all_active, clear_all_selected, delete, get_active, get_flags, get_selected, mark_active,
-    mark_selected, set_enabled,
+    clear_all_active, clear_all_selected, get_active, get_flags, get_selected, hard_delete,
+    mark_active, mark_selected, restore, set_enabled, soft_delete,
 };

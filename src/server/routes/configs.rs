@@ -39,6 +39,8 @@ pub async fn list_configs(
         only_enabled: query.enabled.unwrap_or(false),
         only_selected: query.selected.unwrap_or(false),
         only_active: false,
+        only_deleted: false,
+        include_deleted: false,
         subscription_id: None,
         protocol: query.protocol.clone(),
     };

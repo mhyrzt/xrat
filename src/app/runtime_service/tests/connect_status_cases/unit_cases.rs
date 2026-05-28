@@ -65,6 +65,8 @@ fn rejects_unknown_protocol() {
         is_active: false,
         is_enabled: true,
         is_selected: false,
+        is_deleted: false,
+        deleted_at: None,
         imported_at: "now".to_string(),
         created_at: "now".to_string(),
         updated_at: "now".to_string(),

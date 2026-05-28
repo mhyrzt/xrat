@@ -33,6 +33,8 @@ pub(crate) async fn list_api_configs(
         only_enabled: query.enabled.unwrap_or(true),
         only_selected: query.selected.unwrap_or(false),
         only_active: false,
+        only_deleted: false,
+        include_deleted: false,
         subscription_id: None,
         protocol: query.protocol.clone(),
     };

@@ -8,9 +8,10 @@ pub use cf_scan::{list_cf_scan_history, list_cf_scan_results, upsert_cf_scan_res
 pub use configs::{
     clear_active_config, count_filtered_configs, delete_config, get_active_config,
     get_config_by_id, get_config_count, get_config_flags, get_config_with_latest_test,
-    get_selected_config, import_nodes, list_configs, list_configs_paginated_with_latest_tests,
-    list_configs_with_latest_tests, list_top_configs_by_real_delay, set_active_config,
-    set_config_enabled, set_selected_config,
+    get_selected_config, hard_delete_config, import_nodes, list_configs,
+    list_configs_paginated_with_latest_tests, list_configs_with_latest_tests,
+    list_top_configs_by_real_delay, restore_config, set_active_config, set_config_enabled,
+    set_selected_config,
 };
 pub use connection_tests::{
     get_connection_test_count, get_latest_connection_test, get_latest_connection_test_run,

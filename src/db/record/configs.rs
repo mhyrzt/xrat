@@ -3,6 +3,8 @@ pub struct ConfigListFilter {
     pub only_enabled: bool,
     pub only_selected: bool,
     pub only_active: bool,
+    pub only_deleted: bool,
+    pub include_deleted: bool,
     pub subscription_id: Option<i64>,
     pub protocol: Option<String>,
 }
@@ -47,6 +49,8 @@ pub struct ConfigRecord {
     pub is_active: bool,
     pub is_enabled: bool,
     pub is_selected: bool,
+    pub is_deleted: bool,
+    pub deleted_at: Option<String>,
     pub imported_at: String,
     pub created_at: String,
     pub updated_at: String,

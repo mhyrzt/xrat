@@ -109,6 +109,14 @@ impl Database {
         repository::delete_config(&self.pool, id).await
     }
 
+    pub async fn restore_config(&self, id: i64) -> crate::db::Result<()> {
+        repository::restore_config(&self.pool, id).await
+    }
+
+    pub async fn hard_delete_config(&self, id: i64) -> crate::db::Result<()> {
+        repository::hard_delete_config(&self.pool, id).await
+    }
+
     pub async fn set_selected_config(&self, id: i64) -> crate::db::Result<()> {
         repository::set_selected_config(&self.pool, id).await
     }

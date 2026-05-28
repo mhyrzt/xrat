@@ -4,16 +4,20 @@ use crate::db::connection::DbPool;
 use crate::db::record::{ConfigListFilter, ConfigRecord};
 use crate::db::repository::row::map_config_row;
 
-pub const CONFIG_COLUMNS: &str = "id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, imported_at, created_at, updated_at";
+pub const CONFIG_COLUMNS: &str = "id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, is_deleted, deleted_at, imported_at, created_at, updated_at";
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
-        DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM configs")
-            .fetch_one(pool)
-            .await?),
-        DbPool::Postgres(pool) => Ok(sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM configs")
-            .fetch_one(pool)
-            .await?),
+        DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM configs WHERE is_deleted = 0",
+        )
+        .fetch_one(pool)
+        .await?),
+        DbPool::Postgres(pool) => Ok(sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM configs WHERE is_deleted = 0",
+        )
+        .fetch_one(pool)
+        .await?),
     }
 }
 
@@ -47,6 +51,11 @@ where
     i64: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
 {
+    if filter.only_deleted {
+        builder.push(" AND is_deleted = 1");
+    } else if !filter.include_deleted {
+        builder.push(" AND is_deleted = 0");
+    }
     if filter.only_enabled {
         builder.push(" AND is_enabled = 1");
     }

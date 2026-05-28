@@ -45,7 +45,15 @@ pub async fn get_config_flags(
 }
 
 pub async fn delete_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
-    configs::delete(pool, id).await
+    configs::soft_delete(pool, id).await
+}
+
+pub async fn restore_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    configs::restore(pool, id).await
+}
+
+pub async fn hard_delete_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    configs::hard_delete(pool, id).await
 }
 
 pub async fn set_selected_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {

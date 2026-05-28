@@ -56,7 +56,8 @@ async fn connect_sqlite(database_path: &Path) -> crate::db::Result<DbPool> {
 
     let options = SqliteConnectOptions::new()
         .filename(database_path)
-        .create_if_missing(true);
+        .create_if_missing(true)
+        .pragma("foreign_keys", "ON");
     let pool = SqlitePoolOptions::new()
         .max_connections(1)
         .connect_with(options)
