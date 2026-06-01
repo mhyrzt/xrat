@@ -25,13 +25,17 @@ pub struct TuiData {
     pub total_configs: usize,
     pub enabled_configs: usize,
     pub selected_configs: usize,
+    pub deleted_configs: usize,
     pub failed_configs: usize,
 }
 
 impl TuiData {
-    pub async fn load(context: &crate::app::context::AppContext) -> crate::app::Result<Self> {
+    pub async fn load(
+        context: &crate::app::context::AppContext,
+        include_deleted: bool,
+    ) -> crate::app::Result<Self> {
         let filter = ConfigListFilter {
-            include_deleted: false,
+            include_deleted,
             ..ConfigListFilter::default()
         };
         let mut configs: Vec<_> = context
@@ -51,6 +55,7 @@ impl TuiData {
         let total_configs = configs.len();
         let enabled_configs = configs.iter().filter(|row| row.is_enabled).count();
         let selected_configs = configs.iter().filter(|row| row.is_selected).count();
+        let deleted_configs = configs.iter().filter(|row| row.is_deleted).count();
         let failed_configs = configs
             .iter()
             .filter(|row| row.failure_reason.is_some())
@@ -61,6 +66,7 @@ impl TuiData {
             total_configs,
             enabled_configs,
             selected_configs,
+            deleted_configs,
             failed_configs,
         }
     }
@@ -190,6 +196,7 @@ mod tests {
         assert_eq!(data.total_configs, 3);
         assert_eq!(data.enabled_configs, 2);
         assert_eq!(data.selected_configs, 1);
+        assert_eq!(data.deleted_configs, 0);
         assert_eq!(data.failed_configs, 1);
     }
 

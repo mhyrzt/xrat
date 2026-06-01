@@ -26,6 +26,10 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     if app.show_help {
         render_help(frame, centered_rect(68, 54, area));
     }
+
+    if app.confirm.is_some() {
+        render_confirm(frame, centered_rect(62, 34, area), app);
+    }
 }
 
 fn render_status_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -33,10 +37,11 @@ fn render_status_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Span::styled(" XRAT ", theme::accent_style().bold()),
         Span::styled(app.active_view.badge(), theme::chrome_style()),
         Span::raw(format!(
-            " {} total - {} on - {} sel - {} fail - {}",
+            " {} total - {} on - {} sel - {} del - {} fail - {}",
             app.data.total_configs,
             app.data.enabled_configs,
             app.data.selected_configs,
+            app.data.deleted_configs,
             app.data.failed_configs,
             app.config_filter_summary()
         )),
@@ -162,7 +167,7 @@ fn render_config_filter_strip(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Span::raw("   "),
         Span::styled("Visible: ", theme::muted_style()),
         Span::raw(app.visible_configs().len().to_string()),
-        Span::raw("   / edit  Enter/Esc close  Ctrl+U clear  s sort"),
+        Span::raw("   / search  f deleted  s sort"),
     ]);
 
     frame.render_widget(
@@ -259,8 +264,8 @@ fn render_config_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiCo
             detail_line("Status", &config.status_label()),
             Line::raw(""),
             Line::styled("Actions", theme::muted_style()),
-            Line::raw("Enter activate - Space select - t test"),
-            Line::raw("c copy - y QR - d delete - ? help"),
+            Line::raw("Space select - e enable - x disable"),
+            Line::raw("d delete - r restore - D purge - ? help"),
             Line::raw(""),
             detail_line("Failure", config.failure_reason.as_deref().unwrap_or("-")),
         ],
@@ -298,7 +303,7 @@ fn render_key_bar(frame: &mut Frame<'_>, area: Rect) {
         Span::styled("Move:", theme::muted_style()),
         Span::raw(" j/k arrows   "),
         Span::styled("Other:", theme::muted_style()),
-        Span::raw(" / search  ? help  q quit"),
+        Span::raw(" / search  f deleted  ? help  q quit"),
     ]);
     frame.render_widget(Paragraph::new(line), area);
 }
@@ -312,7 +317,12 @@ fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::raw("j/k       move focus"),
         Line::raw("arrows    move focus"),
         Line::raw("/         edit config search"),
+        Line::raw("f         show/hide deleted configs"),
         Line::raw("s         cycle config sort"),
+        Line::raw("Space     select focused config"),
+        Line::raw("e/x       enable/disable focused config"),
+        Line::raw("d/D       soft delete / purge focused config"),
+        Line::raw("r         restore focused deleted config"),
         Line::raw("Ctrl+U    clear search while editing"),
         Line::raw("Esc       close modal/back"),
         Line::raw("q/Ctrl+C  quit"),
@@ -323,6 +333,31 @@ fn render_help(frame: &mut Frame<'_>, area: Rect) {
             .block(block)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
+        area,
+    );
+}
+
+fn render_confirm(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let Some(confirm) = &app.confirm else {
+        return;
+    };
+
+    frame.render_widget(Clear, area);
+    let text = vec![
+        Line::styled(&confirm.message, theme::chrome_style()),
+        Line::raw(""),
+        Line::styled("Enter/y confirm   Esc/n cancel", theme::muted_style()),
+    ];
+    frame.render_widget(
+        Paragraph::new(text)
+            .block(
+                Block::default()
+                    .title(confirm.title.as_str())
+                    .borders(Borders::ALL),
+            )
+            .alignment(Alignment::Left)
+            .style(theme::chrome_style())
+            .wrap(Wrap { trim: true }),
         area,
     );
 }

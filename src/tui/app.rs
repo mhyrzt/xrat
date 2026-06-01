@@ -19,8 +19,40 @@ pub enum TuiAction {
     ClearSearch,
     ConfirmSearch,
     CycleSort,
+    ToggleDeletedFilter,
+    SelectFocused,
+    EnableFocused,
+    DisableFocused,
+    RestoreFocused,
+    RequestDeleteFocused,
+    RequestPurgeFocused,
+    Confirm,
+    Cancel,
     SwitchView(TuiView),
     None,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TuiConfigCommand {
+    Select(i64),
+    Enable(i64),
+    Disable(i64),
+    Restore(i64),
+    SoftDelete(i64),
+    Purge(i64),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfirmKind {
+    SoftDeleteConfig(i64),
+    PurgeConfig(i64),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfirmState {
+    pub kind: ConfirmKind,
+    pub title: String,
+    pub message: String,
 }
 
 #[derive(Debug)]
@@ -31,6 +63,7 @@ pub struct TuiApp {
     pub status_message: String,
     pub data: TuiData,
     pub config_list: ConfigListState,
+    pub confirm: Option<ConfirmState>,
 }
 
 #[derive(Debug, Default)]
@@ -39,6 +72,7 @@ pub struct ConfigListState {
     pub search_query: String,
     pub editing_search: bool,
     pub sort: ConfigSort,
+    pub include_deleted: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -59,6 +93,7 @@ impl Default for TuiApp {
             status_message: "ready".to_string(),
             data: TuiData::default(),
             config_list: ConfigListState::default(),
+            confirm: None,
         }
     }
 }
@@ -91,7 +126,57 @@ impl TuiApp {
         } else {
             format!("search:{}", self.config_list.search_query)
         };
-        format!("{search} - sort:{}", self.config_list.sort.label())
+        let deleted = if self.config_list.include_deleted {
+            "deleted:on"
+        } else {
+            "deleted:off"
+        };
+        format!(
+            "{search} - sort:{} - {deleted}",
+            self.config_list.sort.label()
+        )
+    }
+
+    pub fn reload_data(&mut self, data: TuiData) {
+        self.data = data;
+        self.clamp_config_focus();
+    }
+
+    pub fn set_status(&mut self, message: impl Into<String>) {
+        self.status_message = message.into();
+    }
+
+    pub fn pending_confirm_command(&self) -> Option<TuiConfigCommand> {
+        self.confirm.as_ref().map(|confirm| match confirm.kind {
+            ConfirmKind::SoftDeleteConfig(id) => TuiConfigCommand::SoftDelete(id),
+            ConfirmKind::PurgeConfig(id) => TuiConfigCommand::Purge(id),
+        })
+    }
+
+    pub fn config_command_for_action(&self, action: TuiAction) -> Option<TuiConfigCommand> {
+        if self.active_view != TuiView::Configs
+            || self.config_list.editing_search
+            || self.confirm.is_some()
+        {
+            return None;
+        }
+
+        let config = self.focused_config()?;
+        match action {
+            TuiAction::SelectFocused if !config.is_deleted => {
+                Some(TuiConfigCommand::Select(config.id))
+            }
+            TuiAction::EnableFocused if !config.is_deleted => {
+                Some(TuiConfigCommand::Enable(config.id))
+            }
+            TuiAction::DisableFocused if !config.is_deleted => {
+                Some(TuiConfigCommand::Disable(config.id))
+            }
+            TuiAction::RestoreFocused if config.is_deleted => {
+                Some(TuiConfigCommand::Restore(config.id))
+            }
+            _ => None,
+        }
     }
 
     pub fn apply(&mut self, action: TuiAction) {
@@ -100,10 +185,14 @@ impl TuiApp {
             TuiAction::ShowHelp => {
                 self.show_help = true;
                 self.config_list.editing_search = false;
+                self.confirm = None;
                 self.status_message = "help".to_string();
             }
             TuiAction::Back => {
-                if self.config_list.editing_search {
+                if self.confirm.is_some() {
+                    self.confirm = None;
+                    self.status_message = "cancelled".to_string();
+                } else if self.config_list.editing_search {
                     self.close_search();
                 } else {
                     self.show_help = false;
@@ -124,10 +213,25 @@ impl TuiApp {
             TuiAction::ClearSearch => self.clear_search(),
             TuiAction::ConfirmSearch => self.close_search(),
             TuiAction::CycleSort => self.cycle_config_sort(),
+            TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
+            TuiAction::RequestDeleteFocused => self.request_delete_focused(),
+            TuiAction::RequestPurgeFocused => self.request_purge_focused(),
+            TuiAction::Confirm => {
+                self.confirm = None;
+            }
+            TuiAction::Cancel => {
+                self.confirm = None;
+                self.status_message = "cancelled".to_string();
+            }
+            TuiAction::SelectFocused
+            | TuiAction::EnableFocused
+            | TuiAction::DisableFocused
+            | TuiAction::RestoreFocused => {}
             TuiAction::SwitchView(view) => {
                 self.active_view = view;
                 self.show_help = false;
                 self.config_list.editing_search = false;
+                self.confirm = None;
                 self.status_message = format!("view: {}", view.label());
             }
             TuiAction::None => {}
@@ -175,6 +279,71 @@ impl TuiApp {
         self.status_message = format!("sort: {}", self.config_list.sort.label());
     }
 
+    fn toggle_deleted_filter(&mut self) {
+        if self.active_view != TuiView::Configs || self.config_list.editing_search {
+            return;
+        }
+
+        self.config_list.include_deleted = !self.config_list.include_deleted;
+        self.config_list.focused = 0;
+        self.status_message = if self.config_list.include_deleted {
+            "showing deleted configs".to_string()
+        } else {
+            "hiding deleted configs".to_string()
+        };
+    }
+
+    fn request_delete_focused(&mut self) {
+        if self.active_view != TuiView::Configs
+            || self.config_list.editing_search
+            || self.confirm.is_some()
+        {
+            return;
+        }
+
+        let Some(config) = self.focused_config() else {
+            return;
+        };
+        if config.is_deleted {
+            self.status_message = "config is already deleted".to_string();
+            return;
+        }
+
+        self.confirm = Some(ConfirmState {
+            kind: ConfirmKind::SoftDeleteConfig(config.id),
+            title: " Soft delete config ".to_string(),
+            message: format!(
+                "Soft delete #{} {}? The row will be hidden unless deleted configs are shown.",
+                config.id,
+                config.display_name()
+            ),
+        });
+        self.status_message = "confirm soft delete".to_string();
+    }
+
+    fn request_purge_focused(&mut self) {
+        if self.active_view != TuiView::Configs
+            || self.config_list.editing_search
+            || self.confirm.is_some()
+        {
+            return;
+        }
+
+        let Some(config) = self.focused_config() else {
+            return;
+        };
+        self.confirm = Some(ConfirmState {
+            kind: ConfirmKind::PurgeConfig(config.id),
+            title: " Purge config ".to_string(),
+            message: format!(
+                "Permanently delete #{} {}? This cannot be undone.",
+                config.id,
+                config.display_name()
+            ),
+        });
+        self.status_message = "confirm purge".to_string();
+    }
+
     fn move_config_focus(&mut self, delta: isize) {
         if self.active_view != TuiView::Configs || self.config_list.editing_search {
             return;
@@ -197,6 +366,15 @@ impl TuiApp {
         self.config_list.focused = next;
         if let Some(config) = self.focused_config() {
             self.status_message = format!("#{} {}", config.id, config.display_name());
+        }
+    }
+
+    fn clamp_config_focus(&mut self) {
+        let len = self.visible_config_indices().len();
+        if len == 0 {
+            self.config_list.focused = 0;
+        } else if self.config_list.focused >= len {
+            self.config_list.focused = len - 1;
         }
     }
 
@@ -290,7 +468,7 @@ impl TuiView {
 mod tests {
     use crate::tui::data::{TuiConfigRow, TuiData};
 
-    use super::{ConfigSort, TuiAction, TuiApp, TuiView};
+    use super::{ConfigSort, ConfirmKind, TuiAction, TuiApp, TuiConfigCommand, TuiView};
 
     #[test]
     fn switches_active_view() {
@@ -377,6 +555,72 @@ mod tests {
             .map(|row| row.id)
             .collect();
         assert_eq!(visible, vec![1, 2]);
+    }
+
+    #[test]
+    fn maps_focused_config_actions_to_commands() {
+        let data = TuiData::from_configs(vec![row(1)]);
+        let app = TuiApp::with_data(data);
+
+        assert_eq!(
+            app.config_command_for_action(TuiAction::SelectFocused),
+            Some(TuiConfigCommand::Select(1))
+        );
+        assert_eq!(
+            app.config_command_for_action(TuiAction::EnableFocused),
+            Some(TuiConfigCommand::Enable(1))
+        );
+        assert_eq!(
+            app.config_command_for_action(TuiAction::DisableFocused),
+            Some(TuiConfigCommand::Disable(1))
+        );
+    }
+
+    #[test]
+    fn opens_and_cancels_delete_confirmation() {
+        let data = TuiData::from_configs(vec![row(1)]);
+        let mut app = TuiApp::with_data(data);
+
+        app.apply(TuiAction::RequestDeleteFocused);
+
+        assert_eq!(
+            app.confirm.as_ref().map(|confirm| confirm.kind),
+            Some(ConfirmKind::SoftDeleteConfig(1))
+        );
+        assert_eq!(
+            app.pending_confirm_command(),
+            Some(TuiConfigCommand::SoftDelete(1))
+        );
+
+        app.apply(TuiAction::Cancel);
+
+        assert!(app.confirm.is_none());
+        assert_eq!(app.status_message, "cancelled");
+    }
+
+    #[test]
+    fn toggles_deleted_filter_and_resets_focus() {
+        let data = TuiData::from_configs(vec![row(1), row(2)]);
+        let mut app = TuiApp::with_data(data);
+        app.apply(TuiAction::MoveDown);
+
+        app.apply(TuiAction::ToggleDeletedFilter);
+
+        assert!(app.config_list.include_deleted);
+        assert_eq!(app.config_list.focused, 0);
+    }
+
+    #[test]
+    fn restore_command_only_applies_to_deleted_configs() {
+        let mut deleted = row(1);
+        deleted.is_deleted = true;
+        let data = TuiData::from_configs(vec![deleted]);
+        let app = TuiApp::with_data(data);
+
+        assert_eq!(
+            app.config_command_for_action(TuiAction::RestoreFocused),
+            Some(TuiConfigCommand::Restore(1))
+        );
     }
 
     fn row(id: i64) -> TuiConfigRow {
