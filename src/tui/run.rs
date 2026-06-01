@@ -8,17 +8,21 @@ use crossterm::terminal::{
 };
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
+use tokio::sync::mpsc;
 
 use crate::app::context::AppContext;
 use crate::tui::app::{TuiApp, TuiConfigCommand};
 use crate::tui::data::TuiData;
+use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 
 pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let mut terminal = TerminalSession::enter()?;
     let data = TuiData::load(context, false).await?;
     let mut app = TuiApp::with_data(data);
+    let (task_tx, mut task_rx) = mpsc::unbounded_channel();
 
     loop {
+        drain_task_events(&mut app, &mut task_rx);
         terminal.draw(|frame| crate::tui::view::render(frame, &app))?;
 
         if app.should_quit {
@@ -40,7 +44,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 let direct_command = app.config_command_for_action(action);
                 app.apply(action);
                 if matches!(action, crate::tui::app::TuiAction::ToggleDeletedFilter) {
-                    reload_data(context, &mut app).await;
+                    spawn_reload_data(context.clone(), app.config_list.include_deleted, &task_tx);
                 }
                 if let Some(command) = confirmed_command.or(direct_command) {
                     run_config_command(context, &mut app, command).await;
@@ -50,6 +54,37 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     }
 
     Ok(())
+}
+
+fn drain_task_events(app: &mut TuiApp, task_rx: &mut mpsc::UnboundedReceiver<TuiTaskEvent>) {
+    while let Ok(event) = task_rx.try_recv() {
+        app.apply_task_event(event);
+    }
+}
+
+fn spawn_reload_data(
+    context: AppContext,
+    include_deleted: bool,
+    task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
+) {
+    let kind = TuiTaskKind::ReloadData;
+    let _ = task_tx.send(TuiTaskEvent::Started { kind });
+
+    let task_tx = task_tx.clone();
+    tokio::spawn(async move {
+        let event = match TuiData::load(&context, include_deleted).await {
+            Ok(data) => TuiTaskEvent::Completed {
+                kind,
+                message: "reloaded data".to_string(),
+                data: Some(data),
+            },
+            Err(error) => TuiTaskEvent::Failed {
+                kind,
+                error: error.to_string(),
+            },
+        };
+        let _ = task_tx.send(event);
+    });
 }
 
 async fn run_config_command(context: &AppContext, app: &mut TuiApp, command: TuiConfigCommand) {

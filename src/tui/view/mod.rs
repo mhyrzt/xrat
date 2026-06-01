@@ -46,7 +46,10 @@ fn render_status_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             app.config_filter_summary()
         )),
         Span::raw("   "),
-        Span::styled("* READY", theme::success_style().bold()),
+        Span::styled(
+            format!("* {}", app.task_state.label()),
+            theme::success_style().bold(),
+        ),
         Span::raw("   "),
         Span::styled(&app.status_message, theme::muted_style()),
     ]);

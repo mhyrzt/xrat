@@ -958,19 +958,21 @@ Recent progress:
   cards plus session, inbound, failure, transition, and database details.
 - Tests view now loads the latest connection-test run, renders scope/mode cards,
   progress counts, untested/failed summaries, and recent result rows.
+- TUI task infrastructure now has typed task events, lifecycle state,
+  non-blocking event-loop draining, and background data reload wiring.
 - Focused TUI reducer/keymap tests and full `cargo test -q` pass after these
   slices.
 
 Current next slice:
 
-- Add the background task runner needed for test, refresh, import, and runtime
-  operations, then wire the first start/cancel action through it.
+- Use the background task runner for the first user-facing long-running action,
+  likely focused test start/cancel or source refresh.
 
-Phase 6 is at approximately 45-55% implementation. Most completion criteria remain unchecked because test execution, QR/copy/paste, diagnostics, and background task flows are not complete. The following gaps are the most significant:
+Phase 6 is at approximately 50-55% implementation. Most completion criteria remain unchecked because test execution, QR/copy/paste, diagnostics, and background task flows are not complete. The following gaps are the most significant:
 
-### 1. No TUI background task infrastructure
+### 1. Background task infrastructure is only scaffolded
 
-Configs, Sources, Tests, and Runtime have functional DB/service-backed read-only views. Test batches, source refreshes, imports, and runtime actions still need non-blocking task execution and completion events.
+Configs, Sources, Tests, and Runtime have functional DB/service-backed read-only views. A typed task channel and state reducer exist, but test batches, source refreshes, imports, and runtime actions still need service-specific background execution and cancellation.
 
 ### 2. Search/filter/sort is partial
 
@@ -984,9 +986,9 @@ Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk
 
 `tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard, or paste/import modal exists.
 
-### 5. No background task infrastructure for TUI
+### 5. No service-specific background operations yet
 
-No async task spawning, progress events, or cancellation support exists for import, test, or runtime operations from the TUI.
+The task channel currently handles background data reloads. Import, test, source refresh, runtime operations, and cancellation are still pending.
 
 ### 6. No diagnostics or help content
 

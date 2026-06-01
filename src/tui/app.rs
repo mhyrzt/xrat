@@ -65,6 +65,7 @@ pub struct TuiApp {
     pub config_list: ConfigListState,
     pub source_list: SourceListState,
     pub test_state: TestViewState,
+    pub task_state: crate::tui::task::TuiTaskState,
     pub confirm: Option<ConfirmState>,
 }
 
@@ -128,6 +129,7 @@ impl Default for TuiApp {
             config_list: ConfigListState::default(),
             source_list: SourceListState::default(),
             test_state: TestViewState::default(),
+            task_state: crate::tui::task::TuiTaskState::default(),
             confirm: None,
         }
     }
@@ -223,6 +225,39 @@ impl TuiApp {
 
     pub fn set_status(&mut self, message: impl Into<String>) {
         self.status_message = message.into();
+    }
+
+    pub fn apply_task_event(&mut self, event: crate::tui::task::TuiTaskEvent) {
+        match event {
+            crate::tui::task::TuiTaskEvent::Completed {
+                kind,
+                message,
+                data,
+            } => {
+                self.task_state
+                    .apply(&crate::tui::task::TuiTaskEvent::Completed {
+                        kind,
+                        message: message.clone(),
+                        data: None,
+                    });
+                if let Some(data) = data {
+                    self.reload_data(data);
+                }
+                self.status_message = message;
+            }
+            crate::tui::task::TuiTaskEvent::Failed { kind, error } => {
+                self.task_state
+                    .apply(&crate::tui::task::TuiTaskEvent::Failed {
+                        kind,
+                        error: error.clone(),
+                    });
+                self.status_message = format!("operation failed: {error}");
+            }
+            event => {
+                self.task_state.apply(&event);
+                self.status_message = self.task_state.label();
+            }
+        }
     }
 
     pub fn pending_confirm_command(&self) -> Option<TuiConfigCommand> {
@@ -617,6 +652,7 @@ impl TuiView {
 #[cfg(test)]
 mod tests {
     use crate::tui::data::{TuiConfigRow, TuiData, TuiSourceRow};
+    use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 
     use super::{ConfigSort, ConfirmKind, TestScope, TuiAction, TuiApp, TuiConfigCommand, TuiView};
 
@@ -804,6 +840,26 @@ mod tests {
 
         app.test_state.scope = TestScope::Failed;
         assert_eq!(app.test_scope_count(), 1);
+    }
+
+    #[test]
+    fn applies_task_completion_and_reloads_data() {
+        let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+
+        app.apply_task_event(TuiTaskEvent::Started {
+            kind: TuiTaskKind::ReloadData,
+        });
+        assert_eq!(app.task_state.running, Some(TuiTaskKind::ReloadData));
+
+        app.apply_task_event(TuiTaskEvent::Completed {
+            kind: TuiTaskKind::ReloadData,
+            message: "reloaded".to_string(),
+            data: Some(TuiData::from_configs(vec![row(1), row(2)])),
+        });
+
+        assert_eq!(app.task_state.running, None);
+        assert_eq!(app.status_message, "reloaded");
+        assert_eq!(app.data.total_configs, 2);
     }
 
     fn row(id: i64) -> TuiConfigRow {

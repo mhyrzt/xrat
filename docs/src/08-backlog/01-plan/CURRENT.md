@@ -109,18 +109,23 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
     counts, untested/failed summaries, and recent result rows.
   - test scope state exists for focused, selected, filtered, all enabled, failed,
     and stale/untested sets.
+- Background task scaffold landed:
+  - typed TUI task events and lifecycle state now exist under `src/tui/task.rs`.
+  - the run loop drains task events without blocking terminal input.
+  - deleted-filter data reload now uses the background task channel.
+  - the status bar shows task state and reducer tests cover task completion.
 
 ## Current Goal
 
-Continue Phase 6 by adding the background task/action infrastructure needed for
-mutating operations:
+Continue Phase 6 by using the background task/action infrastructure for the
+first user-facing long-running operation:
 
-1. define typed TUI task events and completion summaries
-2. add a non-blocking task channel between spawned work and the event loop
-3. wire the first start/cancel-capable operation through the task runner
+1. choose focused test start/cancel or source refresh as the first operation
+2. route it through typed task events and the existing app service/repository path
+3. show progress/completion/failure in the relevant view
 4. reload affected DB-backed state after task completion
 
-Progress estimate: **~45-55%** complete.
+Progress estimate: **~50-55%** complete.
 
 ## Remaining Gaps
 
@@ -143,18 +148,17 @@ Progress estimate: **~45-55%** complete.
 
 ## Immediate Next Slice
 
-1. Add typed TUI task messages for started/progress/completed/failed/cancelled.
-2. Add an event-loop path that drains task messages without blocking terminal
-   input.
-3. Start with a low-risk action, likely test batch shell or runtime status reload.
-4. Add reducer tests for task progress state.
+1. Add a TUI action/key path for the first background operation.
+2. Spawn the operation through the task channel and keep navigation responsive.
+3. Add progress/completion/failure UI text in the related view.
+4. Add reducer tests for the operation-specific task state.
 5. Keep service-specific execution small and routed through existing app services.
 
 ## Verification
 
 - `cargo fmt` passed.
 - `cargo test -q tui::` passed.
-- Full `cargo test -q` passed after the latest Tests-view slice.
+- Full `cargo test -q` passed after the background-task scaffold.
 
 ## Completion blockers
 
