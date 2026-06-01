@@ -38,8 +38,4 @@
   - [Daemon Architecture](06-architecture/daemon-architecture.md)
   - [Runtime Lifecycle](06-architecture/runtime-lifecycle.md)
   - [Test Pipeline](06-architecture/test-pipeline.md)
-- [Config](07-config/README.md)
-  - [Import](07-config/import.md)
-  - [Xray](07-config/02-xray/README.md) -
-  [Structure](07-config/02-xray/STRUCTURE.md)
   <!-- Backlog section excluded from mdBook build (personal use only) -->
