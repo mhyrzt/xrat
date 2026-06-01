@@ -1,7 +1,7 @@
 mod execute;
 mod model;
 mod port;
-mod request;
+pub(crate) mod request;
 
 pub use execute::real_delay_check;
 pub use model::RealDelayResult;

@@ -3,6 +3,7 @@ use crate::model::Node;
 use crate::model::Protocol;
 use crate::prober::FailureKind;
 use crate::prober::real_delay::check::find_available_port;
+use crate::prober::real_delay::check::request::make_proxied_request;
 use std::path::Path;
 use std::time::Duration;
 
@@ -48,4 +49,18 @@ async fn test_real_delay_check_invalid_config() {
 
     assert!(!result.success);
     assert!(matches!(result.failure_kind, Some(FailureKind::Process)));
+}
+
+#[tokio::test]
+async fn test_make_proxied_request_handles_proxy_errors_gracefully() {
+    let result = make_proxied_request(
+        0,
+        "https://www.gstatic.com/generate_204",
+        Duration::from_secs(2),
+    )
+    .await;
+
+    assert!(!result.success);
+    assert!(result.failure_kind.is_some());
+    assert!(result.failure_reason.is_some());
 }
