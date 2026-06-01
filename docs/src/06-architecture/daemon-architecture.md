@@ -117,27 +117,24 @@ and carries a typed payload (`PingPayload`, `RuntimeStatusPayload`,
 ### Client and Server
 
 ```mermaid
-graph LR
-    subgraph Client["IPC Client (CLI/TUI)"]
-        CONN[connect to socket]
-        WRITE[write JSON request + newline]
-        READ[read JSON response + newline]
+sequenceDiagram
+    participant C as IPC Client (CLI / TUI)
+    participant S as IPC Server (Daemon)
+
+    C->>S: connect Unix socket
+    S-->>C: accept connection
+
+    rect rgb(40, 60, 90)
+        Note over C,S: One DaemonRequest / DaemonResponse exchange
     end
 
-    subgraph Server["IPC Server (Daemon)"]
-        ACCEPT[accept connection]
-        PARSE[parse DaemonRequest]
-        DISPATCH[handler::dispatch_request]
-        HANDLE[supervisor handler]
-        RESP[build DaemonResponse]
-    end
-
-    CONN --> ACCEPT
-    WRITE --> PARSE
-    PARSE --> DISPATCH
-    DISPATCH --> HANDLE
-    HANDLE --> RESP
-    RESP --> READ
+    C->>S: write JSON request + newline
+    S->>S: parse DaemonRequest
+    S->>S: dispatch_request
+    S->>S: supervisor handler
+    S->>S: build DaemonResponse
+    S-->>C: write JSON response + newline
+    C->>C: read JSON response + newline
 ```
 
 ### Transport Routing

@@ -196,13 +196,12 @@ pub enum FailureKind {
 `upload/classify.rs::classify_request_error/classify_xray_error`).
 
 ```mermaid
-flowchart TD
-    FAIL[Test failure]
-    FAIL --> CAT{Prober}
-    CAT -- ICMP --> ICMP[Dns | Timeout | PermissionDenied | Unknown]
-    CAT -- TCP --> TCP[Dns | Timeout | Refused | Unreachable | Unknown]
-    CAT -- RealDelay --> RD[Tls | Proxy | Auth | Process | Unknown]
-    CAT -- Download/Upload --> TH[Process | Proxy | Request | Unknown]
+flowchart LR
+    FAIL[Test failure] --> CAT{Prober}
+    CAT -- "ICMP" --> ICMP["dns, timeout, permission_denied, unreachable, unknown"]
+    CAT -- "TCP" --> TCP["dns, timeout, refused, unreachable, permission_denied, unknown"]
+    CAT -- "RealDelay" --> RD["process, timeout, tls, auth, proxy, unknown"]
+    CAT -- "Download / Upload" --> TH["process, timeout, tls, auth, proxy, unknown"]
 ```
 
 ## Stage Execution

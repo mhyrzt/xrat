@@ -7,122 +7,102 @@ integration.
 ## Component Diagram
 
 ```mermaid
-graph TB
-    subgraph Entry
-        main["main.rs"]
-        lib["lib.rs"]
-    end
+graph LR
+    classDef entry fill:#2c3a52,stroke:#5b8def,color:#e6edf3
+    classDef cli fill:#2c3a52,stroke:#5b8def,color:#e6edf3
+    classDef app fill:#2c4a3a,stroke:#5bdf8a,color:#e6edf3
+    classDef model fill:#4a3a2c,stroke:#dfa85b,color:#e6edf3
+    classDef cfg fill:#3a2c4a,stroke:#a85bdf,color:#e6edf3
+    classDef db fill:#2c4a4a,stroke:#5bdfd3,color:#e6edf3
+    classDef engine fill:#4a2c3a,stroke:#df5b8a,color:#e6edf3
+    classDef prober fill:#4a4a2c,stroke:#dfdf5b,color:#e6edf3
+    classDef server fill:#2c4a2c,stroke:#5bdf5b,color:#e6edf3
+    classDef supp fill:#2c2c4a,stroke:#8a8adf,color:#e6edf3
 
-    subgraph CLI["src/cli/ — Clap Definitions"]
-        cli_root["root.rs"]
-        cli_cmd["command.rs"]
-        cli_add["add.rs"]
-        cli_import["import.rs"]
-        cli_test["test_cmd/"]
-        cli_tests["tests/"]
-    end
+    main["main.rs"]:::entry
+    lib["lib.rs"]:::entry
 
-    subgraph APP["src/app/ — Orchestration"]
-        ctx["context.rs"]
-        paths["context/paths.rs"]
-        app_cfg["config/"]
-        app_err["error.rs"]
-        cmds["commands/"]
-        rt_svc["runtime_service/"]
-        daemon["daemon/"]
-    end
+    cli["src/cli/"]:::cli
+    cmds["commands/"]:::app
+    rtsvc["runtime_service/"]:::app
+    daemon["daemon/"]:::app
+    ctx["context/"]:::app
 
-    subgraph MODEL["src/model/ — Domain Types"]
-        node["node.rs"]
-        proto["protocol.rs"]
-        dedup["node_dedup_key.rs"]
-    end
+    model["src/model/"]:::model
 
-    subgraph CONFIG["src/config/ — Parsing"]
-        protos["protocols/"]
-        normalize["normalize.rs"]
-        parse_svc["parse_service.rs"]
-        import_mod["import/"]
-    end
+    config["src/config/"]:::cfg
+    protos["protocols/"]:::cfg
+    import["import/"]:::cfg
 
-    subgraph DB["src/db/ — Persistence"]
-        conn["connection.rs"]
-        schema["schema.rs"]
-        db_query["database/"]
-        repo["repository/"]
-        record["record/"]
-    end
+    db["src/db/"]:::db
+    repo["repository/"]:::db
+    record["record/"]:::db
 
-    subgraph XRAY["src/xray/ — Xray Integration"]
-        xcfg["config/"]
-        xparse["parsing/"]
-        xproc["process/"]
-        xpm["process_mgmt/"]
-    end
+    xray["src/xray/"]:::engine
+    xparse["parsing/"]:::engine
+    xcfg["config/"]:::engine
+    xproc["process/"]:::engine
+    xpm["process_mgmt/"]:::engine
 
-    subgraph SINGBOX["src/singbox/ — sing-box"]
-        scfg["config/ + process_mgmt helper"]
-    end
+    singbox["src/singbox/"]:::engine
 
-    subgraph PROBER["src/prober/ — Testing"]
-        p_icmp["icmp/"]
-        p_tcp["tcp/"]
-        p_delay["real_delay/"]
-        p_dl["download/"]
-        p_ul["upload/"]
-    end
+    prober["src/prober/"]:::prober
+    picmp["icmp/"]:::prober
+    ptcp["tcp/"]:::prober
+    prd["real_delay/"]:::prober
+    pdl["download/"]:::prober
+    pul["upload/"]:::prober
 
-    subgraph SERVER["src/server/ — HTTP API"]
-        srv_routes["routes/"]
-        srv_auth["auth.rs"]
-    end
+    server["src/server/"]:::server
 
-    subgraph SUPPORT["src/support/ — Utilities"]
-        decode["decode.rs"]
-        geoip["geoip.rs"]
-        net["net.rs"]
-    end
+    support["src/support/"]:::supp
 
     main --> lib
-    lib --> CLI
-    lib --> APP
-    lib --> MODEL
-    lib --> CONFIG
-    lib --> DB
-    lib --> XRAY
-    lib --> SINGBOX
-    lib --> PROBER
-    lib --> SERVER
-    lib --> SUPPORT
+    lib --> cli
+    lib --> cmds
+    lib --> ctx
+    lib --> model
+    lib --> config
+    lib --> db
+    lib --> xray
+    lib --> singbox
+    lib --> prober
+    lib --> server
+    lib --> support
 
-    APP --> cmds
-    cmds --> rt_svc
+    cmds --> rtsvc
     cmds --> daemon
-    rt_svc --> XRAY
-    rt_svc --> SINGBOX
-    daemon --> rt_svc
+    rtsvc --> xpm
+    daemon --> rtsvc
 
-    CONFIG --> MODEL
-    CONFIG --> protos
-    CONFIG --> import_mod
+    config --> protos
+    config --> import
+    config --> model
 
-    DB --> repo
-    DB --> record
-    repo --> XRAY
-    repo --> PROBER
+    db --> repo
+    db --> record
+    repo --> xray
+    repo --> prober
 
-    XRAY --> xcfg
-    XRAY --> xparse
-    XRAY --> xproc
+    xray --> xcfg
+    xray --> xparse
+    xray --> xproc
+    xray --> xpm
+    xpm --> xproc
 
-    PROBER --> XRAY
-    PROBER --> MODEL
+    prober --> picmp
+    prober --> ptcp
+    prober --> prd
+    prober --> pdl
+    prober --> pul
+    prober --> xray
+    prober --> model
 
-    SERVER --> DB
-    SERVER --> MODEL
+    server --> db
+    server --> model
 
-    SUPPORT --> CONFIG
-    SUPPORT --> DB
+    support --> config
+    support --> db
 ```
 
 ## Module Responsibilities
