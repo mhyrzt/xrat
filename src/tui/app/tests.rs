@@ -208,6 +208,57 @@ fn collects_config_ids_for_current_test_scope() {
 }
 
 #[test]
+fn cancel_test_batch_signals_running_token() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    let (token, _receiver) = app.task_state.start(TuiTaskKind::TestBatch);
+
+    app.apply(TuiAction::CancelTestBatch);
+
+    assert!(token.is_cancelled());
+    assert_eq!(app.status_message, "cancelling test batch");
+}
+
+#[test]
+fn cancel_test_batch_without_running_task_is_a_noop() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+
+    app.apply(TuiAction::CancelTestBatch);
+
+    assert_eq!(app.status_message, "no test batch is running");
+    assert!(app.task_state.cancellation.is_none());
+}
+
+#[test]
+fn completed_event_clears_cancellation_token() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    let (_token, _receiver) = app.task_state.start(TuiTaskKind::TestBatch);
+
+    app.apply_task_event(TuiTaskEvent::Completed {
+        kind: TuiTaskKind::TestBatch,
+        message: "tested 3 configs".to_string(),
+        data: None,
+    });
+
+    assert!(app.task_state.cancellation.is_none());
+    assert_eq!(app.task_state.running, None);
+    assert_eq!(app.status_message, "tested 3 configs");
+}
+
+#[test]
+fn cancelled_event_clears_cancellation_token() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    let (_token, _receiver) = app.task_state.start(TuiTaskKind::TestBatch);
+
+    app.apply_task_event(TuiTaskEvent::Cancelled {
+        kind: TuiTaskKind::TestBatch,
+    });
+
+    assert!(app.task_state.cancellation.is_none());
+    assert_eq!(app.task_state.running, None);
+    assert_eq!(app.status_message, "TestBatch cancelled");
+}
+
+#[test]
 fn applies_task_completion_and_reloads_data() {
     let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
 

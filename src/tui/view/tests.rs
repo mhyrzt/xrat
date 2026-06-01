@@ -166,7 +166,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         detail_line("Failed/Stale", tests.stale_configs.to_string()),
         Line::raw(""),
         Line::styled("Actions", theme::muted_style()),
-        Line::raw("s start - c cancel (coming next)"),
+        Line::raw("s start - c cancel running batch"),
     ];
 
     frame.render_widget(

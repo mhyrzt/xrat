@@ -110,30 +110,39 @@ fn spawn_test_batch(
     let kind = TuiTaskKind::TestBatch;
     let args = test_args_for_app(app);
     let include_deleted = app.config_list.include_deleted;
+    let (token, receiver) = app.task_state.start(kind);
     let _ = task_tx.send(TuiTaskEvent::Started { kind });
 
     let task_tx = task_tx.clone();
     tokio::spawn(async move {
-        let event =
-            match crate::app::commands::test::run_bulk_for_config_ids(&args, &context, &config_ids)
-                .await
-            {
-                Ok(tested) => match TuiData::load(&context, include_deleted).await {
-                    Ok(data) => TuiTaskEvent::Completed {
-                        kind,
-                        message: format!("tested {tested} configs"),
-                        data: Some(data),
-                    },
-                    Err(error) => TuiTaskEvent::Failed {
-                        kind,
-                        error: format!("test completed but reload failed: {error}"),
-                    },
+        let result = crate::app::commands::test::run_bulk_for_config_ids_cancellable(
+            &args,
+            &context,
+            &config_ids,
+            receiver,
+        )
+        .await;
+
+        let was_cancelled = token.is_cancelled();
+        let event = match result {
+            Ok(_) if was_cancelled => TuiTaskEvent::Cancelled { kind },
+            Ok(tested) => match TuiData::load(&context, include_deleted).await {
+                Ok(data) => TuiTaskEvent::Completed {
+                    kind,
+                    message: format!("tested {tested} configs"),
+                    data: Some(data),
                 },
                 Err(error) => TuiTaskEvent::Failed {
                     kind,
-                    error: error.to_string(),
+                    error: format!("test completed but reload failed: {error}"),
                 },
-            };
+            },
+            Err(_) if was_cancelled => TuiTaskEvent::Cancelled { kind },
+            Err(error) => TuiTaskEvent::Failed {
+                kind,
+                error: error.to_string(),
+            },
+        };
         let _ = task_tx.send(event);
     });
 }

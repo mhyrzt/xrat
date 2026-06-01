@@ -124,18 +124,33 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
   - completed test tasks reload DB-backed config rows and latest-test summaries.
   - cancellation is mapped in the keymap but still needs a cancellation-token
     path before it can stop in-flight tests.
+- Test cancellation slice landed:
+  - shared `CancellationFlag` / `CancellationReceiver` primitive added under
+    `src/support/cancel.rs` (re-exported from `src/tui/cancel.rs` as
+    `TuiCancellationToken`).
+  - `TuiTaskState` now stores a per-task token via `start(kind)` and clears it
+    on Completed/Failed/Cancelled events.
+  - bulk test executor gained `run_bulk_for_configs_cancellable` which checks
+    the receiver between spawns and aborts in-flight tasks through
+    `JoinSet::abort_all()`.
+  - `TuiAction::CancelTestBatch` flips the stored token and the run loop emits
+    `TuiTaskEvent::Cancelled`; the status bar now shows "cancelling" while the
+    batch unwinds.
+  - 12 new unit tests cover flag/receiver state sharing, reducer dispatch, and
+    task lifecycle cleanup.
 
 ## Current Goal
 
-Continue Phase 6 by finishing background test control, then move to the next
-service-specific task path:
+Continue Phase 6 by wiring the remaining service-specific background task paths
+and then move on to incremental test progress:
 
-1. add cancellation support for running test batches
-2. improve test progress events beyond started/completed/failed summaries
-3. add source refresh/import or runtime start/stop as the next background task
+1. add source refresh/import as the next background task path through the same
+   task channel
+2. add runtime start/stop/restart/switch as the next runtime service dispatch
+3. emit incremental progress events for the test batch and runtime tasks
 4. keep completion/failure visible in the relevant view and diagnostics buffer
 
-Progress estimate: **~55-60%** complete.
+Progress estimate: **~60%** complete.
 
 ## Remaining Gaps
 
@@ -158,19 +173,18 @@ Progress estimate: **~55-60%** complete.
 
 ## Immediate Next Slice
 
-1. Add cancellation-token support for test batches.
-2. Emit incremental progress events while tests run.
-3. Add source refresh/import or runtime operation dispatch through the same task
-   channel.
-4. Add reducer tests for the operation-specific task state.
-5. Keep service-specific execution small and routed through existing app
+1. Emit incremental progress events from the test batch task.
+2. Add source refresh/import action dispatch through the same task channel.
+3. Add runtime start/stop/restart/switch dispatch using the shared runtime
+   service.
+4. Keep service-specific execution small and routed through existing app
    services.
 
 ## Verification
 
 - `cargo fmt` passed.
 - `cargo test -q tui::` passed.
-- Full `cargo test -q` passed after the background test batch slice.
+- Full `cargo test -q` (299 tests) passed after the test cancellation slice.
 
 ## Completion blockers
 

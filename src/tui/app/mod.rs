@@ -140,7 +140,15 @@ impl TuiApp {
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
             TuiAction::StartTestBatch => {}
             TuiAction::CancelTestBatch => {
-                self.status_message = "test cancellation is not wired yet".to_string();
+                if self.task_state.running.is_some() {
+                    if self.task_state.cancel() {
+                        self.status_message = "cancelling test batch".to_string();
+                    } else {
+                        self.status_message = "no cancellable task is running".to_string();
+                    }
+                } else {
+                    self.status_message = "no test batch is running".to_string();
+                }
             }
             TuiAction::Confirm => self.confirm = None,
             TuiAction::Cancel => {

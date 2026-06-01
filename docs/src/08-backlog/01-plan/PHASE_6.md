@@ -783,12 +783,12 @@ Tasks:
       stale.
 - [x] Spawn test batches in background tasks.
 - [x] Render progress gauge, counts, ETA if available, and live result log.
-- [ ] Support cancellation.
+- [x] Support cancellation.
 - [x] Update config rows as results arrive or after completion.
 
 Acceptance:
 
-- [ ] users can start and cancel a test batch.
+- [x] users can start and cancel a test batch.
 - [x] UI remains responsive while tests run.
 - [x] latest result data refreshes after tests finish.
 
@@ -922,7 +922,7 @@ Phase 6 can be considered complete when:
 5. [x] config enable/disable/select/delete/restore flows work safely.
 6. [ ] QR and copy workflows work for focused and selected configs.
 7. [ ] paste/import flow reuses existing import parsing.
-8. [ ] test batches run in the background with progress feedback.
+8. [x] test batches run in the background with progress feedback.
 9. [ ] runtime start/stop/restart/switch flows call existing runtime services.
 10. [ ] diagnostics and help are available from the TUI.
 11. [ ] terminal state is restored after normal exit, Ctrl+C, and errors.
@@ -960,28 +960,33 @@ Recent progress:
   progress counts, untested/failed summaries, and recent result rows.
 - TUI task infrastructure now has typed task events, lifecycle state,
   non-blocking event-loop draining, and background data reload wiring.
-- Tests view now starts scoped background test batches with `s`, using the
-  existing connection-test executor and reloading DB-backed rows/results after
-  completion. Cancellation is still pending.
+- Tests view starts scoped background test batches with `s` and now supports
+  cancellation through `c` using a shared `CancellationFlag` /
+  `CancellationReceiver` primitive under `src/support/cancel.rs`.
+- The bulk test executor gained `run_bulk_for_configs_cancellable`, which checks
+  cancellation between spawns and aborts in-flight tests via
+  `JoinSet::abort_all()` when a `Cancelled` event would be sent.
+- The TUI run loop now keeps a `CancellationFlag` per running task in
+  `TuiTaskState`, and `CancelTestBatch` flips the stored flag and surfaces a
+  `TuiTaskEvent::Cancelled` instead of "coming next".
 - Focused TUI reducer/keymap tests and full `cargo test -q` pass after these
-  slices.
+  slices (12 new tests covering the cancellation path).
 
 Current next slice:
 
-- Add cancellation support for running test batches, then continue into source
-  refresh/import or runtime start/stop background operations.
+- Add incremental progress events for the test task, then move on to
+  service-specific background flows for source refresh/import or runtime
+  start/stop.
 
-Phase 6 is at approximately 50-55% implementation. Most completion criteria
-remain unchecked because test execution, QR/copy/paste, diagnostics, and
-background task flows are not complete. The following gaps are the most
-significant:
+Phase 6 is at approximately 55-60% implementation. Test cancellation, background
+test execution, and keymap/help surfaces are now complete. The following gaps
+remain the most significant:
 
-### 1. Background task infrastructure is only scaffolded
+### 1. Background task infrastructure still has service-specific gaps
 
-Configs, Sources, Tests, and Runtime have functional DB/service-backed views. A
-typed task channel and state reducer exist, and test batches now run through it,
-but cancellation, source refreshes, imports, and runtime actions still need
-service-specific background execution.
+The shared cancellation primitive is now in place and the test batch route uses
+it. Source refresh, source import, and runtime start/stop/restart/switch still
+need the same background task wiring.
 
 ### 2. Search/filter/sort is partial
 
@@ -999,12 +1004,12 @@ selected actions, connect/activate, and test actions are still pending.
 `tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard,
 or paste/import modal exists.
 
-### 5. No service-specific background operations yet
+### 5. No incremental test progress yet
 
-The task channel currently handles background data reloads. Import, test, source
-refresh, runtime operations, and cancellation are still pending.
+The test task only reports Started/Completed/Failed/Cancelled. Per-config
+progress events and richer counts (running/pending/ETA) are still pending.
 
 ### 6. No diagnostics or help content
 
-The `?` help overlay renders keybinding labels, but no diagnostics view or log
-buffer exists.
+The `?` help overlay renders keybinding labels and now lists the new `c` cancel
+shortcut, but no diagnostics view or log buffer exists.

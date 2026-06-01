@@ -43,10 +43,11 @@ use stages::*;
 #[cfg(test)]
 mod tests;
 
-pub(crate) async fn run_bulk_for_config_ids(
+pub(crate) async fn run_bulk_for_config_ids_cancellable(
     args: &TestArgs,
     context: &AppContext,
     config_ids: &[i64],
+    cancel_rx: crate::support::cancel::CancellationReceiver,
 ) -> crate::app::Result<usize> {
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
     let mut configs = Vec::with_capacity(config_ids.len());
@@ -61,6 +62,14 @@ pub(crate) async fn run_bulk_for_config_ids(
         return Ok(0);
     }
 
-    let rows = bulk::run_bulk_for_configs(context, settings, configs, "tui", false).await?;
+    let rows = bulk::run_bulk_for_configs_cancellable(
+        context,
+        settings,
+        configs,
+        "tui",
+        false,
+        Some(cancel_rx),
+    )
+    .await?;
     Ok(rows.len())
 }

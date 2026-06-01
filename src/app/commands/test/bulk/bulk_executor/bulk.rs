@@ -2,6 +2,7 @@ use super::progress::{
     bulk_progress_bar, finish_bulk_progress, spawn_config_test, update_bulk_progress,
 };
 use super::*;
+use crate::support::cancel::CancellationReceiver;
 
 pub(super) async fn run_bulk(
     args: &TestArgs,
@@ -29,6 +30,18 @@ pub(crate) async fn run_bulk_for_configs(
     run_kind: &str,
     show_progress: bool,
 ) -> crate::app::Result<Vec<TestOutputRow>> {
+    run_bulk_for_configs_cancellable(context, settings, configs, run_kind, show_progress, None)
+        .await
+}
+
+pub(crate) async fn run_bulk_for_configs_cancellable(
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    configs: Vec<ConfigRecord>,
+    run_kind: &str,
+    show_progress: bool,
+    cancel_rx: Option<CancellationReceiver>,
+) -> crate::app::Result<Vec<TestOutputRow>> {
     let run_id = context
         .db
         .insert_connection_test_run(&ConnectionTestRunInsert {
@@ -45,7 +58,12 @@ pub(crate) async fn run_bulk_for_configs(
     let mut failed = 0usize;
     let mut outputs = Vec::with_capacity(total);
 
+    let cancelled = || cancel_rx.as_ref().is_some_and(|rx| rx.is_cancelled());
+
     for _ in 0..concurrency {
+        if cancelled() {
+            break;
+        }
         let Some(config) = next_config.next() else {
             break;
         };
@@ -59,13 +77,24 @@ pub(crate) async fn run_bulk_for_configs(
     }
 
     while let Some(joined) = join_set.join_next().await {
-        let output = joined??;
-        completed += 1;
-        if output.status != TestStatus::Ok {
-            failed += 1;
+        match joined {
+            Ok(Ok(output)) => {
+                completed += 1;
+                if output.status != TestStatus::Ok {
+                    failed += 1;
+                }
+                outputs.push(output);
+                update_bulk_progress(&progress, completed, failed);
+            }
+            Ok(Err(error)) => return Err(error),
+            Err(join_error) if join_error.is_cancelled() => {}
+            Err(join_error) => return Err(join_error.into()),
         }
-        outputs.push(output);
-        update_bulk_progress(&progress, completed, failed);
+
+        if cancelled() {
+            join_set.abort_all();
+            continue;
+        }
 
         if let Some(config) = next_config.next() {
             spawn_config_test(
