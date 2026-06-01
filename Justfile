@@ -57,12 +57,21 @@ postgres-clean:
 test-postgres:
     XRAT_POSTGRES_TEST_URL=postgres://xrat:xrat@localhost:54329/xrat cargo test -q verifies_postgres_backend_when_url_is_set -- --nocapture
 
-# Format Rust code, markdown, and SQL
-fmt:
+# Format Rust code
+fmt-rust:
     cargo fmt
+
+# Format markdown
+fmt-md:
     prettier --write "**/*.md"
+
+# Format SQL migrations
+fmt-sql:
     sqlfluff format --dialect sqlite migrations/sqlite/*.sql
     sqlfluff format --dialect postgres migrations/postgres/*.sql
+
+# Format Rust code, markdown, and SQL
+fmt: fmt-rust fmt-md fmt-sql
 
 # Check formatting without writing (CI)
 fmt-check:
