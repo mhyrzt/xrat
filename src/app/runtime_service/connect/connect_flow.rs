@@ -14,6 +14,12 @@ impl<'a> RuntimeService<'a> {
                 request.config_id
             )));
         }
+        if config.is_deleted {
+            return Err(AppError::InvalidArgument(format!(
+                "config {} is deleted",
+                request.config_id
+            )));
+        }
 
         match self.active_session_state().await? {
             ActiveSessionState::Running(session) => {

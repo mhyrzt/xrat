@@ -4,6 +4,31 @@ use super::support::import_single_config;
 use super::*;
 
 #[tokio::test]
+async fn connect_rejects_soft_deleted_config() {
+    let context = test_context().await;
+    let config = import_single_config(&context).await;
+
+    context
+        .db
+        .delete_config(config.id)
+        .await
+        .expect("delete should succeed");
+
+    let result = RuntimeService::new(&context)
+        .connect(ConnectRequest {
+            config_id: config.id,
+        })
+        .await;
+
+    match result {
+        Err(AppError::InvalidArgument(message)) => {
+            assert!(message.contains("deleted"));
+        }
+        other => panic!("expected invalid argument for deleted config, got {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn connect_rejects_when_runtime_running_and_replace_disabled() {
     let mut context = test_context().await;
     context.app_config.runtime.replace_active_session = false;
