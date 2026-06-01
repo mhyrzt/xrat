@@ -1,0 +1,66 @@
+use ratatui::Frame;
+use ratatui::layout::{Constraint, Rect};
+use ratatui::style::Modifier;
+use ratatui::widgets::{Block, Borders, Cell, Row, Table};
+
+use crate::tui::app::TuiApp;
+use crate::tui::theme;
+
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let header = Row::new(["ID", "Name", "Proto", "Address:Port", "Net", "Delay", "St"])
+        .style(theme::accent_style().add_modifier(Modifier::BOLD));
+
+    let visible = app.visible_configs();
+    let rows = visible.iter().enumerate().map(|(idx, config)| {
+        let mut style = if idx == app.config_list.focused {
+            theme::accent_style().add_modifier(Modifier::BOLD)
+        } else if !config.is_enabled || config.is_deleted {
+            theme::muted_style()
+        } else if config.failure_reason.is_some() {
+            theme::failure_style()
+        } else {
+            theme::chrome_style()
+        };
+
+        if config.is_active {
+            style = style.add_modifier(Modifier::UNDERLINED);
+        }
+
+        Row::new(vec![
+            Cell::from(config.id.to_string()),
+            Cell::from(config.display_name().to_string()),
+            Cell::from(config.protocol.clone()),
+            Cell::from(config.endpoint()),
+            Cell::from(config.network_label()),
+            Cell::from(config.delay_label()),
+            Cell::from(config.status_label()),
+        ])
+        .style(style)
+    });
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(5),
+            Constraint::Percentage(24),
+            Constraint::Length(8),
+            Constraint::Percentage(28),
+            Constraint::Length(10),
+            Constraint::Length(8),
+            Constraint::Min(8),
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .title(format!(
+                " Configs ({}/{}) ",
+                visible.len(),
+                app.data.total_configs
+            ))
+            .borders(Borders::ALL),
+    )
+    .column_spacing(1);
+
+    frame.render_widget(table, area);
+}

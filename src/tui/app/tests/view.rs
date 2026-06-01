@@ -1,0 +1,22 @@
+use crate::tui::app::{TuiAction, TuiApp, TuiView};
+
+#[test]
+fn switches_active_view() {
+    let mut app = TuiApp::default();
+
+    app.apply(TuiAction::SwitchView(TuiView::Runtime));
+
+    assert_eq!(app.active_view, TuiView::Runtime);
+    assert_eq!(app.status_message, "view: runtime");
+}
+
+#[test]
+fn back_closes_help() {
+    let mut app = TuiApp::default();
+
+    app.apply(TuiAction::ShowHelp);
+    app.apply(TuiAction::Back);
+
+    assert!(!app.show_help);
+    assert_eq!(app.status_message, "ready");
+}
