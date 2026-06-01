@@ -7,21 +7,28 @@
 - `src/cli/` defines Clap command trees, flags, and CLI parsing tests under
   `src/cli/tests/`.
 - `src/app/` contains app runtime bootstrap and command handlers. Keep command
-  logic under `src/app/commands/` (for example `parse/` and `test/`) and keep
-  runtime lifecycle concerns in `src/app/runtime/` and
-  `src/app/runtime_service/`.
-- `src/db/` contains database wiring and repositories, split across
-  `src/db/database/`, `src/db/model/`, and `src/db/repository/`.
-- `src/config/` and `src/config/xray/` contain runtime config generation
-  builders and protocol/transport mapping.
-- `src/model/` contains shared domain types.
+  logic under `src/app/commands/` and keep lifecycle concerns in
+  `src/app/daemon/`, `src/app/runtime_service/`, and `src/xray/process_mgmt/`.
+- `src/app/context/` and `src/app/config/` contain application bootstrap,
+  path resolution, and command-specific runtime settings.
+- `src/config/` contains import, parsing, normalization, and protocol link
+  support. Keep external input parsing separate from runtime config generation.
+- `src/xray/` contains Xray parsing, generated runtime config builders, and
+  process management.
 - `src/singbox/` contains sing-box parsing/translation support.
-- `src/tester/` contains connection test runners (for example download and real
-  delay flows).
+- `src/prober/` contains connection test runners for TCP, ICMP, download,
+  upload, and real-delay flows.
+- `src/db/` contains database wiring, schema helpers, records, and
+  repositories, split across `src/db/database/`, `src/db/record/`, and
+  `src/db/repository/`.
+- `src/model/` contains shared domain types.
+- `src/server/` contains HTTP API routes, auth, response, and server state.
+- `src/tui/` contains terminal UI state, views, keymaps, and data adapters.
 - `src/support/` contains small shared helpers.
 - `migrations/sqlite/` and `migrations/postgres/` hold ordered SQL migrations.
-- `docs/plan/` and `docs/validation/` hold phased plans, parity notes, and
-  implementation checklists.
+- `docs/src/` holds user-facing documentation. Backlog plans and validation
+  checklists live under `docs/src/08-backlog/`.
+- `testdata/` holds local fixtures such as GeoIP data.
 
 ## Build, Test, and Development Commands
 
@@ -30,9 +37,12 @@
 - `cargo fmt` — format Rust code.
 - `cargo run -- <command>` — run the CLI locally, for example:
   - `cargo run -- import <input>`
-  - `cargo run -- parse <config_id>`
-  - `cargo run -- test <config_id>`
+  - `cargo run -- list`
+  - `cargo run -- parse <config-id>`
+  - `cargo run -- test <config-id>`
   - `cargo run -- scan`
+  - `cargo run -- serve`
+  - `cargo run -- tui`
   - `cargo run -- runtime status`
 
 Run `cargo fmt` and `cargo test -q` before committing.
@@ -63,6 +73,10 @@ Use Rust’s built-in test framework with `#[test]` and `#[tokio::test]`.
   repositories, and runtime lifecycle transitions.
 - Add regression tests when fixing parsing, dedup, scanner, or runtime-session
   edge cases.
+- For CLI changes, add or update parser tests in `src/cli/tests/` when behavior
+  can be validated without starting external services.
+- For repository changes, prefer database tests that exercise both SQLite and
+  Postgres paths when the existing helpers make that practical.
 - Name tests descriptively, e.g. `parses_list_config_filters`.
 
 ## Commit & Pull Request Guidelines
@@ -87,6 +101,8 @@ For new CLI behavior, usually add:
 - a new or extended command file in `src/cli/`
 - a matching handler under `src/app/commands/`
 - repository/model updates in `src/db/` when persistence is required
+- documentation under `docs/src/02-cli/` or the relevant feature page when user
+  behavior changes
 
 Design constraints from current implementation direction:
 
@@ -96,3 +112,83 @@ Design constraints from current implementation direction:
   stop flow, persisted runtime session state).
 - Keep parser and runtime-generation concerns decoupled so parse/test/scan flows
   can evolve without rewriting CLI glue.
+- Keep CLI parsing, command orchestration, persistence, and external process
+  control in separate layers. Avoid command handlers that directly parse raw
+  subscription formats or manually assemble database rows when reusable services
+  already exist.
+- Prefer typed domain records and repository methods over passing raw JSON or
+  loosely structured maps between layers.
+
+## Agent Behavioral Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with
+project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial
+tasks, use judgment.
+
+### Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them instead of picking silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop, name what is confusing, and ask.
+
+### Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- Do not add features beyond what was asked.
+- Do not add abstractions for single-use code.
+- Do not add flexibility or configurability that was not requested.
+- Do not add error handling for impossible scenarios.
+- If a change grows far beyond the requested scope, pause and simplify.
+
+Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+
+- Do not improve adjacent code, comments, or formatting unless required.
+- Do not refactor things that are not broken.
+- Match existing style, even if you would do it differently.
+- If you notice unrelated dead code, mention it instead of deleting it.
+
+When changes create orphans:
+
+- Remove imports, variables, functions, and tests that your changes made unused.
+- Do not remove pre-existing dead code unless asked.
+
+Every changed line should trace directly to the user's request.
+
+### Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+
+- "Add validation" means write tests for invalid inputs, then make them pass.
+- "Fix the bug" means write or identify a reproduction, then make it pass.
+- "Refactor X" means preserve behavior and run relevant tests before finishing.
+
+For multi-step tasks, state a brief plan:
+
+```text
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria such as "make
+it work" require clarification.
+
+These guidelines are working if diffs contain fewer unnecessary changes, fewer
+rewrites are needed due to overcomplication, and clarifying questions come
+before implementation rather than after mistakes.
