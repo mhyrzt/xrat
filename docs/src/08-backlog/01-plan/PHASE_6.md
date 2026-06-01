@@ -940,3 +940,33 @@ Phase 6 can be considered complete when:
 - Should QR payloads include only raw config URIs, or also an XRAT profile
   wrapper for local runtime settings?
 - Should auto-rotation controls appear in Runtime v1 or a later dedicated view?
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+
+Phase 6 is at approximately 15-35% implementation. All 12 completion criteria remain unchecked. The following gaps are the most significant:
+
+### 1. Sources, Tests, and Runtime views are placeholder text
+
+Only the Configs view has a functional table with real DB data, detail panel, and focus navigation. The Sources, Tests, and Runtime views render placeholder text only.
+
+### 2. No search, filter, or sort implementation
+
+The `/` key opens search intent but no search/filter/sort state or reducers exist. No filter chips, sort toggles, or search input modal is implemented.
+
+### 3. No config actions implemented
+
+No enable/disable/select/delete/restore/purge actions are wired from the TUI. Keybindings for `space`, `t`, `T`, `e`, `E`, `d`, `r`, `D` are not handled.
+
+### 4. No QR, clipboard, or paste workflows
+
+`tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard, or paste/import modal exists.
+
+### 5. No background task infrastructure for TUI
+
+No async task spawning, progress events, or cancellation support exists for import, test, or runtime operations from the TUI.
+
+### 6. No diagnostics or help content
+
+The `?` help overlay renders keybinding labels but no diagnostics view or log buffer exists.

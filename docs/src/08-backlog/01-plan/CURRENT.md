@@ -133,3 +133,16 @@ Progress estimate: **~15%** complete.
   unrelated to this slice: daemon socket reachability, ephemeral inbound port
   allocation, and local runtime process startup failed with permission/runtime
   errors.
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+This is a living work tracker for Phase 6, not a completable backlog item. It should be updated as Phase 6 progresses. The following factual inaccuracies were found during review and have been resolved:
+
+1. **Incorrect Phase 2.5 completion claim** - Resolved: Lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been added to the CLI.
+
+2. **Incorrect Phase 3 completion claim** - Resolved: `reqwest` `socks` feature added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with proper error handling in the real-delay prober.
+
+3. **Progress estimate** - The "~15%" estimate may undercount current progress. The Configs view has a functional table with 7 columns, detail panel, focus navigation, aggregate counts, and real DB data loading. A more accurate estimate might be 25-35%.
