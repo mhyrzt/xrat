@@ -64,6 +64,7 @@ pub struct TuiApp {
     pub data: TuiData,
     pub config_list: ConfigListState,
     pub source_list: SourceListState,
+    pub test_state: TestViewState,
     pub confirm: Option<ConfirmState>,
 }
 
@@ -79,6 +80,32 @@ pub struct ConfigListState {
 #[derive(Debug, Default)]
 pub struct SourceListState {
     pub focused: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TestViewState {
+    pub scope: TestScope,
+    pub mode: TestMode,
+    pub concurrency: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TestScope {
+    Focused,
+    Selected,
+    Filtered,
+    #[default]
+    AllEnabled,
+    Failed,
+    Stale,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TestMode {
+    Tcp,
+    RealDelay,
+    #[default]
+    Both,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -100,6 +127,7 @@ impl Default for TuiApp {
             data: TuiData::default(),
             config_list: ConfigListState::default(),
             source_list: SourceListState::default(),
+            test_state: TestViewState::default(),
             confirm: None,
         }
     }
@@ -146,6 +174,45 @@ impl TuiApp {
             "{search} - sort:{} - {deleted}",
             self.config_list.sort.label()
         )
+    }
+
+    pub fn test_scope_count(&self) -> usize {
+        match self.test_state.scope {
+            TestScope::Focused => usize::from(self.focused_config().is_some()),
+            TestScope::Selected => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| config.is_selected && config.is_enabled && !config.is_deleted)
+                .count(),
+            TestScope::Filtered => self
+                .visible_configs()
+                .into_iter()
+                .filter(|config| config.is_enabled && !config.is_deleted)
+                .count(),
+            TestScope::AllEnabled => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| config.is_enabled && !config.is_deleted)
+                .count(),
+            TestScope::Failed => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| {
+                    config.failure_reason.is_some() && config.is_enabled && !config.is_deleted
+                })
+                .count(),
+            TestScope::Stale => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| {
+                    config.real_delay_ms.is_none() && config.tcp_ms.is_none() && !config.is_deleted
+                })
+                .count(),
+        }
     }
 
     pub fn reload_data(&mut self, data: TuiData) {
@@ -453,6 +520,39 @@ impl TuiApp {
     }
 }
 
+impl Default for TestViewState {
+    fn default() -> Self {
+        Self {
+            scope: TestScope::default(),
+            mode: TestMode::default(),
+            concurrency: 4,
+        }
+    }
+}
+
+impl TestScope {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Focused => "focused",
+            Self::Selected => "selected",
+            Self::Filtered => "filtered",
+            Self::AllEnabled => "all enabled",
+            Self::Failed => "failed",
+            Self::Stale => "stale/untested",
+        }
+    }
+}
+
+impl TestMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Tcp => "tcp",
+            Self::RealDelay => "real-delay",
+            Self::Both => "tcp + real-delay",
+        }
+    }
+}
+
 impl ConfigSort {
     fn next(self) -> Self {
         match self {
@@ -518,7 +618,7 @@ impl TuiView {
 mod tests {
     use crate::tui::data::{TuiConfigRow, TuiData, TuiSourceRow};
 
-    use super::{ConfigSort, ConfirmKind, TuiAction, TuiApp, TuiConfigCommand, TuiView};
+    use super::{ConfigSort, ConfirmKind, TestScope, TuiAction, TuiApp, TuiConfigCommand, TuiView};
 
     #[test]
     fn switches_active_view() {
@@ -686,6 +786,24 @@ mod tests {
             app.config_command_for_action(TuiAction::RestoreFocused),
             Some(TuiConfigCommand::Restore(1))
         );
+    }
+
+    #[test]
+    fn counts_current_test_scope() {
+        let mut selected = row(2);
+        selected.is_selected = true;
+        let mut failed = row(3);
+        failed.failure_reason = Some("timeout".to_string());
+        let data = TuiData::from_configs(vec![row(1), selected, failed]);
+        let mut app = TuiApp::with_data(data);
+
+        assert_eq!(app.test_scope_count(), 3);
+
+        app.test_state.scope = TestScope::Selected;
+        assert_eq!(app.test_scope_count(), 1);
+
+        app.test_state.scope = TestScope::Failed;
+        assert_eq!(app.test_scope_count(), 1);
     }
 
     fn row(id: i64) -> TuiConfigRow {

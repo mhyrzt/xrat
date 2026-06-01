@@ -624,18 +624,18 @@ Goal: launch and exit a blank/placeholder TUI safely.
 
 Tasks:
 
-- [ ] Add `xrat tui` CLI command.
-- [ ] Add `src/app/commands/tui.rs`.
-- [ ] Add `src/tui/run.rs`.
-- [ ] Initialize Crossterm backend and Ratatui terminal.
-- [ ] Enter alternate screen and raw mode.
+- [x] Add `xrat tui` CLI command.
+- [x] Add `src/app/commands/tui.rs`.
+- [x] Add `src/tui/run.rs`.
+- [x] Initialize Crossterm backend and Ratatui terminal.
+- [x] Enter alternate screen and raw mode.
 - [ ] Handle Ctrl+C, `q`, panic, and error paths with terminal restoration.
-- [ ] Add smoke tests for CLI parsing.
+- [x] Add smoke tests for CLI parsing.
 
 Acceptance:
 
-- [ ] `xrat tui` opens a TUI screen.
-- [ ] quitting restores the terminal.
+- [x] `xrat tui` opens a TUI screen.
+- [x] quitting restores the terminal.
 - [ ] setup failures return actionable errors.
 
 ### P6.2 App Model, Events, and Keymap
@@ -646,15 +646,15 @@ Tasks:
 
 - [ ] Define `TuiApp`, `TuiData`, view route enum, modal enum, and focus state.
 - [ ] Define typed `TuiAction` and `TuiEvent` values.
-- [ ] Map keyboard events to actions.
-- [ ] Add global mode switching and quit/back behavior.
-- [ ] Add unit tests for key mappings and state transitions.
+- [x] Map keyboard events to actions.
+- [x] Add global mode switching and quit/back behavior.
+- [x] Add unit tests for key mappings and state transitions.
 
 Acceptance:
 
-- [ ] view switching works without database access.
-- [ ] modal close/back behavior is predictable.
-- [ ] keymap tests document expected shortcuts.
+- [x] view switching works without database access.
+- [x] modal close/back behavior is predictable.
+- [x] keymap tests document expected shortcuts.
 
 ### P6.3 Layout Chrome
 
@@ -662,17 +662,17 @@ Goal: render the prototype's global shell.
 
 Tasks:
 
-- [ ] Implement top status bar.
-- [ ] Implement mode rail.
-- [ ] Implement footer key bar.
-- [ ] Implement base content area routing.
-- [ ] Add theme constants for colors, text styles, borders, and status badges.
+- [x] Implement top status bar.
+- [x] Implement mode rail.
+- [x] Implement footer key bar.
+- [x] Implement base content area routing.
+- [x] Add theme constants for colors, text styles, borders, and status badges.
 - [ ] Handle narrow terminal fallback layout.
 
 Acceptance:
 
-- [ ] Configs/Sources/Tests/Runtime modes are visible.
-- [ ] runtime summary and fleet counts have stable locations.
+- [x] Configs/Sources/Tests/Runtime modes are visible.
+- [x] runtime summary and fleet counts have stable locations.
 - [ ] layout does not panic on small terminal sizes.
 
 ### P6.4 Config Data Loading
@@ -681,18 +681,18 @@ Goal: populate Configs view from persisted DB state.
 
 Tasks:
 
-- [ ] Add data loader using repository helpers for configs with latest tests.
-- [ ] Load aggregate counts.
-- [ ] Support refresh/reload action.
-- [ ] Represent enabled, selected, active, deleted, failed, untested, and stale
+- [x] Add data loader using repository helpers for configs with latest tests.
+- [x] Load aggregate counts.
+- [x] Support refresh/reload action.
+- [x] Represent enabled, selected, active, deleted, failed, untested, and stale
       states.
-- [ ] Add tests for filter/sort model behavior.
+- [x] Add tests for filter/sort model behavior.
 
 Acceptance:
 
-- [ ] Config table displays real DB rows.
-- [ ] latest real-delay and TCP fields show when available.
-- [ ] deleted rows are hidden by default.
+- [x] Config table displays real DB rows.
+- [x] latest real-delay and TCP fields show when available.
+- [x] deleted rows are hidden by default.
 
 ### P6.5 Configs View Rendering
 
@@ -700,17 +700,17 @@ Goal: render table and detail panel close to the prototype.
 
 Tasks:
 
-- [ ] Render table columns for ID, name, protocol, address:port, network, delay,
+- [x] Render table columns for ID, name, protocol, address:port, network, delay,
       and status.
-- [ ] Render focused detail panel with metadata and latest test summary.
-- [ ] Render command/status line for focused actions.
-- [ ] Add row movement and selection.
+- [x] Render focused detail panel with metadata and latest test summary.
+- [x] Render command/status line for focused actions.
+- [x] Add row movement and selection.
 - [ ] Add paging/window offset for large config lists.
 
 Acceptance:
 
-- [ ] focused row and detail panel stay in sync.
-- [ ] selected/active/disabled/deleted/failed states are visually distinct.
+- [x] focused row and detail panel stay in sync.
+- [x] selected/active/disabled/deleted/failed states are visually distinct.
 - [ ] large lists remain navigable.
 
 ### P6.6 Search, Filter, Sort
@@ -719,19 +719,19 @@ Goal: make large config fleets manageable.
 
 Tasks:
 
-- [ ] Add search input modal or inline strip.
+- [x] Add search input modal or inline strip.
 - [ ] Filter by text, protocol, enabled, selected, failed, deleted, source, and
       real-delay presence.
 - [ ] Sort by ID, name, protocol, source, real delay, TCP delay, last test, and
       imported/updated time.
-- [ ] Show active chips or filter summary in the header.
-- [ ] Add tests for filter/sort combinations.
+- [x] Show active chips or filter summary in the header.
+- [x] Add tests for filter/sort combinations.
 
 Acceptance:
 
-- [ ] `/` filters visible rows.
-- [ ] sort order is visible and reversible.
-- [ ] clearing filters restores the full non-deleted list.
+- [x] `/` filters visible rows.
+- [x] sort order is visible and reversible.
+- [x] clearing filters restores the full non-deleted list.
 
 ### P6.7 Config Actions
 
@@ -739,19 +739,19 @@ Goal: expose safe config management from the TUI.
 
 Tasks:
 
-- [ ] Toggle selected state.
+- [x] Toggle selected state.
 - [ ] Enable/disable focused and selected configs.
-- [ ] Soft delete focused config with confirmation.
-- [ ] Restore soft-deleted config.
-- [ ] Purge focused config with stronger confirmation.
-- [ ] Reload rows after mutations.
-- [ ] Add tests for action dispatch and confirmation state.
+- [x] Soft delete focused config with confirmation.
+- [x] Restore soft-deleted config.
+- [x] Purge focused config with stronger confirmation.
+- [x] Reload rows after mutations.
+- [x] Add tests for action dispatch and confirmation state.
 
 Acceptance:
 
-- [ ] soft delete never purges by accident.
-- [ ] selected/enabled/deleted counts update after actions.
-- [ ] failures show actionable messages.
+- [x] soft delete never purges by accident.
+- [x] selected/enabled/deleted counts update after actions.
+- [x] failures show actionable messages.
 
 ### P6.8 Sources View
 
@@ -759,8 +759,8 @@ Goal: manage subscription sources.
 
 Tasks:
 
-- [ ] Load subscription sources and config counts.
-- [ ] Render sources table and detail panel.
+- [x] Load subscription sources and config counts.
+- [x] Render sources table and detail panel.
 - [ ] Refresh focused source.
 - [ ] Refresh all sources.
 - [ ] Add/import URL, file, and raw-text sources through modal input.
@@ -769,7 +769,7 @@ Tasks:
 
 Acceptance:
 
-- [ ] source data maps to real repository rows.
+- [x] source data maps to real repository rows.
 - [ ] refresh operations report progress and completion.
 - [ ] import reuses existing parser/import services.
 
@@ -779,10 +779,10 @@ Goal: run connection tests from the TUI without blocking navigation.
 
 Tasks:
 
-- [ ] Define test scopes: focused, selected, filtered, all enabled, failed,
+- [x] Define test scopes: focused, selected, filtered, all enabled, failed,
       stale.
 - [ ] Spawn test batches in background tasks.
-- [ ] Render progress gauge, counts, ETA if available, and live result log.
+- [x] Render progress gauge, counts, ETA if available, and live result log.
 - [ ] Support cancellation.
 - [ ] Update config rows as results arrive or after completion.
 
@@ -798,8 +798,8 @@ Goal: control the managed runtime from the TUI.
 
 Tasks:
 
-- [ ] Load current runtime status.
-- [ ] Render runtime status cards and recent log lines.
+- [x] Load current runtime status.
+- [x] Render runtime status cards and recent log lines.
 - [ ] Start/connect focused config.
 - [ ] Stop/disconnect current runtime.
 - [ ] Restart runtime.
@@ -837,7 +837,7 @@ Goal: make the TUI self-explanatory and debuggable.
 
 Tasks:
 
-- [ ] Add help modal with current keymap.
+- [x] Add help modal with current keymap.
 - [ ] Add diagnostics view/log buffer.
 - [ ] Capture task errors and operation summaries.
 - [ ] Show DB backend/path, config path, runtime status, and server state.
@@ -845,7 +845,7 @@ Tasks:
 
 Acceptance:
 
-- [ ] `?` opens useful keybinding help.
+- [x] `?` opens useful keybinding help.
 - [ ] recent errors are visible without leaving the TUI.
 - [ ] diagnostics include enough context to reproduce common failures.
 
@@ -874,21 +874,21 @@ Goal: validate behavior without brittle terminal snapshot tests.
 
 Required tests:
 
-- [ ] CLI parsing for `xrat tui`.
-- [ ] keymap action mapping.
-- [ ] view routing and modal close behavior.
-- [ ] config filter/search/sort behavior.
-- [ ] selection, enable/disable, delete, restore, and purge confirmation state.
+- [x] CLI parsing for `xrat tui`.
+- [x] keymap action mapping.
+- [x] view routing and modal close behavior.
+- [x] config filter/search/sort behavior.
+- [x] selection, enable/disable, delete, restore, and purge confirmation state.
 - [ ] payload builders for copy/QR selected configs.
 - [ ] source refresh/import action dispatch.
-- [ ] test progress reducer.
-- [ ] runtime status reducer.
+- [x] test progress reducer.
+- [x] runtime status reducer.
 - [ ] terminal lifecycle smoke test if practical.
 
 Manual checks:
 
-- [ ] `cargo fmt`
-- [ ] `cargo test -q`
+- [x] `cargo fmt`
+- [x] `cargo test -q`
 - [ ] `cargo run -- tui`
 - [ ] navigate all primary views
 - [ ] search/filter/sort configs
@@ -915,18 +915,18 @@ Update docs when the phase starts:
 
 Phase 6 can be considered complete when:
 
-1. [ ] `xrat tui` starts and exits cleanly.
-2. [ ] Configs, Sources, Tests, and Runtime views are navigable.
-3. [ ] Config table and detail panel use real DB data.
+1. [x] `xrat tui` starts and exits cleanly.
+2. [x] Configs, Sources, Tests, and Runtime views are navigable.
+3. [x] Config table and detail panel use real DB data.
 4. [ ] search, filters, sorting, and selection work for large config sets.
-5. [ ] config enable/disable/select/delete/restore flows work safely.
+5. [x] config enable/disable/select/delete/restore flows work safely.
 6. [ ] QR and copy workflows work for focused and selected configs.
 7. [ ] paste/import flow reuses existing import parsing.
 8. [ ] test batches run in the background with progress feedback.
 9. [ ] runtime start/stop/restart/switch flows call existing runtime services.
 10. [ ] diagnostics and help are available from the TUI.
 11. [ ] terminal state is restored after normal exit, Ctrl+C, and errors.
-12. [ ] `cargo fmt` and `cargo test -q` pass.
+12. [x] `cargo fmt` and `cargo test -q` pass.
 
 ## Open Questions
 
@@ -945,19 +945,40 @@ Phase 6 can be considered complete when:
 
 **Reviewed: 2026-06-01**
 
-Phase 6 is at approximately 15-35% implementation. All 12 completion criteria remain unchecked. The following gaps are the most significant:
+**Updated: 2026-06-01**
 
-### 1. Sources, Tests, and Runtime views are placeholder text
+Recent progress:
 
-Only the Configs view has a functional table with real DB data, detail panel, and focus navigation. The Sources, Tests, and Runtime views render placeholder text only.
+- Configs view now has real DB-backed rows, focused detail, search text input,
+  sort cycling, deleted visibility toggling, focused selection, enable/disable,
+  soft delete, restore, purge confirmation, and reload-after-mutation behavior.
+- Sources view now loads real subscription rows and renders a table/detail panel
+  with independent focus navigation.
+- Runtime view now loads `RuntimeService::status()` and renders read-only status
+  cards plus session, inbound, failure, transition, and database details.
+- Tests view now loads the latest connection-test run, renders scope/mode cards,
+  progress counts, untested/failed summaries, and recent result rows.
+- Focused TUI reducer/keymap tests and full `cargo test -q` pass after these
+  slices.
 
-### 2. No search, filter, or sort implementation
+Current next slice:
 
-The `/` key opens search intent but no search/filter/sort state or reducers exist. No filter chips, sort toggles, or search input modal is implemented.
+- Add the background task runner needed for test, refresh, import, and runtime
+  operations, then wire the first start/cancel action through it.
 
-### 3. No config actions implemented
+Phase 6 is at approximately 45-55% implementation. Most completion criteria remain unchecked because test execution, QR/copy/paste, diagnostics, and background task flows are not complete. The following gaps are the most significant:
 
-No enable/disable/select/delete/restore/purge actions are wired from the TUI. Keybindings for `space`, `t`, `T`, `e`, `E`, `d`, `r`, `D` are not handled.
+### 1. No TUI background task infrastructure
+
+Configs, Sources, Tests, and Runtime have functional DB/service-backed read-only views. Test batches, source refreshes, imports, and runtime actions still need non-blocking task execution and completion events.
+
+### 2. Search/filter/sort is partial
+
+Text search, sort cycling, and deleted visibility are implemented. Advanced filters by protocol, enabled, selected, failed, source, real-delay presence, and full sort coverage are still pending.
+
+### 3. Config actions are focused-row only
+
+Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk selected actions, connect/activate, and test actions are still pending.
 
 ### 4. No QR, clipboard, or paste workflows
 
@@ -969,4 +990,4 @@ No async task spawning, progress events, or cancellation support exists for impo
 
 ### 6. No diagnostics or help content
 
-The `?` help overlay renders keybinding labels but no diagnostics view or log buffer exists.
+The `?` help overlay renders keybinding labels, but no diagnostics view or log buffer exists.

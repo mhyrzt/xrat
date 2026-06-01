@@ -80,18 +80,47 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
     source, status, actions, and latest failure reason.
   - row movement updates focused config state and clamps at list bounds.
   - focused tests added for count summaries, row formatting, and focus movement.
+- Configs view interaction slice landed:
+  - `/` edits an inline text search and the header shows active search/sort state.
+  - `s` cycles sort modes for visible configs.
+  - `f` toggles deleted-row visibility.
+  - `Space`, `e`, `x`, `d`, `D`, and `r` dispatch select, enable, disable,
+    soft-delete, purge, and restore actions through existing repository methods.
+  - soft delete and purge use confirmation modals before mutating data.
+  - rows reload after mutations and focused tests cover key mappings, reducers,
+    confirmation state, and command dispatch.
+- Sources view read-only slice landed:
+  - TUI data loading now includes subscription sources from `list_subscriptions()`.
+  - Sources view renders a real source table with ID, name, kind, config count,
+    and update time.
+  - focused source detail shows kind, value, counts, and timestamps.
+  - `j/k` and arrow navigation move source focus independently from config focus.
+- Runtime view read-only slice landed:
+  - TUI data loading now includes current runtime/session status through
+    `RuntimeService::status()`.
+  - Runtime view renders status cards plus session, inbound, failure, transition,
+    and database details.
+  - start/stop/restart/log actions remain visible as coming-next actions until
+    background task infrastructure lands.
+- Tests view read-only slice landed:
+  - TUI data loading now includes the latest connection-test run and recent
+    result rows through existing database helpers.
+  - Tests view renders scope, mode, latest run, queue/concurrency, progress
+    counts, untested/failed summaries, and recent result rows.
+  - test scope state exists for focused, selected, filtered, all enabled, failed,
+    and stale/untested sets.
 
 ## Current Goal
 
-Continue Phase 6 by making the Configs view useful for larger fleets:
+Continue Phase 6 by adding the background task/action infrastructure needed for
+mutating operations:
 
-1. add visible row window/table scrolling for long config lists
-2. add search/filter/sort state and reducers
-3. add selected-row toggling in the UI state
-4. prepare config actions for enable/disable/select/delete/restore dispatch
-5. keep the TUI responsive while data reloads
+1. define typed TUI task events and completion summaries
+2. add a non-blocking task channel between spawned work and the event loop
+3. wire the first start/cancel-capable operation through the task runner
+4. reload affected DB-backed state after task completion
 
-Progress estimate: **~15%** complete.
+Progress estimate: **~45-55%** complete.
 
 ## Remaining Gaps
 
@@ -103,8 +132,8 @@ Progress estimate: **~15%** complete.
    widgets.
 3. Add panic/error-safe terminal cleanup beyond the current normal Drop-based
    cleanup.
-4. Finish Configs interactions, then implement Sources, Tests, Runtime,
-   Diagnostics, Help, QR, Paste, and confirmation views/modals.
+4. Finish remaining Configs polish, then implement Runtime actions, Diagnostics,
+   QR, Paste, and background task flows.
 5. Wire TUI actions to shared repository, import, tester, runtime, and daemon
    services instead of shelling out to CLI commands.
 6. Add focused tests for reducers/state transitions, filters, sort, selection,
@@ -114,25 +143,18 @@ Progress estimate: **~15%** complete.
 
 ## Immediate Next Slice
 
-1. Add table window/scroll state so long config lists keep the focused row
-   visible.
-2. Add filter/search model state for text, protocol, enabled, selected, failed,
-   and deleted visibility.
-3. Add sort model state for ID, name, protocol, source, real delay, TCP delay,
-   and status.
-4. Add in-memory selected toggle state as a stepping stone before DB-backed
-   selection mutations.
-5. Add tests for visible row sync, filter/search combinations, and sort order.
+1. Add typed TUI task messages for started/progress/completed/failed/cancelled.
+2. Add an event-loop path that drains task messages without blocking terminal
+   input.
+3. Start with a low-risk action, likely test batch shell or runtime status reload.
+4. Add reducer tests for task progress state.
+5. Keep service-specific execution small and routed through existing app services.
 
 ## Verification
 
 - `cargo fmt` passed.
 - `cargo test -q tui::` passed.
-- `cargo test -q parses_tui_subcommand` passed.
-- Full `cargo test -q` was attempted but blocked by sandbox/runtime restrictions
-  unrelated to this slice: daemon socket reachability, ephemeral inbound port
-  allocation, and local runtime process startup failed with permission/runtime
-  errors.
+- Full `cargo test -q` passed after the latest Tests-view slice.
 
 ## Completion blockers
 

@@ -2,10 +2,10 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Gauge, Paragraph, Row, Table, Wrap};
 
 use crate::tui::app::{TuiApp, TuiView};
-use crate::tui::data::{TuiConfigRow, TuiSourceRow};
+use crate::tui::data::{TuiConfigRow, TuiSourceRow, TuiTestResultRow};
 use crate::tui::theme;
 
 pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
@@ -63,9 +63,8 @@ fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     match app.active_view {
         TuiView::Configs => render_configs_view(frame, columns[1], app),
         TuiView::Sources => render_sources_view(frame, columns[1], app),
-        TuiView::Tests | TuiView::Runtime => {
-            render_placeholder_view(frame, columns[1], app);
-        }
+        TuiView::Runtime => render_runtime_view(frame, columns[1], app),
+        TuiView::Tests => render_tests_view(frame, columns[1], app),
     }
 }
 
@@ -97,38 +96,6 @@ fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView) {
 
     let block = Block::default().title(" Modes ").borders(Borders::ALL);
     frame.render_widget(Paragraph::new(lines).block(block), area);
-}
-
-fn render_placeholder_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let title = match app.active_view {
-        TuiView::Configs => " Configs ",
-        TuiView::Sources => " Sources ",
-        TuiView::Tests => " Tests ",
-        TuiView::Runtime => " Runtime ",
-    };
-    let body = match app.active_view {
-        TuiView::Configs => {
-            "Config table lands next: ID, name, protocol, address, delay, status.\n\nUse / for search, j/k or arrows for movement, ? for help."
-        }
-        TuiView::Sources => {
-            "Subscription source list lands after config table.\n\nThis view will refresh, import, copy, and QR source URLs."
-        }
-        TuiView::Tests => {
-            "Test progress lands after data loading.\n\nThis view will show scope, target, concurrency, progress, and live result logs."
-        }
-        TuiView::Runtime => {
-            "Runtime control lands after service wiring.\n\nThis view will show status, PID, active config, listen address, and logs."
-        }
-    };
-
-    let block = Block::default().title(title).borders(Borders::ALL);
-    frame.render_widget(
-        Paragraph::new(body)
-            .block(block)
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: true }),
-        area,
-    );
 }
 
 fn render_configs_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -375,6 +342,294 @@ fn render_source_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSo
             .block(
                 Block::default()
                     .title(" Source Detail ")
+                    .borders(Borders::ALL),
+            )
+            .style(theme::chrome_style())
+            .wrap(Wrap { trim: true }),
+        area,
+    );
+}
+
+fn render_runtime_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let sections = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(7), Constraint::Min(8)])
+        .split(area);
+
+    render_runtime_status_cards(frame, sections[0], app);
+    render_runtime_detail(frame, sections[1], app);
+}
+
+fn render_tests_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let sections = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(7),
+            Constraint::Length(3),
+            Constraint::Min(8),
+        ])
+        .split(area);
+
+    render_test_summary_cards(frame, sections[0], app);
+    render_test_progress(frame, sections[1], app);
+    render_test_results(frame, sections[2], app);
+}
+
+fn render_test_summary_cards(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let tests = &app.data.tests;
+    let cards = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+        ])
+        .split(area);
+
+    render_runtime_card(
+        frame,
+        cards[0],
+        " Scope ",
+        &format!(
+            "{} ({})",
+            app.test_state.scope.label(),
+            app.test_scope_count()
+        ),
+    );
+    render_runtime_card(frame, cards[1], " Mode ", app.test_state.mode.label());
+    render_runtime_card(
+        frame,
+        cards[2],
+        " Latest Run ",
+        &tests
+            .latest_run_id
+            .map(|id| format!("#{id}"))
+            .unwrap_or_else(|| "-".to_string()),
+    );
+    render_runtime_card(
+        frame,
+        cards[3],
+        " Queue ",
+        &format!("{} concurrency", app.test_state.concurrency),
+    );
+}
+
+fn render_test_progress(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let tests = &app.data.tests;
+    let ratio = if tests.total_results == 0 {
+        0.0
+    } else {
+        tests.success_results as f64 / tests.total_results as f64
+    };
+
+    let gauge = Gauge::default()
+        .block(
+            Block::default()
+                .title(" Latest Progress ")
+                .borders(Borders::ALL),
+        )
+        .gauge_style(theme::success_style())
+        .label(tests.progress_label())
+        .ratio(ratio);
+    frame.render_widget(gauge, area);
+}
+
+fn render_test_results(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .split(area);
+
+    render_test_result_table(frame, columns[0], &app.data.tests.recent_results);
+    render_test_detail(frame, columns[1], app);
+}
+
+fn render_test_result_table(frame: &mut Frame<'_>, area: Rect, results: &[TuiTestResultRow]) {
+    let header = Row::new(["ID", "Config", "Status", "Real", "TCP", "Tested"])
+        .style(theme::accent_style().add_modifier(Modifier::BOLD));
+    let rows = results.iter().map(|result| {
+        let style = if result.failure_reason.is_some() {
+            theme::failure_style()
+        } else {
+            theme::chrome_style()
+        };
+        Row::new(vec![
+            Cell::from(result.id.to_string()),
+            Cell::from(format!("#{}", result.config_id)),
+            Cell::from(result.status.clone()),
+            Cell::from(
+                result
+                    .real_delay_ms
+                    .map(|delay| format!("{delay}ms"))
+                    .unwrap_or_else(|| "-".to_string()),
+            ),
+            Cell::from(
+                result
+                    .tcp_ms
+                    .map(|delay| format!("{delay}ms"))
+                    .unwrap_or_else(|| "-".to_string()),
+            ),
+            Cell::from(result.tested_at.clone()),
+        ])
+        .style(style)
+    });
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(5),
+            Constraint::Length(8),
+            Constraint::Length(8),
+            Constraint::Length(8),
+            Constraint::Length(8),
+            Constraint::Min(18),
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .title(" Recent Results ")
+            .borders(Borders::ALL),
+    )
+    .column_spacing(1);
+    frame.render_widget(table, area);
+}
+
+fn render_test_detail(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let tests = &app.data.tests;
+    let lines = vec![
+        Line::styled("Tests", theme::accent_style().add_modifier(Modifier::BOLD)),
+        Line::raw(""),
+        detail_line("Scope", app.test_state.scope.label()),
+        detail_line("Scope Count", app.test_scope_count().to_string()),
+        detail_line("Mode", app.test_state.mode.label()),
+        detail_line("Concurrency", app.test_state.concurrency.to_string()),
+        detail_line(
+            "Latest Kind",
+            tests.latest_run_kind.as_deref().unwrap_or("-"),
+        ),
+        detail_line(
+            "Latest Created",
+            tests.latest_run_created_at.as_deref().unwrap_or("-"),
+        ),
+        detail_line("Untested", tests.untested_configs.to_string()),
+        detail_line("Failed/Stale", tests.stale_configs.to_string()),
+        Line::raw(""),
+        Line::styled("Actions", theme::muted_style()),
+        Line::raw("s start - c cancel (coming next)"),
+    ];
+
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(
+                Block::default()
+                    .title(" Test Detail ")
+                    .borders(Borders::ALL),
+            )
+            .style(theme::chrome_style())
+            .wrap(Wrap { trim: true }),
+        area,
+    );
+}
+
+fn render_runtime_status_cards(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let runtime = &app.data.runtime;
+    let cards = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+        ])
+        .split(area);
+
+    render_runtime_card(frame, cards[0], " Status ", &runtime.status);
+    render_runtime_card(
+        frame,
+        cards[1],
+        " PID ",
+        &runtime
+            .process_id
+            .map(|pid| {
+                if runtime.pid_running {
+                    format!("{pid} running")
+                } else {
+                    format!("{pid} stopped")
+                }
+            })
+            .unwrap_or_else(|| "-".to_string()),
+    );
+    render_runtime_card(
+        frame,
+        cards[2],
+        " Active ",
+        runtime.active_config.as_deref().unwrap_or("-"),
+    );
+    render_runtime_card(
+        frame,
+        cards[3],
+        " Selected ",
+        runtime.selected_config.as_deref().unwrap_or("-"),
+    );
+}
+
+fn render_runtime_card(frame: &mut Frame<'_>, area: Rect, title: &'static str, value: &str) {
+    frame.render_widget(
+        Paragraph::new(value.to_string())
+            .block(Block::default().title(title).borders(Borders::ALL))
+            .style(theme::chrome_style())
+            .wrap(Wrap { trim: true }),
+        area,
+    );
+}
+
+fn render_runtime_detail(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let runtime = &app.data.runtime;
+    let lines = vec![
+        Line::styled(
+            "Runtime",
+            theme::accent_style().add_modifier(Modifier::BOLD),
+        ),
+        Line::raw(""),
+        detail_line(
+            "Session",
+            runtime
+                .session_id
+                .map(|id| format!("#{id}"))
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        detail_line(
+            "Session Status",
+            runtime.session_status.as_deref().unwrap_or("-"),
+        ),
+        detail_line(
+            "Session Config",
+            runtime.session_config.as_deref().unwrap_or("-"),
+        ),
+        detail_line("Socks", runtime.socks.as_deref().unwrap_or("-")),
+        detail_line("HTTP", runtime.http.as_deref().unwrap_or("-")),
+        detail_line("Shadowsocks", runtime.shadowsocks.as_deref().unwrap_or("-")),
+        detail_line("Started", runtime.started_at.as_deref().unwrap_or("-")),
+        detail_line("Stopped", runtime.stopped_at.as_deref().unwrap_or("-")),
+        detail_line("Updated", runtime.updated_at.as_deref().unwrap_or("-")),
+        detail_line("Failure", runtime.failure_reason.as_deref().unwrap_or("-")),
+        detail_line(
+            "Transition",
+            runtime.transition_reason.as_deref().unwrap_or("-"),
+        ),
+        detail_line("Database", &runtime.database_label),
+        Line::raw(""),
+        Line::styled("Actions", theme::muted_style()),
+        Line::raw("s start - x stop - r restart - l logs (coming next)"),
+    ];
+
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(
+                Block::default()
+                    .title(" Runtime Detail ")
                     .borders(Borders::ALL),
             )
             .style(theme::chrome_style())
