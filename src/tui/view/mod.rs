@@ -33,11 +33,12 @@ fn render_status_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Span::styled(" XRAT ", theme::accent_style().bold()),
         Span::styled(app.active_view.badge(), theme::chrome_style()),
         Span::raw(format!(
-            " {} total - {} on - {} sel - {} fail - sort:real-delay",
+            " {} total - {} on - {} sel - {} fail - {}",
             app.data.total_configs,
             app.data.enabled_configs,
             app.data.selected_configs,
-            app.data.failed_configs
+            app.data.failed_configs,
+            app.config_filter_summary()
         )),
         Span::raw("   "),
         Span::styled("* READY", theme::success_style().bold()),
@@ -126,19 +127,56 @@ fn render_placeholder_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
 fn render_configs_view(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let sections = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(6)])
         .split(area);
 
-    render_configs_table(frame, sections[0], app);
-    render_config_detail(frame, sections[1], app.focused_config());
+    render_config_filter_strip(frame, sections[0], app);
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .split(sections[1]);
+
+    render_configs_table(frame, columns[0], app);
+    render_config_detail(frame, columns[1], app.focused_config());
+}
+
+fn render_config_filter_strip(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let cursor = if app.config_list.editing_search {
+        "_"
+    } else {
+        ""
+    };
+    let search = if app.config_list.search_query.is_empty() {
+        "<none>".to_string()
+    } else {
+        format!("{}{}", app.config_list.search_query, cursor)
+    };
+    let text = Line::from(vec![
+        Span::styled("Search: ", theme::muted_style()),
+        Span::raw(search),
+        Span::raw("   "),
+        Span::styled("Sort: ", theme::muted_style()),
+        Span::raw(app.config_list.sort.label()),
+        Span::raw("   "),
+        Span::styled("Visible: ", theme::muted_style()),
+        Span::raw(app.visible_configs().len().to_string()),
+        Span::raw("   / edit  Enter/Esc close  Ctrl+U clear  s sort"),
+    ]);
+
+    frame.render_widget(
+        Paragraph::new(text).block(Block::default().title(" Filter ").borders(Borders::ALL)),
+        area,
+    );
 }
 
 fn render_configs_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let header = Row::new(["ID", "Name", "Proto", "Address:Port", "Net", "Delay", "St"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
-    let rows = app.data.configs.iter().enumerate().map(|(idx, config)| {
+    let visible = app.visible_configs();
+    let rows = visible.iter().enumerate().map(|(idx, config)| {
         let mut style = if idx == app.config_list.focused {
             theme::accent_style().add_modifier(Modifier::BOLD)
         } else if !config.is_enabled || config.is_deleted {
@@ -178,7 +216,15 @@ fn render_configs_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         ],
     )
     .header(header)
-    .block(Block::default().title(" Configs ").borders(Borders::ALL))
+    .block(
+        Block::default()
+            .title(format!(
+                " Configs ({}/{}) ",
+                visible.len(),
+                app.data.total_configs
+            ))
+            .borders(Borders::ALL),
+    )
     .column_spacing(1);
 
     frame.render_widget(table, area);
@@ -265,7 +311,9 @@ fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::raw("1-4       switch views"),
         Line::raw("j/k       move focus"),
         Line::raw("arrows    move focus"),
-        Line::raw("/         search (coming next)"),
+        Line::raw("/         edit config search"),
+        Line::raw("s         cycle config sort"),
+        Line::raw("Ctrl+U    clear search while editing"),
         Line::raw("Esc       close modal/back"),
         Line::raw("q/Ctrl+C  quit"),
     ];
