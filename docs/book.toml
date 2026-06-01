@@ -21,7 +21,7 @@ site-url = "https://mhyrzt.github.io/xrat/"
 default-theme = "dark"
 preferred-dark-theme = "navy"
 no-section-label = true
-additional-css = ["custom.css"]
+additional-css = ["theme/custom.css"]
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [output.html.fold]
