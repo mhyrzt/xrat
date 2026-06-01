@@ -95,6 +95,8 @@ where
                 path = excluded.path,
                 name = excluded.name,
                 raw_config = excluded.raw_config,
+                is_deleted = FALSE,
+                deleted_at = NULL,
                 imported_at = "#,
     );
     builder.push(current_timestamp);
