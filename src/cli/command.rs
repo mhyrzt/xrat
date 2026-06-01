@@ -1,8 +1,9 @@
 use clap::Subcommand;
 
 use crate::cli::{
-    AddArgs, ConnectArgs, DaemonArgs, DisconnectArgs, ImportArgs, ListArgs, ParseArgs, ProxyArgs,
-    ScanArgs, ServeArgs, StatusArgs, TestArgs, TuiArgs,
+    AddArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs, EnableArgs,
+    ImportArgs, ListArgs, ParseArgs, ProxyArgs, RestoreArgs, ScanArgs, SelectArgs, ServeArgs,
+    ShowArgs, StatusArgs, TestArgs, TuiArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -13,6 +14,18 @@ pub enum Command {
     Add(AddArgs),
     #[command(about = "List stored configs or subscription sources.")]
     List(ListArgs),
+    #[command(about = "Show details for a config.")]
+    Show(ShowArgs),
+    #[command(about = "Select a config as the current selection.")]
+    Select(SelectArgs),
+    #[command(about = "Enable a config.")]
+    Enable(EnableArgs),
+    #[command(about = "Disable a config.")]
+    Disable(DisableArgs),
+    #[command(about = "Soft delete a config.")]
+    Delete(DeleteArgs),
+    #[command(about = "Restore a soft-deleted config.")]
+    Restore(RestoreArgs),
     #[command(about = "Test connectivity and latency for stored configs.")]
     Test(Box<TestArgs>),
     #[command(about = "Scan candidate IPs for TCP reachability and persist results.")]

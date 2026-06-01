@@ -4,6 +4,7 @@ mod connect;
 mod daemon;
 mod disconnect;
 mod import;
+mod lifecycle;
 mod list;
 mod parse;
 mod proxy;
@@ -23,6 +24,7 @@ pub use daemon::{
 };
 pub use disconnect::DisconnectArgs;
 pub use import::ImportArgs;
+pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
