@@ -81,7 +81,8 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
   - row movement updates focused config state and clamps at list bounds.
   - focused tests added for count summaries, row formatting, and focus movement.
 - Configs view interaction slice landed:
-  - `/` edits an inline text search and the header shows active search/sort state.
+  - `/` edits an inline text search and the header shows active search/sort
+    state.
   - `s` cycles sort modes for visible configs.
   - `f` toggles deleted-row visibility.
   - `Space`, `e`, `x`, `d`, `D`, and `r` dispatch select, enable, disable,
@@ -90,16 +91,18 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
   - rows reload after mutations and focused tests cover key mappings, reducers,
     confirmation state, and command dispatch.
 - Sources view read-only slice landed:
-  - TUI data loading now includes subscription sources from `list_subscriptions()`.
+  - TUI data loading now includes subscription sources from
+    `list_subscriptions()`.
   - Sources view renders a real source table with ID, name, kind, config count,
     and update time.
   - focused source detail shows kind, value, counts, and timestamps.
-  - `j/k` and arrow navigation move source focus independently from config focus.
+  - `j/k` and arrow navigation move source focus independently from config
+    focus.
 - Runtime view read-only slice landed:
   - TUI data loading now includes current runtime/session status through
     `RuntimeService::status()`.
-  - Runtime view renders status cards plus session, inbound, failure, transition,
-    and database details.
+  - Runtime view renders status cards plus session, inbound, failure,
+    transition, and database details.
   - start/stop/restart/log actions remain visible as coming-next actions until
     background task infrastructure lands.
 - Tests view read-only slice landed:
@@ -107,25 +110,32 @@ The UX/layout reference for this phase is `docs/ui/tui/index.html`.
     result rows through existing database helpers.
   - Tests view renders scope, mode, latest run, queue/concurrency, progress
     counts, untested/failed summaries, and recent result rows.
-  - test scope state exists for focused, selected, filtered, all enabled, failed,
-    and stale/untested sets.
+  - test scope state exists for focused, selected, filtered, all enabled,
+    failed, and stale/untested sets.
 - Background task scaffold landed:
   - typed TUI task events and lifecycle state now exist under `src/tui/task.rs`.
   - the run loop drains task events without blocking terminal input.
   - deleted-filter data reload now uses the background task channel.
   - the status bar shows task state and reducer tests cover task completion.
+- Tests background execution slice landed:
+  - `s` in the Tests view starts a scoped background test batch.
+  - the TUI reuses the existing connection-test executor and records persisted
+    test results without shelling out to CLI text output.
+  - completed test tasks reload DB-backed config rows and latest-test summaries.
+  - cancellation is mapped in the keymap but still needs a cancellation-token
+    path before it can stop in-flight tests.
 
 ## Current Goal
 
-Continue Phase 6 by using the background task/action infrastructure for the
-first user-facing long-running operation:
+Continue Phase 6 by finishing background test control, then move to the next
+service-specific task path:
 
-1. choose focused test start/cancel or source refresh as the first operation
-2. route it through typed task events and the existing app service/repository path
-3. show progress/completion/failure in the relevant view
-4. reload affected DB-backed state after task completion
+1. add cancellation support for running test batches
+2. improve test progress events beyond started/completed/failed summaries
+3. add source refresh/import or runtime start/stop as the next background task
+4. keep completion/failure visible in the relevant view and diagnostics buffer
 
-Progress estimate: **~50-55%** complete.
+Progress estimate: **~55-60%** complete.
 
 ## Remaining Gaps
 
@@ -138,7 +148,7 @@ Progress estimate: **~50-55%** complete.
 3. Add panic/error-safe terminal cleanup beyond the current normal Drop-based
    cleanup.
 4. Finish remaining Configs polish, then implement Runtime actions, Diagnostics,
-   QR, Paste, and background task flows.
+   QR, Paste, and the remaining service-specific background task flows.
 5. Wire TUI actions to shared repository, import, tester, runtime, and daemon
    services instead of shelling out to CLI commands.
 6. Add focused tests for reducers/state transitions, filters, sort, selection,
@@ -148,27 +158,37 @@ Progress estimate: **~50-55%** complete.
 
 ## Immediate Next Slice
 
-1. Add a TUI action/key path for the first background operation.
-2. Spawn the operation through the task channel and keep navigation responsive.
-3. Add progress/completion/failure UI text in the related view.
+1. Add cancellation-token support for test batches.
+2. Emit incremental progress events while tests run.
+3. Add source refresh/import or runtime operation dispatch through the same task
+   channel.
 4. Add reducer tests for the operation-specific task state.
-5. Keep service-specific execution small and routed through existing app services.
+5. Keep service-specific execution small and routed through existing app
+   services.
 
 ## Verification
 
 - `cargo fmt` passed.
 - `cargo test -q tui::` passed.
-- Full `cargo test -q` passed after the background-task scaffold.
+- Full `cargo test -q` passed after the background test batch slice.
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
-This is a living work tracker for Phase 6, not a completable backlog item. It should be updated as Phase 6 progresses. The following factual inaccuracies were found during review and have been resolved:
+This is a living work tracker for Phase 6, not a completable backlog item. It
+should be updated as Phase 6 progresses. The following factual inaccuracies were
+found during review and have been resolved:
 
-1. **Incorrect Phase 2.5 completion claim** - Resolved: Lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been added to the CLI.
+1. **Incorrect Phase 2.5 completion claim** - Resolved: Lifecycle commands
+   (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been
+   added to the CLI.
 
-2. **Incorrect Phase 3 completion claim** - Resolved: `reqwest` `socks` feature added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with proper error handling in the real-delay prober.
+2. **Incorrect Phase 3 completion claim** - Resolved: `reqwest` `socks` feature
+   added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with proper
+   error handling in the real-delay prober.
 
-3. **Progress estimate** - The "~15%" estimate may undercount current progress. The Configs view has a functional table with 7 columns, detail panel, focus navigation, aggregate counts, and real DB data loading. A more accurate estimate might be 25-35%.
+3. **Progress estimate** - The "~15%" estimate may undercount current progress.
+   The Configs view has a functional table with 7 columns, detail panel, focus
+   navigation, aggregate counts, and real DB data loading. A more accurate
+   estimate might be 25-35%.

@@ -644,7 +644,7 @@ Goal: create the testable state/update loop.
 
 Tasks:
 
-- [ ] Define `TuiApp`, `TuiData`, view route enum, modal enum, and focus state.
+- [x] Define `TuiApp`, `TuiData`, view route enum, modal enum, and focus state.
 - [ ] Define typed `TuiAction` and `TuiEvent` values.
 - [x] Map keyboard events to actions.
 - [x] Add global mode switching and quit/back behavior.
@@ -781,16 +781,16 @@ Tasks:
 
 - [x] Define test scopes: focused, selected, filtered, all enabled, failed,
       stale.
-- [ ] Spawn test batches in background tasks.
+- [x] Spawn test batches in background tasks.
 - [x] Render progress gauge, counts, ETA if available, and live result log.
 - [ ] Support cancellation.
-- [ ] Update config rows as results arrive or after completion.
+- [x] Update config rows as results arrive or after completion.
 
 Acceptance:
 
 - [ ] users can start and cancel a test batch.
-- [ ] UI remains responsive while tests run.
-- [ ] latest result data refreshes after tests finish.
+- [x] UI remains responsive while tests run.
+- [x] latest result data refreshes after tests finish.
 
 ### P6.10 Runtime View
 
@@ -960,36 +960,51 @@ Recent progress:
   progress counts, untested/failed summaries, and recent result rows.
 - TUI task infrastructure now has typed task events, lifecycle state,
   non-blocking event-loop draining, and background data reload wiring.
+- Tests view now starts scoped background test batches with `s`, using the
+  existing connection-test executor and reloading DB-backed rows/results after
+  completion. Cancellation is still pending.
 - Focused TUI reducer/keymap tests and full `cargo test -q` pass after these
   slices.
 
 Current next slice:
 
-- Use the background task runner for the first user-facing long-running action,
-  likely focused test start/cancel or source refresh.
+- Add cancellation support for running test batches, then continue into source
+  refresh/import or runtime start/stop background operations.
 
-Phase 6 is at approximately 50-55% implementation. Most completion criteria remain unchecked because test execution, QR/copy/paste, diagnostics, and background task flows are not complete. The following gaps are the most significant:
+Phase 6 is at approximately 50-55% implementation. Most completion criteria
+remain unchecked because test execution, QR/copy/paste, diagnostics, and
+background task flows are not complete. The following gaps are the most
+significant:
 
 ### 1. Background task infrastructure is only scaffolded
 
-Configs, Sources, Tests, and Runtime have functional DB/service-backed read-only views. A typed task channel and state reducer exist, but test batches, source refreshes, imports, and runtime actions still need service-specific background execution and cancellation.
+Configs, Sources, Tests, and Runtime have functional DB/service-backed views. A
+typed task channel and state reducer exist, and test batches now run through it,
+but cancellation, source refreshes, imports, and runtime actions still need
+service-specific background execution.
 
 ### 2. Search/filter/sort is partial
 
-Text search, sort cycling, and deleted visibility are implemented. Advanced filters by protocol, enabled, selected, failed, source, real-delay presence, and full sort coverage are still pending.
+Text search, sort cycling, and deleted visibility are implemented. Advanced
+filters by protocol, enabled, selected, failed, source, real-delay presence, and
+full sort coverage are still pending.
 
 ### 3. Config actions are focused-row only
 
-Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk selected actions, connect/activate, and test actions are still pending.
+Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk
+selected actions, connect/activate, and test actions are still pending.
 
 ### 4. No QR, clipboard, or paste workflows
 
-`tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard, or paste/import modal exists.
+`tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard,
+or paste/import modal exists.
 
 ### 5. No service-specific background operations yet
 
-The task channel currently handles background data reloads. Import, test, source refresh, runtime operations, and cancellation are still pending.
+The task channel currently handles background data reloads. Import, test, source
+refresh, runtime operations, and cancellation are still pending.
 
 ### 6. No diagnostics or help content
 
-The `?` help overlay renders keybinding labels, but no diagnostics view or log buffer exists.
+The `?` help overlay renders keybinding labels, but no diagnostics view or log
+buffer exists.

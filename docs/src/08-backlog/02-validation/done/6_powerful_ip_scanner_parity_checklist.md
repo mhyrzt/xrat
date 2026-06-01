@@ -144,41 +144,52 @@ Current scanner scope is **latency-only TCP probing**:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
-The following items have been documented as product decisions or deferred features:
+The following items have been documented as product decisions or deferred
+features:
 
 ### 1. CIDR/range expansion - Documented as deferred
 
-No CIDR expansion or `IpNet` dependency exists. Scanner accepts explicit IP lists only. Deferred pending product decision.
+No CIDR expansion or `IpNet` dependency exists. Scanner accepts explicit IP
+lists only. Deferred pending product decision.
 
 ### 2. Concurrent worker pool - Documented as deferred
 
-Scanner iterates IPs in a sequential `for` loop (`src/app/commands/scan.rs`). No bounded concurrency pool exists. Deferred pending product decision.
+Scanner iterates IPs in a sequential `for` loop (`src/app/commands/scan.rs`). No
+bounded concurrency pool exists. Deferred pending product decision.
 
 ### 3. Resume semantics - Documented as deferred
 
-Every invocation scans all provided IPs. No DB-backed or CSV-backed skip set exists. Deferred pending product decision.
+Every invocation scans all provided IPs. No DB-backed or CSV-backed skip set
+exists. Deferred pending product decision.
 
 ### 4. Speedtest phase - Documented as deferred
 
-`download_mbps`/`upload_mbps` schema fields exist in `cf_scan_results` but are always `None` from the scanner. Deferred pending product decision.
+`download_mbps`/`upload_mbps` schema fields exist in `cf_scan_results` but are
+always `None` from the scanner. Deferred pending product decision.
 
 ### 5. Proxy-config-assisted scan - Documented as deferred
 
-No `--config` equivalent for proxy-assisted scanning. Deferred pending product decision.
+No `--config` equivalent for proxy-assisted scanning. Deferred pending product
+decision.
 
 ### 6. Reality-specific scanner flow - Documented as deferred
 
-No reality-specific scanner flow equivalent exists. Deferred pending product decision.
+No reality-specific scanner flow equivalent exists. Deferred pending product
+decision.
 
 ### 7. CSV/export UX - Documented as deferred
 
-No CSV output contract or ranking summaries exist. Deferred pending product decision.
+No CSV output contract or ranking summaries exist. Deferred pending product
+decision.
 
 ### 8. Exit criteria - Documented as deferred
 
-Four of six exit criteria remain unchecked: concurrent latency probing, reliable resume, optional speedtest/proxy-assisted modes, and documented scanner output semantics. All deferred pending product decision.
+Four of six exit criteria remain unchecked: concurrent latency probing, reliable
+resume, optional speedtest/proxy-assisted modes, and documented scanner output
+semantics. All deferred pending product decision.
 
-**Note:** The scope decision (latency-only) is documented and intentional. These blockers represent deferred features pending product decision, not implementation oversights.
+**Note:** The scope decision (latency-only) is documented and intentional. These
+blockers represent deferred features pending product decision, not
+implementation oversights.

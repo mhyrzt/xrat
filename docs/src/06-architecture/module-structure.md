@@ -4,151 +4,125 @@ xrat follows a modular architecture with clear separation of concerns across CLI
 parsing, command handlers, config parsing, database access, and engine
 integration.
 
-## Source Tree
+## Component Diagram
 
-```
-src/
-├── main.rs           # Entrypoint: parse CLI, init tracing, dispatch command
-├── lib.rs            # Re-exports all public modules
-│
-├── cli/              # Clap command/flag definitions
-│   ├── mod.rs        # Module root, pub re-exports
-│   ├── root.rs       # Cli struct with global flags
-│   ├── command.rs    # Command enum (all subcommands)
-│   ├── add.rs        # AddArgs
-│   ├── connect.rs    # ConnectArgs
-│   ├── daemon.rs     # DaemonArgs + DaemonAction
-│   ├── disconnect.rs # DisconnectArgs
-│   ├── import.rs     # ImportArgs
-│   ├── list.rs       # ListArgs + ListTarget
-│   ├── parse.rs      # ParseArgs + ParseEngine
-│   ├── proxy.rs      # ProxyArgs + ProxyAction
-│   ├── scan.rs       # ScanArgs
-│   ├── serve.rs      # ServeArgs
-│   ├── status.rs     # StatusArgs
-│   ├── test_cmd/     # TestArgs + enums (TestFormat, TestSortBy)
-│   └── tests/        # CLI parsing tests
-│
-├── app/              # Application layer
-│   ├── mod.rs
-│   ├── context.rs    # AppContext: DB + config + runtime paths
-│   ├── context/
-│   │   ├── paths.rs  # Runtime path resolution
-│   │   └── tests/    # Context tests (binary, database resolution)
-│   ├── config/       # AppConfig TOML deserialization
-│   ├── error.rs      # AppError enum
-│   ├── app_paths/    # Filesystem layout resolution
-│   ├── import.rs     # Input loading + b64 detection
-│   ├── input/        # Input source reading (URL fetch, file, stdin)
-│   ├── commands/     # Command handlers
-│   │   ├── mod.rs    # Command dispatch
-│   │   ├── add.rs
-│   │   ├── connect.rs
-│   │   ├── daemon.rs
-│   │   ├── disconnect.rs
-│   │   ├── import.rs
-│   │   ├── list.rs
-│   │   ├── parse.rs
-│   │   ├── proxy.rs
-│   │   ├── scan.rs
-│   │   ├── serve.rs
-│   │   ├── test.rs
-│   │   ├── status/
-│   │   └── runtime_output.rs
-│   ├── runtime_service/  # Proxy process lifecycle
-│   │   ├── connect/      # Connect flow
-│   │   ├── replace_flow/ # Atomic disconnect + connect
-│   │   ├── reattach/     # Stale session recovery
-│   │   ├── session_state/# State transitions + inbound health
-│   │   ├── status.rs     # Runtime status snapshot
-│   │   └── tests/        # Integration tests
-│   └── daemon/       # Daemon supervisor
-│       ├── ipc/      # Unix socket IPC protocol
-│       │   ├── types.rs      # Request/response types
-│       │   ├── handler/      # IPC request dispatch
-│       │   ├── client/       # IPC client (Unix + unsupported)
-│       │   ├── responses/    # Response builders
-│       │   ├── transport/    # Wire format (JSON)
-│       │   └── tests/        # IPC integration tests
-│       └── supervisor/      # Event loop
-│           ├── types.rs     # SupervisorState
-│           └── handlers/    # Health check, rotation, runtime
-│
-├── model/             # Shared domain types
-│   ├── node.rs        # Node struct
-│   ├── protocol.rs    # Protocol enum
-│   └── node_dedup_key.rs  # Dedup key generation
-│
-├── config/            # Config parsing and normalization
-│   ├── protocols/     # Protocol-specific parsers
-│   │   ├── vless.rs   # vless:// parser
-│   │   ├── vmess.rs   # vmess:// parser
-│   │   ├── ss.rs      # ss:// parser
-│   │   ├── trojan.rs  # trojan:// parser
-│   │   ├── http.rs    # http:// parser
-│   │   ├── socks5.rs  # socks5:// parser
-│   │   └── hy2.rs     # hysteria2:// parser
-│   ├── line.rs        # Line-by-line text parsing
-│   ├── normalize.rs   # Node normalization defaults
-│   ├── parse_service.rs # Engine-aware parsing
-│   ├── import/        # Import format detection
-│   │   ├── detect.rs  # Format detection heuristics
-│   │   ├── parsers/   # Format-specific parsers
-│   │   └── subscription.rs # URL fetch + metadata
-│   └── parsing_helpers.rs # Shared URI helpers
-│
-├── db/                # Database layer
-│   ├── connection.rs  # Connection pool management
-│   ├── schema.rs      # Migration runner
-│   ├── error.rs       # DbError enum
-│   ├── database/      # Database query methods
-│   ├── repository/    # SQL implementations
-│   │   ├── configs/   # Config CRUD
-│   │   ├── connection_tests/ # Test result CRUD
-│   │   ├── runtime_sessions/ # Session CRUD
-│   │   ├── cf_scan_results/  # Scan result CRUD
-│   │   ├── subscriptions/    # Subscription CRUD
-│   │   └── api/       # API-specific queries
-│   └── record/        # Record types (DTOs)
-│
-├── xray/              # Xray-core integration
-│   ├── config/        # Config generation
-│   │   ├── generator/ # Probe + runtime config builders
-│   │   ├── outbound.rs # Protocol-to-outbound mapping
-│   │   ├── stream.rs  # Stream settings (TLS, WS, gRPC, TCP)
-│   │   └── types.rs   # XrayConfig, Inbound, Outbound structs
-│   ├── parsing/       # Xray JSON config parsing
-│   │   ├── core/      # Top-level config structure
-│   │   ├── protocols/ # Inbound/outbound protocol parsers
-│   │   ├── transports/ # Transport settings parsers
-│   │   └── shared/    # Shared types (enums, strings)
-│   ├── process/       # Low-level process spawn + lifecycle
-│   └── process_mgmt/  # High-level process management + signals
-│
-├── singbox/           # sing-box integration
-│   ├── config/        # sing-box config generation (hy2)
-│   └── process_mgmt/  # sing-box process management
-│
-├── prober/            # Connection testing probes
-│   ├── icmp/          # ICMP ping (parse system ping output)
-│   ├── tcp/           # TCP connectivity check + failure classification
-│   ├── real_delay/    # HTTP round-trip latency via proxy
-│   ├── download/      # Download speed measurement
-│   └── upload/        # Upload speed measurement
-│
-├── server/            # Axum HTTP API
-│   ├── routes/        # Route handlers (health, json, b64, configs)
-│   ├── auth.rs        # API key authentication
-│   ├── response.rs    # Response types
-│   ├── state.rs       # ServerState
-│   └── error.rs       # Server error types
-│
-└── support/           # Shared utilities
-    ├── decode.rs      # Base64 decoding
-    ├── geoip.rs       # MaxMind GeoIP lookups
-    ├── net.rs         # Network utilities
-    ├── time.rs        # Timestamp helpers
-    └── url.rs         # URL detection helpers
+```mermaid
+graph TB
+    subgraph Entry
+        main["main.rs"]
+        lib["lib.rs"]
+    end
+
+    subgraph CLI["src/cli/ — Clap Definitions"]
+        cli_root["root.rs"]
+        cli_cmd["command.rs"]
+        cli_add["add.rs"]
+        cli_import["import.rs"]
+        cli_test["test_cmd/"]
+        cli_tests["tests/"]
+    end
+
+    subgraph APP["src/app/ — Orchestration"]
+        ctx["context.rs"]
+        paths["context/paths.rs"]
+        app_cfg["config/"]
+        app_err["error.rs"]
+        cmds["commands/"]
+        rt_svc["runtime_service/"]
+        daemon["daemon/"]
+    end
+
+    subgraph MODEL["src/model/ — Domain Types"]
+        node["node.rs"]
+        proto["protocol.rs"]
+        dedup["node_dedup_key.rs"]
+    end
+
+    subgraph CONFIG["src/config/ — Parsing"]
+        protos["protocols/"]
+        normalize["normalize.rs"]
+        parse_svc["parse_service.rs"]
+        import_mod["import/"]
+    end
+
+    subgraph DB["src/db/ — Persistence"]
+        conn["connection.rs"]
+        schema["schema.rs"]
+        db_query["database/"]
+        repo["repository/"]
+        record["record/"]
+    end
+
+    subgraph XRAY["src/xray/ — Xray Integration"]
+        xcfg["config/"]
+        xparse["parsing/"]
+        xproc["process/"]
+        xpm["process_mgmt/"]
+    end
+
+    subgraph SINGBOX["src/singbox/ — sing-box"]
+        scfg["config/ + process_mgmt helper"]
+    end
+
+    subgraph PROBER["src/prober/ — Testing"]
+        p_icmp["icmp/"]
+        p_tcp["tcp/"]
+        p_delay["real_delay/"]
+        p_dl["download/"]
+        p_ul["upload/"]
+    end
+
+    subgraph SERVER["src/server/ — HTTP API"]
+        srv_routes["routes/"]
+        srv_auth["auth.rs"]
+    end
+
+    subgraph SUPPORT["src/support/ — Utilities"]
+        decode["decode.rs"]
+        geoip["geoip.rs"]
+        net["net.rs"]
+    end
+
+    main --> lib
+    lib --> CLI
+    lib --> APP
+    lib --> MODEL
+    lib --> CONFIG
+    lib --> DB
+    lib --> XRAY
+    lib --> SINGBOX
+    lib --> PROBER
+    lib --> SERVER
+    lib --> SUPPORT
+
+    APP --> cmds
+    cmds --> rt_svc
+    cmds --> daemon
+    rt_svc --> XRAY
+    rt_svc --> SINGBOX
+    daemon --> rt_svc
+
+    CONFIG --> MODEL
+    CONFIG --> protos
+    CONFIG --> import_mod
+
+    DB --> repo
+    DB --> record
+    repo --> XRAY
+    repo --> PROBER
+
+    XRAY --> xcfg
+    XRAY --> xparse
+    XRAY --> xproc
+
+    PROBER --> XRAY
+    PROBER --> MODEL
+
+    SERVER --> DB
+    SERVER --> MODEL
+
+    SUPPORT --> CONFIG
+    SUPPORT --> DB
 ```
 
 ## Module Responsibilities
@@ -166,78 +140,352 @@ src/
 | `server/`  | HTTP API server using Axum. Auth, routes, response types.                             |
 | `support/` | Shared utilities: base64 decode, GeoIP, network helpers.                              |
 
-## Data Flow
+## Data Flows
 
 ### Import Flow
 
-```
-Input (URL/file/text)
-    → app/input/ read source
-    → config/import/ detect format
-    → config/import/parsers/ parse format
-    → config/protocols/ parse individual links
-    → config/normalize/ apply defaults
-    → model/node_dedup_key/ generate dedup key
-    → db/repository/configs/ persist with dedup check
-    → db/repository/subscriptions/ create/update subscription
+```mermaid
+flowchart LR
+    SRC[Input: URL / File / Stdin]
+    APP_IN[app/input/]
+    DETECT[config/import/detect]
+    PARSE_FMT[config/import/parsers/]
+    PROTO[config/protocols/]
+    NORM[config/normalize/]
+    DEDUP[model/node_dedup_key/]
+    PERSIST[db/repository/configs/]
+    SUB[db/repository/subscriptions/]
+
+    SRC --> APP_IN
+    APP_IN --> DETECT
+    DETECT --> PARSE_FMT
+    PARSE_FMT --> PROTO
+    PROTO --> NORM
+    NORM --> DEDUP
+    DEDUP --> PERSIST
+    PERSIST --> SUB
 ```
 
 ### Test Flow
 
-```
-CLI args
-    → app/commands/test/ resolve settings
-    → db/repository/configs/ load configs
-    → For each config:
-        → xray/config/generator/ generate probe config
-        → xray/process/ spawn Xray probe
-        → prober/icmp/ ICMP ping
-        → prober/tcp/ TCP connect
-        → prober/real_delay/ HTTP through proxy
-        → prober/download/ download through proxy
-        → prober/upload/ upload through proxy
-        → xray/process/ kill probe
-    → db/repository/connection_tests/ persist results
-    → app/commands/test/output/ format and print
+```mermaid
+flowchart TD
+    CLI[CLI args]
+    SET[app/commands/test/ resolve settings]
+    LOAD[db/repository/configs/ load configs]
+    LOOP{For each config}
+    GEN[xray/config/generator/ probe config]
+    SPAWN[xray/process/ spawn Xray]
+    ICMP[prober/icmp/]
+    TCP[prober/tcp/]
+    DELAY[prober/real_delay/]
+    DL[prober/download/]
+    UL[prober/upload/]
+    KILL[xray/process/ kill probe]
+    SAVE[db/repository/connection_tests/ persist]
+    OUT[app/commands/test/output/ format & print]
+
+    CLI --> SET
+    SET --> LOAD
+    LOAD --> LOOP
+    LOOP --> GEN
+    GEN --> SPAWN
+    SPAWN --> ICMP
+    ICMP --> TCP
+    TCP --> DELAY
+    DELAY --> DL
+    DL --> UL
+    UL --> KILL
+    KILL --> LOOP
+    LOOP --> SAVE
+    SAVE --> OUT
 ```
 
 ### Connect Flow
 
-```
-CLI args
-    → app/commands/connect/ load config
-    → app/runtime_service/connect/ start session
-    → xray/config/generator/ generate runtime config
-    → xray/process_mgmt/ spawn detached process
-    → db/repository/runtime_sessions/ persist session
-    → Return status
+```mermaid
+flowchart LR
+    CLI[CLI args]
+    LOAD[app/commands/connect/ load config]
+    RTSVC[app/runtime_service/connect/ start session]
+    XGEN[xray/config/generator/ runtime config]
+    XSPAWN[xray/process_mgmt/ spawn detached]
+    SAVE[db/repository/runtime_sessions/ persist]
+
+    CLI --> LOAD
+    LOAD --> RTSVC
+    RTSVC --> XGEN
+    XGEN --> XSPAWN
+    XSPAWN --> SAVE
 ```
 
 ### Daemon Flow
 
-```
-xrat daemon start
-    → app/daemon/supervisor/ event loop
-    → app/runtime_service/reattach/ reconcile stale sessions
-    → tokio::select! loop:
-        → health check (every 15s)
-        → IPC events (via Unix socket)
-        → rotation timer (if enabled)
+```mermaid
+flowchart TD
+    START["xrat daemon start"]
+    FORK[Fork child process]
+    SUP["app/daemon/supervisor/ event loop"]
+    REATTACH["app/runtime_service/reattach/ reconcile"]
+    SELECT{"tokio::select!"}
+    HEALTH["Health check (every 15s)"]
+    IPC["IPC events (Unix socket)"]
+    ROTATE["Rotation timer"]
+
+    START --> FORK
+    FORK --> SUP
+    SUP --> REATTACH
+    REATTACH --> SELECT
+    SELECT --> HEALTH
+    SELECT --> IPC
+    SELECT --> ROTATE
 ```
 
 ## Dependency Graph
 
+```mermaid
+graph LR
+    subgraph layers["Dependency Direction"]
+        direction LR
+        A[ support/ ] --> B[ model/ ]
+        B --> C[ config/ ]
+        C --> D[ db/ ]
+        C --> E[ xray/ ]
+        E --> F[ prober/ ]
+        F --> G[ app/ ]
+        G --> H[ cli/ ]
+        H --> I[ main.rs ]
+        E --> J[ singbox/ ]
+        D --> G
+        A --> K[ server/ ]
+        D --> K
+    end
 ```
-support/ ──> model/ ──> config/ ──> db/
-   │                    │             │
-   │                    v             v
-   │               xray/ ───> prober/
-   │                    │        │
-   │                    v        v
-   │               singbox/  app/
-   │                           │
-   v                           v
-server/                   cli/ ──> main.rs
+
+## Source Tree
+
+```
+src/
+├── main.rs           # Entrypoint: parse CLI, init tracing, dispatch command
+├── lib.rs            # Re-exports all public modules
+│
+├── cli/              # Clap command/flag definitions
+│   ├── mod.rs        # Module root, pub re-exports
+│   ├── root.rs       # Cli struct with global flags
+│   ├── command.rs    # Command enum (all subcommands)
+│   ├── add.rs        # AddArgs
+│   ├── connect.rs    # ConnectArgs
+│   ├── daemon.rs     # DaemonArgs + DaemonAction
+│   ├── disconnect.rs # DisconnectArgs
+│   ├── import.rs     # ImportArgs
+│   ├── lifecycle.rs  # select / enable / disable / delete / restore
+│   ├── list.rs       # ListArgs + ListTarget
+│   ├── parse.rs      # ParseArgs + ParseEngine
+│   ├── proxy.rs      # ProxyArgs + ProxyAction
+│   ├── scan.rs       # ScanArgs
+│   ├── serve.rs      # ServeArgs
+│   ├── status.rs     # StatusArgs
+│   ├── tui.rs        # TuiArgs
+│   ├── test_cmd/     # TestArgs + TestFormat/TestSortBy
+│   └── tests/        # CLI parsing tests (cases/test_command, cases/runtime_parse, ...)
+│
+├── app/              # Application layer
+│   ├── mod.rs
+│   ├── app_paths.rs  # Filesystem layout resolution
+│   ├── context.rs    # AppContext: DB + config + runtime paths
+│   ├── context/
+│   │   ├── paths.rs  # Runtime path resolution
+│   │   └── tests/    # Context tests (binary, database resolution)
+│   ├── config/       # AppConfig TOML deserialization (proxy + testing)
+│   ├── daemon.rs     # Daemon CLI dispatch glue
+│   ├── error.rs      # AppError enum
+│   ├── import.rs     # Top-level import orchestration
+│   ├── input/        # Input source reading (read_input, fetch_url)
+│   ├── runtime_service.rs  # RuntimeService public re-exports
+│   ├── commands/     # Command handlers
+│   │   ├── mod.rs
+│   │   ├── add.rs
+│   │   ├── connect.rs
+│   │   ├── daemon.rs
+│   │   ├── disconnect.rs
+│   │   ├── import.rs
+│   │   ├── lifecycle.rs
+│   │   ├── list.rs
+│   │   ├── parse.rs
+│   │   ├── proxy.rs
+│   │   ├── runtime_output.rs
+│   │   ├── scan.rs
+│   │   ├── serve.rs
+│   │   ├── status/   # display + json + tests submodules
+│   │   ├── test.rs
+│   │   ├── test/
+│   │   │   ├── bulk/         # bulk executor
+│   │   │   │   └── bulk_executor/
+│   │   │   ├── execution/    # per-config probe loop
+│   │   │   ├── handlers/     # CLI arg handling helpers
+│   │   │   ├── output/       # table / TSV / CSV / JSON output
+│   │   │   ├── output_types/
+│   │   │   ├── settings/     # resolve / rows / validation
+│   │   │   ├── stages/       # endpoint / progress / throughput
+│   │   │   └── tests/        # focused tests
+│   │   └── tui.rs
+│   ├── runtime_service/  # Proxy process lifecycle
+│   │   ├── connect/      # Connect flow
+│   │   ├── replace_flow/ # Atomic disconnect + connect (candidate, ports, stage)
+│   │   ├── reattach/     # Stale session recovery (process inspector)
+│   │   ├── session_state/# State transitions + inbound health
+│   │   ├── types.rs
+│   │   └── tests/        # Integration tests
+│   └── daemon/       # Daemon supervisor
+│       ├── ipc/      # Unix socket IPC protocol
+│       │   ├── types.rs      # Request/response types (DaemonRequest, RotationTrigger, ...)
+│       │   ├── handler/      # dispatch.rs + io.rs
+│       │   ├── client/       # unix_impl.rs + unsupported_impl.rs
+│       │   ├── transport/    # ping_shutdown.rs, proxy.rs, runtime.rs
+│       │   └── tests/        # IPC integration tests
+│       └── supervisor/      # Event loop
+│           ├── mod.rs
+│           ├── types.rs
+│           ├── health.rs
+│           ├── runtime.rs
+│           ├── test_support.rs
+│           ├── tests.rs
+│           └── handlers/    # Health check, rotation, runtime
+│               ├── health.rs
+│               ├── mod.rs
+│               ├── runtime/         # runtime_lifecycle/, runtime_status_connect/
+│               └── tests/           # tests_replace/
+│
+├── model/             # Shared domain types
+│   ├── node.rs        # Node struct
+│   ├── protocol.rs    # Protocol enum
+│   └── node_dedup_key.rs  # Dedup key generation
+│
+├── config/            # Config parsing and normalization
+│   ├── protocols/     # Protocol-specific parsers
+│   │   ├── vless.rs   # vless:// parser
+│   │   ├── vmess.rs   # vmess:// parser
+│   │   ├── ss.rs      # ss:// parser
+│   │   ├── trojan.rs  # trojan:// parser
+│   │   ├── http.rs    # http:// parser
+│   │   ├── socks5.rs  # socks5:// parser
+│   │   ├── hy2.rs     # hysteria2:// parser
+│   │   └── tests/     # Parser tests
+│   ├── line.rs        # Line-by-line text parsing
+│   ├── normalize.rs   # Node normalization defaults
+│   ├── parse_service.rs # Engine-aware parsing
+│   ├── import/        # Import format detection
+│   │   ├── detect.rs  # Format detection heuristics
+│   │   ├── error.rs
+│   │   ├── mod.rs     # ImportMode / ImportResult / parse_import
+│   │   ├── subscription.rs # URL fetch + metadata
+│   │   └── parsers/   # single_link, plain_list, base64, sip008, xray
+│   └── parsing_helpers.rs # Shared URI helpers
+│
+├── db/                # Database layer
+│   ├── connection.rs  # Connection pool management
+│   ├── schema.rs      # Migration runner
+│   ├── error.rs       # DbError enum
+│   ├── mod.rs         # DbPool + facade re-exports
+│   ├── database/      # Database query methods
+│   ├── repository/    # SQL implementations
+│   │   ├── api/       # API-specific queries
+│   │   ├── cf_scan_results.rs
+│   │   ├── configs/
+│   │   │   ├── import_ops/  # Upsert on dedup_key
+│   │   │   ├── state_ops/   # enable/disable/select/delete
+│   │   │   └── server_ops.rs
+│   │   ├── connection_tests.rs
+│   │   ├── row/             # Shared row helpers
+│   │   └── runtime_sessions.rs
+│   └── record/        # Record types (DTOs)
+│       ├── cf_scan_results.rs
+│       ├── configs.rs
+│       ├── connection_tests.rs
+│       ├── import.rs  # ImportSource, SubscriptionRecord, ...
+│       ├── mod.rs
+│       └── runtime_sessions.rs
+│
+├── xray/              # Xray-core integration
+│   ├── config/        # Config generation
+│   │   ├── generator/ # Probe + runtime config builders
+│   │   ├── outbound.rs # Protocol-to-outbound mapping
+│   │   ├── stream.rs  # Stream settings (TLS, WS, gRPC, TCP)
+│   │   └── types.rs   # XrayConfig, Inbound, Outbound structs
+│   ├── parsing/       # Xray JSON config parsing
+│   │   ├── core/      # Top-level config structure
+│   │   ├── protocols/ # Inbound/outbound protocol parsers
+│   │   │   ├── inbound_settings/
+│   │   │   └── outbound_settings/
+│   │   ├── transports/ # Transport settings parsers
+│   │   │   └── security/
+│   │   └── shared/    # Shared types (enums, strings)
+│   ├── process/       # Low-level process spawn + lifecycle
+│   │   ├── errors.rs
+│   │   ├── spawn.rs
+│   │   └── tests.rs
+│   └── process_mgmt/  # High-level process management + signals
+│       ├── mod.rs
+│       ├── process.rs
+│       ├── signals.rs
+│       └── tests.rs
+│
+├── singbox/           # sing-box integration
+│   ├── mod.rs
+│   └── config/        # sing-box config generation + process_mgmt helper
+│       ├── mod.rs
+│       └── process_mgmt.rs
+│
+├── prober/            # Connection testing probes
+│   ├── mod.rs         # FailureKind + combined TestResult
+│   ├── icmp/          # ICMP ping (parse system ping output)
+│   │   ├── mod.rs     # icmp_ping, ping_with_system_command
+│   │   ├── parsing.rs # parse_ping_latency, classify_ping_failure
+│   │   └── tests.rs
+│   ├── tcp/           # TCP connectivity check + failure classification
+│   │   ├── check.rs   # tcp_check
+│   │   ├── classify.rs
+│   │   ├── errors.rs
+│   │   ├── model.rs   # TcpResult
+│   │   ├── mod.rs
+│   │   └── tests.rs
+│   ├── real_delay/    # HTTP round-trip latency via proxy
+│   │   ├── check/     # execute, model, port, request, mod
+│   │   ├── classify.rs
+│   │   └── mod.rs
+│   ├── download/      # Download speed measurement
+│   │   ├── check/     # proxied, result, mod
+│   │   ├── classify.rs
+│   │   └── mod.rs
+│   └── upload/        # Upload speed measurement
+│       ├── classify.rs
+│       ├── mod.rs
+│       └── request.rs
+│
+├── server/            # Axum HTTP API
+│   ├── mod.rs
+│   ├── routes/        # b64, configs, health, json
+│   ├── auth.rs        # API key authentication
+│   ├── response.rs    # Response types
+│   ├── state.rs       # ServerState
+│   └── error.rs       # Server error types
+│
+├── tui/               # Ratatui TUI
+│   ├── mod.rs
+│   ├── run.rs         # Terminal lifecycle + main loop
+│   ├── keymap.rs
+│   ├── task.rs        # Background task primitives
+│   ├── theme.rs
+│   ├── app/           # App state, reducers, navigation
+│   ├── data/          # Data loading + tests
+│   └── view/          # chrome, configs, sources, runtime, tests, modals
+│
+└── support/           # Shared utilities
+    ├── decode.rs      # Base64 decoding
+    ├── geoip.rs       # MaxMind GeoIP lookups
+    ├── net.rs         # Network utilities
+    ├── time.rs        # Timestamp helpers
+    └── url.rs         # URL detection helpers
 ```
 
 ## File Conventions

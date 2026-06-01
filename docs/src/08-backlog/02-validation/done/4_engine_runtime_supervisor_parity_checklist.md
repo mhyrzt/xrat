@@ -204,23 +204,27 @@ Gap notes:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
-The following items have been documented as product decisions or deferred features:
+The following items have been documented as product decisions or deferred
+features:
 
 ### 1. Runtime engine abstraction layer (Section B) - Documented as non-goal
 
-xrat is xray/v2ray-focused for managed runtime. Multi-engine parity (sing-box) is deferred pending product decision.
+xrat is xray/v2ray-focused for managed runtime. Multi-engine parity (sing-box)
+is deferred pending product decision.
 
 ### 2. Sing-box runtime config generation (Section B) - Documented as non-goal
 
-Parse-time sing-box support exists for diagnostics (`--engine sing-box`). Managed runtime sing-box support is deferred pending product decision.
+Parse-time sing-box support exists for diagnostics (`--engine sing-box`).
+Managed runtime sing-box support is deferred pending product decision.
 
 ### 3. Auto-reconnect ownership boundary (Section C) - Documented as deferred
 
-Auto-reconnect behavior is deferred to a later scheduler phase. Current supervisor handles crash detection and reattach policy.
+Auto-reconnect behavior is deferred to a later scheduler phase. Current
+supervisor handles crash detection and reattach policy.
 
 ### 4. Exit criterion - Documented as non-goal
 
-"Runtime engine abstraction parity decision is implemented (or documented non-goal)" - Documented as non-goal: xrat is xray/v2ray-focused.
+"Runtime engine abstraction parity decision is implemented (or documented
+non-goal)" - Documented as non-goal: xrat is xray/v2ray-focused.

@@ -1,9 +1,29 @@
 [book]
-title = "xrat Documentation"
+title = "xrat"
 authors = ["xrat contributors"]
 language = "en"
 src = "src"
+description = "A modern proxy configuration manager for Xray-core and sing-box"
 
 [build]
 build-dir = "book"
 create-missing = false
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+renderer = ["html"]
+optional = true
+
+[output.html]
+additional-css = ["mermaid.css"]
+git-repository-url = "https://github.com/mhyrzt/xrat"
+edit-url-template = "https://github.com/mhyrzt/xrat/edit/main/docs/src/{path}"
+site-url = "https://mhyrzt.github.io/xrat/"
+default-theme = "dark"
+preferred-dark-theme = "navy"
+no-section-label = true
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.fold]
+enable = true
+level = 1

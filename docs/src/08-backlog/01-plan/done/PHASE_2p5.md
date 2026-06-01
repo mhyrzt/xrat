@@ -617,15 +617,20 @@ Validation performed during review:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
 All blockers have been resolved:
 
-1. **Lifecycle commands added to CLI** - Added `select`, `enable`, `disable`, `delete`, `restore`, and `show` commands to `src/cli/command.rs` and `src/cli/lifecycle.rs`. Command handlers implemented in `src/app/commands/lifecycle.rs`.
+1. **Lifecycle commands added to CLI** - Added `select`, `enable`, `disable`,
+   `delete`, `restore`, and `show` commands to `src/cli/command.rs` and
+   `src/cli/lifecycle.rs`. Command handlers implemented in
+   `src/app/commands/lifecycle.rs`.
 
-2. **`show` command implemented** - Added `show` command with `--json` flag for detailed config inspection.
+2. **`show` command implemented** - Added `show` command with `--json` flag for
+   detailed config inspection.
 
-3. **Completion criteria item 6 met** - All lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) are now available via CLI.
+3. **Completion criteria item 6 met** - All lifecycle commands (`select`,
+   `enable`, `disable`, `delete`, `restore`) are now available via CLI.
 
-4. **CLI parsing tests added** - Added 8 new CLI parsing tests for lifecycle commands in `src/cli/tests/cases/core_cases.rs`.
+4. **CLI parsing tests added** - Added 8 new CLI parsing tests for lifecycle
+   commands in `src/cli/tests/cases/core_cases.rs`.

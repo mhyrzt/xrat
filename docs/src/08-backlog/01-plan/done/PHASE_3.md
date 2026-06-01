@@ -548,8 +548,8 @@ However, the real-delay path still has a critical blocker:
 
 - `Cargo.toml` enables `reqwest` with `blocking` and `rustls`, but not the
   `socks` feature.
-- The real-delay request code builds a `socks5://127.0.0.1:<port>` proxy for
-  the temporary Xray inbound.
+- The real-delay request code builds a `socks5://127.0.0.1:<port>` proxy for the
+  temporary Xray inbound.
 - Without `reqwest/socks`, the real-delay probe cannot be considered a reliable
   actual SOCKS-proxied traffic test.
 - The proxy construction currently uses `Proxy::all(...).unwrap()`, so proxy
@@ -560,8 +560,8 @@ Before this phase can be moved to `DONE.md`, fix the real-delay proxy path by:
 1. enabling the `socks` feature on `reqwest`;
 2. replacing the proxy `unwrap()` with explicit error handling that returns a
    `RealDelayResult` failure;
-3. adding focused coverage for SOCKS proxy client construction or the
-   real-delay failure path.
+3. adding focused coverage for SOCKS proxy client construction or the real-delay
+   failure path.
 
 ## Implementation Summary
 
@@ -666,11 +666,14 @@ processes, while Phase 4 manages persistent sessions.
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
 All blockers have been resolved:
 
 1. **`reqwest` `socks` feature** - Added to `Cargo.toml` features list.
-2. **`Proxy::all(...).unwrap()` in real-delay prober** - Replaced with explicit error handling using `match`, matching the pattern used in download and upload probers.
-3. **SOCKS proxy construction test** - Added `test_make_proxied_request_handles_proxy_errors_gracefully` test that verifies the function handles proxy errors without panicking.
+2. **`Proxy::all(...).unwrap()` in real-delay prober** - Replaced with explicit
+   error handling using `match`, matching the pattern used in download and
+   upload probers.
+3. **SOCKS proxy construction test** - Added
+   `test_make_proxied_request_handles_proxy_errors_gracefully` test that
+   verifies the function handles proxy errors without panicking.

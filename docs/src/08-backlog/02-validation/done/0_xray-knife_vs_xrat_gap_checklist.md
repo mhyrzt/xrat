@@ -219,31 +219,43 @@ Planning note:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
-The following items have been documented as product decisions or deferred features:
+The following items have been documented as product decisions or deferred
+features:
 
 ### 1. Engine abstraction layer (Section 4) - Documented as non-goal
 
-xrat is xray/v2ray-focused for managed runtime. Multi-engine parity (sing-box) is deferred pending product decision. Current behavior is safe: sing-box is rejected clearly rather than launching xray-shaped JSON through a sing-box binary.
+xrat is xray/v2ray-focused for managed runtime. Multi-engine parity (sing-box)
+is deferred pending product decision. Current behavior is safe: sing-box is
+rejected clearly rather than launching xray-shaped JSON through a sing-box
+binary.
 
 ### 2. Sing-box runtime integration (Section 4) - Documented as non-goal
 
-Parse-time `--engine sing-box` works for diagnostics. Managed runtime sing-box support is deferred pending product decision.
+Parse-time `--engine sing-box` works for diagnostics. Managed runtime sing-box
+support is deferred pending product decision.
 
 ### 3. Durable rotation event history (Section 5) - Documented as deferred
 
-Rotation state is daemon-session memory only. Durable rotation events table is deferred pending product decision on crash-safe continuity requirements.
+Rotation state is daemon-session memory only. Durable rotation events table is
+deferred pending product decision on crash-safe continuity requirements.
 
 ### 4. Scanner advanced parity (Section 6) - Documented as deferred
 
-Current scope is latency-only TCP probing (documented in `6_powerful_ip_scanner_parity_checklist.md`). CIDR expansion, concurrent worker pool, resume semantics, speedtest phase, proxy-assisted scan, reality scanner, and CSV export are deferred pending product decision.
+Current scope is latency-only TCP probing (documented in
+`6_powerful_ip_scanner_parity_checklist.md`). CIDR expansion, concurrent worker
+pool, resume semantics, speedtest phase, proxy-assisted scan, reality scanner,
+and CSV export are deferred pending product decision.
 
 ### 5. Netns/sysproxy/chain features (Section 5) - Documented as non-goal
 
-No namespace, system proxy, or multi-hop chain orchestration exists. These are deferred pending product decision.
+No namespace, system proxy, or multi-hop chain orchestration exists. These are
+deferred pending product decision.
 
 ### 6. Product direction decision (P0) - Documented
 
-xrat is xray-runtime-focused. xray-knife parity (sing-box, scanner depth, rotating proxy features) is deferred pending product decision. The focused validation checklists (`1_` through `7_`) document the current implementation state and deferred features.
+xrat is xray-runtime-focused. xray-knife parity (sing-box, scanner depth,
+rotating proxy features) is deferred pending product decision. The focused
+validation checklists (`1_` through `7_`) document the current implementation
+state and deferred features.

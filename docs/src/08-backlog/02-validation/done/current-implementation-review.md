@@ -785,29 +785,42 @@ cargo run -- daemon stop
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
-This is a living review document. The following factual inaccuracies were found during review and have been resolved:
+This is a living review document. The following factual inaccuracies were found
+during review and have been resolved:
 
-1. **Phase 2.5 incorrectly marked as complete** - Resolved: Lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been added to the CLI.
+1. **Phase 2.5 incorrectly marked as complete** - Resolved: Lifecycle commands
+   (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been
+   added to the CLI.
 
-2. **Phase 3 incorrectly marked as complete** - Resolved: `reqwest` `socks` feature added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with proper error handling in the real-delay prober.
+2. **Phase 3 incorrectly marked as complete** - Resolved: `reqwest` `socks`
+   feature added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with
+   proper error handling in the real-delay prober.
 
-3. **Test count inaccuracies** - Resolved: Updated decode tests to 15 (was claimed 16) and import parse tests to 13 (was claimed 14).
+3. **Test count inaccuracies** - Resolved: Updated decode tests to 15 (was
+   claimed 16) and import parse tests to 13 (was claimed 14).
 
-4. **CLI flag name mismatch** - Resolved: Updated documentation to reference `--all` instead of `--include-deleted`.
+4. **CLI flag name mismatch** - Resolved: Updated documentation to reference
+   `--all` instead of `--include-deleted`.
 
 ### Remaining unchecked items in implementation checklist
 
-The following items remain unchecked but are lower priority or require product decisions:
+The following items remain unchecked but are lower priority or require product
+decisions:
 
-- 1.1: "Fix PHASE_2.md completion criteria item 5 to reflect actual state" - PHASE_2.md now moved to done/
-- 1.2: "Add tests that verify hard delete behavior (cascade or reject)" - Lower priority
+- 1.1: "Fix PHASE_2.md completion criteria item 5 to reflect actual state" -
+  PHASE_2.md now moved to done/
+- 1.2: "Add tests that verify hard delete behavior (cascade or reject)" - Lower
+  priority
 - 1.2: "PostgreSQL FK behavior matches SQLite" - Lower priority
 - 2.2: "Add daemon-level test for `server.enabled` behavior" - Lower priority
-- 2.2: "Document daemon-hosted API mode in user-facing docs" - Documentation task
-- 3.1: "Surface fresh test failure/no-pass reasons in proxy status" - Product decision needed
-- 3.1: "Persist rotation test run metadata in transition detail" - Product decision needed
+- 2.2: "Document daemon-hosted API mode in user-facing docs" - Documentation
+  task
+- 3.1: "Surface fresh test failure/no-pass reasons in proxy status" - Product
+  decision needed
+- 3.1: "Persist rotation test run metadata in transition detail" - Product
+  decision needed
 - 4.3: "Clarify what remains before Phase 5 is complete" - Documentation task
-- 6.1: "Add bounded concurrency (8-16 workers) as small improvement" - Product decision needed
+- 6.1: "Add bounded concurrency (8-16 workers) as small improvement" - Product
+  decision needed

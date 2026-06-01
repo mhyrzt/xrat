@@ -78,9 +78,9 @@ Suggested tables in `plan/README.md`:
    - `src/db/repository/configs/import_ops/import.rs` upserts existing rows by
      `dedup_key`, but the conflict update does not reset `is_deleted` to `0` or
      clear `deleted_at`
-   - default config counts and list queries exclude deleted rows, so re-importing
-     a previously deleted config can report an import while leaving the config
-     hidden from normal flows
+   - default config counts and list queries exclude deleted rows, so
+     re-importing a previously deleted config can report an import while leaving
+     the config hidden from normal flows
    - add a regression test that soft-deletes a config, re-imports the same node,
      and verifies the row is visible again with `is_deleted = false`
 
@@ -278,8 +278,7 @@ Status against those criteria:
 - item 6 is implemented for the intended import path, which is normalized
   imported outbound/config data rather than full Xray root JSON
 - item 7 is implemented through `src/app/app_paths.rs`, which resolves
-  `XRAT_PATH` or `$HOME/.config/xrat` and ensures `db.sqlite` plus
-  `config.toml`
+  `XRAT_PATH` or `$HOME/.config/xrat` and ensures `db.sqlite` plus `config.toml`
 
 Decision note:
 
@@ -305,15 +304,28 @@ Decision note:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
 All blockers have been resolved:
 
-1. **Repository tests for soft-delete operations** - Added 7 focused tests in `src/db/database/tests/history_cases/soft_delete_cases.rs` covering: soft delete sets `is_deleted` and `deleted_at`, soft delete excludes from default list, soft delete visible with `include_deleted` filter, restore clears deleted state, hard delete removes row completely, reimport revives soft-deleted config, and `deleted_only` filter shows only deleted configs.
+1. **Repository tests for soft-delete operations** - Added 7 focused tests in
+   `src/db/database/tests/history_cases/soft_delete_cases.rs` covering: soft
+   delete sets `is_deleted` and `deleted_at`, soft delete excludes from default
+   list, soft delete visible with `include_deleted` filter, restore clears
+   deleted state, hard delete removes row completely, reimport revives
+   soft-deleted config, and `deleted_only` filter shows only deleted configs.
 
-2. **CLI flag name** - Verified: the flag is `--all` (not `--include-deleted`). There is also `--deleted` for showing only deleted configs. Implementation is complete and wired through to the filter.
+2. **CLI flag name** - Verified: the flag is `--all` (not `--include-deleted`).
+   There is also `--deleted` for showing only deleted configs. Implementation is
+   complete and wired through to the filter.
 
-3. **Import revival** - Fixed: the upsert clause in `src/db/repository/configs/import_ops/import.rs` now resets `is_deleted = FALSE` and `deleted_at = NULL` on conflict, so re-importing a soft-deleted config restores it to normal visibility.
+3. **Import revival** - Fixed: the upsert clause in
+   `src/db/repository/configs/import_ops/import.rs` now resets
+   `is_deleted = FALSE` and `deleted_at = NULL` on conflict, so re-importing a
+   soft-deleted config restores it to normal visibility.
 
-4. **Connect rejection** - Fixed: `src/app/runtime_service/connect/connect_flow.rs` now checks `config.is_deleted` after the `is_enabled` check and returns `InvalidArgument` error if the config is deleted. Added test `connect_rejects_soft_deleted_config` in `rejection_cases.rs`.
+4. **Connect rejection** - Fixed:
+   `src/app/runtime_service/connect/connect_flow.rs` now checks
+   `config.is_deleted` after the `is_enabled` check and returns
+   `InvalidArgument` error if the config is deleted. Added test
+   `connect_rejects_soft_deleted_config` in `rejection_cases.rs`.

@@ -9,8 +9,8 @@
 - `src/app/` contains app runtime bootstrap and command handlers. Keep command
   logic under `src/app/commands/` and keep lifecycle concerns in
   `src/app/daemon/`, `src/app/runtime_service/`, and `src/xray/process_mgmt/`.
-- `src/app/context/` and `src/app/config/` contain application bootstrap,
-  path resolution, and command-specific runtime settings.
+- `src/app/context/` and `src/app/config/` contain application bootstrap, path
+  resolution, and command-specific runtime settings.
 - `src/config/` contains import, parsing, normalization, and protocol link
   support. Keep external input parsing separate from runtime config generation.
 - `src/xray/` contains Xray parsing, generated runtime config builders, and
@@ -18,9 +18,8 @@
 - `src/singbox/` contains sing-box parsing/translation support.
 - `src/prober/` contains connection test runners for TCP, ICMP, download,
   upload, and real-delay flows.
-- `src/db/` contains database wiring, schema helpers, records, and
-  repositories, split across `src/db/database/`, `src/db/record/`, and
-  `src/db/repository/`.
+- `src/db/` contains database wiring, schema helpers, records, and repositories,
+  split across `src/db/database/`, `src/db/record/`, and `src/db/repository/`.
 - `src/model/` contains shared domain types.
 - `src/server/` contains HTTP API routes, auth, response, and server state.
 - `src/tui/` contains terminal UI state, views, keymaps, and data adapters.

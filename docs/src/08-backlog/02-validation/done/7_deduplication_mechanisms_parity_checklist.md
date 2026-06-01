@@ -114,13 +114,18 @@ Gap status summary:
 
 ## Completion blockers
 
-**Reviewed: 2026-06-01**
-**Resolved: 2026-06-01**
+**Reviewed: 2026-06-01** **Resolved: 2026-06-01**
 
 All blockers have been resolved:
 
-1. **Canonical-key dedup edge-case tests** - Verified: 10 focused edge-case tests exist in `src/model/node_dedup_key.rs` covering Unicode, special characters, port boundaries, all 7 protocols, equivalent URI variants, and network type distinctions.
+1. **Canonical-key dedup edge-case tests** - Verified: 10 focused edge-case
+   tests exist in `src/model/node_dedup_key.rs` covering Unicode, special
+   characters, port boundaries, all 7 protocols, equivalent URI variants, and
+   network type distinctions.
 
-2. **Scanner IP-level dedup** - Verified: Scanner uses `BTreeSet` for IP dedup before probing (`src/app/commands/scan.rs`) and `UNIQUE(ip)` upsert in the DB (`migrations/*/0011_add_cf_scan_results.sql`).
+2. **Scanner IP-level dedup** - Verified: Scanner uses `BTreeSet` for IP dedup
+   before probing (`src/app/commands/scan.rs`) and `UNIQUE(ip)` upsert in the DB
+   (`migrations/*/0011_add_cf_scan_results.sql`).
 
-3. **Exit criteria met** - All exit criteria checkboxes updated to reflect actual implementation state.
+3. **Exit criteria met** - All exit criteria checkboxes updated to reflect
+   actual implementation state.

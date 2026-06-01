@@ -67,9 +67,10 @@ Phase 1 in `plan/README.md` includes:
      is not active in the persisted import path.
 
 2. **Raw JSON/file JSON import is rejected**
-   - `src/app/import.rs::reject_raw_json_config` rejects any JSON before parsing.
-   - This contradicts the older status text claiming file content can be raw JSON
-     and the import docs claiming JSON format detection for URLs/files.
+   - `src/app/import.rs::reject_raw_json_config` rejects any JSON before
+     parsing.
+   - This contradicts the older status text claiming file content can be raw
+     JSON and the import docs claiming JSON format detection for URLs/files.
 
 3. **Xray JSON parsing is validation-only**
    - `src/config/import/parsers/xray.rs::parse_xray_json` currently deserializes
@@ -87,9 +88,9 @@ Phase 1 in `plan/README.md` includes:
 5. **Mixed input ingestion still needs focused tests**
    - Decode tests now cover base64, raw JSON, and raw text fallback in
      `src/support/decode.rs`.
-   - Import/config tests cover base64 and plain link lists, but the persisted CLI
-     import flow still needs tests for files, URL-list expansion, JSON rejection
-     or support, and subscription metadata behavior.
+   - Import/config tests cover base64 and plain link lists, but the persisted
+     CLI import flow still needs tests for files, URL-list expansion, JSON
+     rejection or support, and subscription metadata behavior.
 
 ## Phase 1 Assessment
 
