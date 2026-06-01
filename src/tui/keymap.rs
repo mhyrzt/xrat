@@ -2,9 +2,22 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::tui::app::{TuiAction, TuiView};
 
-pub fn action_for_key(key: KeyEvent) -> TuiAction {
+pub fn action_for_key(key: KeyEvent, editing_search: bool) -> TuiAction {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
+    }
+
+    if editing_search {
+        return match key.code {
+            KeyCode::Esc => TuiAction::Back,
+            KeyCode::Enter => TuiAction::ConfirmSearch,
+            KeyCode::Backspace => TuiAction::SearchBackspace,
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                TuiAction::ClearSearch
+            }
+            KeyCode::Char(ch) => TuiAction::SearchInput(ch),
+            _ => TuiAction::None,
+        };
     }
 
     match key.code {
@@ -17,7 +30,8 @@ pub fn action_for_key(key: KeyEvent) -> TuiAction {
         KeyCode::Char('4') => TuiAction::SwitchView(TuiView::Runtime),
         KeyCode::Char('j') | KeyCode::Down => TuiAction::MoveDown,
         KeyCode::Char('k') | KeyCode::Up => TuiAction::MoveUp,
-        KeyCode::Char('/') => TuiAction::Search,
+        KeyCode::Char('/') => TuiAction::BeginSearch,
+        KeyCode::Char('s') => TuiAction::CycleSort,
         _ => TuiAction::None,
     }
 }
@@ -35,9 +49,15 @@ mod tests {
 
     #[test]
     fn maps_global_quit_keys() {
-        assert_eq!(action_for_key(key(KeyCode::Char('q'))), TuiAction::Quit);
         assert_eq!(
-            action_for_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL)),
+            action_for_key(key(KeyCode::Char('q')), false),
+            TuiAction::Quit
+        );
+        assert_eq!(
+            action_for_key(
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+                false
+            ),
             TuiAction::Quit
         );
     }
@@ -45,21 +65,60 @@ mod tests {
     #[test]
     fn maps_view_switching_keys() {
         assert_eq!(
-            action_for_key(key(KeyCode::Char('1'))),
+            action_for_key(key(KeyCode::Char('1')), false),
             TuiAction::SwitchView(TuiView::Configs)
         );
         assert_eq!(
-            action_for_key(key(KeyCode::Char('4'))),
+            action_for_key(key(KeyCode::Char('4')), false),
             TuiAction::SwitchView(TuiView::Runtime)
         );
     }
 
     #[test]
     fn maps_navigation_and_help_keys() {
-        assert_eq!(action_for_key(key(KeyCode::Down)), TuiAction::MoveDown);
-        assert_eq!(action_for_key(key(KeyCode::Char('k'))), TuiAction::MoveUp);
-        assert_eq!(action_for_key(key(KeyCode::Char('?'))), TuiAction::ShowHelp);
-        assert_eq!(action_for_key(key(KeyCode::Esc)), TuiAction::Back);
-        assert_eq!(action_for_key(key(KeyCode::Char('/'))), TuiAction::Search);
+        assert_eq!(
+            action_for_key(key(KeyCode::Down), false),
+            TuiAction::MoveDown
+        );
+        assert_eq!(
+            action_for_key(key(KeyCode::Char('k')), false),
+            TuiAction::MoveUp
+        );
+        assert_eq!(
+            action_for_key(key(KeyCode::Char('?')), false),
+            TuiAction::ShowHelp
+        );
+        assert_eq!(action_for_key(key(KeyCode::Esc), false), TuiAction::Back);
+        assert_eq!(
+            action_for_key(key(KeyCode::Char('/')), false),
+            TuiAction::BeginSearch
+        );
+        assert_eq!(
+            action_for_key(key(KeyCode::Char('s')), false),
+            TuiAction::CycleSort
+        );
+    }
+
+    #[test]
+    fn maps_search_editing_keys() {
+        assert_eq!(
+            action_for_key(key(KeyCode::Char('v')), true),
+            TuiAction::SearchInput('v')
+        );
+        assert_eq!(
+            action_for_key(key(KeyCode::Backspace), true),
+            TuiAction::SearchBackspace
+        );
+        assert_eq!(
+            action_for_key(key(KeyCode::Enter), true),
+            TuiAction::ConfirmSearch
+        );
+        assert_eq!(
+            action_for_key(
+                KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
+                true
+            ),
+            TuiAction::ClearSearch
+        );
     }
 }

@@ -27,7 +27,8 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
 
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
-                let action = crate::tui::keymap::action_for_key(key);
+                let action =
+                    crate::tui::keymap::action_for_key(key, app.config_list.editing_search);
                 app.apply(action);
             }
         }

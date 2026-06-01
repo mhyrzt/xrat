@@ -119,6 +119,17 @@ impl TuiConfigRow {
             flags.join(",")
         }
     }
+
+    pub fn matches_search(&self, query: &str) -> bool {
+        self.display_name().to_lowercase().contains(query)
+            || self.protocol.to_lowercase().contains(query)
+            || self.address.to_lowercase().contains(query)
+            || self.network.to_lowercase().contains(query)
+            || self
+                .source_id
+                .map(|source_id| source_id.to_string().contains(query))
+                .unwrap_or(false)
+    }
 }
 
 impl From<ConfigWithLatestTest> for TuiConfigRow {
@@ -190,5 +201,15 @@ mod tests {
         assert_eq!(active.network_label(), "ws+tls");
         assert_eq!(active.delay_label(), "88ms");
         assert_eq!(active.status_label(), "sel,run");
+    }
+
+    #[test]
+    fn matches_searchable_config_fields() {
+        let row = row(4, Some(88));
+
+        assert!(row.matches_search("config-4"));
+        assert!(row.matches_search("vless"));
+        assert!(row.matches_search("example"));
+        assert!(!row.matches_search("missing"));
     }
 }
