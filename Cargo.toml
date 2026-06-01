@@ -2,6 +2,14 @@
 name = "xrat"
 version = "0.1.0"
 edition = "2024"
+description = "A modern proxy configuration manager for Xray-core and sing-box"
+license = "MIT"
+repository = "https://github.com/mhyrzt/xrat"
+homepage = "https://mhyrzt.github.io/xrat/"
+documentation = "https://mhyrzt.github.io/xrat/"
+readme = "README.md"
+keywords = ["xray", "sing-box", "proxy", "vpn", "vless", "vmess", "trojan", "shadowsocks"]
+categories = ["command-line-utilities", "network-programming"]
 
 [dependencies]
 axum = "0.8.9"

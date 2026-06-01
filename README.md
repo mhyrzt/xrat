@@ -1,6 +1,18 @@
-# XRAT
+<p align="center">
+  <img src="media/xrat-hero.png" alt="xrat" width="600">
+</p>
 
-> **Under Development**
+<h1 align="center">XRAT</h1>
+
+<p align="center">
+  <em>A modern proxy configuration manager for Xray-core and sing-box</em>
+</p>
+
+<p align="center">
+  <img alt="Status" src="https://img.shields.io/badge/status-under%20development-orange">
+  <img alt="Rust" src="https://img.shields.io/badge/rust-stable-blue">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+</p>
 
 XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
 proxy configurations.

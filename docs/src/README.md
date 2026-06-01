@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="media/xrat-hero.png" alt="xrat" width="800">
+</p>
+
 # xrat Documentation
 
 User-facing and developer-facing documentation for **xrat** — a Rust-based CLI
