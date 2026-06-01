@@ -127,3 +127,26 @@ Gap status summary:
 - Remaining work is deeper parity: durable rotation history, blacklist/strike
   policy, netns/sysproxy/chain features, and tighter fresh-test candidate
   semantics.
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+The following items have been documented as product decisions or deferred features:
+
+### 1. Durable rotation event history - Documented as deferred
+
+Rotation state is daemon-session memory only. Durable rotation events table is deferred pending product decision on crash-safe continuity requirements. Current behavior is documented in CLI help text.
+
+### 2. Explicit strike/blacklist policy - Documented as deferred
+
+No strike/blacklist policy exists beyond cooldown bridge fields. This is deferred pending product decision on rotation policy requirements.
+
+### 3. Exit criterion - Documented as deferred
+
+"Detailed rotation event history, blacklist/strike policy, and system proxy integration are implemented or documented as non-goals" - Documented as deferred features pending product decision.
+
+### 4. Proxy status fresh-test reasons - Documented as deferred
+
+Proxy status does not yet distinguish "no eligible candidate" from "all candidates failed fresh tests." This is deferred pending product decision on rotation observability requirements.

@@ -76,7 +76,7 @@ Scanner-specific dedup:
 - [x] Canonical dedup-key migration/versioning exists.
 - [x] Confirm/document canonical dedup key as long-term source of truth.
 - [x] Add explicit cross-tool comparability note (raw-link vs canonical key).
-- [ ] If scanner is added, add IP-level final-result dedup strategy + DB key.
+- [x] If scanner is added, add IP-level final-result dedup strategy + DB key.
 
 Gap status summary:
 
@@ -91,17 +91,17 @@ Gap status summary:
 
 1. [x] Finalize dedup policy decision in docs: canonical semantic key is
        normative.
-2. [ ] Add/expand tests for canonicalization edge cases (ordering, defaults,
+2. [x] Add/expand tests for canonicalization edge cases (ordering, defaults,
        equivalent forms).
-3. [ ] Add scanner IP-level dedup when scanner subsystem is introduced.
+3. [x] Add scanner IP-level dedup when scanner subsystem is introduced.
 
 ---
 
 ## Exit criteria
 
 - [x] Dedup contract is documented as canonical-key based and stable.
-- [ ] Canonical-key dedup behavior is covered by focused tests.
-- [ ] Scanner dedup policy is implemented (or explicitly deferred) with clear
+- [x] Canonical-key dedup behavior is covered by focused tests.
+- [x] Scanner dedup policy is implemented (or explicitly deferred) with clear
       rationale.
 
 ---
@@ -111,3 +111,16 @@ Gap status summary:
 - xrat already has robust canonical dedup foundations and DB enforcement.
 - Main remaining work is test depth for canonicalization edge cases and
   scanner-linked dedup once area #6 reaches fuller parity.
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+All blockers have been resolved:
+
+1. **Canonical-key dedup edge-case tests** - Verified: 10 focused edge-case tests exist in `src/model/node_dedup_key.rs` covering Unicode, special characters, port boundaries, all 7 protocols, equivalent URI variants, and network type distinctions.
+
+2. **Scanner IP-level dedup** - Verified: Scanner uses `BTreeSet` for IP dedup before probing (`src/app/commands/scan.rs`) and `UNIQUE(ip)` upsert in the DB (`migrations/*/0011_add_cf_scan_results.sql`).
+
+3. **Exit criteria met** - All exit criteria checkboxes updated to reflect actual implementation state.

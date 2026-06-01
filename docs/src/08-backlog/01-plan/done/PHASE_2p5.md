@@ -575,3 +575,57 @@ To keep the rollout small and safe, implementation should start in this order:
 - command names should stay short and conventional
 - global flags should remain few and focused
 - per-command flags should be added only where they improve actual usage
+
+## Implementation Review Notes
+
+Current status: Phase 2.5 is not complete.
+
+The command-first CLI foundation is mostly in place:
+
+- `src/cli/root.rs` defines a top-level `Cli` with a `Command` subcommand enum.
+- shared flags such as `--database` and `--config` are global.
+- `src/cli/command.rs` exposes `import`, `add`, and `list`.
+- `src/app/commands/` contains separate command handlers for implemented
+  commands.
+- `src/main.rs` remains a thin bootstrap and dispatch entrypoint.
+- `xrat list configs`, `xrat list nodes`, `xrat list subscriptions`, and
+  `xrat list subs` are implemented with basic filters.
+
+Blocking gap:
+
+- Phase 2.5 completion criteria require at least one lifecycle command such as
+  `select` or `enable`.
+- The current CLI command enum does not expose `select`, `enable`, `disable`,
+  `delete`, or `restore`.
+- `src/app/commands/mod.rs` has no dispatch path for lifecycle command handlers.
+- Repository lifecycle methods already exist, but there is no user-facing CLI
+  wrapper for them yet.
+
+Required work before this phase can move to `DONE.md`:
+
+1. Add at least one lifecycle command, preferably the small complete set:
+   `select`, `enable`, `disable`, `delete`, and `restore`.
+2. Add matching command handlers under `src/app/commands/`.
+3. Wire the handlers to the existing repository lifecycle methods.
+4. Add CLI parsing tests for the new lifecycle command(s).
+5. Add a regression test or command-level test that verifies the lifecycle
+   operation changes persisted config state as expected.
+
+Validation performed during review:
+
+- `cargo test -q cli::tests` passed.
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+All blockers have been resolved:
+
+1. **Lifecycle commands added to CLI** - Added `select`, `enable`, `disable`, `delete`, `restore`, and `show` commands to `src/cli/command.rs` and `src/cli/lifecycle.rs`. Command handlers implemented in `src/app/commands/lifecycle.rs`.
+
+2. **`show` command implemented** - Added `show` command with `--json` flag for detailed config inspection.
+
+3. **Completion criteria item 6 met** - All lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) are now available via CLI.
+
+4. **CLI parsing tests added** - Added 8 new CLI parsing tests for lifecycle commands in `src/cli/tests/cases/core_cases.rs`.

@@ -538,9 +538,35 @@ the phase:
 - what timeout defaults feel reasonable for TCP connect, Xray startup, and
   proxied request time?
 
+## Review Status
+
+Phase 3 is not ready to be marked done yet.
+
+The current implementation has the command shape, persistence flow, Xray probe
+process wrapper, and test stages in place, and `cargo test -q` currently passes.
+However, the real-delay path still has a critical blocker:
+
+- `Cargo.toml` enables `reqwest` with `blocking` and `rustls`, but not the
+  `socks` feature.
+- The real-delay request code builds a `socks5://127.0.0.1:<port>` proxy for
+  the temporary Xray inbound.
+- Without `reqwest/socks`, the real-delay probe cannot be considered a reliable
+  actual SOCKS-proxied traffic test.
+- The proxy construction currently uses `Proxy::all(...).unwrap()`, so proxy
+  setup errors can panic instead of being returned as classified probe failures.
+
+Before this phase can be moved to `DONE.md`, fix the real-delay proxy path by:
+
+1. enabling the `socks` feature on `reqwest`;
+2. replacing the proxy `unwrap()` with explicit error handling that returns a
+   `RealDelayResult` failure;
+3. adding focused coverage for SOCKS proxy client construction or the
+   real-delay failure path.
+
 ## Implementation Summary
 
-Phase 3 has been implemented and is now complete. The delivered work validates
+Phase 3 has been mostly implemented, but it is not yet complete because of the
+real-delay SOCKS proxy issue documented above. The delivered work validates
 stored configs with layered checks, persists test history, and provides the
 minimal reusable Xray runtime primitives needed by later managed-session work.
 
@@ -637,3 +663,14 @@ from this phase to implement long-lived runtime commands:
 
 The remaining distinction is lifecycle scope: Phase 3 uses disposable probe
 processes, while Phase 4 manages persistent sessions.
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+All blockers have been resolved:
+
+1. **`reqwest` `socks` feature** - Added to `Cargo.toml` features list.
+2. **`Proxy::all(...).unwrap()` in real-delay prober** - Replaced with explicit error handling using `match`, matching the pattern used in download and upload probers.
+3. **SOCKS proxy construction test** - Added `test_make_proxied_request_handles_proxy_errors_gracefully` test that verifies the function handles proxy errors without panicking.

@@ -57,7 +57,7 @@ Suggested tables in `plan/README.md`:
 6. **Initial persistence behavior is covered by tests**
    - database tests verify subscription creation, config import, config
      lifecycle updates, connection test history, runtime session updates, and
-     soft-delete revival
+     soft-delete behavior
    - parser tests still validate normalization and dedup behavior before
      persistence
 
@@ -74,9 +74,29 @@ Suggested tables in `plan/README.md`:
    - user-facing commands for selection, status, connect, disconnect, and
      history still need to call those APIs
 
+3. **Soft-deleted configs are not revived during import**
+   - `src/db/repository/configs/import_ops/import.rs` upserts existing rows by
+     `dedup_key`, but the conflict update does not reset `is_deleted` to `0` or
+     clear `deleted_at`
+   - default config counts and list queries exclude deleted rows, so re-importing
+     a previously deleted config can report an import while leaving the config
+     hidden from normal flows
+   - add a regression test that soft-deletes a config, re-imports the same node,
+     and verifies the row is visible again with `is_deleted = false`
+
+4. **Runtime connect can use soft-deleted configs**
+   - `src/app/runtime_service/connect/connect_flow.rs` loads configs by ID and
+     rejects disabled configs, but it does not reject `is_deleted` configs
+   - `soft_delete` clears active/selected state but leaves `is_enabled`
+     unchanged, so a soft-deleted-but-enabled config can still be connected and
+     marked active
+   - connect/runtime selection paths should treat deleted configs as unavailable
+     unless an explicit restore flow runs first
+
 ## Phase 2 Assessment
 
-Phase 2 is **complete for the current intended scope**.
+Phase 2 is **not complete yet** because soft-delete semantics still have
+critical gaps in import revival and runtime connect behavior.
 
 ### Done
 
@@ -93,13 +113,19 @@ Phase 2 is **complete for the current intended scope**.
   insert/query/update support
 - the app now resolves its home from `XRAT_PATH` or falls back to
   `$HOME/.config/xrat`
-- the default app layout now includes `db.sqlite` and `Config.toml`
-- tests cover the current persistence workflows
+- the default app layout now includes `db.sqlite` and `config.toml`
+- tests cover many current persistence workflows, but soft-delete revival and
+  connect rejection for deleted configs still need regression coverage
 
 ### Deferred To Later Work
 
 - wire the new database methods into actual CLI commands and runtime
   orchestration
+
+### Blocking Issues
+
+- re-importing a soft-deleted config does not restore it to normal visibility
+- connecting by config ID does not reject soft-deleted configs
 
 ## Proposed Database Models
 
@@ -245,12 +271,15 @@ Status against those criteria:
   keys
 - item 4 is implemented through normalized config fields plus source and
   timestamp metadata
-- item 5 is implemented through persisted config flags plus repository methods
-  for active, enabled, selected, deleted, and restore state changes
+- item 5 is partially implemented through persisted config flags plus repository
+  methods for active, enabled, selected, deleted, and restore state changes, but
+  soft-deleted configs are not revived on import and can still be connected by
+  ID
 - item 6 is implemented for the intended import path, which is normalized
   imported outbound/config data rather than full Xray root JSON
-- item 7 is implemented through `src/app/path.rs`, which resolves `XRAT_PATH` or
-  `$HOME/.config/xrat` and ensures `db.sqlite` plus `Config.toml`
+- item 7 is implemented through `src/app/app_paths.rs`, which resolves
+  `XRAT_PATH` or `$HOME/.config/xrat` and ensures `db.sqlite` plus
+  `config.toml`
 
 Decision note:
 
@@ -261,11 +290,30 @@ Decision note:
 
 ## Suggested Next Steps
 
-1. wire config query and lifecycle methods into user-facing CLI flows
-2. wire `connection_tests` into a real test runner and expose recent test
+1. fix soft-delete semantics: re-import should restore soft-deleted configs, and
+   runtime connect should reject deleted configs
+2. add regression tests for soft-delete revival and connect rejection for
+   deleted configs
+3. wire config query and lifecycle methods into user-facing CLI flows
+4. wire `connection_tests` into a real test runner and expose recent test
    results in the CLI
-3. wire `runtime_sessions` into connect/disconnect logic and startup recovery
+5. wire `runtime_sessions` into connect/disconnect logic and startup recovery
    behavior
-4. load and use `Config.toml` for app/runtime settings instead of only creating
+6. load and use `config.toml` for app/runtime settings instead of only creating
    the file
-5. add more end-to-end tests around CLI behavior once those flows exist
+7. add more end-to-end tests around CLI behavior once those flows exist
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+All blockers have been resolved:
+
+1. **Repository tests for soft-delete operations** - Added 7 focused tests in `src/db/database/tests/history_cases/soft_delete_cases.rs` covering: soft delete sets `is_deleted` and `deleted_at`, soft delete excludes from default list, soft delete visible with `include_deleted` filter, restore clears deleted state, hard delete removes row completely, reimport revives soft-deleted config, and `deleted_only` filter shows only deleted configs.
+
+2. **CLI flag name** - Verified: the flag is `--all` (not `--include-deleted`). There is also `--deleted` for showing only deleted configs. Implementation is complete and wired through to the filter.
+
+3. **Import revival** - Fixed: the upsert clause in `src/db/repository/configs/import_ops/import.rs` now resets `is_deleted = FALSE` and `deleted_at = NULL` on conflict, so re-importing a soft-deleted config restores it to normal visibility.
+
+4. **Connect rejection** - Fixed: `src/app/runtime_service/connect/connect_flow.rs` now checks `config.is_deleted` after the `is_enabled` check and returns `InvalidArgument` error if the config is deleted. Added test `connect_rejects_soft_deleted_config` in `rejection_cases.rs`.

@@ -58,20 +58,46 @@ Phase 1 in `plan/README.md` includes:
 
 ## Remaining Work For Phase 1
 
-1. **Decode behavior is not yet verified by tests**
-   - parser regression coverage now exists for the shared protocols, but decode
-     behavior in `src/decode.rs` still lacks focused tests
-   - base64, raw JSON, and raw text fallback should be covered explicitly
+1. **CLI import does not use the JSON-aware import parser**
+   - `xrat import` currently flows through `src/app/import.rs::load_nodes`,
+     decodes the input with `decode_or_raw_text`, then calls
+     `src/config/mod.rs::parse_text`.
+   - `parse_text` only handles line-based share links and does not use
+     `src/config/import/mod.rs::parse_import`, so SIP008/Xray JSON auto-detect
+     is not active in the persisted import path.
 
-2. **Mixed input ingestion needs tests**
-   - file ingestion now supports JSON, base64, plain link lists, and
-     newline-separated URLs
-   - this behavior should be locked down with focused tests before Phase 1 is
-     considered complete
+2. **Raw JSON/file JSON import is rejected**
+   - `src/app/import.rs::reject_raw_json_config` rejects any JSON before parsing.
+   - This contradicts the older status text claiming file content can be raw JSON
+     and the import docs claiming JSON format detection for URLs/files.
+
+3. **Xray JSON parsing is validation-only**
+   - `src/config/import/parsers/xray.rs::parse_xray_json` currently deserializes
+     Xray JSON and returns an empty node list.
+   - It does not yet extract outbounds and convert them into persisted `Node`
+     values.
+
+4. **Subscription metadata parsing is not wired into `xrat import`**
+   - `src/config/import/subscription.rs::fetch_subscription` parses
+     `subscription-userinfo` metadata, but `xrat import` uses
+     `src/app/input/source.rs::fetch_url` and only receives raw bytes.
+   - URL imports therefore do not persist or expose subscription metadata from
+     response headers.
+
+5. **Mixed input ingestion still needs focused tests**
+   - Decode tests now cover base64, raw JSON, and raw text fallback in
+     `src/support/decode.rs`.
+   - Import/config tests cover base64 and plain link lists, but the persisted CLI
+     import flow still needs tests for files, URL-list expansion, JSON rejection
+     or support, and subscription metadata behavior.
 
 ## Phase 1 Assessment
 
 Phase 1 is **mostly complete**, but not fully finished.
+
+Most parser, normalization, deduplication, and decode behavior is now covered by
+tests, but the persisted import path has important behavior gaps around JSON
+format handling and subscription metadata.
 
 ### Done
 
@@ -79,14 +105,23 @@ Phase 1 is **mostly complete**, but not fully finished.
 - normalization pass
 - deduplication before save
 - subscription URL ingestion
-- local file ingestion for JSON, base64, plain links, or newline-separated URLs
+- local file ingestion for base64, plain links, or newline-separated URLs
 - typed `Protocol` enum in the domain model
 - regression tests for core supported parser behavior
+- decode tests for base64, raw JSON, raw text fallback, and empty input
 
 ### Left to finish
 
-- add tests for decode behavior
-- add tests for file-based mixed input handling
+- decide whether raw JSON import is in scope for Phase 1; either support it in
+  `xrat import` or update docs/status text to say it is intentionally
+  unsupported
+- wire `xrat import` to the JSON-aware import parser if SIP008/Xray JSON import
+  remains in scope
+- implement Xray outbound extraction if Xray JSON import remains in scope
+- wire subscription URL imports through the metadata-aware subscription fetcher
+  or document metadata as out of scope
+- add focused tests for file-based mixed input handling and the persisted import
+  command path
 
 ## Suggested Completion Criteria
 

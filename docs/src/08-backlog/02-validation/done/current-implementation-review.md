@@ -51,8 +51,8 @@ Status: **complete**
   `hy2`/`hysteria2` (sing-box parse path).
 - Normalization and dedup happen before persistence.
 - Subscription URL ingestion and mixed input decoding work.
-- Decode behavior has 16 focused tests (`src/support/decode.rs`).
-- Import/parse flow has 14 focused tests (`src/config/import/mod.rs`).
+- Decode behavior has 15 focused tests (`src/support/decode.rs`).
+- Import/parse flow has 13 focused tests (`src/config/import/mod.rs`).
 - Phase 1 completion criteria for decode and mixed-input tests are met.
 
 ### Phase 2: Storage + Persistence
@@ -66,7 +66,7 @@ Status: **complete with soft delete added**
 - Soft delete implemented: `is_deleted`, `deleted_at` columns in migration 0015.
   Default delete is `UPDATE configs SET is_deleted = TRUE`; hard delete/purge is
   explicit via repository method. Deleted rows excluded from list queries by
-  default; `--include-deleted` flag available.
+  default; `--all` flag available.
 - FK integrity preserved: dependent rows survive soft delete.
 
 ### Phase 2.5: CLI Restructure
@@ -74,9 +74,9 @@ Status: **complete with soft delete added**
 Status: **complete**
 
 - Subcommand-based CLI with global `--database` and `--config` flags.
-- `import`, `add`, `list`, lifecycle commands, `show`, `status`, `test`,
-  `connect`, `disconnect`, `parse`, `scan`, `proxy`, `daemon`, `serve` all
-  exist.
+- `import`, `add`, `list`, `show`, `select`, `enable`, `disable`, `delete`,
+  `restore`, `status`, `test`, `connect`, `disconnect`, `parse`, `scan`,
+  `proxy`, `daemon`, `serve`, `tui` all exist.
 - Clean split between `src/cli/` (Clap structs) and `src/app/commands/`
   (handlers).
 
@@ -182,7 +182,7 @@ The Phase 2 soft-delete gap has been addressed:
 - `hard_delete_config()` issues physical `DELETE` for destructive removal.
 - `SoftDelete::ExcludeDeleted` is the default filter in `ListFilter`; list/query
   paths exclude deleted rows unless `SoftDelete::IncludeDeleted` is set.
-- `xrat list configs --include-deleted` shows deleted configs.
+- `xrat list configs --all` shows deleted configs.
 - HTTP API DTOs include `is_deleted` and `deleted_at` fields.
 - Repository tests cover soft delete, restore, hard delete, and list filtering.
 
@@ -782,3 +782,32 @@ cargo run -- daemon start
 cargo run -- daemon status
 cargo run -- daemon stop
 ```
+
+## Completion blockers
+
+**Reviewed: 2026-06-01**
+**Resolved: 2026-06-01**
+
+This is a living review document. The following factual inaccuracies were found during review and have been resolved:
+
+1. **Phase 2.5 incorrectly marked as complete** - Resolved: Lifecycle commands (`select`, `enable`, `disable`, `delete`, `restore`) and `show` have been added to the CLI.
+
+2. **Phase 3 incorrectly marked as complete** - Resolved: `reqwest` `socks` feature added to `Cargo.toml`, and `Proxy::all(...).unwrap()` replaced with proper error handling in the real-delay prober.
+
+3. **Test count inaccuracies** - Resolved: Updated decode tests to 15 (was claimed 16) and import parse tests to 13 (was claimed 14).
+
+4. **CLI flag name mismatch** - Resolved: Updated documentation to reference `--all` instead of `--include-deleted`.
+
+### Remaining unchecked items in implementation checklist
+
+The following items remain unchecked but are lower priority or require product decisions:
+
+- 1.1: "Fix PHASE_2.md completion criteria item 5 to reflect actual state" - PHASE_2.md now moved to done/
+- 1.2: "Add tests that verify hard delete behavior (cascade or reject)" - Lower priority
+- 1.2: "PostgreSQL FK behavior matches SQLite" - Lower priority
+- 2.2: "Add daemon-level test for `server.enabled` behavior" - Lower priority
+- 2.2: "Document daemon-hosted API mode in user-facing docs" - Documentation task
+- 3.1: "Surface fresh test failure/no-pass reasons in proxy status" - Product decision needed
+- 3.1: "Persist rotation test run metadata in transition detail" - Product decision needed
+- 4.3: "Clarify what remains before Phase 5 is complete" - Documentation task
+- 6.1: "Add bounded concurrency (8-16 workers) as small improvement" - Product decision needed
