@@ -15,7 +15,6 @@ renderer = ["html"]
 optional = true
 
 [output.html]
-additional-css = ["mermaid.css"]
 git-repository-url = "https://github.com/mhyrzt/xrat"
 edit-url-template = "https://github.com/mhyrzt/xrat/edit/main/docs/src/{path}"
 site-url = "https://mhyrzt.github.io/xrat/"
