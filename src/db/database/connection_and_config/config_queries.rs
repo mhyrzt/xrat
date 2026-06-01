@@ -1,0 +1,51 @@
+use super::super::Database;
+use super::super::types::*;
+
+impl Database {
+    pub async fn import_nodes(
+        &self,
+        source: &ImportSource,
+        nodes: &[crate::model::Node],
+    ) -> crate::db::Result<ImportSummary> {
+        repository::import_nodes(&self.pool, source, nodes).await
+    }
+
+    pub async fn get_config_count(&self) -> crate::db::Result<i64> {
+        repository::get_config_count(&self.pool).await
+    }
+
+    pub async fn list_configs(
+        &self,
+        filter: &ConfigListFilter,
+    ) -> crate::db::Result<Vec<ConfigRecord>> {
+        repository::list_configs(&self.pool, filter).await
+    }
+
+    pub async fn get_config_by_id(&self, id: i64) -> crate::db::Result<Option<ConfigRecord>> {
+        repository::get_config_by_id(&self.pool, id).await
+    }
+
+    pub async fn get_selected_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
+        repository::get_selected_config(&self.pool).await
+    }
+
+    pub async fn get_active_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
+        repository::get_active_config(&self.pool).await
+    }
+
+    pub async fn get_subscription_count(&self) -> crate::db::Result<i64> {
+        repository::get_subscription_count(&self.pool).await
+    }
+
+    pub async fn list_subscriptions(&self) -> crate::db::Result<Vec<SubscriptionRecord>> {
+        repository::list_subscriptions(&self.pool).await
+    }
+
+    pub async fn get_connection_test_count(&self) -> crate::db::Result<i64> {
+        repository::get_connection_test_count(&self.pool).await
+    }
+
+    pub async fn get_config_flags(&self, dedup_key: &str) -> crate::db::Result<(bool, bool, bool)> {
+        repository::get_config_flags(&self.pool, dedup_key).await
+    }
+}
