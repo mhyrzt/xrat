@@ -138,6 +138,10 @@ impl TuiApp {
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
+            TuiAction::StartTestBatch => {}
+            TuiAction::CancelTestBatch => {
+                self.status_message = "test cancellation is not wired yet".to_string();
+            }
             TuiAction::Confirm => self.confirm = None,
             TuiAction::Cancel => {
                 self.confirm = None;

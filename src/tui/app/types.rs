@@ -28,6 +28,8 @@ pub enum TuiAction {
     RestoreFocused,
     RequestDeleteFocused,
     RequestPurgeFocused,
+    StartTestBatch,
+    CancelTestBatch,
     Confirm,
     Cancel,
     SwitchView(TuiView),

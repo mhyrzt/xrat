@@ -33,4 +33,52 @@ impl TuiApp {
             _ => None,
         }
     }
+
+    pub fn test_config_ids(&self) -> Vec<i64> {
+        match self.test_state.scope {
+            super::TestScope::Focused => self
+                .focused_config()
+                .map(|row| row.id)
+                .into_iter()
+                .collect(),
+            super::TestScope::Selected => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| config.is_selected && config.is_enabled && !config.is_deleted)
+                .map(|config| config.id)
+                .collect(),
+            super::TestScope::Filtered => self
+                .visible_configs()
+                .into_iter()
+                .filter(|config| config.is_enabled && !config.is_deleted)
+                .map(|config| config.id)
+                .collect(),
+            super::TestScope::AllEnabled => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| config.is_enabled && !config.is_deleted)
+                .map(|config| config.id)
+                .collect(),
+            super::TestScope::Failed => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| {
+                    config.failure_reason.is_some() && config.is_enabled && !config.is_deleted
+                })
+                .map(|config| config.id)
+                .collect(),
+            super::TestScope::Stale => self
+                .data
+                .configs
+                .iter()
+                .filter(|config| {
+                    config.real_delay_ms.is_none() && config.tcp_ms.is_none() && !config.is_deleted
+                })
+                .map(|config| config.id)
+                .collect(),
+        }
+    }
 }

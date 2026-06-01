@@ -3,6 +3,7 @@ use crate::tui::data::TuiData;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiTaskKind {
     ReloadData,
+    TestBatch,
 }
 
 #[derive(Debug)]

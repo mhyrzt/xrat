@@ -190,6 +190,24 @@ fn counts_current_test_scope() {
 }
 
 #[test]
+fn collects_config_ids_for_current_test_scope() {
+    let mut selected = row(2);
+    selected.is_selected = true;
+    let mut failed = row(3);
+    failed.failure_reason = Some("timeout".to_string());
+    let data = TuiData::from_configs(vec![row(1), selected, failed]);
+    let mut app = TuiApp::with_data(data);
+
+    assert_eq!(app.test_config_ids(), vec![1, 2, 3]);
+
+    app.test_state.scope = TestScope::Selected;
+    assert_eq!(app.test_config_ids(), vec![2]);
+
+    app.test_state.scope = TestScope::Failed;
+    assert_eq!(app.test_config_ids(), vec![3]);
+}
+
+#[test]
 fn applies_task_completion_and_reloads_data() {
     let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
 
