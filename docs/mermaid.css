@@ -1,0 +1,26 @@
+.mermaid {
+    display: flex;
+    justify-content: center;
+    margin: 1.2em 0;
+    background: transparent;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.mermaid .nodeLabel,
+.mermaid .edgeLabel,
+.mermaid .label {
+    font-family: var(--mono-font, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.85em;
+}
+
+.mermaid .edgePath path {
+    stroke-width: 1.4px;
+}
+
+.mermaid .arrowheadPath {
+    stroke-width: 1.4px;
+}

@@ -41,6 +41,8 @@ jobs:
           cargo install --version ${MDBOOK_MERMAID_VERSION} mdbook-mermaid --locked
       - name: Install mermaid assets
         run: mdbook-mermaid install .
+      - name: Restore custom mermaid theme
+        run: git checkout mermaid.css mermaid-init.js
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
