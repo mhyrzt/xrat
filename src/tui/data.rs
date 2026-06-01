@@ -1,4 +1,4 @@
-use crate::db::{ConfigListFilter, ConfigWithLatestTest};
+use crate::db::{ConfigListFilter, ConfigWithLatestTest, SubscriptionRecord};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TuiConfigRow {
@@ -19,9 +19,21 @@ pub struct TuiConfigRow {
     pub is_deleted: bool,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TuiSourceRow {
+    pub id: i64,
+    pub kind: String,
+    pub value: String,
+    pub name: Option<String>,
+    pub config_count: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 #[derive(Debug, Default)]
 pub struct TuiData {
     pub configs: Vec<TuiConfigRow>,
+    pub sources: Vec<TuiSourceRow>,
     pub total_configs: usize,
     pub enabled_configs: usize,
     pub selected_configs: usize,
@@ -47,11 +59,25 @@ impl TuiData {
             .collect();
 
         configs.sort_by_key(|row| (row.real_delay_ms.unwrap_or(i64::MAX), row.id));
+        let sources = context
+            .db
+            .list_subscriptions()
+            .await?
+            .into_iter()
+            .map(TuiSourceRow::from)
+            .collect();
 
-        Ok(Self::from_configs(configs))
+        Ok(Self::from_configs_and_sources(configs, sources))
     }
 
     pub fn from_configs(configs: Vec<TuiConfigRow>) -> Self {
+        Self::from_configs_and_sources(configs, Vec::new())
+    }
+
+    pub fn from_configs_and_sources(
+        configs: Vec<TuiConfigRow>,
+        sources: Vec<TuiSourceRow>,
+    ) -> Self {
         let total_configs = configs.len();
         let enabled_configs = configs.iter().filter(|row| row.is_enabled).count();
         let selected_configs = configs.iter().filter(|row| row.is_selected).count();
@@ -63,6 +89,7 @@ impl TuiData {
 
         Self {
             configs,
+            sources,
             total_configs,
             enabled_configs,
             selected_configs,
@@ -138,6 +165,37 @@ impl TuiConfigRow {
     }
 }
 
+impl TuiSourceRow {
+    pub fn display_name(&self) -> &str {
+        self.name
+            .as_deref()
+            .filter(|name| !name.is_empty())
+            .unwrap_or("-")
+    }
+
+    pub fn value_label(&self) -> &str {
+        if self.value.is_empty() {
+            "-"
+        } else {
+            &self.value
+        }
+    }
+}
+
+impl From<SubscriptionRecord> for TuiSourceRow {
+    fn from(value: SubscriptionRecord) -> Self {
+        Self {
+            id: value.id,
+            kind: value.source_kind,
+            value: value.source_url.unwrap_or_default(),
+            name: value.name,
+            config_count: value.config_count,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
 impl From<ConfigWithLatestTest> for TuiConfigRow {
     fn from(value: ConfigWithLatestTest) -> Self {
         let config = value.config;
@@ -163,7 +221,9 @@ impl From<ConfigWithLatestTest> for TuiConfigRow {
 
 #[cfg(test)]
 mod tests {
-    use super::{TuiConfigRow, TuiData};
+    use crate::db::SubscriptionRecord;
+
+    use super::{TuiConfigRow, TuiData, TuiSourceRow};
 
     fn row(id: i64, delay: Option<i64>) -> TuiConfigRow {
         TuiConfigRow {
@@ -218,5 +278,23 @@ mod tests {
         assert!(row.matches_search("vless"));
         assert!(row.matches_search("example"));
         assert!(!row.matches_search("missing"));
+    }
+
+    #[test]
+    fn maps_subscription_record_to_source_row() {
+        let row = TuiSourceRow::from(SubscriptionRecord {
+            id: 7,
+            source_kind: "url".to_string(),
+            source_url: Some("https://example.com/sub".to_string()),
+            name: Some("main".to_string()),
+            created_at: "created".to_string(),
+            updated_at: "updated".to_string(),
+            config_count: 42,
+        });
+
+        assert_eq!(row.id, 7);
+        assert_eq!(row.display_name(), "main");
+        assert_eq!(row.value_label(), "https://example.com/sub");
+        assert_eq!(row.config_count, 42);
     }
 }

@@ -63,6 +63,7 @@ pub struct TuiApp {
     pub status_message: String,
     pub data: TuiData,
     pub config_list: ConfigListState,
+    pub source_list: SourceListState,
     pub confirm: Option<ConfirmState>,
 }
 
@@ -73,6 +74,11 @@ pub struct ConfigListState {
     pub editing_search: bool,
     pub sort: ConfigSort,
     pub include_deleted: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct SourceListState {
+    pub focused: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -93,6 +99,7 @@ impl Default for TuiApp {
             status_message: "ready".to_string(),
             data: TuiData::default(),
             config_list: ConfigListState::default(),
+            source_list: SourceListState::default(),
             confirm: None,
         }
     }
@@ -120,6 +127,10 @@ impl TuiApp {
             .collect()
     }
 
+    pub fn focused_source(&self) -> Option<&crate::tui::data::TuiSourceRow> {
+        self.data.sources.get(self.source_list.focused)
+    }
+
     pub fn config_filter_summary(&self) -> String {
         let search = if self.config_list.search_query.is_empty() {
             "search:-".to_string()
@@ -140,6 +151,7 @@ impl TuiApp {
     pub fn reload_data(&mut self, data: TuiData) {
         self.data = data;
         self.clamp_config_focus();
+        self.clamp_source_focus();
     }
 
     pub fn set_status(&mut self, message: impl Into<String>) {
@@ -199,8 +211,8 @@ impl TuiApp {
                     self.status_message = "ready".to_string();
                 }
             }
-            TuiAction::MoveDown => self.move_config_focus(1),
-            TuiAction::MoveUp => self.move_config_focus(-1),
+            TuiAction::MoveDown => self.move_focus(1),
+            TuiAction::MoveUp => self.move_focus(-1),
             TuiAction::BeginSearch => {
                 if self.active_view == TuiView::Configs {
                     self.config_list.editing_search = true;
@@ -344,8 +356,16 @@ impl TuiApp {
         self.status_message = "confirm purge".to_string();
     }
 
+    fn move_focus(&mut self, delta: isize) {
+        match self.active_view {
+            TuiView::Configs => self.move_config_focus(delta),
+            TuiView::Sources => self.move_source_focus(delta),
+            TuiView::Tests | TuiView::Runtime => {}
+        }
+    }
+
     fn move_config_focus(&mut self, delta: isize) {
-        if self.active_view != TuiView::Configs || self.config_list.editing_search {
+        if self.config_list.editing_search {
             return;
         }
 
@@ -369,12 +389,42 @@ impl TuiApp {
         }
     }
 
+    fn move_source_focus(&mut self, delta: isize) {
+        let len = self.data.sources.len();
+        if len == 0 {
+            self.source_list.focused = 0;
+            return;
+        }
+
+        let next = if delta.is_negative() {
+            self.source_list
+                .focused
+                .saturating_sub(delta.unsigned_abs())
+        } else {
+            (self.source_list.focused + delta as usize).min(len - 1)
+        };
+
+        self.source_list.focused = next;
+        if let Some(source) = self.focused_source() {
+            self.status_message = format!("source #{} {}", source.id, source.display_name());
+        }
+    }
+
     fn clamp_config_focus(&mut self) {
         let len = self.visible_config_indices().len();
         if len == 0 {
             self.config_list.focused = 0;
         } else if self.config_list.focused >= len {
             self.config_list.focused = len - 1;
+        }
+    }
+
+    fn clamp_source_focus(&mut self) {
+        let len = self.data.sources.len();
+        if len == 0 {
+            self.source_list.focused = 0;
+        } else if self.source_list.focused >= len {
+            self.source_list.focused = len - 1;
         }
     }
 
@@ -466,7 +516,7 @@ impl TuiView {
 
 #[cfg(test)]
 mod tests {
-    use crate::tui::data::{TuiConfigRow, TuiData};
+    use crate::tui::data::{TuiConfigRow, TuiData, TuiSourceRow};
 
     use super::{ConfigSort, ConfirmKind, TuiAction, TuiApp, TuiConfigCommand, TuiView};
 
@@ -503,6 +553,21 @@ mod tests {
         app.apply(TuiAction::MoveUp);
         app.apply(TuiAction::MoveUp);
         assert_eq!(app.config_list.focused, 0);
+    }
+
+    #[test]
+    fn moves_source_focus_within_bounds() {
+        let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
+        let mut app = TuiApp::with_data(data);
+        app.apply(TuiAction::SwitchView(TuiView::Sources));
+
+        app.apply(TuiAction::MoveDown);
+        app.apply(TuiAction::MoveDown);
+        assert_eq!(app.source_list.focused, 1);
+
+        app.apply(TuiAction::MoveUp);
+        app.apply(TuiAction::MoveUp);
+        assert_eq!(app.source_list.focused, 0);
     }
 
     #[test]
@@ -640,6 +705,18 @@ mod tests {
             is_enabled: true,
             is_selected: false,
             is_deleted: false,
+        }
+    }
+
+    fn source(id: i64) -> TuiSourceRow {
+        TuiSourceRow {
+            id,
+            kind: "url".to_string(),
+            value: format!("https://example.com/{id}"),
+            name: Some(format!("source-{id}")),
+            config_count: id,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
         }
     }
 }
