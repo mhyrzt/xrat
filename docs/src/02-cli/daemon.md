@@ -8,11 +8,13 @@ xrat daemon <action>
 
 ## Actions
 
-| Action   | Description                                           |
-| -------- | ----------------------------------------------------- |
-| `start`  | Start the long-lived daemon process                   |
-| `status` | Show daemon IPC reachability and protocol information |
-| `stop`   | Request daemon shutdown via local IPC                 |
+| Action      | Description                                           |
+| ----------- | ----------------------------------------------------- |
+| `start`     | Start the long-lived daemon process                   |
+| `status`    | Show daemon IPC reachability and protocol information |
+| `stop`      | Request daemon shutdown via local IPC                 |
+| `install`   | Install xrat-daemon.service as a systemd user service |
+| `uninstall` | Remove the installed systemd user service             |
 
 The hidden internal `run-server` action is used by the daemon launcher and is
 not a user-facing command.
@@ -101,6 +103,88 @@ No command-specific flags.
    - Closes the IPC socket
    - Exits cleanly
 
+---
+
+## daemon install
+
+Install xrat as a systemd user service. Linux only.
+
+```bash
+xrat daemon install [--start] [--with-api] [--dry-run]
+```
+
+### Flags
+
+| Flag        | Description                                             |
+| ----------- | ------------------------------------------------------- |
+| `--start`   | Start the daemon immediately after enabling the service |
+| `--with-api`| Also install `xrat-api.service` (standalone HTTP API)   |
+| `--dry-run` | Print the generated unit and planned actions without writing anything |
+
+### Behavior
+
+1. Resolves the current binary path via `std::env::current_exe()`
+2. Generates `xrat-daemon.service` from the template in `packaging/systemd/`
+   with the resolved binary path and configured XRAT root
+3. Writes the service file to `~/.config/systemd/user/` (respects
+   `$XDG_CONFIG_HOME`)
+4. Runs `systemctl --user daemon-reload`
+5. Runs `systemctl --user enable xrat-daemon.service`
+6. If `--start`: runs `systemctl --user start xrat-daemon.service`
+7. If `--with-api`: generates and installs `xrat-api.service` as well
+
+### Example
+
+```bash
+xrat daemon install --start
+```
+
+```
+Written: /home/user/.config/systemd/user/xrat-daemon.service
+Reloaded systemd user daemon.
+Enabled: xrat-daemon.service
+Started: xrat-daemon.service
+
+Daemon installed successfully.
+```
+
+### Dry run
+
+```bash
+xrat daemon install --dry-run
+```
+
+Prints the generated service unit and the systemctl commands that would run,
+without writing any files or calling systemctl.
+
+---
+
+## daemon uninstall
+
+Remove the installed xrat-daemon.service systemd user service.
+
+```bash
+xrat daemon uninstall [--dry-run]
+```
+
+### Flags
+
+| Flag        | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `--dry-run` | Print planned actions without removing anything  |
+
+### Behavior
+
+1. Stops `xrat-daemon.service` (non-fatal if not running)
+2. Disables `xrat-daemon.service`
+3. Removes `~/.config/systemd/user/xrat-daemon.service`
+4. Repeats for `xrat-api.service` if present
+5. Runs `systemctl --user daemon-reload`
+
+User config, database, logs, and all application state are **preserved**.
+
+---
+
 ## IPC Protocol
 
 The daemon uses JSON over Unix domain socket with protocol version 1.
@@ -139,3 +223,5 @@ candidate config ID. There is no separate `ProxyRotate` IPC request type.
 - [`proxy`](proxy.md) — control auto-rotation scheduling
 - [`connect`](runtime.md#connect) — start a proxy via daemon IPC
 - [`status`](runtime.md#status) — check proxy status via daemon IPC
+- [`init`](init.md) — initialize config directory before first use
+- [systemd](../04-deployment/systemd.md) — full systemd deployment guide

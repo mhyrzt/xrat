@@ -3,6 +3,18 @@
 This guide walks through the core xrat workflow: import a subscription, test
 configs, and start a local proxy.
 
+## 0. Initialize
+
+Run once after installing to create the config directory, default config file,
+and database:
+
+```bash
+xrat init
+```
+
+See [`init`](../02-cli/init.md) for details on what gets created and how to
+use a custom path via `XRAT_PATH`.
+
 ## 1. Import a Subscription
 
 Import from a URL:

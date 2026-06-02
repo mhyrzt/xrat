@@ -5,6 +5,7 @@
   - [Quickstart](01-getting-started/quickstart.md)
   - [Configuration](01-getting-started/configuration.md)
 - [CLI Reference](02-cli/README.md)
+  - [init](02-cli/init.md)
   - [import](02-cli/import.md)
   - [config management](02-cli/config-management.md)
   - [list](02-cli/list.md)
