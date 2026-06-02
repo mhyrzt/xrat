@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=XRAT
+Comment=Proxy/VPN configuration manager and runtime
+Exec=xrat tui
+Terminal=true
+Categories=Network;
+Keywords=proxy;vpn;xray;sing-box;tui;
+Icon=xrat
+StartupNotify=false

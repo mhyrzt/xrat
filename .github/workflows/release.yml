@@ -144,8 +144,7 @@ jobs:
             tar -xzf "$archive" -C "$tmpdir"
             cp -r extras/man "$tmpdir/man"
             cp -r extras/completions "$tmpdir/completions"
-            mkdir -p "$tmpdir/packaging"
-            cp -r packaging/systemd "$tmpdir/packaging/systemd"
+            cp -rL packaging/desktop "$tmpdir/desktop"
             tar -czf "$archive" -C "$tmpdir" .
             rm -rf "$tmpdir"
           done
