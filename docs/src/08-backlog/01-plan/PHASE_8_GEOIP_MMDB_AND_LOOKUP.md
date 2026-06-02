@@ -127,8 +127,8 @@ Implemented:
 - [x] Updated example config with `[mmdb]`
 - [x] Refactored `download.rs` (547 lines) into `download/` module
 - [x] Refactored `backend.rs` (297 lines) into `backend/` module
-- [x] Refactored `remote_ipwhois.rs`, `remote_ip_api.rs`, `local.rs`,
-      `cache.rs` into module directories with separate tests files
+- [x] Refactored `remote_ipwhois.rs`, `remote_ip_api.rs`, `local.rs`, `cache.rs`
+      into module directories with separate tests files
 - [x] Removed obsolete `scripts/download_geolite2_mmdb.sh`
 - [x] Updated Justfile and README to remove shell script references
 - [x] Created user-facing docs: CLI reference (`02-cli/geoip.md`), config
@@ -164,9 +164,9 @@ Relevant files:
 - `docs/src/03-features/testing.md` — GeoIP enrichment docs
 - `docs/src/05-reference/config-file.md` — `[mmdb]` and `[testing.geoip]`
 
-The old shell script `scripts/download_geolite2_mmdb.sh` has been removed.
-The Rust built-in downloader (via `xrat geoip download`) stores files in
-`mmdb/` (not the old `geoip/` location).
+The old shell script `scripts/download_geolite2_mmdb.sh` has been removed. The
+Rust built-in downloader (via `xrat geoip download`) stores files in `mmdb/`
+(not the old `geoip/` location).
 
 ## CLI Plan
 
@@ -248,7 +248,8 @@ Tasks:
 
 - [x] Add `src/app/commands/geoip/edition.rs`
 - [x] Extend `src/cli/geoip.rs` with `download` and `update`
-- [x] Add `src/app/commands/geoip/download.rs` (later refactored into `download/`)
+- [x] Add `src/app/commands/geoip/download.rs` (later refactored into
+      `download/`)
 - [x] Add `src/app/commands/geoip/update.rs`
 - [x] Add `AppError::GeoipDownload`
 - [x] Implement single-edition async download with atomic write
@@ -414,5 +415,5 @@ Phase 8 is complete when:
 - Criterion 5: complete prober uses the configured async backend for endpoint
   enrichment.
 - Criterion 6: complete CLI reference, config reference, and feature docs
-  created. Old shell script removed; Justfile and README updated. 350 tests
-  pass across the suite (55 geoip-specific).
+  created. Old shell script removed; Justfile and README updated. 350 tests pass
+  across the suite (55 geoip-specific).
