@@ -21,7 +21,9 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Line::raw("Space     select focused config"),
         Line::raw("e/x       enable/disable focused config"),
         Line::raw("d/D       soft delete / purge focused config"),
-        Line::raw("r         restore focused deleted config"),
+        Line::raw("r         restore focused config (configs)"),
+        Line::raw("r/R/i     refresh focused / refresh all / import (sources)"),
+        Line::raw("s/x/r     start / stop / restart runtime (runtime)"),
         Line::raw("Ctrl+U    clear search while editing"),
         Line::raw("Esc       close modal/back"),
         Line::raw("q/Ctrl+C  quit"),
@@ -57,6 +59,45 @@ pub fn render_confirm(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             .alignment(Alignment::Left)
             .style(theme::chrome_style())
             .wrap(Wrap { trim: true }),
+        area,
+    );
+}
+
+pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let Some(modal) = &app.import_modal else {
+        return;
+    };
+
+    frame.render_widget(Clear, area);
+    let cursor_input = format!("{}█", modal.input);
+    let mut lines = vec![
+        Line::styled(
+            "Paste or type a subscription URL, file path, or raw config text.",
+            theme::muted_style(),
+        ),
+        Line::raw(""),
+        Line::styled(&cursor_input, theme::accent_style()),
+    ];
+    if let Some(err) = &modal.error {
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(err.as_str(), theme::failure_style()));
+    }
+    lines.push(Line::raw(""));
+    lines.push(Line::styled(
+        "Enter import   Esc cancel",
+        theme::muted_style(),
+    ));
+
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(
+                Block::default()
+                    .title(" Import / Add Source ")
+                    .borders(Borders::ALL),
+            )
+            .alignment(Alignment::Left)
+            .style(theme::chrome_style())
+            .wrap(Wrap { trim: false }),
         area,
     );
 }

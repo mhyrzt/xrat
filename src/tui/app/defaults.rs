@@ -15,6 +15,7 @@ impl Default for TuiApp {
             test_state: TestViewState::default(),
             task_state: TuiTaskState::default(),
             confirm: None,
+            import_modal: None,
         }
     }
 }

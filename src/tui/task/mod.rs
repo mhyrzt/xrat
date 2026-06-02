@@ -9,12 +9,19 @@ pub use state::TuiTaskState;
 pub enum TuiTaskKind {
     ReloadData,
     TestBatch,
+    RuntimeOp,
+    SourceRefresh,
 }
 
 #[derive(Debug)]
 pub enum TuiTaskEvent {
     Started {
         kind: TuiTaskKind,
+    },
+    Progress {
+        kind: TuiTaskKind,
+        done: usize,
+        total: usize,
     },
     Completed {
         kind: TuiTaskKind,

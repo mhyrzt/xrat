@@ -76,8 +76,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow
             detail_line("Updated", &source.updated_at),
             Line::raw(""),
             Line::styled("Actions", theme::muted_style()),
-            Line::raw("r refresh focused - R refresh all"),
-            Line::raw("i import - c copy - y QR (coming next)"),
+            Line::raw("r refresh focused  R refresh all  i import"),
         ],
         None => vec![
             Line::styled(

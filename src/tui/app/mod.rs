@@ -10,8 +10,8 @@ mod types;
 mod views;
 
 pub use types::{
-    ConfigListState, ConfigSort, ConfirmKind, ConfirmState, SourceListState, TestMode, TestScope,
-    TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiView,
+    ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState, SourceListState,
+    TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -33,7 +33,27 @@ impl TuiApp {
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
-            TuiAction::StartTestBatch => {}
+            TuiAction::StartTestBatch
+            | TuiAction::RuntimeStart
+            | TuiAction::RuntimeStop
+            | TuiAction::RuntimeRestart
+            | TuiAction::RefreshFocusedSource
+            | TuiAction::RefreshAllSources => {}
+            TuiAction::OpenImportModal => {
+                self.import_modal = Some(crate::tui::app::ImportModalState::default());
+            }
+            TuiAction::ImportInput(ch) => {
+                if let Some(modal) = &mut self.import_modal {
+                    modal.input.push(ch);
+                    modal.error = None;
+                }
+            }
+            TuiAction::ImportBackspace => {
+                if let Some(modal) = &mut self.import_modal {
+                    modal.input.pop();
+                }
+            }
+            TuiAction::ImportSubmit => {}
             TuiAction::CancelTestBatch => {
                 if self.task_state.running.is_some() {
                     if self.task_state.cancel() {

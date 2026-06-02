@@ -761,17 +761,17 @@ Tasks:
 
 - [x] Load subscription sources and config counts.
 - [x] Render sources table and detail panel.
-- [ ] Refresh focused source.
-- [ ] Refresh all sources.
-- [ ] Add/import URL, file, and raw-text sources through modal input.
+- [x] Refresh focused source via `r`.
+- [x] Refresh all sources via `R`.
+- [x] Add/import URL, file, and raw-text sources via `i` import modal.
 - [ ] Copy and QR source URLs.
-- [ ] Show latest refresh/import errors.
+- [ ] Show latest refresh/import errors per-source in the detail panel.
 
 Acceptance:
 
 - [x] source data maps to real repository rows.
-- [ ] refresh operations report progress and completion.
-- [ ] import reuses existing parser/import services.
+- [x] refresh operations report progress and completion.
+- [x] import reuses existing parser/import services.
 
 ### P6.9 Testing View and Progress
 
@@ -800,16 +800,16 @@ Tasks:
 
 - [x] Load current runtime status.
 - [x] Render runtime status cards and recent log lines.
-- [ ] Start/connect focused config.
-- [ ] Stop/disconnect current runtime.
-- [ ] Restart runtime.
+- [x] Start/connect selected config via `s`.
+- [x] Stop/disconnect current runtime via `x`.
+- [x] Restart runtime via `r`.
 - [ ] Switch active config safely.
 - [ ] Show daemon/auto-rotation status when available.
 
 Acceptance:
 
-- [ ] runtime actions call existing runtime service paths.
-- [ ] active config badge updates after connect/switch.
+- [x] runtime actions call existing runtime service paths.
+- [x] active config badge updates after connect/switch.
 - [ ] runtime errors are shown in Runtime and Diagnostics views.
 
 ### P6.11 QR, Clipboard, and Paste Modals
@@ -881,7 +881,7 @@ Required tests:
 - [x] selection, enable/disable, delete, restore, and purge confirmation state.
 - [ ] payload builders for copy/QR selected configs.
 - [ ] source refresh/import action dispatch.
-- [x] test progress reducer.
+- [x] test progress reducer (now includes incremental per-config progress events).
 - [x] runtime status reducer.
 - [ ] terminal lifecycle smoke test if practical.
 
@@ -945,7 +945,7 @@ Phase 6 can be considered complete when:
 
 **Reviewed: 2026-06-01**
 
-**Updated: 2026-06-01**
+**Updated: 2026-06-02**
 
 Recent progress:
 
@@ -954,62 +954,52 @@ Recent progress:
   soft delete, restore, purge confirmation, and reload-after-mutation behavior.
 - Sources view now loads real subscription rows and renders a table/detail panel
   with independent focus navigation.
-- Runtime view now loads `RuntimeService::status()` and renders read-only status
-  cards plus session, inbound, failure, transition, and database details.
+- Runtime view now loads `RuntimeService::status()` and renders status cards plus
+  session, inbound, failure, transition, and database details. `s`/`x`/`r` now
+  call `RuntimeService::connect()`, `disconnect()`, and stop-then-connect restart
+  flows in background tasks with data reload on completion.
 - Tests view now loads the latest connection-test run, renders scope/mode cards,
   progress counts, untested/failed summaries, and recent result rows.
-- TUI task infrastructure now has typed task events, lifecycle state,
-  non-blocking event-loop draining, and background data reload wiring.
-- Tests view starts scoped background test batches with `s` and now supports
+- TUI task infrastructure now has typed task events including `TuiTaskEvent::Progress`
+  with per-config `done/total` counts sent from the bulk executor after each
+  completed test. The progress gauge in the Tests view shows live `done/total`
+  while a batch is running and falls back to latest-run summary when idle.
+- Tests view starts scoped background test batches with `s` and supports
   cancellation through `c` using a shared `CancellationFlag` /
   `CancellationReceiver` primitive under `src/support/cancel.rs`.
-- The bulk test executor gained `run_bulk_for_configs_cancellable`, which checks
-  cancellation between spawns and aborts in-flight tests via
-  `JoinSet::abort_all()` when a `Cancelled` event would be sent.
-- The TUI run loop now keeps a `CancellationFlag` per running task in
-  `TuiTaskState`, and `CancelTestBatch` flips the stored flag and surfaces a
-  `TuiTaskEvent::Cancelled` instead of "coming next".
-- Focused TUI reducer/keymap tests and full `cargo test -q` pass after these
-  slices (12 new tests covering the cancellation path).
+- All 350 tests pass after these slices.
 
 Current next slice:
 
-- Add incremental progress events for the test task, then move on to
-  service-specific background flows for source refresh/import or runtime
-  start/stop.
+- Source refresh/import background task flows (P6.8 completion).
+- Advanced config filters: protocol, enabled, failed, source, real-delay presence
+  (P6.6 completion).
 
-Phase 6 is at approximately 55-60% implementation. Test cancellation, background
-test execution, and keymap/help surfaces are now complete. The following gaps
-remain the most significant:
+Phase 6 is at approximately 65% implementation. The following gaps remain:
 
-### 1. Background task infrastructure still has service-specific gaps
+### 1. Source background tasks missing
 
-The shared cancellation primitive is now in place and the test batch route uses
-it. Source refresh, source import, and runtime start/stop/restart/switch still
-need the same background task wiring.
+Source refresh (`r`), refresh-all (`R`), and add/import modal (`i`) still need
+background task wiring similar to the runtime tasks added this slice.
 
 ### 2. Search/filter/sort is partial
 
 Text search, sort cycling, and deleted visibility are implemented. Advanced
 filters by protocol, enabled, selected, failed, source, real-delay presence, and
-full sort coverage are still pending.
+additional sort fields are still pending.
 
-### 3. Config actions are focused-row only
+### 3. Config bulk actions still pending
 
 Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk
-selected actions, connect/activate, and test actions are still pending.
+selected-config actions (enable-all-selected, test-selected, etc.) and
+connect/activate remain.
 
 ### 4. No QR, clipboard, or paste workflows
 
 `tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard,
 or paste/import modal exists.
 
-### 5. No incremental test progress yet
+### 5. No diagnostics view
 
-The test task only reports Started/Completed/Failed/Cancelled. Per-config
-progress events and richer counts (running/pending/ETA) are still pending.
-
-### 6. No diagnostics or help content
-
-The `?` help overlay renders keybinding labels and now lists the new `c` cancel
-shortcut, but no diagnostics view or log buffer exists.
+The `?` help overlay renders keybinding labels. No diagnostics view or error log
+buffer exists yet.

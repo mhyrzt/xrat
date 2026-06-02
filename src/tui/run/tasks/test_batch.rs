@@ -27,13 +27,22 @@ pub fn spawn_test_batch(
     let (token, receiver) = app.task_state.start(kind);
     let _ = task_tx.send(TuiTaskEvent::Started { kind });
 
+    let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<(usize, usize)>();
+    let task_tx_clone = task_tx.clone();
+    tokio::spawn(async move {
+        while let Some((done, total)) = progress_rx.recv().await {
+            let _ = task_tx_clone.send(TuiTaskEvent::Progress { kind, done, total });
+        }
+    });
+
     let task_tx = task_tx.clone();
     tokio::spawn(async move {
-        let result = crate::app::commands::test::run_bulk_for_config_ids_cancellable(
+        let result = crate::app::commands::test::run_bulk_for_config_ids_with_progress(
             &args,
             &context,
             &config_ids,
             receiver,
+            progress_tx,
         )
         .await;
 

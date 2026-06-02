@@ -30,6 +30,15 @@ pub enum TuiAction {
     RequestPurgeFocused,
     StartTestBatch,
     CancelTestBatch,
+    RuntimeStart,
+    RuntimeStop,
+    RuntimeRestart,
+    RefreshFocusedSource,
+    RefreshAllSources,
+    OpenImportModal,
+    ImportInput(char),
+    ImportBackspace,
+    ImportSubmit,
     Confirm,
     Cancel,
     SwitchView(TuiView),
@@ -59,6 +68,12 @@ pub struct ConfirmState {
     pub message: String,
 }
 
+#[derive(Debug, Default)]
+pub struct ImportModalState {
+    pub input: String,
+    pub error: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct TuiApp {
     pub active_view: TuiView,
@@ -71,6 +86,7 @@ pub struct TuiApp {
     pub test_state: TestViewState,
     pub task_state: crate::tui::task::TuiTaskState,
     pub confirm: Option<ConfirmState>,
+    pub import_modal: Option<ImportModalState>,
 }
 
 #[derive(Debug, Default)]

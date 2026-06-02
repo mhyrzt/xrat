@@ -12,9 +12,14 @@ pub fn action_for_key(
     active_view: TuiView,
     editing_search: bool,
     confirming: bool,
+    import_modal_open: bool,
 ) -> TuiAction {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
+    }
+
+    if import_modal_open {
+        return action_for_import_modal_key(key);
     }
 
     if confirming {
@@ -26,4 +31,14 @@ pub fn action_for_key(
     }
 
     view::action_for_view_key(key, active_view)
+}
+
+fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {
+    match key.code {
+        KeyCode::Esc => TuiAction::Back,
+        KeyCode::Enter => TuiAction::ImportSubmit,
+        KeyCode::Backspace => TuiAction::ImportBackspace,
+        KeyCode::Char(ch) => TuiAction::ImportInput(ch),
+        _ => TuiAction::None,
+    }
 }

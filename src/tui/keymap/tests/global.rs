@@ -10,13 +10,20 @@ fn key(code: KeyCode) -> KeyEvent {
 #[test]
 fn maps_global_quit_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Char('q')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('q')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::Quit
     );
     assert_eq!(
         action_for_key(
             KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
             TuiView::Configs,
+            false,
             false,
             false
         ),
@@ -27,11 +34,23 @@ fn maps_global_quit_keys() {
 #[test]
 fn maps_view_switching_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Char('1')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('1')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::SwitchView(TuiView::Configs)
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('4')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('4')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::SwitchView(TuiView::Runtime)
     );
 }
@@ -39,27 +58,51 @@ fn maps_view_switching_keys() {
 #[test]
 fn maps_navigation_and_help_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Down), TuiView::Configs, false, false),
+        action_for_key(key(KeyCode::Down), TuiView::Configs, false, false, false),
         TuiAction::MoveDown
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('k')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('k')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::MoveUp
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('?')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('?')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::ShowHelp
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Esc), TuiView::Configs, false, false),
+        action_for_key(key(KeyCode::Esc), TuiView::Configs, false, false, false),
         TuiAction::Back
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('/')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('/')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::BeginSearch
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('s')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('s')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::CycleSort
     );
 }
@@ -67,31 +110,139 @@ fn maps_navigation_and_help_keys() {
 #[test]
 fn maps_config_action_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Char(' ')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char(' ')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::SelectFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('e')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('e')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::EnableFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('x')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('x')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::DisableFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('d')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('d')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::RequestDeleteFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('D')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('D')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::RequestPurgeFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('r')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('r')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::RestoreFocused
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('f')), TuiView::Configs, false, false),
+        action_for_key(
+            key(KeyCode::Char('f')),
+            TuiView::Configs,
+            false,
+            false,
+            false
+        ),
         TuiAction::ToggleDeletedFilter
+    );
+}
+
+#[test]
+fn maps_sources_view_actions() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('r')),
+            TuiView::Sources,
+            false,
+            false,
+            false
+        ),
+        TuiAction::RefreshFocusedSource
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('R')),
+            TuiView::Sources,
+            false,
+            false,
+            false
+        ),
+        TuiAction::RefreshAllSources
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('i')),
+            TuiView::Sources,
+            false,
+            false,
+            false
+        ),
+        TuiAction::OpenImportModal
+    );
+}
+
+#[test]
+fn maps_import_modal_keys() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('a')),
+            TuiView::Sources,
+            false,
+            false,
+            true
+        ),
+        TuiAction::ImportInput('a')
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Backspace),
+            TuiView::Sources,
+            false,
+            false,
+            true
+        ),
+        TuiAction::ImportBackspace
+    );
+    assert_eq!(
+        action_for_key(key(KeyCode::Enter), TuiView::Sources, false, false, true),
+        TuiAction::ImportSubmit
+    );
+    assert_eq!(
+        action_for_key(key(KeyCode::Esc), TuiView::Sources, false, false, true),
+        TuiAction::Back
     );
 }

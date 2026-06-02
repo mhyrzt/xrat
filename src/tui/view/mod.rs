@@ -33,6 +33,10 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     if app.confirm.is_some() {
         modals::render_confirm(frame, modals::centered_rect(62, 34, area), app);
     }
+
+    if app.import_modal.is_some() {
+        modals::render_import_modal(frame, modals::centered_rect(72, 40, area), app);
+    }
 }
 
 fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {

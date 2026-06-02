@@ -9,6 +9,8 @@ pub struct TuiTaskState {
     pub last_error: Option<String>,
     pub completed_count: usize,
     pub cancellation: Option<TuiCancellationToken>,
+    pub progress_done: usize,
+    pub progress_total: usize,
 }
 
 impl TuiTaskState {
@@ -29,6 +31,8 @@ impl TuiTaskState {
     pub fn start(&mut self, kind: TuiTaskKind) -> (TuiCancellationToken, TuiCancellationReceiver) {
         self.running = Some(kind);
         self.last_error = None;
+        self.progress_done = 0;
+        self.progress_total = 0;
         let (token, receiver) = new_cancellation();
         self.cancellation = Some(token.clone());
         (token, receiver)
@@ -47,6 +51,10 @@ impl TuiTaskState {
             TuiTaskEvent::Started { kind } => {
                 self.running = Some(*kind);
                 self.last_error = None;
+            }
+            TuiTaskEvent::Progress { done, total, .. } => {
+                self.progress_done = *done;
+                self.progress_total = *total;
             }
             TuiTaskEvent::Completed { kind, message, .. } => {
                 if self.running == Some(*kind) {

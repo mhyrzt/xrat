@@ -55,3 +55,22 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
     )
     .await
 }
+
+pub(crate) async fn run_bulk_for_configs_with_progress(
+    context: &AppContext,
+    settings: ResolvedTestSettings,
+    configs: Vec<ConfigRecord>,
+    run_kind: &str,
+    cancel_rx: Option<crate::support::cancel::CancellationReceiver>,
+    progress_tx: tokio::sync::mpsc::UnboundedSender<(usize, usize)>,
+) -> crate::app::Result<Vec<TestOutputRow>> {
+    bulk_executor::run_bulk_for_configs_with_progress(
+        context,
+        settings,
+        configs,
+        run_kind,
+        cancel_rx,
+        progress_tx,
+    )
+    .await
+}

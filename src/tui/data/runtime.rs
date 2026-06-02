@@ -9,7 +9,9 @@ pub struct TuiRuntimeStatus {
     pub process_id: Option<i64>,
     pub session_status: Option<String>,
     pub active_config: Option<String>,
+    pub active_config_id: Option<i64>,
     pub selected_config: Option<String>,
+    pub selected_config_id: Option<i64>,
     pub session_config: Option<String>,
     pub socks: Option<String>,
     pub http: Option<String>,
@@ -31,7 +33,9 @@ impl Default for TuiRuntimeStatus {
             process_id: None,
             session_status: None,
             active_config: None,
+            active_config_id: None,
             selected_config: None,
+            selected_config_id: None,
             session_config: None,
             socks: None,
             http: None,
@@ -58,7 +62,9 @@ impl From<RuntimeStatusSnapshot> for TuiRuntimeStatus {
                 .as_ref()
                 .map(|session| session.status.as_str().to_string()),
             active_config: value.active_config.as_ref().map(config_label),
+            active_config_id: value.active_config.as_ref().map(|c| c.id),
             selected_config: value.selected_config.as_ref().map(config_label),
+            selected_config_id: value.selected_config.as_ref().map(|c| c.id),
             session_config: value.session_config.as_ref().map(config_label),
             socks: value
                 .inbound_health

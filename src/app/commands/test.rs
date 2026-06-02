@@ -72,3 +72,35 @@ pub(crate) async fn run_bulk_for_config_ids_cancellable(
     .await?;
     Ok(rows.len())
 }
+
+pub(crate) async fn run_bulk_for_config_ids_with_progress(
+    args: &TestArgs,
+    context: &AppContext,
+    config_ids: &[i64],
+    cancel_rx: crate::support::cancel::CancellationReceiver,
+    progress_tx: tokio::sync::mpsc::UnboundedSender<(usize, usize)>,
+) -> crate::app::Result<usize> {
+    let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
+    let mut configs = Vec::with_capacity(config_ids.len());
+
+    for config_id in config_ids {
+        if let Some(config) = context.db.get_config_by_id(*config_id).await? {
+            configs.push(config);
+        }
+    }
+
+    if configs.is_empty() {
+        return Ok(0);
+    }
+
+    let rows = bulk::run_bulk_for_configs_with_progress(
+        context,
+        settings,
+        configs,
+        "tui",
+        Some(cancel_rx),
+        progress_tx,
+    )
+    .await?;
+    Ok(rows.len())
+}

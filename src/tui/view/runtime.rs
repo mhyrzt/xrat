@@ -97,7 +97,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         detail_line("Database", &runtime.database_label),
         Line::raw(""),
         Line::styled("Actions", theme::muted_style()),
-        Line::raw("s start - x stop - r restart - l logs (coming next)"),
+        Line::raw("s start/connect  x stop/disconnect  r restart"),
     ];
 
     frame.render_widget(

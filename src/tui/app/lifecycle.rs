@@ -17,7 +17,10 @@ impl TuiApp {
     }
 
     pub(super) fn back(&mut self) {
-        if self.confirm.is_some() {
+        if self.import_modal.is_some() {
+            self.import_modal = None;
+            self.status_message = "cancelled".to_string();
+        } else if self.confirm.is_some() {
             self.confirm = None;
             self.status_message = "cancelled".to_string();
         } else if self.config_list.editing_search {
