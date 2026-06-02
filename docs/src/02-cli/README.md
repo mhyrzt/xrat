@@ -18,21 +18,44 @@ These flags apply to every command:
 
 ## Commands
 
-| Command                               | Description                                                    |
-| ------------------------------------- | -------------------------------------------------------------- |
-| [`import`](import.md)                 | Import a subscription URL, file, or raw text into the database |
-| [`add`](import.md#add)                | Add a single config URI directly to the database               |
-| [`list`](list.md)                     | List stored configs or subscription sources                    |
-| [`parse`](parse.md)                   | Parse and validate config links without persisting             |
-| [`test`](test.md)                     | Test connectivity and latency for stored configs               |
-| [`scan`](scan.md)                     | Scan candidate IPs for TCP reachability                        |
-| [`connect`](runtime.md#connect)       | Start a managed proxy runtime for a stored config              |
-| [`disconnect`](runtime.md#disconnect) | Stop the active managed proxy runtime                          |
-| [`status`](runtime.md#status)         | Show the managed proxy runtime status                          |
-| [`daemon`](daemon.md)                 | Run or control the daemon supervisor process                   |
-| [`proxy`](proxy.md)                   | Control auto-rotating proxy scheduling via the daemon          |
-| [`geoip`](geoip.md)                   | Manage GeoLite2 MMDB assets and inspect GeoIP backend config   |
-| [`serve`](serve.md)                   | Start the local HTTP API server                                |
+| Command                                   | Description                                                    |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| [`import`](import.md)                     | Import a subscription URL, file, or raw text into the database |
+| [`add`](config-management.md#add)         | Add a single config URI directly to the database               |
+| [`list`](list.md)                         | List stored configs or subscription sources                    |
+| [`show`](config-management.md#show)       | Show details for a stored config                               |
+| [`select`](config-management.md#select)   | Mark one config as the current selection                       |
+| [`enable`](config-management.md#enable)   | Include a config in normal operations                          |
+| [`disable`](config-management.md#disable) | Exclude a config from normal operations                        |
+| [`delete`](config-management.md#delete)   | Soft-delete or permanently delete a config                     |
+| [`restore`](config-management.md#restore) | Restore a soft-deleted config                                  |
+| [`parse`](parse.md)                       | Parse and validate config links without persisting             |
+| [`test`](test.md)                         | Test connectivity and latency for stored configs               |
+| [`scan`](scan.md)                         | Scan candidate IPs for TCP reachability                        |
+| [`connect`](runtime.md#connect)           | Start a managed proxy runtime for a stored config              |
+| [`disconnect`](runtime.md#disconnect)     | Stop the active managed proxy runtime                          |
+| [`status`](runtime.md#status)             | Show the managed proxy runtime status                          |
+| [`daemon`](daemon.md)                     | Run or control the daemon supervisor process                   |
+| [`proxy`](proxy.md)                       | Control auto-rotating proxy scheduling via the daemon          |
+| [`geoip`](geoip.md)                       | Manage GeoLite2 MMDB assets and inspect GeoIP backend config   |
+| [`serve`](serve.md)                       | Start the local HTTP API server                                |
+| [`tui`](tui.md)                           | Start the interactive terminal UI                              |
+
+## Common State Terms
+
+These words appear across the CLI, TUI, API, and database:
+
+| Term       | Meaning                                                                  |
+| ---------- | ------------------------------------------------------------------------ |
+| `enabled`  | Included in bulk tests, selection workflows, and rotation candidate sets |
+| `disabled` | Stored but normally skipped by filtered workflows                        |
+| `selected` | User-selected config for workflows that need a preferred config          |
+| `active`   | Config attached to the current managed runtime session                   |
+| `deleted`  | Soft-deleted row hidden from normal lists unless requested               |
+
+Use [`select`](config-management.md#select) to choose a preferred config. Use
+[`connect`](runtime.md#connect) to make a config active by starting a runtime
+session.
 
 ## Logging
 

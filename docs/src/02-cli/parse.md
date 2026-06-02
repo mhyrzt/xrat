@@ -29,6 +29,10 @@ xrat parse [input] [flags]
 | `xray`     | Always use Xray-core (rejects hysteria2)              |
 | `sing-box` | Always use sing-box                                   |
 
+This engine choice only affects parse-time validation and `--json` runtime
+config preview. Managed runtime commands such as `xrat connect` use the
+Xray/V2Ray lifecycle path.
+
 ## Examples
 
 Parse a single VLESS link:

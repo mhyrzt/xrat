@@ -6,7 +6,8 @@ reporting inbound health to clients.
 
 The implementation lives in `app/runtime_service/`. The `RuntimeService` struct
 is created from an `AppContext` and is consumed by the daemon supervisor, the
-CLI/TUI runtime commands, and the TUI runtime view.
+daemon IPC handlers, and TUI runtime flows. CLI runtime commands send IPC
+requests to the daemon instead of constructing `RuntimeService` directly.
 
 ## RuntimeService API
 
@@ -93,19 +94,22 @@ pub enum ActiveSessionState {
 ```mermaid
 sequenceDiagram
     participant CLI as CLI/Client
+    participant D as Daemon IPC
     participant RS as RuntimeService
     participant DB as Database
     participant XM as xray::process_mgmt
     participant SP as Supervisor
 
-    CLI->>RS: connect(config_id)
+    CLI->>D: RuntimeConnect(config_id)
+    D->>RS: connect(config_id)
     RS->>DB: load config
     RS->>RS: resolve launch (endpoints, inbounds)
     RS->>DB: insert RuntimeSession (Starting)
     RS->>XM: spawn_detached(binary, runtime_dir, config, ready_host, ready_port)
     XM-->>RS: ManagedXrayProcess { pid }
     RS->>DB: update RuntimeSession (Running, pid, started_at)
-    RS-->>CLI: ConnectResult { config, session_id, pid, runtime_config_path, endpoints }
+    RS-->>D: ConnectResult { config, session_id, pid, runtime_config_path, endpoints }
+    D-->>CLI: daemon response
 ```
 
 ## Replace Flow (Hot-Swap Rotation)
@@ -117,11 +121,13 @@ connectivity.
 ```mermaid
 sequenceDiagram
     participant CLI as CLI/Client
+    participant D as Daemon IPC
     participant RS as RuntimeService
     participant DB as Database
     participant XM as xray::process_mgmt
 
-    CLI->>RS: replace(trigger, candidate_id)
+    CLI->>D: RuntimeReplace(trigger, candidate_id)
+    D->>RS: replace(trigger, candidate_id)
     RS->>RS: pick candidate (or use candidate_id)
     RS->>RS: stage_replacement_runtime(next_id)
     RS->>DB: insert new RuntimeSession (Starting)
@@ -131,7 +137,8 @@ sequenceDiagram
     RS->>XM: terminate old process
     XM-->>RS: old stopped
     RS->>DB: update old session (Stopped)
-    RS-->>CLI: ReplaceResult { old_session_id, new_config_id, new_session_id, new_pid }
+    RS-->>D: ReplaceResult { old_session_id, new_config_id, new_session_id, new_pid }
+    D-->>CLI: daemon response
 ```
 
 ### Ephemeral Port Allocation

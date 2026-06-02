@@ -1,6 +1,7 @@
 # Runtime Commands
 
-Manage the local proxy runtime: connect, disconnect, and check status.
+Manage the local proxy runtime through the daemon: connect, disconnect, and
+check status.
 
 ---
 
@@ -36,12 +37,19 @@ xrat connect 42 --json
 
 ### Behavior
 
-1. Loads the config from the database
-2. Generates an Xray (or V2Ray) runtime config with local inbounds
-3. Spawns the proxy process
-4. Waits for the SOCKS port to become ready
-5. Persists a `runtime_sessions` record with status `running`
-6. Prints connection details
+1. Sends a runtime-connect request to the daemon over local IPC
+2. The daemon loads the config from the database
+3. Generates an Xray (or V2Ray) runtime config with local inbounds
+4. Spawns the proxy process
+5. Waits for the SOCKS port to become ready
+6. Persists a `runtime_sessions` record with status `running`
+7. Prints connection details
+
+If the daemon is not running, start it first:
+
+```bash
+xrat daemon start
+```
 
 ### Default Inbounds
 
@@ -58,6 +66,12 @@ and `[runtime.shadowsocks]`.
 
 If `replace_active_session = true` in config.toml, connecting to a new config
 automatically disconnects the previous session.
+
+### Engine Boundary
+
+The managed runtime lifecycle is Xray/V2Ray-focused.
+`xrat parse --engine sing-box` can generate sing-box JSON for diagnostics, but
+`connect`, `disconnect`, and `status` manage the Xray/V2Ray runtime path.
 
 ---
 
@@ -83,11 +97,12 @@ xrat disconnect
 
 ### Behavior
 
-1. Sends SIGTERM to the running proxy process
-2. Waits up to 5 seconds for graceful shutdown
-3. Sends SIGKILL if the process is still running
-4. Updates the session status to `stopped`
-5. Cleans up temporary config files
+1. Sends a runtime-disconnect request to the daemon over local IPC
+2. The daemon sends SIGTERM to the running proxy process
+3. Waits up to 5 seconds for graceful shutdown
+4. Sends SIGKILL if the process is still running
+5. Updates the session status to `stopped`
+6. Cleans up temporary config files
 
 ---
 
@@ -125,6 +140,9 @@ Displays:
 - **Inbound health**: TCP reachability of SOCKS, HTTP, Shadowsocks ports
 - **Uptime**: time since session started
 
+If no daemon is reachable, the command exits with a hint to run
+`xrat daemon start`.
+
 ### JSON Output
 
 ```json
@@ -150,3 +168,4 @@ Displays:
 - [`daemon`](daemon.md) — persistent daemon with auto-rotation
 - [`proxy`](proxy.md) — control auto-rotation scheduling
 - [`test`](test.md) — test configs before connecting
+- [`parse`](parse.md) — parse and preview Xray or sing-box runtime JSON

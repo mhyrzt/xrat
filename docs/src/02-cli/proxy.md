@@ -6,6 +6,12 @@ Control auto-rotating proxy scheduling via the daemon.
 xrat proxy <action> [flags]
 ```
 
+All `proxy` actions require a running daemon:
+
+```bash
+xrat daemon start
+```
+
 ## Actions
 
 | Action   | Description                                         |
@@ -24,6 +30,10 @@ Enable automatic proxy rotation on a fixed schedule.
 ```bash
 xrat proxy start
 ```
+
+### Flags
+
+No command-specific flags.
 
 ### Behavior
 
@@ -159,6 +169,10 @@ Disable automatic proxy rotation.
 xrat proxy stop
 ```
 
+### Flags
+
+No command-specific flags.
+
 ### Behavior
 
 1. Sends a request to the daemon via IPC
@@ -168,5 +182,5 @@ xrat proxy stop
 ## Related
 
 - [`daemon`](daemon.md) — daemon must be running for proxy commands to work
-- [`connect`](runtime.md#connect) — manual proxy connection (bypasses rotation)
+- [`connect`](runtime.md#connect) — start one proxy session through the daemon
 - [`test`](test.md) — test configs before enabling rotation

@@ -3,7 +3,7 @@ title = "xrat 🐀"
 authors = ["xrat contributors"]
 language = "en"
 src = "src"
-description = "Manage Xray-core and sing-box proxy configs from one CLI. Import subscriptions, test latency, scan IPs, rotate proxies, and run a managed runtime."
+description = "Manage proxy configs from one CLI. Import subscriptions, test latency, scan IPs, rotate proxies, preview Xray/sing-box configs, and run a managed Xray/V2Ray runtime."
 
 [build]
 build-dir = "book"

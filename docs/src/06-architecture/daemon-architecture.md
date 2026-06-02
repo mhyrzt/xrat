@@ -11,7 +11,7 @@ graph TB
     PARENT["Parent: validates config, forks child"]
     CHILD["Child: execs 'xrat daemon run-server'"]
     SOCK[Unix socket /path/to/xrat.sock]
-    CLIENT1[xrat runtime status]
+    CLIENT1[xrat status]
     CLIENT2[xrat connect]
     CLIENT3[xrat proxy start]
 

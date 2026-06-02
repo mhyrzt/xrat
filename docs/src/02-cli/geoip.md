@@ -187,6 +187,25 @@ Shows the backend type, configured fallback, rate limiting, and cache settings.
 xrat geoip backend
 ```
 
+## Troubleshooting
+
+If `geoip status --strict` reports missing files, download the supported MMDB
+editions:
+
+```bash
+xrat geoip download --all
+```
+
+If MMDB lookup fails but remote lookup works, check the resolved directory:
+
+```bash
+xrat geoip path
+xrat geoip lookup 8.8.8.8 --backend ipwhois
+```
+
+Remote backends can be rate-limited by the provider. Use the default cache
+unless you specifically need `--no-cache` for diagnostics.
+
 ## Related
 
 - [`[mmdb]` config](../05-reference/config-file.md#mmdb) — MMDB asset

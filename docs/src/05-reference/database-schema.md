@@ -12,7 +12,7 @@ across both backends.
 | `connection_tests`     | 0001, 0002, 0008, 0009, 0010             | Test results per config       |
 | `connection_test_runs` | 0007                                     | Groups test results into runs |
 | `runtime_sessions`     | 0001, 0004, 0005, 0006, 0012, 0013, 0014 | Proxy process lifecycle       |
-| `_cf_scan_results`     | 0011                                     | IP scan results               |
+| `cf_scan_results`      | 0011                                     | IP scan results               |
 
 ---
 

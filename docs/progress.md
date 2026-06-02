@@ -1,7 +1,7 @@
 # xrat Implementation Progress
 
-> Last verified: 2026-05-16 · 177 tests passing · all phases through 4.6
-> implemented
+> Last verified: 2026-06-02 · public docs reconciled with current CLI/API/TUI
+> surface
 
 ## Completed Phases
 
@@ -16,6 +16,7 @@
 | 4     | Managed Xray runtime (connect/disconnect/status), stale reconciliation      | **Complete** |
 | 4.5   | Daemon supervisor, Unix IPC, reattach, replace, transition taxonomy         | **Complete** |
 | 4.6   | Auto-rotating proxy (start/status/rotate/stop), candidate scoring, triggers | **Complete** |
+| 5     | HTTP API (`/health`, `/json`, `/b64`, `/configs`, auth, daemon hosting)     | **Complete** |
 
 ## Intentional Gaps
 
@@ -74,6 +75,18 @@ These are documented design decisions, not missing work.
 
 ## Partial Implementations
 
+### TUI Application
+
+- **Status**: In progress (Phase 6)
+- **What exists**: `xrat tui` launches the Ratatui UI. Current slices include
+  config browsing/search/sort, config state actions, source/runtime/test views,
+  source refresh/import, runtime start/stop/restart/switch, scoped background
+  test batches, cancellation, focused QR/copy workflows, diagnostics, and help.
+- **What remains**: Remaining Phase 6 polish includes advanced protocol/source
+  filters, HTTP API subscription URL QR/copy, selected profile QR payloads, and
+  broader environment verification.
+- **Files**: `src/tui/`, `src/app/commands/tui.rs`, `src/cli/tui.rs`
+
 ### Scanner IP-Level Dedup
 
 - **Status**: Missing (dependency on full scanner)
@@ -113,21 +126,21 @@ These features were never planned for xrat.
 | System proxy management (sysproxy)      | Desktop OS-specific, not in scope                                        |
 | Network namespace orchestration (netns) | Linux-specific, not in scope                                             |
 | Multi-hop chain / outbound chaining     | Not in xrat product scope                                                |
-| TUI application (Ratatui)               | Planned for Phase 6, not yet started                                     |
-| HTTP API server (Axum)                  | Planned for Phase 5, not yet started                                     |
 | Full Xray JSON persistence              | By design: generate runtime config on demand from stored normalized data |
 
 ## Deferred Phases
 
-| Phase | Area                             | Status      |
-| ----- | -------------------------------- | ----------- |
-| 5     | HTTP API (`/json`, `/b64`, auth) | Not started |
-| 6     | TUI application (Ratatui)        | Not started |
+| Phase | Area                   | Status      |
+| ----- | ---------------------- | ----------- |
+| 6     | TUI application polish | In progress |
+| 7     | Desktop integration    | Planned     |
 
 ## Test Coverage Summary
 
-- **177 tests** passing across all modules
+- Test count changes during Phase 6; see the latest validation notes in
+  `docs/src/08-backlog/01-plan/PHASE_6.md`.
 - Coverage includes: parser unit tests, dedup edge cases, CLI parsing, DB
   repository (SQLite + PostgreSQL), runtime service lifecycle, daemon IPC,
   reattach accept/reject, replace safety, rotation triggers, cooldown behavior,
-  health tick suppression
+  health tick suppression, HTTP API routes, and focused TUI reducer/view/task
+  tests.

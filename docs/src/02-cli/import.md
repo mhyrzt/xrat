@@ -64,7 +64,8 @@ xrat import "vless://uuid@example.com:443?type=ws&security=tls#MyNode"
 
 ## Related
 
-- [`add`](#add) — add a single config URI without subscription tracking
+- [`add`](config-management.md#add) — add a single config URI without
+  subscription tracking
 - [`list configs`](list.md#list-configs) — view imported configs
 
 ---
@@ -97,3 +98,6 @@ xrat add "ss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#SS%20Node"
 
 Unlike `import`, `add` does not create a subscription source record. It parses
 the single URI, normalizes it, deduplicates, and persists directly.
+
+For the full config-management command set, see
+[`config management`](config-management.md).

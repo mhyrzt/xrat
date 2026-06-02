@@ -38,6 +38,20 @@ Filter by subscription source:
 xrat list configs --subscription 1
 ```
 
+You can mark a preferred config without starting a proxy:
+
+```bash
+xrat select 1
+```
+
+Use `enable` and `disable` to control whether a config appears in enabled-only
+workflows:
+
+```bash
+xrat disable 7
+xrat enable 7
+```
+
 ## 3. Test Connectivity
 
 Test a single config by ID:
@@ -60,14 +74,20 @@ xrat test 1 --skip-icmp --skip-download
 
 ## 4. Start a Proxy
 
+Start the daemon first:
+
+```bash
+xrat daemon start
+```
+
 Connect using a tested config:
 
 ```bash
 xrat connect 1
 ```
 
-This starts the Xray (or V2Ray) process with a generated runtime config. By
-default, it exposes:
+The command sends a daemon IPC request. The daemon starts the Xray (or V2Ray)
+process with a generated runtime config. By default, it exposes:
 
 - **SOCKS5** on `0.0.0.0:1080`
 - **HTTP** on `0.0.0.0:8080` (if enabled in config.toml)
@@ -84,6 +104,15 @@ xrat status
 xrat disconnect
 ```
 
+## Interactive TUI
+
+For an interactive view over configs, sources, tests, runtime status, and
+diagnostics:
+
+```bash
+xrat tui
+```
+
 ## Using the Daemon
 
 For persistent operation with auto-rotation:
@@ -95,5 +124,8 @@ xrat proxy rotate
 xrat proxy status
 xrat daemon stop
 ```
+
+`xrat connect <id>` starts one managed runtime session immediately through the
+daemon. `xrat proxy start` enables daemon-driven auto-rotation.
 
 See [daemon](../02-cli/daemon.md) and [proxy](../02-cli/proxy.md) for details.

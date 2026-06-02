@@ -14,6 +14,9 @@ xrat daemon <action>
 | `status` | Show daemon IPC reachability and protocol information |
 | `stop`   | Request daemon shutdown via local IPC                 |
 
+The hidden internal `run-server` action is used by the daemon launcher and is
+not a user-facing command.
+
 ---
 
 ## daemon start
@@ -23,6 +26,10 @@ Start the long-lived daemon supervisor process.
 ```bash
 xrat daemon start
 ```
+
+### Flags
+
+No command-specific flags.
 
 ### Behavior
 
@@ -55,6 +62,10 @@ Show daemon IPC reachability and protocol information.
 xrat daemon status
 ```
 
+### Flags
+
+No command-specific flags.
+
 ### Output
 
 ```
@@ -76,6 +87,10 @@ Request daemon shutdown via local IPC.
 ```bash
 xrat daemon stop
 ```
+
+### Flags
+
+No command-specific flags.
 
 ### Behavior
 
@@ -104,6 +119,9 @@ The daemon uses JSON over Unix domain socket with protocol version 1.
 | `ProxyStatus`       | Get rotation status                 |
 | `ProxyStop`         | Disable auto-rotation               |
 
+Manual proxy rotation uses `RuntimeReplace` with a manual trigger and optional
+candidate config ID. There is no separate `ProxyRotate` IPC request type.
+
 ### Response Envelope
 
 ```json
@@ -119,5 +137,5 @@ The daemon uses JSON over Unix domain socket with protocol version 1.
 ## Related
 
 - [`proxy`](proxy.md) — control auto-rotation scheduling
-- [`connect`](runtime.md#connect) — start a proxy (via daemon IPC)
-- [`status`](runtime.md#status) — check proxy status (via daemon IPC)
+- [`connect`](runtime.md#connect) — start a proxy via daemon IPC
+- [`status`](runtime.md#status) — check proxy status via daemon IPC

@@ -79,17 +79,20 @@ Default: `~/.config/xrat/runtime/daemon.sock`
 
 ### Request Types
 
-| Type                | Description                   | Payload              |
-| ------------------- | ----------------------------- | -------------------- |
-| `DaemonPing`        | Check daemon reachability     | None                 |
-| `DaemonShutdown`    | Request graceful shutdown     | None                 |
-| `RuntimeStatus`     | Get proxy runtime status      | None                 |
-| `RuntimeConnect`    | Start a proxy session         | `{ config_id: i64 }` |
-| `RuntimeReplace`    | Atomic disconnect + connect   | `{ config_id: i64 }` |
-| `RuntimeDisconnect` | Stop the active proxy session | None                 |
-| `ProxyStart`        | Enable auto-rotation          | None                 |
-| `ProxyStatus`       | Get rotation status           | None                 |
-| `ProxyStop`         | Disable auto-rotation         | None                 |
+| Type                | Description                   | Payload                     |
+| ------------------- | ----------------------------- | --------------------------- |
+| `DaemonPing`        | Check daemon reachability     | None                        |
+| `DaemonShutdown`    | Request graceful shutdown     | None                        |
+| `RuntimeStatus`     | Get proxy runtime status      | None                        |
+| `RuntimeConnect`    | Start a proxy session         | `{ config_id: i64 }`        |
+| `RuntimeReplace`    | Atomic disconnect + connect   | `{ trigger, candidate_id }` |
+| `RuntimeDisconnect` | Stop the active proxy session | None                        |
+| `ProxyStart`        | Enable auto-rotation          | None                        |
+| `ProxyStatus`       | Get rotation status           | None                        |
+| `ProxyStop`         | Disable auto-rotation         | None                        |
+
+Manual `xrat proxy rotate` calls `RuntimeReplace` with `trigger = manual` and an
+optional `candidate_id`. There is no separate `ProxyRotate` request type.
 
 ### Response Codes
 
@@ -263,19 +266,15 @@ When the daemon is running, these commands route through IPC:
 | `xrat proxy rotate` | `RuntimeReplace`    |
 | `xrat proxy stop`   | `ProxyStop`         |
 
-### Direct Mode (No Daemon)
+### Daemon Required
 
-If the daemon is not running, CLI commands can operate in direct mode:
+Runtime and proxy commands require the daemon IPC path. If the daemon is not
+running, `xrat connect`, `xrat status`, `xrat disconnect`, and `xrat proxy ...`
+return a hint to start it:
 
-- `xrat connect` — spawns proxy directly (not via daemon)
-- `xrat status` — checks session in database
-- `xrat disconnect` — terminates process directly
-
-Direct mode is useful for:
-
-- Development and testing
-- Single-use scenarios
-- Systems where a daemon is not desired
+```bash
+xrat daemon start
+```
 
 ## Supervisor State
 

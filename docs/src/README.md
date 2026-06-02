@@ -6,7 +6,7 @@
 
 **xrat** is a command-line proxy configuration manager for **Xray-core** and
 **sing-box**. Import subscriptions, test latency, scan edge IPs, rotate proxies,
-and run a managed proxy runtime — all from a single Rust binary.
+and run a managed Xray/V2Ray proxy runtime — all from a single Rust binary.
 
 ## What you can do
 
@@ -15,10 +15,13 @@ and run a managed proxy runtime — all from a single Rust binary.
 - **Test** proxies with real-delay, TCP ping, ICMP, download/upload speed
   measurements
 - **Scan** Cloudflare edge IPs and persist working endpoints
-- **Run** Xray-core or sing-box as a managed runtime with automatic proxy
-  rotation
+- **Run** Xray-core or V2Ray as a managed runtime with automatic proxy rotation
 - **Control** everything through CLI, terminal UI (TUI), HTTP API, or background
   daemon
+
+sing-box support currently covers parsing and runtime-config preview, including
+Hysteria2 diagnostics through `xrat parse --engine sing-box`. Managed runtime
+process lifecycle is Xray/V2Ray-focused.
 
 ## Sections
 
