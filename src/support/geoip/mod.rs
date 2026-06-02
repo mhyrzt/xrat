@@ -1,6 +1,10 @@
 mod backend;
+mod cache;
+mod chain;
 mod classify;
 mod local;
+mod rate_limit;
+mod remote_ip_api;
 mod remote_ipwhois;
 
 use std::net::IpAddr;
@@ -8,8 +12,12 @@ use std::net::IpAddr;
 use std::fmt::Debug;
 
 pub use backend::build_lookup_chain;
+pub use cache::CachedLookup;
+pub use chain::ChainedLookup;
 pub use classify::classify_endpoint_location;
 pub use local::{LocalMmdbLookup, lookup_asn_label, lookup_city_label, lookup_country_iso};
+pub use rate_limit::RateLimitedLookup;
+pub use remote_ip_api::RemoteIpApiLookup;
 pub use remote_ipwhois::RemoteIpWhoisLookup;
 
 #[derive(Debug, thiserror::Error)]
