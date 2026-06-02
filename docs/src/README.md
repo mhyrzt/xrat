@@ -2,7 +2,7 @@
   <img src="media/xrat-hero.png" alt="xrat — proxy manager for Xray-core and sing-box" width="800">
 </p>
 
-# 🐀 xrat
+# xrat 🐀
 
 **xrat** is a command-line proxy configuration manager for **Xray-core** and **sing-box**. Import subscriptions, test latency, scan edge IPs, rotate proxies, and run a managed proxy runtime — all from a single Rust binary.
 

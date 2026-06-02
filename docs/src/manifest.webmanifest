@@ -1,0 +1,23 @@
+{
+    "name": "xrat 🐀",
+    "short_name": "xrat",
+    "description": "A modern proxy configuration manager for Xray-core and sing-box",
+    "start_url": "/xrat/",
+    "scope": "/xrat/",
+    "display": "standalone",
+    "background_color": "#1a1a1a",
+    "theme_color": "#d4a017",
+    "icons": [
+        {
+            "src": "media/xrat-icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ]
+}

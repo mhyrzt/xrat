@@ -19,7 +19,7 @@
         <meta name="theme-color" content="#1a1a1a">
         <meta name="color-scheme" content="dark light">
 
-        <title>{{#if (eq chapter_title "Home")}}🐀 xrat — Proxy Manager for Xray-core & sing-box{{else}}{{chapter_title}} · 🐀 xrat{{/if}}</title>
+        <title>{{#if (eq chapter_title "Home")}}xrat 🐀 — Proxy Manager for Xray-core & sing-box{{else}}{{chapter_title}} · xrat 🐀{{/if}}</title>
         <link rel="canonical" href="https://mhyrzt.github.io/xrat/{{ path }}">
 
         <!-- Additional SEO meta -->
@@ -29,35 +29,37 @@
 
         <!-- Open Graph (Facebook, Discord, LinkedIn, Slack, ...) -->
         <meta property="og:type" content="website">
-        <meta property="og:site_name" content="🐀 xrat">
-        <meta property="og:title" content="🐀 xrat — Proxy Manager for Xray-core & sing-box">
+        <meta property="og:site_name" content="xrat 🐀">
+        <meta property="og:title" content="xrat 🐀 — Proxy Manager for Xray-core & sing-box">
         <meta property="og:description" content="{{ description }}">
         <meta property="og:url" content="https://mhyrzt.github.io/xrat/{{ path }}">
         <meta property="og:image" content="https://mhyrzt.github.io/xrat/media/xrat-hero.png">
         <meta property="og:image:width" content="2172">
         <meta property="og:image:height" content="724">
-        <meta property="og:image:alt" content="🐀 xrat — Proxy Manager for Xray-core and sing-box">
+        <meta property="og:image:alt" content="xrat 🐀 — Proxy Manager for Xray-core and sing-box">
         <meta property="og:locale" content="en">
 
         <!-- Twitter / X -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="🐀 xrat — Proxy Manager for Xray-core & sing-box">
+        <meta name="twitter:title" content="xrat 🐀 — Proxy Manager for Xray-core & sing-box">
         <meta name="twitter:description" content="{{ description }}">
         <meta name="twitter:image" content="https://mhyrzt.github.io/xrat/media/xrat-hero.png">
-        <meta name="twitter:image:alt" content="🐀 xrat — Proxy Manager for Xray-core and sing-box">
+        <meta name="twitter:image:alt" content="xrat 🐀 — Proxy Manager for Xray-core and sing-box">
         <meta name="twitter:url" content="https://mhyrzt.github.io/xrat/{{ path }}">
 
         <!-- Icons & PWA -->
-        <link rel="icon" type="image/png" sizes="512x512" href="{{ resource "xrat-logo.png" }}">
-        <link rel="shortcut icon" href="{{ resource "xrat-logo.png" }}">
-        <link rel="apple-touch-icon" sizes="180x180" href="{{ resource "xrat-logo.png" }}">
-        <link rel="manifest" href="{{ resource "manifest.webmanifest" }}">
+        <link rel="icon" type="image/x-icon" href="{{ path_to_root }}favicon.ico">
+        <link rel="icon" type="image/png" sizes="64x64" href="{{ path_to_root }}favicon-64.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ path_to_root }}favicon-32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ path_to_root }}favicon-16.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ path_to_root }}apple-touch-icon.png">
+        <link rel="manifest" href="{{ path_to_root }}manifest.webmanifest">
         <meta name="application-name" content="xrat">
         <meta name="apple-mobile-web-app-title" content="xrat">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="msapplication-TileColor" content="#1a1a1a">
-        <meta name="msapplication-TileImage" content="{{ resource "xrat-logo.png" }}">
+        <meta name="msapplication-TileImage" content="{{ path_to_root }}media/xrat-icon-512.png">
         <link rel="stylesheet" href="{{ resource "css/variables.css" }}">
         <link rel="stylesheet" href="{{ resource "css/general.css" }}">
         <link rel="stylesheet" href="{{ resource "css/chrome.css" }}">
@@ -159,6 +161,11 @@
         </script>
 
         <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-logo">
+                <a href="{{ path_to_root }}">
+                    <img src="{{ path_to_root }}media/xrat-icon-512.png" alt="xrat">
+                </a>
+            </div>
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
@@ -198,7 +205,6 @@
                     </div>
 
                     <div class="menu-title">
-                        <img src="{{ resource "xrat-logo.png" }}" alt="" class="menu-logo">
                         <span>{{ book_title }}</span>
                     </div>
 
