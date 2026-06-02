@@ -4,10 +4,10 @@
 
 ### Runtime dependencies
 
-| Tool      | Required | Purpose                                   | Install                                                                 |
-| --------- | -------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| `xray`    | Yes      | Xray engine, real-delay tests             | [XTLS/Xray-install](https://github.com/XTLS/Xray-install)              |
-| `sing-box` | No      | sing-box config parsing and runtime       | [sing-box.app](https://sing-box.app/install.sh)                         |
+| Tool       | Required | Purpose                             | Install                                                   |
+| ---------- | -------- | ----------------------------------- | --------------------------------------------------------- |
+| `xray`     | Yes      | Xray engine, real-delay tests       | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
+| `sing-box` | No       | sing-box config parsing and runtime | [sing-box.app](https://sing-box.app/install.sh)           |
 
 Install xray:
 
@@ -23,13 +23,13 @@ curl -fsSL https://sing-box.app/install.sh | sh
 
 ### System requirements
 
-| Requirement | Details                                           |
-| ----------- | ------------------------------------------------- |
+| Requirement | Details                                          |
+| ----------- | ------------------------------------------------ |
 | OS          | Linux x86_64 or aarch64                          |
 | libc        | None — binaries are statically linked (musl)     |
 | SQLite      | Bundled — no system SQLite needed                |
 | PostgreSQL  | Optional — version 14+ if used instead of SQLite |
-| Network     | Outbound HTTPS for imports                        |
+| Network     | Outbound HTTPS for imports                       |
 
 ---
 
@@ -62,9 +62,9 @@ INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/mhyrzt/x
 1. Go to [Releases](https://github.com/mhyrzt/xrat/releases/latest) and download
    the archive for your architecture:
 
-   | File                                       | Architecture      |
-   | ------------------------------------------ | ----------------- |
-   | `xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz`  | x86_64 (most PCs) |
+   | File                                            | Architecture             |
+   | ----------------------------------------------- | ------------------------ |
+   | `xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz`  | x86_64 (most PCs)        |
    | `xrat-vX.Y.Z-aarch64-unknown-linux-musl.tar.gz` | ARM64 (Pi 4/5, Graviton) |
 
 2. Verify the checksum:
@@ -132,7 +132,8 @@ cd xrat
 cargo install --path . --locked
 ```
 
-The binary is installed to `~/.cargo/bin/xrat`. Ensure `~/.cargo/bin` is in your `PATH` (rustup does this automatically).
+The binary is installed to `~/.cargo/bin/xrat`. Ensure `~/.cargo/bin` is in your
+`PATH` (rustup does this automatically).
 
 To build a release binary manually:
 

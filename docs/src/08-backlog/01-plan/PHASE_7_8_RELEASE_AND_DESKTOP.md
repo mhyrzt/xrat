@@ -11,9 +11,9 @@ Target platform: **Linux** (primary). Windows binary builds are produced by CI
 but have limited testing and no platform-specific integration.
 
 > **Completed:** `xrat daemon install/uninstall`, `xrat init`, `xrat manpage`,
-> `xrat completions`, CI/release workflows, `install.sh`, and
-> `installation.md` are fully implemented. `--version` flag wired up.
-> Remaining work starts at section 2 below.
+> `xrat completions`, CI/release workflows, `install.sh`, and `installation.md`
+> are fully implemented. `--version` flag wired up. Remaining work starts at
+> section 2 below.
 
 ---
 

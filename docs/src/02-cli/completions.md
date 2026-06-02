@@ -11,9 +11,9 @@ release packaging.
 
 ## Arguments
 
-| Argument  | Description                                          | Values                              |
-| --------- | ---------------------------------------------------- | ----------------------------------- |
-| `<shell>` | Shell to generate completions for (required)         | `bash`, `zsh`, `fish`, `powershell` |
+| Argument  | Description                                  | Values                              |
+| --------- | -------------------------------------------- | ----------------------------------- |
+| `<shell>` | Shell to generate completions for (required) | `bash`, `zsh`, `fish`, `powershell` |
 
 ## Per-shell installation
 
@@ -64,11 +64,11 @@ Add the dot-source line to your `$PROFILE` for persistence.
 Pre-generated completion scripts are included in release archives under
 `completions/`:
 
-| File                   | Shell       |
-| ---------------------- | ----------- |
-| `completions/xrat.bash` | Bash        |
-| `completions/_xrat`    | Zsh         |
-| `completions/xrat.fish` | Fish        |
+| File                    | Shell |
+| ----------------------- | ----- |
+| `completions/xrat.bash` | Bash  |
+| `completions/_xrat`     | Zsh   |
+| `completions/xrat.fish` | Fish  |
 
 CI generates these during the release workflow using `xrat completions <shell>`.
 
