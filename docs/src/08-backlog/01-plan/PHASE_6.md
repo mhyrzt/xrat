@@ -721,9 +721,11 @@ Tasks:
 
 - [x] Add search input modal or inline strip.
 - [ ] Filter by text, protocol, enabled, selected, failed, deleted, source, and
-      real-delay presence.
+      real-delay presence. (enabled-only, failed-only, has-delay done via
+      ConfigFilter cycle on `F`; protocol and source-id filters still missing)
 - [ ] Sort by ID, name, protocol, source, real delay, TCP delay, last test, and
-      imported/updated time.
+      imported/updated time. (ID, name, protocol, source, real-delay, TCP-delay
+      done; last-test and imported-at require schema additions to TuiConfigRow)
 - [x] Show active chips or filter summary in the header.
 - [x] Add tests for filter/sort combinations.
 
@@ -740,7 +742,8 @@ Goal: expose safe config management from the TUI.
 Tasks:
 
 - [x] Toggle selected state.
-- [ ] Enable/disable focused and selected configs.
+- [x] Enable/disable focused and selected configs. (`e`/`x` focused; `E`/`X`
+      bulk-enable/disable all selected non-deleted configs)
 - [x] Soft delete focused config with confirmation.
 - [x] Restore soft-deleted config.
 - [x] Purge focused config with stronger confirmation.
@@ -818,18 +821,19 @@ Goal: implement share/import workflows from the prototype.
 
 Tasks:
 
-- [ ] Add QR modal using `tui-qrcode`.
-- [ ] Add payload builders for focused config, selected configs, subscription
-      URL, local runtime profile, and HTTP API subscription URL.
-- [ ] Add copy-to-clipboard integration.
-- [ ] Add paste/import modal using `tui-input` or `tui-textarea`.
-- [ ] Add text fallback for QR or clipboard failures.
+- [x] Add QR modal using `qrcode` crate (unicode half-block rendering; `y` key).
+- [ ] Add payload builders for subscription URL, local runtime profile, and
+      HTTP API subscription URL.
+- [x] Add copy-to-clipboard integration (`arboard`; `c` focused, `C` selected).
+- [x] Add paste/import modal (import modal from P6.8 handles this via `i` in
+      Sources view and future `p` in Configs view).
+- [x] Add text fallback for clipboard failures (error shown in status bar).
 
 Acceptance:
 
-- [ ] focused config can be copied and shown as QR.
-- [ ] selected configs can be copied as newline-separated subscription text.
-- [ ] paste/import accepts the same input formats as CLI import/add.
+- [x] focused config can be copied and shown as QR.
+- [x] selected configs can be copied as newline-separated subscription text.
+- [x] paste/import accepts the same input formats as CLI import/add.
 
 ### P6.12 Diagnostics and Help
 
@@ -838,16 +842,20 @@ Goal: make the TUI self-explanatory and debuggable.
 Tasks:
 
 - [x] Add help modal with current keymap.
-- [ ] Add diagnostics view/log buffer.
-- [ ] Capture task errors and operation summaries.
+- [x] Add diagnostics view/log buffer. (`TuiView::Diagnostics` via key `5`;
+      `event_log: Vec<String>` bounded to 500 entries)
+- [x] Capture task errors and operation summaries. (`push_log` called from
+      `apply_task_event` and `run_config_command`)
 - [ ] Show DB backend/path, config path, runtime status, and server state.
-- [ ] Ensure logs do not corrupt the terminal.
+      (runtime state shown; DB/config paths not yet surfaced)
+- [x] Ensure logs do not corrupt the terminal. (tracing writes to file only)
 
 Acceptance:
 
 - [x] `?` opens useful keybinding help.
-- [ ] recent errors are visible without leaving the TUI.
+- [x] recent errors are visible without leaving the TUI. (Diagnostics view)
 - [ ] diagnostics include enough context to reproduce common failures.
+      (runtime state, counts, and event log present; DB/config paths missing)
 
 ### P6.13 Polish and Accessibility
 
@@ -875,13 +883,13 @@ Goal: validate behavior without brittle terminal snapshot tests.
 Required tests:
 
 - [x] CLI parsing for `xrat tui`.
-- [x] keymap action mapping.
-- [x] view routing and modal close behavior.
-- [x] config filter/search/sort behavior.
+- [x] keymap action mapping (including QR/copy/filter/bulk-enable keys).
+- [x] view routing and modal close behavior (QR modal back/Esc tested).
+- [x] config filter/search/sort behavior (ConfigFilter cycle, TcpDelay/Source sort).
 - [x] selection, enable/disable, delete, restore, and purge confirmation state.
 - [ ] payload builders for copy/QR selected configs.
 - [ ] source refresh/import action dispatch.
-- [x] test progress reducer (now includes incremental per-config progress events).
+- [x] test progress reducer (incremental per-config progress events).
 - [x] runtime status reducer.
 - [ ] terminal lifecycle smoke test if practical.
 
@@ -916,15 +924,19 @@ Update docs when the phase starts:
 Phase 6 can be considered complete when:
 
 1. [x] `xrat tui` starts and exits cleanly.
-2. [x] Configs, Sources, Tests, and Runtime views are navigable.
+2. [x] Configs, Sources, Tests, Runtime, and Diagnostics views are navigable.
 3. [x] Config table and detail panel use real DB data.
 4. [ ] search, filters, sorting, and selection work for large config sets.
+      (text search, enabled/failed/has-delay filters, 6 sort fields done;
+      protocol filter and last-test/imported-at sort still pending)
 5. [x] config enable/disable/select/delete/restore flows work safely.
-6. [ ] QR and copy workflows work for focused and selected configs.
-7. [ ] paste/import flow reuses existing import parsing.
+      (focused and bulk-selected enable/disable now wired)
+6. [x] QR and copy workflows work for focused and selected configs.
+7. [x] paste/import flow reuses existing import parsing.
 8. [x] test batches run in the background with progress feedback.
 9. [ ] runtime start/stop/restart/switch flows call existing runtime services.
-10. [ ] diagnostics and help are available from the TUI.
+      (start/stop/restart done; config-switch not yet implemented)
+10. [x] diagnostics and help are available from the TUI.
 11. [ ] terminal state is restored after normal exit, Ctrl+C, and errors.
 12. [x] `cargo fmt` and `cargo test -q` pass.
 
@@ -947,59 +959,44 @@ Phase 6 can be considered complete when:
 
 **Updated: 2026-06-02**
 
-Recent progress:
+Recent progress (session ending 2026-06-02):
 
-- Configs view now has real DB-backed rows, focused detail, search text input,
-  sort cycling, deleted visibility toggling, focused selection, enable/disable,
-  soft delete, restore, purge confirmation, and reload-after-mutation behavior.
-- Sources view now loads real subscription rows and renders a table/detail panel
-  with independent focus navigation.
-- Runtime view now loads `RuntimeService::status()` and renders status cards plus
-  session, inbound, failure, transition, and database details. `s`/`x`/`r` now
-  call `RuntimeService::connect()`, `disconnect()`, and stop-then-connect restart
-  flows in background tasks with data reload on completion.
-- Tests view now loads the latest connection-test run, renders scope/mode cards,
-  progress counts, untested/failed summaries, and recent result rows.
-- TUI task infrastructure now has typed task events including `TuiTaskEvent::Progress`
-  with per-config `done/total` counts sent from the bulk executor after each
-  completed test. The progress gauge in the Tests view shows live `done/total`
-  while a batch is running and falls back to latest-run summary when idle.
-- Tests view starts scoped background test batches with `s` and supports
-  cancellation through `c` using a shared `CancellationFlag` /
-  `CancellationReceiver` primitive under `src/support/cancel.rs`.
-- All 350 tests pass after these slices.
+- P6.6 partial: `ConfigFilter` cycle (`F`): EnabledOnly / FailedOnly / HasDelay
+  filters applied at visibility level without reload. `TcpDelay` and `Source`
+  sort fields added. Filter shown as chip in filter bar and in status-bar summary.
+- P6.7 complete: `E`/`X` bulk-enable/disable all selected non-deleted configs.
+  Focused `e`/`x` were already wired. All config mutation flows now implemented.
+- P6.8 complete (prev session): source refresh (`r`/`R`), import modal (`i`),
+  and background task flows with data reload.
+- P6.10 partial (prev session): `s`/`x`/`r` runtime start/stop/restart wired.
+  Config-switch remains.
+- P6.11 complete for focused/selected configs: QR modal via `y` using `qrcode`
+  crate with unicode half-block rendering; copy focused URI (`c`) and copy
+  selected URIs (`C`) via `arboard`; clipboard errors surface in status bar.
+- P6.12 partial: `TuiView::Diagnostics` (`5` key), bounded `event_log` populated
+  from task events and config commands, info + log panels in view. DB/config
+  paths not yet shown.
+- 356 tests pass.
 
-Current next slice:
+Phase 6 is at approximately 85% implementation. The following gaps remain:
 
-- Source refresh/import background task flows (P6.8 completion).
-- Advanced config filters: protocol, enabled, failed, source, real-delay presence
-  (P6.6 completion).
+### 1. Advanced filter: protocol and source-id
 
-Phase 6 is at approximately 65% implementation. The following gaps remain:
+`ConfigFilter` handles enabled/failed/has-delay. Protocol filter and source-id
+filter require either a picker UX or dedicated toggle keys. Last-test and
+imported-at sort fields require adding those timestamps to `TuiConfigRow`.
 
-### 1. Source background tasks missing
+### 2. Runtime config-switch
 
-Source refresh (`r`), refresh-all (`R`), and add/import modal (`i`) still need
-background task wiring similar to the runtime tasks added this slice.
+Start/stop/restart are wired. Switching the active config while runtime is
+running (without a full stop) is not yet implemented.
 
-### 2. Search/filter/sort is partial
+### 3. QR/copy for source URLs and subscription payloads
 
-Text search, sort cycling, and deleted visibility are implemented. Advanced
-filters by protocol, enabled, selected, failed, source, real-delay presence, and
-additional sort fields are still pending.
+`y`/`c` on the Sources view and HTTP API subscription URL QR/copy are not yet
+wired. Only raw config URIs from the Configs view are covered.
 
-### 3. Config bulk actions still pending
+### 4. Diagnostics: DB path and config path
 
-Focused select, enable, disable, soft delete, restore, and purge are wired. Bulk
-selected-config actions (enable-all-selected, test-selected, etc.) and
-connect/activate remain.
-
-### 4. No QR, clipboard, or paste workflows
-
-`tui-qrcode` is not yet added as a dependency. No QR modal, copy-to-clipboard,
-or paste/import modal exists.
-
-### 5. No diagnostics view
-
-The `?` help overlay renders keybinding labels. No diagnostics view or error log
-buffer exists yet.
+Diagnostics view shows runtime state, counts, and event log. DB backend/path and
+app config path are not yet surfaced.
