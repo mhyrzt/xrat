@@ -18,6 +18,7 @@
   - [geoip](02-cli/geoip.md)
   - [serve](02-cli/serve.md)
   - [tui](02-cli/tui.md)
+  - [manpage](02-cli/manpage.md)
 - [Features](03-features/README.md)
   - [Importing](03-features/importing.md)
   - [Testing](03-features/testing.md)

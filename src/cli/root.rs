@@ -7,6 +7,7 @@ use crate::cli::Command;
 #[derive(Debug, Parser)]
 #[command(
     name = "xrat",
+    version,
     about = "XRAT -- proxy config manager and connection tester.",
     long_about = "XRAT imports, parses, tests, and manages proxy configs\n\
         (vless, vmess, ss, trojan, hysteria2) with a SQLite backend\n\

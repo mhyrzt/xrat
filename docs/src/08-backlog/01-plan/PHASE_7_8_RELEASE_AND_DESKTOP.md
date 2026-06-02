@@ -10,8 +10,9 @@ implementation targets grounded in the current codebase.
 Target platform: **Linux** (primary). Windows binary builds are produced by CI
 but have limited testing and no platform-specific integration.
 
-> **Completed:** `xrat daemon install/uninstall` (section 1) and `xrat init`
-> (section 2) are fully implemented. Remaining work starts at section 1 below.
+> **Completed:** `xrat daemon install/uninstall`, `xrat init`, and
+> `xrat manpage` are fully implemented. `--version` flag wired up. Remaining
+> work starts at section 1 below.
 
 ---
 
@@ -186,67 +187,7 @@ and includes them in the release tarball.
 
 ---
 
-## 3. Man Page
-
-### Current State
-
-No man page exists. Clap provides `clap_mangen` for generating `roff` man pages
-from the command tree.
-
-### Implementation
-
-Add `clap_mangen` to `Cargo.toml`:
-
-```toml
-clap_mangen = "0.2"
-```
-
-Add a hidden `manpage` command:
-
-```rust
-Manpage(ManpageArgs),
-```
-
-```rust
-#[derive(Args)]
-struct ManpageArgs {
-    /// Output directory for generated man pages
-    #[arg(long, default_value = ".")]
-    output: PathBuf,
-}
-```
-
-The handler generates `xrat(1)` using `clap_mangen::Man::new()` and writes to
-the output directory. Subcommand man pages (`xrat-import(1)`, `xrat-test(1)`,
-etc.) are generated as separate files.
-
-### Content
-
-The generated man page includes:
-
-- **NAME**: xrat — proxy/VPN configuration manager and runtime
-- **SYNOPSIS**: top-level usage with global flags
-- **DESCRIPTION**: brief overview of xrat's purpose
-- **COMMANDS**: list of all commands with one-line descriptions
-- **GLOBAL FLAGS**: `--verbose`, `--quiet`, `--config`, `--database`, `--xray`,
-  `--v2ray`, `--sing-box`
-- **CONFIGURATION**: path resolution order (`XRAT_PATH` → `~/.config/xrat/`),
-  config.toml reference link
-- **STATE PATHS**: default directories and override mechanisms
-- **ENVIRONMENT**: `XRAT_PATH`, `XRAT_API_KEY`, `RUST_LOG`
-- **SEE ALSO**: link to full documentation at `https://mhyrzt.github.io/xrat/`
-
-### Definition of Done
-
-- `man xrat` works after installing the generated man page.
-- `xrat manpage --output /tmp/man/` generates `xrat.1` and subcommand pages.
-- CI generates man pages during release and includes them in release tarballs.
-- Detailed feature documentation stays in mdBook; the man page is a concise
-  installed reference.
-
----
-
-## 4. Release Workflow Improvements
+## 3. Release Workflow Improvements
 
 ### Current State
 
@@ -338,7 +279,7 @@ Each package should:
 
 ---
 
-## 5. Desktop Entry (Linux)
+## 4. Desktop Entry (Linux)
 
 ### Current State
 
@@ -398,7 +339,7 @@ After installation, run (non-fatal if missing):
 
 ---
 
-## 6. `xrat integrate` Command
+## 5. `xrat integrate` Command
 
 ### CLI Changes
 
@@ -455,7 +396,7 @@ Add `src/app/commands/integrate.rs`:
 
 ---
 
-## 7. Documentation Updates
+## 6. Documentation Updates
 
 ### Pages to Create
 
@@ -484,7 +425,7 @@ Document in installation or tray docs:
 
 ---
 
-## 8. System Notifications (Optional)
+## 7. System Notifications (Optional)
 
 ### Dependency
 
@@ -528,7 +469,7 @@ Rate limiting:
 
 ---
 
-## 9. Tray Icon (Lowest Priority)
+## 8. Tray Icon (Lowest Priority)
 
 > This section is intentionally last. All other deliverables in this phase
 > (documentation, shell completion, man pages, release workflow, desktop entry,
@@ -732,11 +673,11 @@ The Cargo crate links against whichever is found via `pkg-config`.
 3. Update quickstart to begin with `xrat init`.
 4. Update `docs/src/04-deployment/systemd.md`.
 
-### Slice B: Shell Completion and Man Page
+### Slice B: Shell Completion
 
-1. Add `clap_complete` and `clap_mangen` to `Cargo.toml`.
-2. Add hidden `completions` and `manpage` commands.
-3. Implement generation handlers.
+1. Add `clap_complete` to `Cargo.toml`.
+2. Add hidden `completions` command.
+3. Implement completions handler writing to stdout.
 4. Add CLI parser tests.
 
 ### Slice C: Release Workflow
@@ -757,7 +698,7 @@ The Cargo crate links against whichever is found via `pkg-config`.
 
 ### Slice E: Documentation
 
-1. Create/update all documentation pages listed in Section 7.
+1. Create/update all documentation pages listed in Section 6.
 2. Verify mdBook build passes.
 
 ### Slice F: Notifications (Optional)

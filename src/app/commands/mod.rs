@@ -8,6 +8,7 @@ mod import;
 mod init;
 mod lifecycle;
 mod list;
+mod manpage;
 mod parse;
 mod proxy;
 mod scan;
@@ -42,5 +43,6 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Tui(args) => tui::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
         Command::GeoIp(args) => geoip::run(context, args).await,
+        Command::Manpage(args) => manpage::run(context, args),
     }
 }

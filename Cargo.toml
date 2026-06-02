@@ -16,6 +16,7 @@ async-trait = "0.1.89"
 axum = "0.8.9"
 base64 = "0.22.1"
 clap = { version = "4.6.1", features = ["derive"] }
+clap_mangen = "0.2"
 crossterm = "0.29.0"
 indicatif = "0.18.4"
 ratatui = "0.30.0"

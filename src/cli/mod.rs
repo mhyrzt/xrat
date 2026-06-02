@@ -8,6 +8,7 @@ mod import;
 mod init;
 mod lifecycle;
 mod list;
+mod manpage;
 mod parse;
 mod proxy;
 mod root;
@@ -34,6 +35,7 @@ pub use import::ImportArgs;
 pub use init::InitArgs;
 pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
+pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
     ProxyAction, ProxyArgs, ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
