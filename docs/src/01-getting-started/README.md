@@ -7,28 +7,20 @@ local proxy runtime process, and exposes an HTTP API.
 
 ## Prerequisites
 
-- **Rust toolchain** (for building from source): `rustup` or Rust 1.85+
-- **Xray-core** or **V2Ray** binary installed and available in `PATH`
-- **sing-box** binary (optional, required for Hysteria2 support)
+- **Xray-core** binary installed and available in `PATH`
+- **sing-box** binary (optional, used for sing-box config support)
+- **Rust toolchain** and **just** when building from source
 
 ## Installation
 
-### Building from Source
+Choose one install path:
 
-```bash
-git clone <repository-url>
-cd xrat
-cargo build --release
-```
-
-The compiled binary will be at `target/release/xrat`.
-
-### Development Build
-
-```bash
-cargo build
-cargo run -- <command>
-```
+- [Installation Script](installation.md) — recommended Linux install from the
+  latest verified release archive
+- [Manual Binary Install](manual-binary-install.md) — download, verify, and
+  place release files yourself
+- [Build From Source](source-install.md) — Justfile-oriented workflow for local
+  development builds and source installs
 
 ## Configuration Directory
 
@@ -51,4 +43,5 @@ The directory layout:
 ## Next Steps
 
 - [Quickstart](quickstart.md) — import, test, and connect in 3 commands
+- [Installation Script](installation.md) — recommended install path
 - [Configuration](configuration.md) — config.toml reference

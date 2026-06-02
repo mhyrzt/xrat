@@ -2,7 +2,9 @@
 
 - [Home](README.md)
 - [Getting Started](01-getting-started/README.md)
-  - [Installation](01-getting-started/installation.md)
+  - [Installation Script](01-getting-started/installation.md)
+  - [Manual Binary Install](01-getting-started/manual-binary-install.md)
+  - [Build From Source](01-getting-started/source-install.md)
   - [Quickstart](01-getting-started/quickstart.md)
   - [Configuration](01-getting-started/configuration.md)
 - [CLI Reference](02-cli/README.md)

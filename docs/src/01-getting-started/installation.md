@@ -1,4 +1,11 @@
-# Installation
+# Installation Script
+
+Use the installer script for a normal Linux install. It downloads the matching
+release archive, verifies the checksum, installs `xrat`, and can run first-time
+setup for you.
+
+For other install paths, see [Manual Binary Install](manual-binary-install.md)
+or [Build From Source](source-install.md).
 
 ## Requirements
 
@@ -23,20 +30,15 @@ curl -fsSL https://sing-box.app/install.sh | sh
 
 ### System requirements
 
-| Requirement | Details                                          |
-| ----------- | ------------------------------------------------ |
-| OS          | Linux x86_64 or aarch64                          |
-| libc        | None — binaries are statically linked (musl)     |
-| SQLite      | Bundled — no system SQLite needed                |
-| PostgreSQL  | Optional — version 14+ if used instead of SQLite |
-| Network     | Outbound HTTPS for imports                       |
+| Requirement | Details                                           |
+| ----------- | ------------------------------------------------- |
+| OS          | Linux x86_64 or aarch64                           |
+| libc        | None -- release binaries are statically linked    |
+| SQLite      | Bundled -- no system SQLite needed                |
+| PostgreSQL  | Optional -- version 14+ if used instead of SQLite |
+| Network     | Outbound HTTPS for imports and release downloads  |
 
----
-
-## Option 1 — Installer script (recommended)
-
-Downloads the correct release binary for your architecture, verifies the
-checksum, installs to `~/.local/bin/`, and optionally runs first-time setup.
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
@@ -44,125 +46,52 @@ curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bas
 
 The installer will:
 
-1. Check for `xray` (required) and `sing-box` (optional).
-2. Download and verify the latest release binary.
-3. Install to `~/.local/bin/xrat` (override with `INSTALL_DIR=/usr/local/bin`).
-4. Offer to run `xrat init` and set up the systemd daemon.
+1. Check for `xray` and warn if optional `sing-box` is missing.
+2. Detect `x86_64` or `aarch64`.
+3. Download the latest GitHub release archive.
+4. Verify the archive against `SHASUMS256.txt`.
+5. Install `xrat` to `~/.local/bin/xrat`.
+6. Offer to run `xrat init`.
+7. Offer to install and start the systemd user daemon.
 
-To install to a custom directory:
+To install to a different directory:
 
 ```bash
 INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
----
-
-## Option 2 — Manual binary download
-
-1. Go to [Releases](https://github.com/mhyrzt/xrat/releases/latest) and download
-   the archive for your architecture:
-
-   | File                                            | Architecture             |
-   | ----------------------------------------------- | ------------------------ |
-   | `xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz`  | x86_64 (most PCs)        |
-   | `xrat-vX.Y.Z-aarch64-unknown-linux-musl.tar.gz` | ARM64 (Pi 4/5, Graviton) |
-
-2. Verify the checksum:
-
-   ```bash
-   sha256sum -c SHASUMS256.txt --ignore-missing
-   ```
-
-3. Extract and install:
-
-   ```bash
-   tar -xzf xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz
-   mkdir -p ~/.local/bin
-   mv xrat ~/.local/bin/xrat
-   chmod +x ~/.local/bin/xrat
-   ```
-
-4. Ensure `~/.local/bin` is in your `PATH`:
-
-   ```bash
-   export PATH="$HOME/.local/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc
-   ```
-
-### Shell completions (included in archive)
+Make sure the install directory is in `PATH`:
 
 ```bash
-# Bash
-cp completions/xrat.bash ~/.local/share/bash-completion/completions/xrat
-
-# Zsh
-cp completions/_xrat ~/.zfunc/_xrat
-
-# Fish
-cp completions/xrat.fish ~/.config/fish/completions/xrat.fish
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
-### Man pages (included in archive)
+Add that line to `~/.bashrc`, `~/.zshrc`, or your shell's equivalent startup
+file if needed.
 
-```bash
-mkdir -p ~/.local/share/man/man1
-cp man/man1/*.1 ~/.local/share/man/man1/
-mandb ~/.local/share/man
-```
+## First-Time Setup
 
-### Desktop entry (included in archive)
-
-```bash
-cp desktop/xrat.desktop ~/.local/share/applications/
-mkdir -p ~/.local/share/icons/hicolor/48x48/apps
-mkdir -p ~/.local/share/icons/hicolor/256x256/apps
-cp desktop/icons/xrat-48x48.png ~/.local/share/icons/hicolor/48x48/apps/xrat.png
-cp desktop/icons/xrat-256x256.png ~/.local/share/icons/hicolor/256x256/apps/xrat.png
-update-desktop-database ~/.local/share/applications/
-```
-
----
-
-## Option 3 — Build from source
-
-Requirements: Rust toolchain via [rustup](https://rustup.rs).
-
-```bash
-git clone https://github.com/mhyrzt/xrat.git
-cd xrat
-cargo install --path . --locked
-```
-
-The binary is installed to `~/.cargo/bin/xrat`. Ensure `~/.cargo/bin` is in your
-`PATH` (rustup does this automatically).
-
-To build a release binary manually:
-
-```bash
-cargo build --release --locked
-# binary at target/release/xrat
-```
-
----
-
-## First-time setup
-
-After installation, initialize xrat's config directory and database:
+If you skipped the installer's setup prompts, initialize xrat manually:
 
 ```bash
 xrat init
 ```
 
+To install the daemon later:
+
+```bash
+xrat daemon install --start
+```
+
 Then follow the [Quickstart](quickstart.md) to import configs and connect.
 
----
-
-## State paths
+## State Paths
 
 | Path                             | Purpose                      | Override            |
 | -------------------------------- | ---------------------------- | ------------------- |
 | `$HOME/.config/xrat/`            | App root                     | `XRAT_PATH` env var |
 | `$HOME/.config/xrat/config.toml` | Configuration                | `--config` flag     |
 | `$HOME/.config/xrat/db.sqlite`   | SQLite database              | `--database` flag   |
-| `$HOME/.config/xrat/runtime/`    | Daemon socket, session state | —                   |
+| `$HOME/.config/xrat/runtime/`    | Daemon socket, session state | -                   |
 | `$HOME/.config/xrat/logs/`       | Runtime logs                 | `[runtime.log].dir` |
 | `$HOME/.config/xrat/mmdb/`       | GeoIP data                   | `[mmdb].dir`        |
