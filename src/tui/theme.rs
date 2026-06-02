@@ -19,3 +19,7 @@ pub fn success_style() -> Style {
 pub fn failure_style() -> Style {
     Style::default().fg(Color::Rgb(229, 96, 84))
 }
+
+pub fn warning_style() -> Style {
+    Style::default().fg(Color::Rgb(204, 170, 80))
+}

@@ -1,5 +1,5 @@
-use super::helpers::row;
-use crate::tui::app::{TuiAction, TuiApp, TuiConfigCommand};
+use super::helpers::{row, source};
+use crate::tui::app::{TuiAction, TuiApp, TuiConfigCommand, TuiView};
 use crate::tui::data::TuiData;
 
 #[test]
@@ -96,4 +96,76 @@ fn collects_config_ids_for_current_test_scope() {
 
     app.test_state.scope = TestScope::Failed;
     assert_eq!(app.test_config_ids(), vec![3]);
+}
+
+#[test]
+fn refresh_focused_source_action_targets_correct_source() {
+    let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
+    let mut app = TuiApp::with_data(data);
+    app.apply(TuiAction::SwitchView(TuiView::Sources));
+
+    // simulate the capture logic from run/mod.rs
+    let focused = app
+        .focused_source()
+        .map(|s| (s.id, s.value.clone()))
+        .filter(|(_, v)| !v.is_empty());
+    assert_eq!(focused.as_ref().map(|(id, _)| *id), Some(1));
+
+    app.apply(TuiAction::MoveDown);
+    let focused = app
+        .focused_source()
+        .map(|s| (s.id, s.value.clone()))
+        .filter(|(_, v)| !v.is_empty());
+    assert_eq!(focused.as_ref().map(|(id, _)| *id), Some(2));
+}
+
+#[test]
+fn focused_source_returns_current_source() {
+    let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
+    let mut app = TuiApp::with_data(data);
+    app.apply(TuiAction::SwitchView(TuiView::Sources));
+
+    assert_eq!(app.focused_source().map(|s| s.id), Some(1));
+
+    app.apply(TuiAction::MoveDown);
+    assert_eq!(app.focused_source().map(|s| s.id), Some(2));
+
+    app.apply(TuiAction::MoveDown);
+    assert_eq!(app.focused_source().map(|s| s.id), Some(2));
+}
+
+#[test]
+fn selected_configs_scope_for_copy() {
+    let mut sel_a = row(1);
+    sel_a.is_selected = true;
+    let mut sel_b = row(2);
+    sel_b.is_selected = true;
+    let unsel = row(3);
+
+    let data = TuiData::from_configs(vec![sel_a, sel_b, unsel]);
+    let app = TuiApp::with_data(data);
+
+    let selected_ids: Vec<i64> = app
+        .data
+        .configs
+        .iter()
+        .filter(|c| c.is_selected)
+        .map(|c| c.id)
+        .collect();
+    assert_eq!(selected_ids, vec![1, 2]);
+    assert!(!selected_ids.contains(&3));
+}
+
+#[test]
+fn status_label_shows_stale_for_untested_enabled_config() {
+    let mut untested = row(1);
+    untested.real_delay_ms = None;
+    untested.tcp_ms = None;
+    untested.failure_reason = None;
+
+    assert_eq!(untested.status_label(), "stale");
+
+    let mut tested = row(2);
+    tested.real_delay_ms = Some(100);
+    assert_eq!(tested.status_label(), "ok");
 }

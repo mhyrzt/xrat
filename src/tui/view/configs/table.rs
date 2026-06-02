@@ -12,12 +12,19 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     let visible = app.visible_configs();
     let rows = visible.iter().enumerate().map(|(idx, config)| {
+        let is_stale = config.real_delay_ms.is_none()
+            && config.tcp_ms.is_none()
+            && config.failure_reason.is_none()
+            && config.is_enabled
+            && !config.is_deleted;
         let mut style = if idx == app.config_list.focused {
             theme::accent_style().add_modifier(Modifier::BOLD)
         } else if !config.is_enabled || config.is_deleted {
             theme::muted_style()
         } else if config.failure_reason.is_some() {
             theme::failure_style()
+        } else if is_stale {
+            theme::warning_style()
         } else {
             theme::chrome_style()
         };

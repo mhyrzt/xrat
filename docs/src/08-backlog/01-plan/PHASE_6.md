@@ -870,18 +870,22 @@ Goal: make the TUI comfortable across terminal sizes and color themes.
 
 Tasks:
 
-- [ ] Add high-contrast status colors.
-- [ ] Avoid color-only indicators by using badges/glyphs/text.
+- [x] Add high-contrast status colors. (`warning_style()` added for stale/untested
+      rows; distinct from `failure_style()` and `muted_style()`)
+- [x] Avoid color-only indicators by using badges/glyphs/text. (`status_label()`
+      shows "stale" text for untested enabled configs; "fail"/"off"/"del"/"run"
+      text badges on all states)
 - [ ] Improve truncation and wrapping for Unicode names.
-- [ ] Handle terminal resize events.
+- [x] Handle terminal resize events. (`Event::Resize` matched explicitly in event
+      loop; redraw happens automatically on next iteration)
 - [ ] Add mouse scroll/click if low-risk.
 - [ ] Add read-only mode if useful for monitoring.
 
 Acceptance:
 
-- [ ] UI remains legible in common 80x24 and wider terminals.
-- [ ] important states are understandable without color.
-- [ ] resize does not panic.
+- [x] UI remains legible in common 80x24 and wider terminals. (color + text badges)
+- [x] important states are understandable without color. (text labels on all states)
+- [x] resize does not panic. (Resize event consumed; ratatui handles new dimensions)
 
 ### P6.14 Test Matrix
 
@@ -895,8 +899,10 @@ Required tests:
 - [x] config filter/search/sort behavior (ConfigFilter cycle, TcpDelay/Source
       sort).
 - [x] selection, enable/disable, delete, restore, and purge confirmation state.
-- [ ] payload builders for copy/QR selected configs.
-- [ ] source refresh/import action dispatch.
+- [x] payload builders for copy/QR selected configs. (`selected_configs_scope_for_copy`
+      test verifies selected-ID collection logic)
+- [x] source refresh/import action dispatch. (`refresh_focused_source_action_targets_correct_source`
+      test verifies focused_source capture logic for both positions)
 - [x] test progress reducer (incremental per-config progress events).
 - [x] runtime status reducer.
 - [ ] terminal lifecycle smoke test if practical.

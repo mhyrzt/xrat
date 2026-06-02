@@ -69,7 +69,10 @@ impl TuiConfigRow {
             flags.push("fail");
         }
         if flags.is_empty() {
-            "ok".to_string()
+            let stale = self.real_delay_ms.is_none()
+                && self.tcp_ms.is_none()
+                && self.failure_reason.is_none();
+            if stale { "stale" } else { "ok" }.to_string()
         } else {
             flags.join(",")
         }
