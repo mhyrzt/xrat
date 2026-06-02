@@ -12,6 +12,7 @@
   <img alt="Status" src="https://img.shields.io/badge/status-under%20development-orange">
   <img alt="Rust" src="https://img.shields.io/badge/rust-stable-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <a href="https://mhyrzt.github.io/xrat"><img src="https://img.shields.io/badge/docs-mhyrzt.github.io%2Fxrat-blue" alt="Documentation"></a>
 </p>
 
 XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
@@ -25,31 +26,3 @@ proxy configurations.
 - Run one stored config as a managed local Xray runtime.
 - Show runtime status and stop the active runtime session.
 - Parse and validate links without importing, with optional JSON output.
-
-## Development
-
-Common commands:
-
-```bash
-cargo build
-cargo test -q
-cargo fmt
-```
-
-Run the CLI locally:
-
-```bash
-cargo run -- import <input>
-cargo run -- list configs
-cargo run -- test
-cargo run -- connect <id>
-cargo run -- status
-cargo run -- disconnect
-cargo run -- parse 'vless://...'
-cargo run -- parse --json --engine auto 'vless://...'
-cargo run -- parse --json --engine auto 'hy2://...'
-```
-
-## Documentation
-
-Full documentation is available at [`docs/src/`](docs/src/).
