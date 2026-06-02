@@ -28,8 +28,9 @@
 - `migrations/sqlite/` and `migrations/postgres/` hold ordered SQL migrations.
 - `docs/src/` holds user-facing documentation. Backlog plans and validation
   checklists live under `docs/src/08-backlog/`.
-- `packaging/systemd/` holds user-service templates used by `xrat daemon
-  install`; `packaging/desktop/` holds desktop entry and icon packaging assets.
+- `packaging/systemd/` holds user-service templates used by
+  `xrat daemon install`; `packaging/desktop/` holds desktop entry and icon
+  packaging assets.
 - `install.sh` installs release archives from GitHub and runs optional first-run
   setup.
 - `.github/workflows/` contains CI and release automation, including musl
