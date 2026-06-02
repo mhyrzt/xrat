@@ -18,6 +18,16 @@
 XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
 proxy configurations.
 
+## Installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
+```
+
+Requires `xray` on your system. For other installation methods (manual binary
+download, build from source, shell completions, man pages) see the
+[installation docs](https://mhyrzt.github.io/xrat/01-getting-started/installation.html).
+
 ## Current Features
 
 - Import subscription/config lines into SQLite or PostgreSQL.
