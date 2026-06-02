@@ -75,7 +75,8 @@ fn cycles_config_sort_order() {
 
     assert_eq!(app.config_list.sort, ConfigSort::RealDelay);
     app.apply(TuiAction::CycleSort);
-
+    assert_eq!(app.config_list.sort, ConfigSort::TcpDelay);
+    app.apply(TuiAction::CycleSort);
     assert_eq!(app.config_list.sort, ConfigSort::Id);
     let visible: Vec<_> = app
         .visible_configs()
@@ -83,6 +84,57 @@ fn cycles_config_sort_order() {
         .map(|row| row.id)
         .collect();
     assert_eq!(visible, vec![1, 2]);
+}
+
+#[test]
+fn cycles_config_filter() {
+    use crate::tui::app::ConfigFilter;
+
+    let enabled = row(1); // is_enabled=true, real_delay_ms=None after override
+    let mut enabled = enabled;
+    enabled.real_delay_ms = None;
+
+    let mut disabled = row(2);
+    disabled.is_enabled = false;
+    disabled.real_delay_ms = None;
+
+    let mut failed = row(3);
+    failed.failure_reason = Some("timeout".to_string());
+    failed.real_delay_ms = None;
+
+    let has_delay = row(4); // real_delay_ms = Some(100) from default helper
+
+    let data = TuiData::from_configs(vec![
+        enabled.clone(),
+        disabled.clone(),
+        failed.clone(),
+        has_delay.clone(),
+    ]);
+    let mut app = TuiApp::with_data(data);
+
+    assert_eq!(app.config_list.filter, ConfigFilter::None);
+    assert_eq!(app.visible_configs().len(), 4);
+
+    app.apply(TuiAction::CycleFilter);
+    assert_eq!(app.config_list.filter, ConfigFilter::EnabledOnly);
+    let visible_ids: Vec<i64> = app.visible_configs().iter().map(|r| r.id).collect();
+    assert!(visible_ids.contains(&1));
+    assert!(!visible_ids.contains(&2));
+    assert_eq!(visible_ids.len(), 3); // 1, 3, 4 are enabled
+
+    app.apply(TuiAction::CycleFilter);
+    assert_eq!(app.config_list.filter, ConfigFilter::FailedOnly);
+    let visible_ids: Vec<i64> = app.visible_configs().iter().map(|r| r.id).collect();
+    assert_eq!(visible_ids, vec![3]);
+
+    app.apply(TuiAction::CycleFilter);
+    assert_eq!(app.config_list.filter, ConfigFilter::HasDelay);
+    let visible_ids: Vec<i64> = app.visible_configs().iter().map(|r| r.id).collect();
+    assert_eq!(visible_ids, vec![4]);
+
+    app.apply(TuiAction::CycleFilter);
+    assert_eq!(app.config_list.filter, ConfigFilter::None);
+    assert_eq!(app.visible_configs().len(), 4);
 }
 
 #[test]

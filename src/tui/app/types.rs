@@ -6,6 +6,7 @@ pub enum TuiView {
     Sources,
     Tests,
     Runtime,
+    Diagnostics,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,10 +22,13 @@ pub enum TuiAction {
     ClearSearch,
     ConfirmSearch,
     CycleSort,
+    CycleFilter,
     ToggleDeletedFilter,
     SelectFocused,
     EnableFocused,
     DisableFocused,
+    EnableSelected,
+    DisableSelected,
     RestoreFocused,
     RequestDeleteFocused,
     RequestPurgeFocused,
@@ -36,6 +40,9 @@ pub enum TuiAction {
     RefreshFocusedSource,
     RefreshAllSources,
     OpenImportModal,
+    OpenQrFocused,
+    CopyFocused,
+    CopySelected,
     ImportInput(char),
     ImportBackspace,
     ImportSubmit,
@@ -74,6 +81,21 @@ pub struct ImportModalState {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct QrModalState {
+    pub title: String,
+    pub uri: String,
+}
+
+impl QrModalState {
+    pub fn new(title: impl Into<String>, uri: impl Into<String>) -> Self {
+        Self {
+            title: title.into(),
+            uri: uri.into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct TuiApp {
     pub active_view: TuiView,
@@ -87,6 +109,8 @@ pub struct TuiApp {
     pub task_state: crate::tui::task::TuiTaskState,
     pub confirm: Option<ConfirmState>,
     pub import_modal: Option<ImportModalState>,
+    pub qr_modal: Option<QrModalState>,
+    pub event_log: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -95,6 +119,7 @@ pub struct ConfigListState {
     pub search_query: String,
     pub editing_search: bool,
     pub sort: ConfigSort,
+    pub filter: ConfigFilter,
     pub include_deleted: bool,
 }
 
@@ -133,7 +158,18 @@ pub enum TestMode {
 pub enum ConfigSort {
     #[default]
     RealDelay,
+    TcpDelay,
     Id,
     Name,
     Protocol,
+    Source,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConfigFilter {
+    #[default]
+    None,
+    EnabledOnly,
+    FailedOnly,
+    HasDelay,
 }

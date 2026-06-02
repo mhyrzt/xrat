@@ -1,5 +1,6 @@
 mod chrome;
 mod configs;
+mod diagnostics;
 mod modals;
 mod runtime;
 mod shared;
@@ -37,6 +38,10 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     if app.import_modal.is_some() {
         modals::render_import_modal(frame, modals::centered_rect(72, 40, area), app);
     }
+
+    if app.qr_modal.is_some() {
+        modals::render_qr_modal(frame, modals::centered_rect(60, 80, area), app);
+    }
 }
 
 fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -51,5 +56,6 @@ fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         TuiView::Sources => sources::render(frame, columns[1], app),
         TuiView::Runtime => runtime::render(frame, columns[1], app),
         TuiView::Tests => tests::render(frame, columns[1], app),
+        TuiView::Diagnostics => diagnostics::render(frame, columns[1], app),
     }
 }

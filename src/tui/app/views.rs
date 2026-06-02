@@ -7,6 +7,7 @@ impl TuiView {
             Self::Sources => "sources",
             Self::Tests => "tests",
             Self::Runtime => "runtime",
+            Self::Diagnostics => "diagnostics",
         }
     }
 
@@ -16,6 +17,7 @@ impl TuiView {
             Self::Sources => "[SOURCES]",
             Self::Tests => "[TESTS]",
             Self::Runtime => "[RUNTIME]",
+            Self::Diagnostics => "[DIAG]",
         }
     }
 }

@@ -10,8 +10,9 @@ mod types;
 mod views;
 
 pub use types::{
-    ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState, SourceListState,
-    TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiView,
+    ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState,
+    QrModalState, SourceListState, TestMode, TestScope, TestViewState, TuiAction, TuiApp,
+    TuiConfigCommand, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -30,6 +31,7 @@ impl TuiApp {
             TuiAction::ClearSearch => self.clear_search(),
             TuiAction::ConfirmSearch => self.close_search(),
             TuiAction::CycleSort => self.cycle_config_sort(),
+            TuiAction::CycleFilter => self.cycle_config_filter(),
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
@@ -38,7 +40,10 @@ impl TuiApp {
             | TuiAction::RuntimeStop
             | TuiAction::RuntimeRestart
             | TuiAction::RefreshFocusedSource
-            | TuiAction::RefreshAllSources => {}
+            | TuiAction::RefreshAllSources
+            | TuiAction::OpenQrFocused
+            | TuiAction::CopyFocused
+            | TuiAction::CopySelected => {}
             TuiAction::OpenImportModal => {
                 self.import_modal = Some(crate::tui::app::ImportModalState::default());
             }
@@ -73,6 +78,8 @@ impl TuiApp {
             TuiAction::SelectFocused
             | TuiAction::EnableFocused
             | TuiAction::DisableFocused
+            | TuiAction::EnableSelected
+            | TuiAction::DisableSelected
             | TuiAction::RestoreFocused => {}
             TuiAction::SwitchView(view) => self.switch_view(view),
             TuiAction::None => {}

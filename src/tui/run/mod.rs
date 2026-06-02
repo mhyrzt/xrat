@@ -35,6 +35,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     app.config_list.editing_search,
                     app.confirm.is_some(),
                     app.import_modal.is_some(),
+                    app.qr_modal.is_some(),
                 );
                 let confirmed_command = if matches!(action, crate::tui::app::TuiAction::Confirm) {
                     app.pending_confirm_command()
@@ -42,6 +43,50 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     None
                 };
                 let direct_command = app.config_command_for_action(action);
+                let bulk_enable_ids: Vec<i64> =
+                    if matches!(action, crate::tui::app::TuiAction::EnableSelected) {
+                        app.data
+                            .configs
+                            .iter()
+                            .filter(|c| c.is_selected && !c.is_deleted)
+                            .map(|c| c.id)
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
+                let bulk_disable_ids: Vec<i64> =
+                    if matches!(action, crate::tui::app::TuiAction::DisableSelected) {
+                        app.data
+                            .configs
+                            .iter()
+                            .filter(|c| c.is_selected && !c.is_deleted)
+                            .map(|c| c.id)
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
+                let qr_config_id = if matches!(action, crate::tui::app::TuiAction::OpenQrFocused) {
+                    app.focused_config()
+                        .map(|c| (c.id, c.display_name().to_string()))
+                } else {
+                    None
+                };
+                let copy_focused_id = if matches!(action, crate::tui::app::TuiAction::CopyFocused) {
+                    app.focused_config().map(|c| c.id)
+                } else {
+                    None
+                };
+                let copy_selected_ids: Vec<i64> =
+                    if matches!(action, crate::tui::app::TuiAction::CopySelected) {
+                        app.data
+                            .configs
+                            .iter()
+                            .filter(|c| c.is_selected)
+                            .map(|c| c.id)
+                            .collect()
+                    } else {
+                        Vec::new()
+                    };
                 let import_input = if matches!(action, crate::tui::app::TuiAction::ImportSubmit) {
                     app.import_modal
                         .as_ref()
@@ -117,6 +162,22 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     } else if let Some(modal) = &mut app.import_modal {
                         modal.error = Some("input is empty".to_string());
                     }
+                }
+                if let Some((config_id, config_name)) = qr_config_id {
+                    tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;
+                }
+                if let Some(config_id) = copy_focused_id {
+                    tasks::copy_config_uri(context, &mut app, config_id).await;
+                }
+                if !copy_selected_ids.is_empty() {
+                    tasks::copy_selected_uris(context, &mut app, copy_selected_ids).await;
+                }
+                if !bulk_enable_ids.is_empty() {
+                    tasks::run_bulk_enable_disable(context, &mut app, bulk_enable_ids, true).await;
+                }
+                if !bulk_disable_ids.is_empty() {
+                    tasks::run_bulk_enable_disable(context, &mut app, bulk_disable_ids, false)
+                        .await;
                 }
                 if let Some(command) = confirmed_command.or(direct_command) {
                     tasks::run_config_command(context, &mut app, command).await;

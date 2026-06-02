@@ -18,6 +18,16 @@ impl TuiApp {
         self.status_message = format!("sort: {}", self.config_list.sort.label());
     }
 
+    pub(crate) fn cycle_config_filter(&mut self) {
+        if self.active_view != TuiView::Configs || self.config_list.editing_search {
+            return;
+        }
+
+        self.config_list.filter = self.config_list.filter.next();
+        self.config_list.focused = 0;
+        self.status_message = format!("filter: {}", self.config_list.filter.label());
+    }
+
     pub(crate) fn toggle_deleted_filter(&mut self) {
         if self.active_view != TuiView::Configs || self.config_list.editing_search {
             return;
@@ -34,17 +44,20 @@ impl TuiApp {
 
     pub(crate) fn visible_config_indices(&self) -> Vec<usize> {
         let query = self.config_list.search_query.trim().to_lowercase();
+        let filter = self.config_list.filter;
         let mut indices: Vec<usize> = self
             .data
             .configs
             .iter()
             .enumerate()
             .filter_map(|(idx, config)| {
-                if query.is_empty() || config.matches_search(&query) {
-                    Some(idx)
-                } else {
-                    None
+                if !query.is_empty() && !config.matches_search(&query) {
+                    return None;
                 }
+                if !filter.matches(config) {
+                    return None;
+                }
+                Some(idx)
             })
             .collect();
 

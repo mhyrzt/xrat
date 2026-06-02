@@ -15,6 +15,7 @@ fn maps_global_quit_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::Quit
@@ -23,6 +24,7 @@ fn maps_global_quit_keys() {
         action_for_key(
             KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -39,6 +41,7 @@ fn maps_view_switching_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::SwitchView(TuiView::Configs)
@@ -47,6 +50,7 @@ fn maps_view_switching_keys() {
         action_for_key(
             key(KeyCode::Char('4')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -58,13 +62,21 @@ fn maps_view_switching_keys() {
 #[test]
 fn maps_navigation_and_help_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Down), TuiView::Configs, false, false, false),
+        action_for_key(
+            key(KeyCode::Down),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
         TuiAction::MoveDown
     );
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('k')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -77,18 +89,27 @@ fn maps_navigation_and_help_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::ShowHelp
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Esc), TuiView::Configs, false, false, false),
+        action_for_key(
+            key(KeyCode::Esc),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
         TuiAction::Back
     );
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('/')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -99,6 +120,7 @@ fn maps_navigation_and_help_keys() {
         action_for_key(
             key(KeyCode::Char('s')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -115,6 +137,7 @@ fn maps_config_action_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::SelectFocused
@@ -123,6 +146,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('e')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -135,6 +159,7 @@ fn maps_config_action_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::DisableFocused
@@ -143,6 +168,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('d')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -155,6 +181,7 @@ fn maps_config_action_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RequestPurgeFocused
@@ -163,6 +190,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('r')),
             TuiView::Configs,
+            false,
             false,
             false,
             false
@@ -175,9 +203,99 @@ fn maps_config_action_keys() {
             TuiView::Configs,
             false,
             false,
+            false,
             false
         ),
         TuiAction::ToggleDeletedFilter
+    );
+}
+
+#[test]
+fn maps_cycle_filter_key() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('F')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::CycleFilter
+    );
+}
+
+#[test]
+fn maps_qr_and_copy_keys() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('y')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::OpenQrFocused
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('c')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::CopyFocused
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('C')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::CopySelected
+    );
+}
+
+#[test]
+fn qr_modal_open_consumes_keys() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Esc),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            true
+        ),
+        TuiAction::Back
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('q')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            true
+        ),
+        TuiAction::Back
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('s')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            true
+        ),
+        TuiAction::None
     );
 }
 
@@ -187,6 +305,7 @@ fn maps_sources_view_actions() {
         action_for_key(
             key(KeyCode::Char('r')),
             TuiView::Sources,
+            false,
             false,
             false,
             false
@@ -199,6 +318,7 @@ fn maps_sources_view_actions() {
             TuiView::Sources,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RefreshAllSources
@@ -207,6 +327,7 @@ fn maps_sources_view_actions() {
         action_for_key(
             key(KeyCode::Char('i')),
             TuiView::Sources,
+            false,
             false,
             false,
             false
@@ -223,7 +344,8 @@ fn maps_import_modal_keys() {
             TuiView::Sources,
             false,
             false,
-            true
+            true,
+            false
         ),
         TuiAction::ImportInput('a')
     );
@@ -233,16 +355,31 @@ fn maps_import_modal_keys() {
             TuiView::Sources,
             false,
             false,
-            true
+            true,
+            false
         ),
         TuiAction::ImportBackspace
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Enter), TuiView::Sources, false, false, true),
+        action_for_key(
+            key(KeyCode::Enter),
+            TuiView::Sources,
+            false,
+            false,
+            true,
+            false
+        ),
         TuiAction::ImportSubmit
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Esc), TuiView::Sources, false, false, true),
+        action_for_key(
+            key(KeyCode::Esc),
+            TuiView::Sources,
+            false,
+            false,
+            true,
+            false
+        ),
         TuiAction::Back
     );
 }

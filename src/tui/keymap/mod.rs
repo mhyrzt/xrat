@@ -13,9 +13,17 @@ pub fn action_for_key(
     editing_search: bool,
     confirming: bool,
     import_modal_open: bool,
+    qr_modal_open: bool,
 ) -> TuiAction {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
+    }
+
+    if qr_modal_open {
+        if matches!(key.code, KeyCode::Esc | KeyCode::Char('q')) {
+            return TuiAction::Back;
+        }
+        return TuiAction::None;
     }
 
     if import_modal_open {

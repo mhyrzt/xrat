@@ -17,7 +17,10 @@ impl TuiApp {
     }
 
     pub(super) fn back(&mut self) {
-        if self.import_modal.is_some() {
+        if self.qr_modal.is_some() {
+            self.qr_modal = None;
+            self.status_message = "ready".to_string();
+        } else if self.import_modal.is_some() {
             self.import_modal = None;
             self.status_message = "cancelled".to_string();
         } else if self.confirm.is_some() {

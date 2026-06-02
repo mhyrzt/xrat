@@ -10,7 +10,14 @@ fn key(code: KeyCode) -> KeyEvent {
 #[test]
 fn maps_confirm_keys() {
     assert_eq!(
-        action_for_key(key(KeyCode::Enter), TuiView::Configs, false, true, false),
+        action_for_key(
+            key(KeyCode::Enter),
+            TuiView::Configs,
+            false,
+            true,
+            false,
+            false
+        ),
         TuiAction::Confirm
     );
     assert_eq!(
@@ -19,6 +26,7 @@ fn maps_confirm_keys() {
             TuiView::Configs,
             false,
             true,
+            false,
             false
         ),
         TuiAction::Confirm
@@ -29,6 +37,7 @@ fn maps_confirm_keys() {
             TuiView::Configs,
             false,
             true,
+            false,
             false
         ),
         TuiAction::Cancel
@@ -43,6 +52,7 @@ fn maps_search_editing_keys() {
             TuiView::Configs,
             true,
             false,
+            false,
             false
         ),
         TuiAction::SearchInput('v')
@@ -53,12 +63,20 @@ fn maps_search_editing_keys() {
             TuiView::Configs,
             true,
             false,
+            false,
             false
         ),
         TuiAction::SearchBackspace
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Enter), TuiView::Configs, true, false, false),
+        action_for_key(
+            key(KeyCode::Enter),
+            TuiView::Configs,
+            true,
+            false,
+            false,
+            false
+        ),
         TuiAction::ConfirmSearch
     );
     assert_eq!(
@@ -66,6 +84,7 @@ fn maps_search_editing_keys() {
             KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
             TuiView::Configs,
             true,
+            false,
             false,
             false
         ),
@@ -76,11 +95,25 @@ fn maps_search_editing_keys() {
 #[test]
 fn maps_tests_view_actions() {
     assert_eq!(
-        action_for_key(key(KeyCode::Char('s')), TuiView::Tests, false, false, false),
+        action_for_key(
+            key(KeyCode::Char('s')),
+            TuiView::Tests,
+            false,
+            false,
+            false,
+            false
+        ),
         TuiAction::StartTestBatch
     );
     assert_eq!(
-        action_for_key(key(KeyCode::Char('c')), TuiView::Tests, false, false, false),
+        action_for_key(
+            key(KeyCode::Char('c')),
+            TuiView::Tests,
+            false,
+            false,
+            false,
+            false
+        ),
         TuiAction::CancelTestBatch
     );
 }

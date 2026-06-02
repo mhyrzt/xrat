@@ -36,6 +36,7 @@ pub fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView)
         ("2", "Sources", TuiView::Sources),
         ("3", "Tests", TuiView::Tests),
         ("4", "Runtime", TuiView::Runtime),
+        ("5", "Diagnostics", TuiView::Diagnostics),
     ];
     let lines: Vec<Line<'_>> = modes
         .into_iter()
@@ -63,7 +64,7 @@ pub fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView)
 pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect) {
     let line = Line::from(vec![
         Span::styled(" Mode:", theme::muted_style()),
-        Span::raw(" 1 configs  2 sources  3 tests  4 runtime   "),
+        Span::raw(" 1 configs  2 sources  3 tests  4 runtime  5 diag   "),
         Span::styled("Move:", theme::muted_style()),
         Span::raw(" j/k arrows   "),
         Span::styled("Other:", theme::muted_style()),

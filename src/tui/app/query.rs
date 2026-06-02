@@ -1,6 +1,6 @@
 use crate::tui::data::{TuiConfigRow, TuiSourceRow};
 
-use super::{TestScope, TuiApp};
+use super::{ConfigFilter, TestScope, TuiApp};
 
 impl TuiApp {
     pub fn focused_config(&self) -> Option<&TuiConfigRow> {
@@ -31,8 +31,12 @@ impl TuiApp {
         } else {
             "deleted:off"
         };
+        let filter_part = match self.config_list.filter {
+            ConfigFilter::None => String::new(),
+            f => format!(" - filter:{}", f.label()),
+        };
         format!(
-            "{search} - sort:{} - {deleted}",
+            "{search} - sort:{}{filter_part} - {deleted}",
             self.config_list.sort.label()
         )
     }
