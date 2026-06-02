@@ -115,11 +115,11 @@ xrat daemon install [--start] [--with-api] [--dry-run]
 
 ### Flags
 
-| Flag        | Description                                             |
-| ----------- | ------------------------------------------------------- |
-| `--start`   | Start the daemon immediately after enabling the service |
-| `--with-api`| Also install `xrat-api.service` (standalone HTTP API)   |
-| `--dry-run` | Print the generated unit and planned actions without writing anything |
+| Flag         | Description                                                           |
+| ------------ | --------------------------------------------------------------------- |
+| `--start`    | Start the daemon immediately after enabling the service               |
+| `--with-api` | Also install `xrat-api.service` (standalone HTTP API)                 |
+| `--dry-run`  | Print the generated unit and planned actions without writing anything |
 
 ### Behavior
 
@@ -169,9 +169,9 @@ xrat daemon uninstall [--dry-run]
 
 ### Flags
 
-| Flag        | Description                                      |
-| ----------- | ------------------------------------------------ |
-| `--dry-run` | Print planned actions without removing anything  |
+| Flag        | Description                                     |
+| ----------- | ----------------------------------------------- |
+| `--dry-run` | Print planned actions without removing anything |
 
 ### Behavior
 

@@ -14,8 +14,8 @@ Benefits:
 
 ## Installation
 
-Use `xrat daemon install` to generate and enable the service automatically.
-This is the recommended approach — no manual file editing required.
+Use `xrat daemon install` to generate and enable the service automatically. This
+is the recommended approach — no manual file editing required.
 
 ```bash
 xrat daemon install
@@ -173,14 +173,16 @@ systemctl --user enable xrat-daemon.service
 systemctl --user start xrat-daemon.service
 ```
 
-The template files used by `xrat daemon install` are available in the
-repository at `packaging/systemd/`.
+The template files used by `xrat daemon install` are available in the repository
+at `packaging/systemd/`.
 
 ---
 
 ## Related
 
-- [`daemon`](../02-cli/daemon.md) — daemon CLI reference including install/uninstall
+- [`daemon`](../02-cli/daemon.md) — daemon CLI reference including
+  install/uninstall
 - [Deployment](README.md) — deployment overview
 - [HTTP API](../03-features/http-api.md) — API server details
-- [Daemon and IPC](../03-features/daemon-and-ipc.md) — daemon supervisor internals
+- [Daemon and IPC](../03-features/daemon-and-ipc.md) — daemon supervisor
+  internals

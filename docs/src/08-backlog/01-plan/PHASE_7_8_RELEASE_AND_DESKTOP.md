@@ -532,8 +532,8 @@ Rate limiting:
 
 > This section is intentionally last. All other deliverables in this phase
 > (documentation, shell completion, man pages, release workflow, desktop entry,
-> integrate command, notifications) should be completed before starting tray icon
-> work.
+> integrate command, notifications) should be completed before starting tray
+> icon work.
 
 ### Current State
 

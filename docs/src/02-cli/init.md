@@ -8,8 +8,8 @@ xrat init [--dry-run]
 
 ## Flags
 
-| Flag        | Description                                    |
-| ----------- | ---------------------------------------------- |
+| Flag        | Description                                     |
+| ----------- | ----------------------------------------------- |
 | `--dry-run` | Print planned actions without creating anything |
 
 ## Behavior

@@ -12,8 +12,8 @@ and database:
 xrat init
 ```
 
-See [`init`](../02-cli/init.md) for details on what gets created and how to
-use a custom path via `XRAT_PATH`.
+See [`init`](../02-cli/init.md) for details on what gets created and how to use
+a custom path via `XRAT_PATH`.
 
 ## 1. Import a Subscription
 
