@@ -28,25 +28,42 @@
 - `migrations/sqlite/` and `migrations/postgres/` hold ordered SQL migrations.
 - `docs/src/` holds user-facing documentation. Backlog plans and validation
   checklists live under `docs/src/08-backlog/`.
+- `packaging/systemd/` holds user-service templates used by `xrat daemon
+  install`; `packaging/desktop/` holds desktop entry and icon packaging assets.
+- `install.sh` installs release archives from GitHub and runs optional first-run
+  setup.
+- `.github/workflows/` contains CI and release automation, including musl
+  release builds, generated man pages/completions, GitHub releases, and
+  crates.io publishing.
 - `testdata/` holds local fixtures such as GeoIP data.
 
 ## Build, Test, and Development Commands
 
 - `cargo build` — compile the project.
-- `cargo test -q` — run the test suite quietly.
 - `cargo fmt` — format Rust code.
+- `cargo clippy --all-targets -- -D warnings` — run the same lint gate used by
+  CI.
+- `cargo test -q --locked` — run the test suite quietly with the locked
+  dependency graph.
 - `cargo run -- <command>` — run the CLI locally, for example:
+  - `cargo run -- init`
   - `cargo run -- import <input>`
   - `cargo run -- list`
   - `cargo run -- parse <config-id>`
   - `cargo run -- test <config-id>`
   - `cargo run -- scan`
+  - `cargo run -- connect <config-id>`
+  - `cargo run -- disconnect`
   - `cargo run -- serve`
   - `cargo run -- tui`
   - `cargo run -- status`
+  - `cargo run -- daemon install --start`
   - `cargo run -- geoip status`
+  - `cargo run -- manpage --output <dir>`
+  - `cargo run -- completions <shell>`
 
-Run `cargo fmt` and `cargo test -q` before committing.
+Run `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, and
+`cargo test -q --locked` before committing.
 
 ## Coding Style & Naming Conventions
 
@@ -104,6 +121,8 @@ For new CLI behavior, usually add:
 - repository/model updates in `src/db/` when persistence is required
 - documentation under `docs/src/02-cli/` or the relevant feature page when user
   behavior changes
+- packaging or installer updates when behavior changes generated service
+  templates, desktop assets, release extras, or first-run installation flow
 
 Design constraints from current implementation direction:
 
