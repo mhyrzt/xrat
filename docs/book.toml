@@ -1,9 +1,9 @@
 [book]
-title = "xrat"
+title = "🐀 xrat"
 authors = ["xrat contributors"]
 language = "en"
 src = "src"
-description = "A modern proxy configuration manager for Xray-core and sing-box"
+description = "Manage Xray-core and sing-box proxy configs from one CLI. Import subscriptions, test latency, scan IPs, rotate proxies, and run a managed runtime — all from a single Rust binary."
 
 [build]
 build-dir = "book"

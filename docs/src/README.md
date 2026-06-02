@@ -1,16 +1,18 @@
 <p align="center">
-  <img src="media/xrat-hero.png" alt="xrat" width="800">
+  <img src="media/xrat-hero.png" alt="xrat — proxy manager for Xray-core and sing-box" width="800">
 </p>
 
-# 🐀 XRAT Documentation
+# 🐀 xrat
 
-Welcome to **XRAT** — your all-in-one proxy management toolkit.
+**xrat** is a command-line proxy configuration manager for **Xray-core** and **sing-box**. Import subscriptions, test latency, scan edge IPs, rotate proxies, and run a managed proxy runtime — all from a single Rust binary.
 
-- Import and parse proxy configs from subscriptions or raw links
-- List, filter, sort, enable, disable, and delete configs
-- Test proxies with real-delay, TCP, ICMP, and speed measurements
-- Run Xray-core or sing-box as a managed runtime with auto-rotation
-- Control everything through CLI, TUI, HTTP API, or background daemon
+## What you can do
+
+- **Import** proxy configs from subscription URLs, base64 files, or raw VLESS/VMESS/Trojan/Shadowsocks links
+- **Test** proxies with real-delay, TCP ping, ICMP, download/upload speed measurements
+- **Scan** Cloudflare edge IPs and persist working endpoints
+- **Run** Xray-core or sing-box as a managed runtime with automatic proxy rotation
+- **Control** everything through CLI, terminal UI (TUI), HTTP API, or background daemon
 
 ## Sections
 

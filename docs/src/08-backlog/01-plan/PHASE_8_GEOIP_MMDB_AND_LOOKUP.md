@@ -73,6 +73,18 @@ planned independently because they now share:
 
 ## Current Progress
 
+### Progress report
+
+- The local MMDB asset-management path is now established end-to-end in Rust:
+  config, resolver, CLI scaffold, downloader core, and update alias all exist.
+- The old monolithic `src/support/geoip.rs` has been split into a module tree
+  with a shared trait, local MMDB adapter, backend builder, and the first remote
+  backend (`ipwhois`).
+- `ResolvedTestSettings` already carries `geoip_lookup`, but the prober still
+  uses the old sync call path; the async switchover is still pending.
+- The next highest-value slice is remote hardening: cache and rate limiting,
+  then the second backend (`ip-api`), then async prober integration.
+
 Implemented already:
 
 - [x] Added top-level `[mmdb]` config in `src/app/config/mmdb.rs`
@@ -84,18 +96,30 @@ Implemented already:
 - [x] Preserved explicit custom relative MMDB paths as config-relative
 - [x] Added `xrat geoip path`
 - [x] Added `xrat geoip status`
+- [x] Added `xrat geoip download` CLI shape and core downloader implementation
+- [x] Added `xrat geoip update` CLI shape as `download --all --force`
+- [x] Added MMDB edition parsing for canonical and short names
+- [x] Added `AppError::GeoipDownload`
+- [x] Split `src/support/geoip.rs` into `src/support/geoip/`
+- [x] Added `GeoIpLookup` and `GeoIpError`
+- [x] Added `LocalMmdbLookup` with preserved free-function wrappers
+- [x] Moved endpoint classification into shared GeoIP support code
+- [x] Extended typed `[testing.geoip]` config with backend, fallback, remote,
+  and cache settings
+- [x] Added the first lookup-chain builder around `LocalMmdbLookup`
+- [x] Added the first remote backend: `RemoteIpWhoisLookup`
+- [x] Wired `backend = "ipwhois"` through the lookup builder
+- [x] Added `geoip_lookup` to resolved test settings without changing prober
+  behavior yet
 - [x] Added CLI parsing tests for the new `geoip` command family
 - [x] Updated example config with `[mmdb]`
 
 Not implemented yet:
 
-- [ ] `xrat geoip download`
-- [ ] `xrat geoip update`
-- [ ] edition parsing (`country|city|asn` and canonical names)
-- [ ] `AppError::GeoipDownload`
-- [ ] atomic MMDB downloader
-- [ ] remote lookup trait and module split under `src/support/geoip/`
-- [ ] remote backends (`ipwhois`, `ip-api`)
+- [ ] downloader integration tests with a local HTTP fixture
+- [ ] multi-edition concurrency and richer summary handling
+- [ ] remaining remote lookup backends under `src/support/geoip/`
+- [ ] `ip-api` backend
 - [ ] cache and rate-limit decorators
 - [ ] async prober integration
 - [ ] `xrat geoip lookup`
@@ -189,18 +213,20 @@ Acceptance:
 
 Goal: replace the shell script for the common local MMDB workflow.
 
+Status: in progress; core command and single-pass downloader are now implemented.
+
 Tasks:
 
-- [ ] Add `src/app/commands/geoip/edition.rs`
-- [ ] Extend `src/cli/geoip.rs` with `download` and `update`
-- [ ] Add `src/app/commands/geoip/download.rs`
-- [ ] Add `src/app/commands/geoip/update.rs`
-- [ ] Add `AppError::GeoipDownload`
-- [ ] Implement single-edition async download with atomic write
+- [x] Add `src/app/commands/geoip/edition.rs`
+- [x] Extend `src/cli/geoip.rs` with `download` and `update`
+- [x] Add `src/app/commands/geoip/download.rs`
+- [x] Add `src/app/commands/geoip/update.rs`
+- [x] Add `AppError::GeoipDownload`
+- [x] Implement single-edition async download with atomic write
 - [ ] Add `--edition`, `--all`, `--output`, `--force`, `--url`, `--timeout`,
       `--quiet`
-- [ ] Add focused tests for parsing, URL templating, skip behavior, and empty
-      body handling
+- [ ] Add focused tests for skip behavior and empty body handling
+- [x] Add focused tests for parsing and URL templating
 
 Acceptance:
 
@@ -228,25 +254,30 @@ Acceptance:
 
 Goal: split the current sync local lookup into a reusable async abstraction.
 
+Status: in progress; module split, trait, error type, and local adapter are now
+implemented without changing call-site behavior.
+
 Tasks:
 
-- [ ] create `src/support/geoip/` module tree
-- [ ] define `GeoIpLookup` trait and `GeoIpError`
-- [ ] move current local lookup functions into `LocalMmdbLookup`
-- [ ] move `classify_endpoint_location` into a separate module
+- [x] create `src/support/geoip/` module tree
+- [x] define `GeoIpLookup` trait and `GeoIpError`
+- [x] move current local lookup functions into `LocalMmdbLookup`
+- [x] move `classify_endpoint_location` into a separate module
 
 Acceptance:
 
-- [ ] local MMDB lookup behavior remains unchanged
-- [ ] real-MMDB tests still gate on `XRAT_GEOIP_TEST_*_MMDB`
+- [x] local MMDB lookup behavior remains unchanged
+- [x] real-MMDB tests still gate on `XRAT_GEOIP_TEST_*_MMDB`
 
 ### P8.5 Remote Backends, Cache, and Rate Limit
 
 Goal: make the lookup path pluggable for remote services.
 
+Status: in progress; `ipwhois` is now implemented and selectable.
+
 Tasks:
 
-- [ ] add `RemoteIpWhoisLookup`
+- [x] add `RemoteIpWhoisLookup`
 - [ ] add `RemoteIpApiLookup`
 - [ ] add cache decorator
 - [ ] add rate-limit decorator
@@ -264,8 +295,8 @@ Goal: make the test pipeline use the resolved backend chain.
 
 Tasks:
 
-- [ ] extend `[testing.geoip]` with `backend`, `fallback`, `remote`, `cache`
-- [ ] build lookup chain during test-settings resolution
+- [x] extend `[testing.geoip]` with `backend`, `fallback`, `remote`, `cache`
+- [x] build first lookup chain during test-settings resolution
 - [ ] refactor endpoint meta resolution to async trait calls
 - [ ] add `xrat geoip lookup <ip>`
 - [ ] add `xrat geoip backend`
@@ -279,13 +310,15 @@ Acceptance:
 
 The immediate next build step is:
 
-1. implement `xrat geoip download`
-2. add edition parsing
-3. add `xrat geoip update`
+1. add cache and rate-limit decorators around the remote lookup path
+2. add `ip-api` as the second backend
+3. switch the prober to async `geoip_lookup` trait calls
+4. then add `xrat geoip lookup` and `xrat geoip backend`
 
-That is the correct next slice because the MMDB config, resolver, `path`, and
-`status` commands are already in place and the downloader now becomes the first
-missing end-user workflow.
+That is the correct next slice because the MMDB config, resolver, read-only CLI,
+downloader core, and local lookup abstraction are now in place, so the remaining
+work naturally splits into downloader hardening and then remote-backend
+integration.
 
 ## Open Decisions
 
@@ -306,3 +339,22 @@ Phase 8 is complete when:
 4. remote lookup backends are selectable from `config.toml`
 5. the prober uses the configured backend asynchronously
 6. docs, Just recipes, and test coverage match the new behavior
+
+### Current status against completion criteria
+
+- Criterion 1: partially complete
+  MMDB asset layout and resolver are in place; downloader core exists.
+- Criterion 2: partially complete
+  `download|update|path|status` exist, but downloader behavior still needs more
+  hardening and integration coverage.
+- Criterion 3: complete
+  local MMDB remains the default backend.
+- Criterion 4: partially complete
+  `mmdb` and `ipwhois` are selectable in typed config; `ip-api` is still
+  pending.
+- Criterion 5: not complete
+  resolved settings carry `geoip_lookup`, but the prober has not switched to the
+  async trait yet.
+- Criterion 6: not complete
+  docs are tracking progress, but recipes and full test/documentation coverage
+  are still pending.

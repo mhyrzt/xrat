@@ -3,7 +3,6 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>{{ title }}</title>
         {{#if is_print }}
         <meta name="robots" content="noindex">
         {{/if}}
@@ -17,32 +16,48 @@
 
         <meta name="description" content="{{ description }}">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#ffffff">
+        <meta name="theme-color" content="#1a1a1a">
+        <meta name="color-scheme" content="dark light">
+
+        <title>{{#if (eq chapter_title "Home")}}🐀 xrat — Proxy Manager for Xray-core & sing-box{{else}}{{chapter_title}} · 🐀 xrat{{/if}}</title>
+        <link rel="canonical" href="https://mhyrzt.github.io/xrat/{{ path }}">
+
+        <!-- Additional SEO meta -->
+        <meta name="keywords" content="xray-core, sing-box, proxy manager, vless, vmess, trojan, shadowsocks, proxy rotation, latency test, CLI proxy tool, TUI proxy manager">
+        <meta name="author" content="xrat contributors">
+        <meta name="robots" content="index, follow">
 
         <!-- Open Graph (Facebook, Discord, LinkedIn, Slack, ...) -->
         <meta property="og:type" content="website">
-        <meta property="og:site_name" content="{{ title }}">
-        <meta property="og:title" content="{{ title }}">
+        <meta property="og:site_name" content="🐀 xrat">
+        <meta property="og:title" content="🐀 xrat — Proxy Manager for Xray-core & sing-box">
         <meta property="og:description" content="{{ description }}">
-        <meta property="og:url" content="https://mhyrzt.github.io/xrat/">
+        <meta property="og:url" content="https://mhyrzt.github.io/xrat/{{ path }}">
         <meta property="og:image" content="https://mhyrzt.github.io/xrat/media/xrat-hero.png">
         <meta property="og:image:width" content="2172">
         <meta property="og:image:height" content="724">
-        <meta property="og:image:alt" content="{{ title }}">
+        <meta property="og:image:alt" content="🐀 xrat — Proxy Manager for Xray-core and sing-box">
+        <meta property="og:locale" content="en">
 
         <!-- Twitter / X -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="{{ title }}">
+        <meta name="twitter:title" content="🐀 xrat — Proxy Manager for Xray-core & sing-box">
         <meta name="twitter:description" content="{{ description }}">
         <meta name="twitter:image" content="https://mhyrzt.github.io/xrat/media/xrat-hero.png">
-        <meta name="twitter:image:alt" content="{{ title }}">
+        <meta name="twitter:image:alt" content="🐀 xrat — Proxy Manager for Xray-core and sing-box">
+        <meta name="twitter:url" content="https://mhyrzt.github.io/xrat/{{ path }}">
 
-        {{#if favicon_svg}}
-        <link rel="icon" href="{{ resource "favicon.svg" }}">
-        {{/if}}
-        {{#if favicon_png}}
-        <link rel="shortcut icon" href="{{ resource "favicon.png" }}">
-        {{/if}}
+        <!-- Icons & PWA -->
+        <link rel="icon" type="image/png" sizes="512x512" href="{{ resource "xrat-logo.png" }}">
+        <link rel="shortcut icon" href="{{ resource "xrat-logo.png" }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ resource "xrat-logo.png" }}">
+        <link rel="manifest" href="{{ resource "manifest.webmanifest" }}">
+        <meta name="application-name" content="xrat">
+        <meta name="apple-mobile-web-app-title" content="xrat">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="msapplication-TileColor" content="#1a1a1a">
+        <meta name="msapplication-TileImage" content="{{ resource "xrat-logo.png" }}">
         <link rel="stylesheet" href="{{ resource "css/variables.css" }}">
         <link rel="stylesheet" href="{{ resource "css/general.css" }}">
         <link rel="stylesheet" href="{{ resource "css/chrome.css" }}">
@@ -182,10 +197,10 @@
                         {{/if}}
                     </div>
 
-                    <h1 class="menu-title">
-                        <img src="{{ resource "favicon.png" }}" alt="" class="menu-logo">
+                    <div class="menu-title">
+                        <img src="{{ resource "xrat-logo.png" }}" alt="" class="menu-logo">
                         <span>{{ book_title }}</span>
-                    </h1>
+                    </div>
 
                     <div class="right-buttons">
                         {{#if print_enable}}
