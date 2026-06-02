@@ -4,8 +4,10 @@ use crate::app::context::AppContext;
 use crate::app::paths::mmdb;
 use crate::cli::{GeoIpAction, GeoIpArgs};
 
+mod backend;
 mod download;
 mod edition;
+mod lookup;
 mod path;
 mod status;
 mod update;
@@ -14,6 +16,8 @@ pub async fn run(context: &AppContext, args: &GeoIpArgs) -> crate::app::Result<(
     match &args.action {
         GeoIpAction::Download(args) => download::run(context, args).await,
         GeoIpAction::Update(args) => update::run(context, args).await,
+        GeoIpAction::Lookup(args) => lookup::run(context, args).await,
+        GeoIpAction::Backend(args) => backend::run(context, args),
         GeoIpAction::Path(args) => path::run(context, args),
         GeoIpAction::Status(args) => status::run(context, args),
     }

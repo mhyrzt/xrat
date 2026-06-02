@@ -15,6 +15,10 @@ pub enum GeoIpAction {
     Download(GeoIpDownloadArgs),
     #[command(about = "Refresh all supported GeoLite2 MMDB editions.")]
     Update(GeoIpUpdateArgs),
+    #[command(about = "Look up a single IP through the configured GeoIP backend.")]
+    Lookup(GeoIpLookupArgs),
+    #[command(about = "Print the active GeoIP backend configuration.")]
+    Backend(GeoIpBackendArgs),
     #[command(about = "Print the resolved MMDB directory.")]
     Path(GeoIpPathArgs),
     #[command(about = "Show MMDB presence and size for each supported edition.")]
@@ -73,6 +77,38 @@ pub struct GeoIpUpdateArgs {
     pub timeout_secs: Option<u64>,
     #[arg(long = "quiet", help = "Suppress progress bar output.")]
     pub quiet: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct GeoIpLookupArgs {
+    #[arg(help = "IP address to look up.")]
+    pub ip: String,
+    #[arg(
+        long = "backend",
+        help = "Override backend for this invocation: mmdb, ipwhois, ip-api."
+    )]
+    pub backend: Option<String>,
+    #[arg(
+        long = "no-cache",
+        help = "Bypass the configured in-memory cache for this invocation."
+    )]
+    pub no_cache: bool,
+    #[arg(long = "json", help = "Print the lookup result as JSON.")]
+    pub json: bool,
+}
+
+#[derive(Debug, Args, Default)]
+pub struct GeoIpBackendArgs {
+    #[arg(
+        long = "backend",
+        help = "Override backend for this invocation: mmdb, ipwhois, ip-api."
+    )]
+    pub backend: Option<String>,
+    #[arg(
+        long = "no-cache",
+        help = "Describe the backend chain without cache wrapping."
+    )]
+    pub no_cache: bool,
 }
 
 #[derive(Debug, Args, Default)]

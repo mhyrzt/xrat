@@ -25,7 +25,8 @@ pub use daemon::{
 };
 pub use disconnect::DisconnectArgs;
 pub use geoip::{
-    GeoIpAction, GeoIpArgs, GeoIpDownloadArgs, GeoIpPathArgs, GeoIpStatusArgs, GeoIpUpdateArgs,
+    GeoIpAction, GeoIpArgs, GeoIpBackendArgs, GeoIpDownloadArgs, GeoIpLookupArgs, GeoIpPathArgs,
+    GeoIpStatusArgs, GeoIpUpdateArgs,
 };
 pub use import::ImportArgs;
 pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
