@@ -47,6 +47,13 @@ pub enum AppError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("geoip download failed for {edition} from {url}: {reason}")]
+    GeoipDownload {
+        edition: String,
+        url: String,
+        reason: String,
+    },
+
     #[error("failed to spawn Xray process: {0}")]
     XraySpawn(String),
 

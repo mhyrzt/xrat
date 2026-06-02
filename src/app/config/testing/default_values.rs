@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use super::super::defaults;
 use super::types::{
-    ConnectionTestStage, DownloadTestSettings, GeoIpTestSettings, IcmpTestSettings,
-    RealDelayTestSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
+    ConnectionTestStage, DownloadTestSettings, GeoIpBackend, GeoIpCacheSettings,
+    GeoIpRemoteProvider, GeoIpTestSettings, IcmpTestSettings, RealDelayTestSettings,
+    RemoteGeoIpSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
 };
 
 impl Default for TestingSettings {
@@ -72,9 +73,35 @@ impl Default for GeoIpTestSettings {
     fn default() -> Self {
         Self {
             enabled: defaults::DEFAULT_TEST_GEOIP_ENABLED,
+            backend: GeoIpBackend::Mmdb,
+            fallback: GeoIpBackend::None,
             country_path: PathBuf::from(defaults::DEFAULT_TEST_GEOIP_COUNTRY_PATH),
             city_path: PathBuf::from(defaults::DEFAULT_TEST_GEOIP_CITY_PATH),
             asn_path: PathBuf::from(defaults::DEFAULT_TEST_GEOIP_ASN_PATH),
+            remote: RemoteGeoIpSettings::default(),
+            cache: GeoIpCacheSettings::default(),
+        }
+    }
+}
+
+impl Default for RemoteGeoIpSettings {
+    fn default() -> Self {
+        Self {
+            provider: GeoIpRemoteProvider::IpWhois,
+            endpoint: String::new(),
+            timeout_ms: 5000,
+            api_key: String::new(),
+            rate_limit_per_minute: 30,
+        }
+    }
+}
+
+impl Default for GeoIpCacheSettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            ttl_secs: 86_400,
+            max_entries: 10_000,
         }
     }
 }

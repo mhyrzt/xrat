@@ -1,32 +1,7 @@
 use super::*;
 
 pub(crate) fn classify_endpoint_location(endpoint_ip: Option<&str>) -> Option<String> {
-    let ip = endpoint_ip?.parse::<IpAddr>().ok()?;
-    let label = match ip {
-        IpAddr::V4(v4) => {
-            if v4.is_private() {
-                "private_ipv4"
-            } else if v4.is_loopback() {
-                "loopback_ipv4"
-            } else if v4.is_link_local() {
-                "link_local_ipv4"
-            } else {
-                "public"
-            }
-        }
-        IpAddr::V6(v6) => {
-            if v6.is_loopback() {
-                "loopback_ipv6"
-            } else if v6.is_unique_local() {
-                "unique_local_ipv6"
-            } else if v6.is_unicast_link_local() {
-                "link_local_ipv6"
-            } else {
-                "public"
-            }
-        }
-    };
-    Some(label.to_string())
+    geoip::classify_endpoint_location(endpoint_ip)
 }
 
 pub(crate) struct EndpointMeta {

@@ -39,6 +39,14 @@ fn parses_minimal_config_with_defaults() {
     );
     assert!(!config.testing.geoip.enabled);
     assert_eq!(
+        config.testing.geoip.backend,
+        crate::app::config::GeoIpBackend::Mmdb
+    );
+    assert_eq!(
+        config.testing.geoip.fallback,
+        crate::app::config::GeoIpBackend::None
+    );
+    assert_eq!(
         config.testing.geoip.country_path,
         std::path::PathBuf::from(crate::app::config::defaults::DEFAULT_TEST_GEOIP_COUNTRY_PATH)
     );
@@ -50,6 +58,13 @@ fn parses_minimal_config_with_defaults() {
         config.testing.geoip.asn_path,
         std::path::PathBuf::from(crate::app::config::defaults::DEFAULT_TEST_GEOIP_ASN_PATH)
     );
+    assert_eq!(
+        config.testing.geoip.remote.provider,
+        crate::app::config::GeoIpRemoteProvider::IpWhois
+    );
+    assert!(config.testing.geoip.cache.enabled);
+    assert_eq!(config.testing.geoip.cache.ttl_secs, 86_400);
+    assert_eq!(config.testing.geoip.cache.max_entries, 10_000);
     assert_eq!(
         config.parser.parse_mode,
         crate::xray::parsing::ParseMode::Strict

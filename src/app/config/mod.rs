@@ -31,8 +31,9 @@ pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};
 pub use server::ServerSettings;
 pub use testing::{
-    ConnectionTestStage, DownloadTestSettings, GeoIpTestSettings, IcmpTestSettings,
-    RealDelayTestSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
+    ConnectionTestStage, DownloadTestSettings, GeoIpBackend, GeoIpCacheSettings,
+    GeoIpRemoteProvider, GeoIpTestSettings, IcmpTestSettings, RealDelayTestSettings,
+    RemoteGeoIpSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
 };
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]

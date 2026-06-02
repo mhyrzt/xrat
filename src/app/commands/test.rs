@@ -8,7 +8,6 @@ mod stages;
 
 use std::cmp::Ordering;
 use std::io::Write;
-use std::net::IpAddr;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -29,7 +28,7 @@ use crate::prober::{
     FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
     upload_speed_check,
 };
-use crate::{app::config, support::geoip};
+use crate::support::geoip;
 
 pub(crate) use bulk::run_rotation_bulk_tests;
 use bulk::*;

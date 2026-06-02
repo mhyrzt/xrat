@@ -4,11 +4,16 @@ use crate::app::context::AppContext;
 use crate::app::paths::mmdb;
 use crate::cli::{GeoIpAction, GeoIpArgs};
 
+mod download;
+mod edition;
 mod path;
 mod status;
+mod update;
 
 pub async fn run(context: &AppContext, args: &GeoIpArgs) -> crate::app::Result<()> {
     match &args.action {
+        GeoIpAction::Download(args) => download::run(context, args).await,
+        GeoIpAction::Update(args) => update::run(context, args).await,
         GeoIpAction::Path(args) => path::run(context, args),
         GeoIpAction::Status(args) => status::run(context, args),
     }
@@ -20,27 +25,20 @@ fn resolve_mmdb_target_dir(context: &AppContext, output_override: Option<&PathBu
         .unwrap_or_else(|| mmdb::resolve_mmdb_dir(&context.runtime_paths, &context.app_config))
 }
 
-fn mmdb_file_name(edition: MmdbEdition) -> &'static str {
-    match edition {
-        MmdbEdition::Country => "GeoLite2-Country.mmdb",
-        MmdbEdition::City => "GeoLite2-City.mmdb",
-        MmdbEdition::Asn => "GeoLite2-ASN.mmdb",
-    }
+fn ensure_mmdb_target_dir(dir: &Path) -> crate::app::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    Ok(())
 }
 
-fn mmdb_file_path(dir: &Path, edition: MmdbEdition) -> PathBuf {
-    dir.join(mmdb_file_name(edition))
+fn mmdb_file_path(dir: &Path, edition: edition::MmdbEdition) -> PathBuf {
+    dir.join(edition.file_name())
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum MmdbEdition {
-    Country,
-    City,
-    Asn,
+fn mmdb_file_name(edition: edition::MmdbEdition) -> &'static str {
+    edition.file_name()
 }
 
-const SUPPORTED_EDITIONS: [MmdbEdition; 3] =
-    [MmdbEdition::Country, MmdbEdition::City, MmdbEdition::Asn];
+const SUPPORTED_EDITIONS: [edition::MmdbEdition; 3] = edition::SUPPORTED_EDITIONS;
 
 #[cfg(test)]
 mod tests {

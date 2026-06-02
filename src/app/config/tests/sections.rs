@@ -58,3 +58,54 @@ update_interval_hours = 24
     assert!(config.mmdb.auto_update);
     assert_eq!(config.mmdb.update_interval_hours, 24);
 }
+
+#[test]
+fn parses_geoip_backend_settings() {
+    let config: AppConfig = toml::from_str(
+        r#"
+[testing.geoip]
+enabled = true
+backend = "chain"
+fallback = "ipwhois"
+country_path = "custom/country.mmdb"
+city_path = "custom/city.mmdb"
+asn_path = "custom/asn.mmdb"
+
+[testing.geoip.remote]
+provider = "ip-api"
+endpoint = "https://geo.example.test/json"
+timeout_ms = 9000
+api_key = "reserved"
+rate_limit_per_minute = 15
+
+[testing.geoip.cache]
+enabled = false
+ttl_secs = 60
+max_entries = 100
+"#,
+    )
+    .expect("config should parse");
+
+    assert_eq!(
+        config.testing.geoip.backend,
+        crate::app::config::GeoIpBackend::Chain
+    );
+    assert_eq!(
+        config.testing.geoip.fallback,
+        crate::app::config::GeoIpBackend::IpWhois
+    );
+    assert_eq!(
+        config.testing.geoip.remote.provider,
+        crate::app::config::GeoIpRemoteProvider::IpApi
+    );
+    assert_eq!(
+        config.testing.geoip.remote.endpoint,
+        "https://geo.example.test/json"
+    );
+    assert_eq!(config.testing.geoip.remote.timeout_ms, 9000);
+    assert_eq!(config.testing.geoip.remote.api_key, "reserved");
+    assert_eq!(config.testing.geoip.remote.rate_limit_per_minute, 15);
+    assert!(!config.testing.geoip.cache.enabled);
+    assert_eq!(config.testing.geoip.cache.ttl_secs, 60);
+    assert_eq!(config.testing.geoip.cache.max_entries, 100);
+}

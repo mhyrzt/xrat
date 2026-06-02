@@ -26,7 +26,7 @@ pub(crate) fn resolve_engine_binary_path(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub(crate) struct ResolvedTestSettings {
     pub(crate) stage_order: Vec<ConnectionTestStage>,
     pub(crate) failure_policy: TestFailurePolicy,
@@ -51,4 +51,8 @@ pub(crate) struct ResolvedTestSettings {
     pub(crate) geoip_country_path: PathBuf,
     pub(crate) geoip_city_path: PathBuf,
     pub(crate) geoip_asn_path: PathBuf,
+    pub(crate) geoip_lookup: Arc<dyn GeoIpLookup>,
 }
+use std::sync::Arc;
+
+use crate::support::geoip::GeoIpLookup;

@@ -1,5 +1,6 @@
 use super::*;
 use crate::app::paths::mmdb;
+use crate::support::geoip;
 
 pub(crate) fn resolve_test_settings(
     args: &TestArgs,
@@ -13,6 +14,25 @@ pub(crate) fn resolve_test_settings(
         ));
     }
     validate_test_stage_order(&app_config.testing.order)?;
+    let geoip_country_path = mmdb::mmdb_path_for(
+        runtime_paths,
+        app_config,
+        &app_config.testing.geoip.country_path,
+        "GeoLite2-Country.mmdb",
+    );
+    let geoip_city_path = mmdb::mmdb_path_for(
+        runtime_paths,
+        app_config,
+        &app_config.testing.geoip.city_path,
+        "GeoLite2-City.mmdb",
+    );
+    let geoip_asn_path = mmdb::mmdb_path_for(
+        runtime_paths,
+        app_config,
+        &app_config.testing.geoip.asn_path,
+        "GeoLite2-ASN.mmdb",
+    );
+    let geoip_lookup = geoip::build_lookup_chain(app_config, runtime_paths)?;
 
     Ok(ResolvedTestSettings {
         stage_order: app_config.testing.order.clone(),
@@ -56,23 +76,9 @@ pub(crate) fn resolve_test_settings(
         run_upload: args.upload_url.is_some() && !args.skip_upload,
         concurrency,
         geoip_enabled: app_config.testing.geoip.enabled,
-        geoip_country_path: mmdb::mmdb_path_for(
-            runtime_paths,
-            app_config,
-            &app_config.testing.geoip.country_path,
-            "GeoLite2-Country.mmdb",
-        ),
-        geoip_city_path: mmdb::mmdb_path_for(
-            runtime_paths,
-            app_config,
-            &app_config.testing.geoip.city_path,
-            "GeoLite2-City.mmdb",
-        ),
-        geoip_asn_path: mmdb::mmdb_path_for(
-            runtime_paths,
-            app_config,
-            &app_config.testing.geoip.asn_path,
-            "GeoLite2-ASN.mmdb",
-        ),
+        geoip_country_path,
+        geoip_city_path,
+        geoip_asn_path,
+        geoip_lookup,
     })
 }

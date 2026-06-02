@@ -70,7 +70,50 @@ pub struct TcpTestSettings {
 #[serde(default)]
 pub struct GeoIpTestSettings {
     pub enabled: bool,
+    pub backend: GeoIpBackend,
+    pub fallback: GeoIpBackend,
     pub country_path: PathBuf,
     pub city_path: PathBuf,
     pub asn_path: PathBuf,
+    pub remote: RemoteGeoIpSettings,
+    pub cache: GeoIpCacheSettings,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum GeoIpBackend {
+    Mmdb,
+    #[serde(alias = "ipwhois")]
+    IpWhois,
+    #[serde(alias = "ipapi")]
+    IpApi,
+    Chain,
+    None,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct RemoteGeoIpSettings {
+    pub provider: GeoIpRemoteProvider,
+    pub endpoint: String,
+    pub timeout_ms: u64,
+    pub api_key: String,
+    pub rate_limit_per_minute: u32,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum GeoIpRemoteProvider {
+    #[serde(alias = "ipwhois")]
+    IpWhois,
+    #[serde(alias = "ipapi")]
+    IpApi,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct GeoIpCacheSettings {
+    pub enabled: bool,
+    pub ttl_secs: u64,
+    pub max_entries: usize,
 }

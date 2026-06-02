@@ -53,6 +53,7 @@ fn resolves_test_settings_from_app_config() {
         ]
     );
     assert_eq!(settings.failure_policy, TestFailurePolicy::Continue);
+    assert_eq!(settings.geoip_lookup.backend_name(), "mmdb");
 }
 
 #[test]
@@ -96,6 +97,7 @@ fn cli_test_settings_override_app_config() {
     assert_eq!(settings.tcp_timeout, Duration::from_millis(5000));
     assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
     assert_eq!(settings.download_timeout, Duration::from_millis(45_000));
+    assert_eq!(settings.geoip_lookup.backend_name(), "mmdb");
 }
 
 #[test]
@@ -122,4 +124,5 @@ fn default_geoip_paths_resolve_from_runtime_root_mmdb_dir() {
         settings.geoip_asn_path,
         PathBuf::from("/tmp/xrat-root/mmdb/GeoLite2-ASN.mmdb")
     );
+    assert_eq!(settings.geoip_lookup.backend_name(), "mmdb");
 }
