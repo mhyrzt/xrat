@@ -109,8 +109,10 @@ async fn soft_delete_visible_with_include_deleted_filter() {
         .await
         .expect("delete should succeed");
 
-    let mut filter = ConfigListFilter::default();
-    filter.include_deleted = true;
+    let filter = ConfigListFilter {
+        include_deleted: true,
+        ..Default::default()
+    };
     let configs = db.list_configs(&filter).await.expect("list should succeed");
 
     assert_eq!(configs.len(), 1);
@@ -154,8 +156,10 @@ async fn hard_delete_removes_row_completely() {
 
     assert!(result.is_none());
 
-    let mut filter = ConfigListFilter::default();
-    filter.include_deleted = true;
+    let filter = ConfigListFilter {
+        include_deleted: true,
+        ..Default::default()
+    };
     let configs = db.list_configs(&filter).await.expect("list should succeed");
 
     assert!(configs.is_empty());
@@ -192,8 +196,10 @@ async fn deleted_only_filter_shows_only_deleted() {
         .await
         .expect("delete should succeed");
 
-    let mut filter = ConfigListFilter::default();
-    filter.only_deleted = true;
+    let filter = ConfigListFilter {
+        only_deleted: true,
+        ..Default::default()
+    };
     let deleted_only = db.list_configs(&filter).await.expect("list should succeed");
 
     assert_eq!(deleted_only.len(), 1);

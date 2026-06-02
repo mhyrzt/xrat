@@ -64,7 +64,7 @@ async fn reimport_revives_soft_deleted_config() {
     };
     let node = test_node("test");
 
-    db.import_nodes(&source, &[node.clone()])
+    db.import_nodes(&source, std::slice::from_ref(&node))
         .await
         .expect("import should succeed");
 
