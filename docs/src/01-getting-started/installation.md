@@ -11,10 +11,10 @@ or [Build From Source](source-install.md).
 
 ### Runtime dependencies
 
-| Tool       | Required | Purpose                             | Install                                                   |
-| ---------- | -------- | ----------------------------------- | --------------------------------------------------------- |
-| `xray`     | Yes      | Xray engine, real-delay tests       | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
-| `sing-box` | No       | sing-box config parsing and runtime | [sing-box.app](https://sing-box.app/install.sh)           |
+| Tool       | Required | Purpose                                                     | Install                                                   |
+| ---------- | -------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| `xray`     | Yes      | Managed Xray runtime and real-delay tests                   | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
+| `sing-box` | No       | sing-box parsing and runtime-config preview for diagnostics | [sing-box.app](https://sing-box.app/install.sh)           |
 
 Install xray:
 

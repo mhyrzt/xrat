@@ -143,7 +143,7 @@ failure_policy = "continue"
 
 [testing.real_delay]
 enabled = true
-url = "https://www.google.com/generate_204"
+url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
 
 [testing.icmp]

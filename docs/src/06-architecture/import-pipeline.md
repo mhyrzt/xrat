@@ -8,37 +8,31 @@ under their source `SubscriptionRecord`.
 
 ```mermaid
 flowchart TD
-    INPUT[Raw Input String]
-    READ["app/input/source.rs::read_input"]
-    SRC["ImportSource { kind, value, name }"]
-    BYTES[Bytes]
-    IMPORT["app/import.rs::run_import"]
-    DETECT["config/import/detect.rs"]
-    MODE["ImportMode (Auto|SingleLink|Base64|Plain|Sip008|XrayJson)"]
-    PARSE["config/import::parse_import"]
-    RESULT["ImportResult { nodes, errors, metadata }"]
-    NODE["model::Node"]
-    NORM["config/normalize.rs"]
-    DEDUP["model::Node::dedup_key"]
-    PERSIST["db/repository/configs/import_ops"]
-    SUB_REC["db/repository/subscriptions (via db::database::import)"]
-    DONE[Done]
+    classDef io   fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+    classDef cfg  fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef node fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+    classDef db   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
+
+    INPUT["Raw Input\n(URL / file / stdin)"]:::io
+    READ["read_input()\napp/input/source.rs"]:::io
+    SRC["ImportSource\n{ kind, value, name }"]:::io
+    BYTES["raw bytes"]:::io
+    IMPORT["run_import()\napp/import.rs"]:::cfg
+    DETECT["detect format\nconfig/import/detect.rs"]:::cfg
+    MODE["ImportMode\n(Auto | SingleLink | Base64 | Plain | Sip008 | XrayJson)"]:::cfg
+    PARSE["parse_import()\nconfig/import/"]:::cfg
+    RESULT["ImportResult\n{ nodes, errors, metadata }"]:::cfg
+    NODE["model::Node"]:::node
+    NORM["normalize()\nconfig/normalize.rs"]:::node
+    DEDUP["dedup_key()\nmodel::Node"]:::node
+    PERSIST["upsert\ndb/repository/configs/import_ops"]:::db
+    SUB_REC["link subscription\ndb/repository/subscriptions/"]:::db
 
     INPUT --> READ
-    READ --> SRC
-    READ --> BYTES
+    READ --> SRC & BYTES
     SRC --> IMPORT
     BYTES --> IMPORT
-    IMPORT --> DETECT
-    DETECT --> MODE
-    MODE --> PARSE
-    PARSE --> RESULT
-    RESULT --> NODE
-    NODE --> NORM
-    NORM --> DEDUP
-    DEDUP --> PERSIST
-    PERSIST --> SUB_REC
-    SUB_REC --> DONE
+    IMPORT --> DETECT --> MODE --> PARSE --> RESULT --> NODE --> NORM --> DEDUP --> PERSIST --> SUB_REC
 ```
 
 ## Input Sources
@@ -98,25 +92,36 @@ returns `ImportResult { nodes, errors, metadata }`.
 Each supported protocol has a dedicated parser in `config/protocols/`:
 
 ```mermaid
-graph TD
-    LINK[Share link string]
-    ROUTE{URI scheme}
-    ROUTE -- vless:// --> VL[config/protocols/vless.rs]
-    ROUTE -- vmess:// --> VM[config/protocols/vmess.rs]
-    ROUTE -- ss:// --> SS[config/protocols/ss.rs]
-    ROUTE -- trojan:// --> TR[config/protocols/trojan.rs]
-    ROUTE -- http:// --> HT[config/protocols/http.rs]
-    ROUTE -- socks5:// --> SK[config/protocols/socks5.rs]
-    ROUTE -- hy2:// --> HY[config/protocols/hy2.rs]
-    ROUTE -- unknown --> ERR[ImportParseError::UnsupportedProtocol]
+flowchart TD
+    classDef input  fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+    classDef parser fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef node   fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+    classDef err    fill:#3a1a1a,stroke:#df5b5b,color:#e6edf3
 
-    VL --> NODE[model::Node]
-    VM --> NODE
-    SS --> NODE
-    TR --> NODE
-    HT --> NODE
-    SK --> NODE
-    HY --> NODE
+    LINK["share link string"]:::input
+    ROUTE{"URI scheme"}
+
+    VL["vless.rs"]:::parser
+    VM["vmess.rs"]:::parser
+    SS["ss.rs"]:::parser
+    TR["trojan.rs"]:::parser
+    HT["http.rs"]:::parser
+    SK["socks5.rs"]:::parser
+    HY["hy2.rs"]:::parser
+    ERR["ImportParseError\n::UnsupportedProtocol"]:::err
+    NODE["model::Node"]:::node
+
+    LINK --> ROUTE
+    ROUTE -- "vless://" --> VL
+    ROUTE -- "vmess://" --> VM
+    ROUTE -- "ss://"    --> SS
+    ROUTE -- "trojan://" --> TR
+    ROUTE -- "http://"  --> HT
+    ROUTE -- "socks5://" --> SK
+    ROUTE -- "hy2://"   --> HY
+    ROUTE -- "unknown"  --> ERR
+
+    VL & VM & SS & TR & HT & SK & HY --> NODE
 ```
 
 The `Protocol` enum lives in `model/protocol.rs` and serializes lowercase

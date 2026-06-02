@@ -25,7 +25,7 @@ Tracks import sources (URLs, files, raw text).
 ```sql
 CREATE TABLE subscriptions (
     id INTEGER PRIMARY KEY,
-    source_url TEXT NOT NULL,
+    source_url TEXT,
     source_kind TEXT NOT NULL CHECK(source_kind IN ('url', 'file', 'raw_text')),
     name TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -51,7 +51,7 @@ Stores normalized proxy nodes.
 ```sql
 CREATE TABLE configs (
     id INTEGER PRIMARY KEY,
-    subscription_id INTEGER REFERENCES subscriptions(id) ON DELETE CASCADE,
+    subscription_id INTEGER REFERENCES subscriptions(id),
     dedup_key TEXT NOT NULL UNIQUE,
     protocol TEXT NOT NULL,
     address TEXT NOT NULL,
@@ -60,17 +60,18 @@ CREATE TABLE configs (
     uuid TEXT,
     password TEXT,
     method TEXT,
-    network TEXT NOT NULL DEFAULT 'tcp',
+    network TEXT NOT NULL,
     tls TEXT,
     sni TEXT,
     host TEXT,
     path TEXT,
     name TEXT,
-    raw_config TEXT NOT NULL DEFAULT '',
+    raw_config TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 0,
     is_enabled INTEGER NOT NULL DEFAULT 1,
     is_selected INTEGER NOT NULL DEFAULT 0,
     is_deleted INTEGER NOT NULL DEFAULT 0,
+    imported_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -99,6 +100,7 @@ CREATE TABLE configs (
 | `is_active`       | BOOLEAN   | Currently active runtime config                           |
 | `is_enabled`      | BOOLEAN   | Included in bulk operations                               |
 | `is_selected`     | BOOLEAN   | User-selected config                                      |
+| `imported_at`     | TIMESTAMP | Import timestamp                                          |
 | `is_deleted`      | BOOLEAN   | Soft-deleted flag                                         |
 | `deleted_at`      | TIMESTAMP | Deletion timestamp                                        |
 | `created_at`      | TIMESTAMP | Insertion timestamp                                       |
@@ -120,7 +122,7 @@ Stores individual test results per config.
 ```sql
 CREATE TABLE connection_tests (
     id INTEGER PRIMARY KEY,
-    run_id INTEGER NOT NULL REFERENCES connection_test_runs(id),
+    run_id INTEGER REFERENCES connection_test_runs(id),
     config_id INTEGER NOT NULL REFERENCES configs(id),
     icmp_ok INTEGER,
     icmp_ms INTEGER,
@@ -182,7 +184,7 @@ Groups test results into batches.
 ```sql
 CREATE TABLE connection_test_runs (
     id INTEGER PRIMARY KEY,
-    kind TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -202,8 +204,8 @@ Tracks proxy process lifecycle.
 ```sql
 CREATE TABLE runtime_sessions (
     id INTEGER PRIMARY KEY,
-    config_id INTEGER NOT NULL REFERENCES configs(id),
-    status TEXT NOT NULL DEFAULT 'stopped'
+    config_id INTEGER REFERENCES configs(id),
+    status TEXT NOT NULL
         CHECK(status IN ('starting', 'running', 'stopping', 'stopped', 'failed')),
     socks_host TEXT,
     socks_port INTEGER,
@@ -213,46 +215,52 @@ CREATE TABLE runtime_sessions (
     shadowsocks_port INTEGER,
     process_id INTEGER,
     failure_reason TEXT,
-    owner_kind TEXT NOT NULL DEFAULT 'cli',
+    owner_kind TEXT,
     owner_instance_id TEXT,
-    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_transition_reason_code TEXT,
+    last_transition_reason_detail TEXT,
+    last_transition_origin TEXT,
+    cooldown_until TEXT,
+    last_failed_at TEXT,
+    last_failed_reason_code TEXT,
+    started_at TIMESTAMP,
     stopped_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-| Column              | Type      | Description                                            |
-| ------------------- | --------- | ------------------------------------------------------ |
-| `id`                | INTEGER   | Primary key                                            |
-| `config_id`         | INTEGER   | FK to configs                                          |
-| `status`            | TEXT      | `starting`, `running`, `stopping`, `stopped`, `failed` |
-| `socks_host`        | TEXT      | SOCKS inbound host                                     |
-| `socks_port`        | INTEGER   | SOCKS inbound port                                     |
-| `http_host`         | TEXT      | HTTP inbound host (if enabled)                         |
-| `http_port`         | INTEGER   | HTTP inbound port                                      |
-| `shadowsocks_host`  | TEXT      | Shadowsocks inbound host (if enabled)                  |
-| `shadowsocks_port`  | INTEGER   | Shadowsocks inbound port                               |
-| `process_id`        | INTEGER   | OS process ID                                          |
-| `failure_reason`    | TEXT      | Error message (if failed)                              |
-| `owner_kind`        | TEXT      | `cli` or `daemon`                                      |
-| `owner_instance_id` | TEXT      | Daemon instance UUID                                   |
-| `started_at`        | TIMESTAMP | Session start timestamp                                |
-| `stopped_at`        | TIMESTAMP | Session stop timestamp                                 |
-| `created_at`        | TIMESTAMP | Record creation timestamp                              |
-| `updated_at`        | TIMESTAMP | Last update timestamp                                  |
+| Column                          | Type      | Description                                                |
+| ------------------------------- | --------- | ---------------------------------------------------------- |
+| `id`                            | INTEGER   | Primary key                                                |
+| `config_id`                     | INTEGER   | FK to configs                                              |
+| `status`                        | TEXT      | `starting`, `running`, `stopping`, `stopped`, `failed`     |
+| `socks_host`                    | TEXT      | SOCKS inbound host                                         |
+| `socks_port`                    | INTEGER   | SOCKS inbound port                                         |
+| `http_host`                     | TEXT      | HTTP inbound host (if enabled)                             |
+| `http_port`                     | INTEGER   | HTTP inbound port                                          |
+| `shadowsocks_host`              | TEXT      | Shadowsocks inbound host (if enabled)                      |
+| `shadowsocks_port`              | INTEGER   | Shadowsocks inbound port                                   |
+| `process_id`                    | INTEGER   | OS process ID                                              |
+| `failure_reason`                | TEXT      | Error message (if failed)                                  |
+| `owner_kind`                    | TEXT      | `cli` or `daemon`                                          |
+| `owner_instance_id`             | TEXT      | Daemon instance UUID                                       |
+| `last_transition_reason_code`   | TEXT      | Machine-readable transition reason code                    |
+| `last_transition_reason_detail` | TEXT      | Human-readable transition details                          |
+| `last_transition_origin`        | TEXT      | Transition source such as CLI, daemon, health, or rotation |
+| `cooldown_until`                | TEXT      | Rotation cooldown expiry as epoch seconds                  |
+| `last_failed_at`                | TEXT      | Last runtime/health failure time as epoch seconds          |
+| `last_failed_reason_code`       | TEXT      | Machine-readable last failure reason code                  |
+| `started_at`                    | TIMESTAMP | Session start timestamp                                    |
+| `stopped_at`                    | TIMESTAMP | Session stop timestamp                                     |
+| `created_at`                    | TIMESTAMP | Record creation timestamp                                  |
+| `updated_at`                    | TIMESTAMP | Last update timestamp                                      |
 
 **Indexes**:
 
 - `config_id` — per-config queries
 - `status` — running session lookup
 - `(owner_kind, owner_instance_id)` — daemon reattach queries
-
-**Additional fields** (added in migration 0014):
-
-- `cooldown_until` — Rotation cooldown timestamp
-- `failure_count` — Consecutive failure counter
-- `last_failure_at` — Last failure timestamp
 
 ---
 

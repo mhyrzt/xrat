@@ -53,6 +53,22 @@ pub enum RuntimeSessionStatus {
 
 `as_str()` returns the snake-case string stored in the DB column.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Starting : connect / replace
+
+    Starting --> Running   : process ready
+    Starting --> Failed    : spawn error
+
+    Running  --> Stopping  : disconnect / replace
+    Running  --> Failed    : reattach rejected
+
+    Stopping --> Stopped   : process exited
+
+    Stopped  --> [*]
+    Failed   --> [*]
+```
+
 ## Derived Runtime Display
 
 The status snapshot folds in PID liveness and inbound reachability, so the
@@ -170,26 +186,30 @@ marked `Failed` with a precise reason code.
 
 ```mermaid
 flowchart TD
-    START[Daemon starts]
-    LOAD[get_running_runtime_session]
-    FOUND{Session found?}
-    NO[Nothing to reattach]
-    CHECK_PID{PID still alive?}
-    VALIDATE{Exec + cmdline match?}
-    HEALTH{Any inbound reachable?}
-    RECONCILE[Keep as Running]
-    STALE[Mark Failed with reason code]
+    classDef start fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef check fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef ok    fill:#1a3a1a,stroke:#5bdf8a,color:#e6edf3
+    classDef fail  fill:#3a1a1a,stroke:#df5b5b,color:#e6edf3
 
-    START --> LOAD
-    LOAD --> FOUND
-    FOUND -- no --> NO
-    FOUND -- yes --> CHECK_PID
-    CHECK_PID -- no --> STALE
-    CHECK_PID -- yes --> VALIDATE
-    VALIDATE -- no --> STALE
-    VALIDATE -- yes --> HEALTH
-    HEALTH -- ok --> RECONCILE
-    HEALTH -- none --> STALE
+    START["daemon starts"]:::start
+    LOAD["get_running_runtime_session"]:::check
+    FOUND{"session found?"}:::check
+    NO["nothing to reattach"]:::ok
+    CHECK_PID{"PID still alive?"}:::check
+    VALIDATE{"exec + cmdline match?"}:::check
+    HEALTH{"any inbound reachable?"}:::check
+    RECONCILE["keep as Running"]:::ok
+    STALE["mark Failed\n(with reason code)"]:::fail
+
+    START --> LOAD --> FOUND
+    FOUND -- "no"  --> NO
+    FOUND -- "yes" --> CHECK_PID
+    CHECK_PID -- "no"  --> STALE
+    CHECK_PID -- "yes" --> VALIDATE
+    VALIDATE  -- "no"  --> STALE
+    VALIDATE  -- "yes" --> HEALTH
+    HEALTH    -- "ok"  --> RECONCILE
+    HEALTH    -- "none reachable" --> STALE
 ```
 
 Reject reason codes:

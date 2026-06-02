@@ -121,10 +121,10 @@ engine = "xray"     # "xray" | "v2ray" | "sing-box"
 replace_active_session = true
 ```
 
-| Field                    | Type    | Default | Description                               |
-| ------------------------ | ------- | ------- | ----------------------------------------- |
-| `engine`                 | enum    | `xray`  | Proxy engine: `xray`, `v2ray`, `sing-box` |
-| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect            |
+| Field                    | Type    | Default | Description                                                                                              |
+| ------------------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `engine`                 | enum    | `xray`  | Managed runtime engine. Xray/V2Ray are currently used for `connect`; sing-box is parse/preview oriented. |
+| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                           |
 
 ---
 
@@ -402,20 +402,18 @@ update_interval_hours = 168
 
 | Field                   | Type     | Default                                                                          | Description                                                      |
 | ----------------------- | -------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `dir`                   | string   | `mmdb`                                                                           | MMDB directory (relative to `XRAT_PATH` or config location)      |
+| `dir`                   | string   | `mmdb`                                                                           | MMDB directory (absolute, or relative to the xrat runtime root)  |
 | `download_url`          | string   | `https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb` | Download URL template. `{edition}` is replaced with edition name |
 | `timeout_secs`          | integer  | `60`                                                                             | HTTP request timeout for downloads                               |
 | `default_editions`      | string[] | `["country", "city", "asn"]`                                                     | Editions downloaded when no `--edition` or `--all` flag given    |
 | `auto_update`           | boolean  | `false`                                                                          | Enable periodic update checks                                    |
 | `update_interval_hours` | integer  | `168`                                                                            | Update interval in hours                                         |
 
-The `dir` field is resolved in this order:
-
-1. If `XRAT_PATH` is set, relative to `XRAT_PATH`
-2. If a config file is loaded, relative to the config file directory
-3. Relative to the default config directory (`~/.config/xrat`)
-
-Absolute paths are used as-is.
+The `dir` field is resolved relative to the xrat runtime root (`XRAT_PATH` when
+set, otherwise the default app root). Absolute paths are used as-is. The default
+per-edition MMDB paths under `[testing.geoip]` also resolve through this MMDB
+directory; custom relative per-edition paths are resolved relative to the config
+file directory.
 
 ---
 
@@ -431,7 +429,7 @@ failure_policy = "continue"  # "continue" | "skip_remaining" | "mark_failed"
 
 [testing.real_delay]
 enabled = true
-url = "https://www.google.com/generate_204"
+url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
 
 [testing.icmp]
@@ -448,11 +446,6 @@ timeout = 30_000
 enabled = true
 timeout = 5000
 
-[testing.upload]
-enabled = false
-url = "https://example.com/upload"
-timeout = 30_000
-
 [testing.geoip]
 enabled = false
 backend = "mmdb"
@@ -466,47 +459,48 @@ provider = "ipwhois"
 endpoint = ""
 timeout_ms = 5000
 api_key = ""
-rate_limit_per_minute = 60
+rate_limit_per_minute = 30
 
 [testing.geoip.cache]
 enabled = true
-ttl_secs = 300
-max_entries = 1000
+ttl_secs = 86400
+max_entries = 10000
 ```
 
-| Section           | Field                   | Type     | Default                               | Description                                                           |
-| ----------------- | ----------------------- | -------- | ------------------------------------- | --------------------------------------------------------------------- |
-| `[testing]`       | `concurrency`           | integer  | `0`                                   | Test workers (0 = auto)                                               |
-| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`  | Stage execution order                                                 |
-| `[testing]`       | `failure_policy`        | enum     | `continue`                            | Behavior on stage failure                                             |
-| `[icmp]`          | `enabled`               | boolean  | `true`                                | Enable ICMP stage                                                     |
-| `[icmp]`          | `timeout`               | integer  | `3000`                                | ICMP timeout (ms)                                                     |
-| `[icmp]`          | `attempts`              | integer  | `3`                                   | ICMP attempt count                                                    |
-| `[tcp]`           | `enabled`               | boolean  | `true`                                | Enable TCP stage                                                      |
-| `[tcp]`           | `timeout`               | integer  | `5000`                                | TCP timeout (ms)                                                      |
-| `[real_delay]`    | `enabled`               | boolean  | `true`                                | Enable real-delay stage                                               |
-| `[real_delay]`    | `url`                   | string   | `https://www.google.com/generate_204` | Test URL                                                              |
-| `[real_delay]`    | `timeout`               | integer  | `10000`                               | HTTP request timeout (ms)                                             |
-| `[download]`      | `enabled`               | boolean  | `false`                               | Enable download stage                                                 |
-| `[download]`      | `url`                   | string   | -                                     | Download URL                                                          |
-| `[download]`      | `timeout`               | integer  | `30000`                               | Download timeout (ms)                                                 |
-| `[upload]`        | `enabled`               | boolean  | `false`                               | Enable upload stage                                                   |
-| `[upload]`        | `url`                   | string   | -                                     | Upload URL                                                            |
-| `[upload]`        | `timeout`               | integer  | `30000`                               | Upload timeout (ms)                                                   |
-| `[testing.geoip]` | `enabled`               | boolean  | `false`                               | Enable GeoIP enrichment                                               |
-| `[testing.geoip]` | `backend`               | enum     | `mmdb`                                | Lookup backend: `mmdb`, `ipwhois`, `ip-api`, `chain`                  |
-| `[testing.geoip]` | `fallback`              | enum     | `none`                                | Fallback backend when primary is `chain`: `ipwhois`, `ip-api`, `none` |
-| `[testing.geoip]` | `country_path`          | string   | `mmdb/GeoLite2-Country.mmdb`          | Country MMDB path (relative to config)                                |
-| `[testing.geoip]` | `city_path`             | string   | `mmdb/GeoLite2-City.mmdb`             | City MMDB path (relative to config)                                   |
-| `[testing.geoip]` | `asn_path`              | string   | `mmdb/GeoLite2-ASN.mmdb`              | ASN MMDB path (relative to config)                                    |
-| `[remote]`        | `provider`              | enum     | `ipwhois`                             | Remote provider: `ipwhois`, `ip-api`                                  |
-| `[remote]`        | `endpoint`              | string   | `""` (uses provider default)          | Remote API endpoint override                                          |
-| `[remote]`        | `timeout_ms`            | integer  | `5000`                                | Remote request timeout in milliseconds                                |
-| `[remote]`        | `api_key`               | string   | `""`                                  | API key (provider-specific)                                           |
-| `[remote]`        | `rate_limit_per_minute` | integer  | `60`                                  | Max remote requests per minute                                        |
-| `[cache]`         | `enabled`               | boolean  | `true`                                | Enable in-memory caching                                              |
-| `[cache]`         | `ttl_secs`              | integer  | `300`                                 | Cache entry TTL in seconds                                            |
-| `[cache]`         | `max_entries`           | integer  | `1000`                                | Maximum cache entries                                                 |
+| Section           | Field                   | Type     | Default                                | Description                                                           |
+| ----------------- | ----------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------- |
+| `[testing]`       | `concurrency`           | integer  | `0`                                    | Test workers (0 = auto)                                               |
+| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`   | Stage execution order                                                 |
+| `[testing]`       | `failure_policy`        | enum     | `continue`                             | Behavior on stage failure                                             |
+| `[icmp]`          | `enabled`               | boolean  | `true`                                 | Enable ICMP stage                                                     |
+| `[icmp]`          | `timeout`               | integer  | `3000`                                 | ICMP timeout (ms)                                                     |
+| `[icmp]`          | `attempts`              | integer  | `3`                                    | ICMP attempt count                                                    |
+| `[tcp]`           | `enabled`               | boolean  | `true`                                 | Enable TCP stage                                                      |
+| `[tcp]`           | `timeout`               | integer  | `5000`                                 | TCP timeout (ms)                                                      |
+| `[real_delay]`    | `enabled`               | boolean  | `true`                                 | Enable real-delay stage                                               |
+| `[real_delay]`    | `url`                   | string   | `https://www.gstatic.com/generate_204` | Test URL                                                              |
+| `[real_delay]`    | `timeout`               | integer  | `10000`                                | HTTP request timeout (ms)                                             |
+| `[download]`      | `enabled`               | boolean  | `false`                                | Enable download stage                                                 |
+| `[download]`      | `url`                   | string   | -                                      | Download URL                                                          |
+| `[download]`      | `timeout`               | integer  | `30000`                                | Download timeout (ms)                                                 |
+| `[testing.geoip]` | `enabled`               | boolean  | `false`                                | Enable GeoIP enrichment                                               |
+| `[testing.geoip]` | `backend`               | enum     | `mmdb`                                 | Lookup backend: `mmdb`, `ipwhois`, `ip-api`, `chain`                  |
+| `[testing.geoip]` | `fallback`              | enum     | `none`                                 | Fallback backend when primary is `chain`: `ipwhois`, `ip-api`, `none` |
+| `[testing.geoip]` | `country_path`          | string   | `mmdb/GeoLite2-Country.mmdb`           | Country MMDB path (relative to config)                                |
+| `[testing.geoip]` | `city_path`             | string   | `mmdb/GeoLite2-City.mmdb`              | City MMDB path (relative to config)                                   |
+| `[testing.geoip]` | `asn_path`              | string   | `mmdb/GeoLite2-ASN.mmdb`               | ASN MMDB path (relative to config)                                    |
+| `[remote]`        | `provider`              | enum     | `ipwhois`                              | Remote provider: `ipwhois`, `ip-api`                                  |
+| `[remote]`        | `endpoint`              | string   | `""` (uses provider default)           | Remote API endpoint override                                          |
+| `[remote]`        | `timeout_ms`            | integer  | `5000`                                 | Remote request timeout in milliseconds                                |
+| `[remote]`        | `api_key`               | string   | `""`                                   | API key (provider-specific)                                           |
+| `[remote]`        | `rate_limit_per_minute` | integer  | `30`                                   | Max remote requests per minute                                        |
+| `[cache]`         | `enabled`               | boolean  | `true`                                 | Enable in-memory caching                                              |
+| `[cache]`         | `ttl_secs`              | integer  | `86400`                                | Cache entry TTL in seconds                                            |
+| `[cache]`         | `max_entries`           | integer  | `10000`                                | Maximum cache entries                                                 |
+
+Upload tests are enabled per invocation with `xrat test --upload-url <url>`.
+There is no `[testing.upload]` config section; `--upload-timeout` overrides the
+default 30-second upload timeout.
 
 ---
 

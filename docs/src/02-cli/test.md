@@ -78,7 +78,7 @@ When testing multiple configs (no `id` specified):
 
 ## Test Stages
 
-The test command runs up to 5 stages in sequence:
+The test command can record up to 5 probe result types:
 
 | Stage          | Measures                              | Default  |
 | -------------- | ------------------------------------- | -------- |
@@ -90,12 +90,17 @@ The test command runs up to 5 stages in sequence:
 
 ### Stage Order
 
-The default order is configurable via `config.toml`:
+The default order for ICMP, real-delay, and download is configurable via
+`config.toml`:
 
 ```toml
 [testing]
 order = ["icmp", "real_delay", "download"]
 ```
+
+TCP is used as a gate before real-delay when enabled. Upload runs after download
+only when `--upload-url <url>` is provided; there is no `[testing.upload]`
+config section.
 
 ### Failure Policy
 

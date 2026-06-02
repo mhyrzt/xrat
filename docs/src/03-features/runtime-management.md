@@ -308,11 +308,11 @@ Choose the proxy engine in `config.toml`:
 engine = "xray"  # "xray" | "v2ray" | "sing-box"
 ```
 
-| Engine     | Binary     | Protocols                                            |
-| ---------- | ---------- | ---------------------------------------------------- |
-| `xray`     | `xray`     | All except Hysteria2                                 |
-| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5      |
-| `sing-box` | `sing-box` | All protocols (currently only Hysteria2 implemented) |
+| Engine     | Binary     | Protocols                                                                                    |
+| ---------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `xray`     | `xray`     | All except Hysteria2                                                                         |
+| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                              |
+| `sing-box` | `sing-box` | Parse-time/runtime-config preview only; managed process lifecycle is not yet sing-box parity |
 
 ## Related
 

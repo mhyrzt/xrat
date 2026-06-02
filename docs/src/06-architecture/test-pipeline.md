@@ -8,24 +8,23 @@ row plus a `connection_test_runs` row that groups the batch.
 
 ```mermaid
 flowchart TD
-    START[CLI: xrat test]
-    RESOLVE["settings/resolve.rs::resolve_test_settings"]
-    LOAD[db/repository/configs/ load targets]
-    EXEC["bulk/single.rs run for each config"]
-    PROBE[Generate probe config + spawn Xray]
-    STAGES[Run enabled stages sequentially]
-    KILL[Kill probe process]
-    SAVE[db/repository/connection_tests/ persist + run row]
-    OUT["output/print.rs format & print"]
+    classDef cli    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef probe  fill:#2a2a1a,stroke:#c0df5b,color:#e6edf3
+    classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    START --> RESOLVE
-    RESOLVE --> LOAD
-    LOAD --> EXEC
-    EXEC --> PROBE
-    PROBE --> STAGES
-    STAGES --> KILL
-    KILL --> SAVE
-    SAVE --> OUT
+    START["CLI: xrat test"]:::cli
+    RESOLVE["resolve_test_settings()\nsettings/resolve.rs"]:::app
+    LOAD["load target configs\ndb/repository/configs/"]:::store
+    EXEC["run for each config\nbulk/single.rs"]:::app
+    PROBE["generate probe config\nspawn Xray process"]:::engine
+    STAGES["run enabled stages\nsequentially"]:::probe
+    KILL["kill probe process"]:::engine
+    SAVE["persist results\ndb/repository/connection_tests/"]:::store
+    OUT["format & print\noutput/print.rs"]:::app
+
+    START --> RESOLVE --> LOAD --> EXEC --> PROBE --> STAGES --> KILL --> SAVE --> OUT
 ```
 
 ## Probers
@@ -197,11 +196,24 @@ pub enum FailureKind {
 
 ```mermaid
 flowchart LR
-    FAIL[Test failure] --> CAT{Prober}
-    CAT -- "ICMP" --> ICMP["dns, timeout, permission_denied, unreachable, unknown"]
-    CAT -- "TCP" --> TCP["dns, timeout, refused, unreachable, permission_denied, unknown"]
-    CAT -- "RealDelay" --> RD["process, timeout, tls, auth, proxy, unknown"]
-    CAT -- "Download / Upload" --> TH["process, timeout, tls, auth, proxy, unknown"]
+    classDef input fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef icmp  fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef tcp   fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef http  fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+
+    FAIL["test failure"]:::input
+    CAT{"prober"}
+
+    ICMP["dns · timeout · permission_denied\nunreachable · unknown"]:::icmp
+    TCP["dns · timeout · refused\nunreachable · permission_denied · unknown"]:::tcp
+    RD["process · timeout · tls\nauth · proxy · unknown"]:::http
+    TH["process · timeout · tls\nauth · proxy · unknown"]:::http
+
+    FAIL --> CAT
+    CAT -- "ICMP"            --> ICMP
+    CAT -- "TCP"             --> TCP
+    CAT -- "RealDelay"       --> RD
+    CAT -- "Download/Upload" --> TH
 ```
 
 ## Stage Execution
@@ -214,11 +226,22 @@ probe config and spawn a short-lived Xray process via
 
 ```mermaid
 flowchart LR
-    ICMP[ICMP] --> TCP[TCP]
-    TCP --> REAL[Real Delay]
-    REAL --> DL[Download]
-    DL -. optional .-> UL[Upload]
+    classDef direct fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef proxy  fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef opt    fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+
+    ICMP["ICMP\n(direct)"]:::direct
+    TCP["TCP\n(direct)"]:::direct
+    REAL["Real Delay\n(via Xray)"]:::proxy
+    DL["Download\n(via Xray)"]:::proxy
+    UL["Upload\n(via Xray, optional)"]:::opt
+
+    ICMP --> TCP --> REAL --> DL -.-> UL
 ```
+
+Stages marked **(direct)** probe the remote endpoint without a proxy process.
+Stages marked **(via Xray)** spawn a short-lived Xray probe instance on a random
+local port. Upload runs only when `upload_url` is configured.
 
 ## Persistence
 

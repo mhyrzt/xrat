@@ -6,103 +6,70 @@ integration.
 
 ## Component Diagram
 
+Arrows show dependency direction (A → B means A depends on B).
+
 ```mermaid
-graph LR
-    classDef entry fill:#2c3a52,stroke:#5b8def,color:#e6edf3
-    classDef cli fill:#2c3a52,stroke:#5b8def,color:#e6edf3
-    classDef app fill:#2c4a3a,stroke:#5bdf8a,color:#e6edf3
-    classDef model fill:#4a3a2c,stroke:#dfa85b,color:#e6edf3
-    classDef cfg fill:#3a2c4a,stroke:#a85bdf,color:#e6edf3
-    classDef db fill:#2c4a4a,stroke:#5bdfd3,color:#e6edf3
-    classDef engine fill:#4a2c3a,stroke:#df5b8a,color:#e6edf3
-    classDef prober fill:#4a4a2c,stroke:#dfdf5b,color:#e6edf3
-    classDef server fill:#2c4a2c,stroke:#5bdf5b,color:#e6edf3
-    classDef supp fill:#2c2c4a,stroke:#8a8adf,color:#e6edf3
+graph TB
+    classDef entry  fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef iface  fill:#1a3a2a,stroke:#5bdf8a,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef domain fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef probe  fill:#2a2a1a,stroke:#c0df5b,color:#e6edf3
 
     main["main.rs"]:::entry
-    lib["lib.rs"]:::entry
 
-    cli["src/cli/"]:::cli
-    cmds["commands/"]:::app
-    rtsvc["runtime_service/"]:::app
-    daemon["daemon/"]:::app
-    ctx["context/"]:::app
+    subgraph ui["User Interfaces"]
+        cli["cli/"]:::iface
+        server["server/"]:::iface
+        tui["tui/"]:::iface
+    end
 
-    model["src/model/"]:::model
+    subgraph app_layer["Application Layer"]
+        cmds["commands/"]:::app
+        daemon["daemon/"]:::app
+        rtsvc["runtime_service/"]:::app
+    end
 
-    config["src/config/"]:::cfg
-    protos["protocols/"]:::cfg
-    import["import/"]:::cfg
+    subgraph domain_layer["Domain & Config"]
+        model["model/"]:::domain
+        config["config/"]:::domain
+        support["support/"]:::domain
+    end
 
-    db["src/db/"]:::db
-    repo["repository/"]:::db
-    record["record/"]:::db
+    db["db/"]:::store
 
-    xray["src/xray/"]:::engine
-    xparse["parsing/"]:::engine
-    xcfg["config/"]:::engine
-    xproc["process/"]:::engine
-    xpm["process_mgmt/"]:::engine
+    subgraph engine_layer["Proxy Engines"]
+        xray["xray/"]:::engine
+        singbox["singbox/"]:::engine
+    end
 
-    singbox["src/singbox/"]:::engine
+    prober["prober/"]:::probe
 
-    prober["src/prober/"]:::prober
-    picmp["icmp/"]:::prober
-    ptcp["tcp/"]:::prober
-    prd["real_delay/"]:::prober
-    pdl["download/"]:::prober
-    pul["upload/"]:::prober
-
-    server["src/server/"]:::server
-
-    support["src/support/"]:::supp
-
-    main --> lib
-    lib --> cli
-    lib --> cmds
-    lib --> ctx
-    lib --> model
-    lib --> config
-    lib --> db
-    lib --> xray
-    lib --> singbox
-    lib --> prober
-    lib --> server
-    lib --> support
+    main --> cli
+    main --> cmds
 
     cmds --> rtsvc
     cmds --> daemon
-    rtsvc --> xpm
     daemon --> rtsvc
+    rtsvc --> xray
 
-    config --> protos
-    config --> import
     config --> model
+    support --> config
+    support --> db
 
-    db --> repo
-    db --> record
-    repo --> xray
-    repo --> prober
+    db --> xray
+    db --> prober
 
-    xray --> xcfg
-    xray --> xparse
-    xray --> xproc
-    xray --> xpm
-    xpm --> xproc
-
-    prober --> picmp
-    prober --> ptcp
-    prober --> prd
-    prober --> pdl
-    prober --> pul
     prober --> xray
     prober --> model
 
     server --> db
     server --> model
 
-    support --> config
-    support --> db
+    tui --> cmds
+    tui --> db
 ```
 
 ## Module Responsibilities
@@ -126,96 +93,90 @@ graph LR
 
 ```mermaid
 flowchart LR
-    SRC[Input: URL / File / Stdin]
-    APP_IN[app/input/]
-    DETECT[config/import/detect]
-    PARSE_FMT[config/import/parsers/]
-    PROTO[config/protocols/]
-    NORM[config/normalize/]
-    DEDUP[model/node_dedup_key/]
-    PERSIST[db/repository/configs/]
-    SUB[db/repository/subscriptions/]
+    classDef io   fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+    classDef cfg  fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef db   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    SRC --> APP_IN
-    APP_IN --> DETECT
-    DETECT --> PARSE_FMT
-    PARSE_FMT --> PROTO
-    PROTO --> NORM
-    NORM --> DEDUP
-    DEDUP --> PERSIST
-    PERSIST --> SUB
+    SRC["Input\n(URL / File / Stdin)"]:::io
+    APP_IN["app/input/"]:::io
+    DETECT["config/import/detect"]:::cfg
+    PARSE_FMT["config/import/parsers/"]:::cfg
+    PROTO["config/protocols/"]:::cfg
+    NORM["config/normalize/"]:::cfg
+    DEDUP["model/node_dedup_key/"]:::cfg
+    PERSIST["db/repository/configs/"]:::db
+    SUB["db/repository/subscriptions/"]:::db
+
+    SRC --> APP_IN --> DETECT --> PARSE_FMT --> PROTO --> NORM --> DEDUP --> PERSIST --> SUB
 ```
 
 ### Test Flow
 
 ```mermaid
 flowchart TD
-    CLI[CLI args]
-    SET[app/commands/test/ resolve settings]
-    LOAD[db/repository/configs/ load configs]
-    LOOP{For each config}
-    GEN[xray/config/generator/ probe config]
-    SPAWN[xray/process/ spawn Xray]
-    ICMP[prober/icmp/]
-    TCP[prober/tcp/]
-    DELAY[prober/real_delay/]
-    DL[prober/download/]
-    UL[prober/upload/]
-    KILL[xray/process/ kill probe]
-    SAVE[db/repository/connection_tests/ persist]
-    OUT[app/commands/test/output/ format & print]
+    classDef cli    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef probe  fill:#2a2a1a,stroke:#c0df5b,color:#e6edf3
+    classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    CLI --> SET
-    SET --> LOAD
-    LOAD --> LOOP
-    LOOP --> GEN
-    GEN --> SPAWN
-    SPAWN --> ICMP
-    ICMP --> TCP
-    TCP --> DELAY
-    DELAY --> DL
-    DL --> UL
-    UL --> KILL
-    KILL --> LOOP
-    LOOP --> SAVE
-    SAVE --> OUT
+    CLI["CLI args"]:::cli
+    SET["resolve settings\napp/commands/test/"]:::app
+    LOAD["load configs\ndb/repository/configs/"]:::store
+    LOOP{"For each config"}
+    GEN["generate probe config\nxray/config/generator/"]:::engine
+    SPAWN["spawn Xray\nxray/process/"]:::engine
+    ICMP["prober/icmp/"]:::probe
+    TCP["prober/tcp/"]:::probe
+    DELAY["prober/real_delay/"]:::probe
+    DL["prober/download/"]:::probe
+    UL["prober/upload/"]:::probe
+    KILL["kill probe\nxray/process/"]:::engine
+    SAVE["persist results\ndb/repository/connection_tests/"]:::store
+    OUT["format & print\napp/commands/test/output/"]:::app
+
+    CLI --> SET --> LOAD --> LOOP
+    LOOP --> GEN --> SPAWN --> ICMP --> TCP --> DELAY --> DL --> UL --> KILL --> LOOP
+    LOOP --> SAVE --> OUT
 ```
 
 ### Connect Flow
 
 ```mermaid
 flowchart LR
-    CLI[CLI args]
-    LOAD[app/commands/connect/ load config]
-    RTSVC[app/runtime_service/connect/ start session]
-    XGEN[xray/config/generator/ runtime config]
-    XSPAWN[xray/process_mgmt/ spawn detached]
-    SAVE[db/repository/runtime_sessions/ persist]
+    classDef cli    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    CLI --> LOAD
-    LOAD --> RTSVC
-    RTSVC --> XGEN
-    XGEN --> XSPAWN
-    XSPAWN --> SAVE
+    CLI["CLI args"]:::cli
+    LOAD["load config\napp/commands/connect/"]:::app
+    RTSVC["start session\napp/runtime_service/connect/"]:::app
+    XGEN["build runtime config\nxray/config/generator/"]:::engine
+    XSPAWN["spawn detached\nxray/process_mgmt/"]:::engine
+    SAVE["persist session\ndb/repository/runtime_sessions/"]:::store
+
+    CLI --> LOAD --> RTSVC --> XGEN --> XSPAWN --> SAVE
 ```
 
 ### Daemon Flow
 
 ```mermaid
 flowchart TD
-    START["xrat daemon start"]
-    FORK[Fork child process]
-    SUP["app/daemon/supervisor/ event loop"]
-    REATTACH["app/runtime_service/reattach/ reconcile"]
-    SELECT{"tokio::select!"}
-    HEALTH["Health check (every 15s)"]
-    IPC["IPC events (Unix socket)"]
-    ROTATE["Rotation timer"]
+    classDef cli    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef event  fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
 
-    START --> FORK
-    FORK --> SUP
-    SUP --> REATTACH
-    REATTACH --> SELECT
+    START["xrat daemon start"]:::cli
+    FORK["fork child process"]:::app
+    SUP["event loop\napp/daemon/supervisor/"]:::app
+    REATTACH["reconcile stale sessions\napp/runtime_service/reattach/"]:::app
+    SELECT{"tokio::select!"}:::app
+    HEALTH["health check\n(every 15s)"]:::event
+    IPC["IPC events\n(Unix socket)"]:::event
+    ROTATE["rotation timer"]:::event
+
+    START --> FORK --> SUP --> REATTACH --> SELECT
     SELECT --> HEALTH
     SELECT --> IPC
     SELECT --> ROTATE
@@ -223,23 +184,43 @@ flowchart TD
 
 ## Dependency Graph
 
+Modules ordered from most foundational (left) to most dependent (right). An
+arrow means the target depends on the source.
+
 ```mermaid
 graph LR
-    subgraph layers["Dependency Direction"]
-        direction LR
-        A[ support/ ] --> B[ model/ ]
-        B --> C[ config/ ]
-        C --> D[ db/ ]
-        C --> E[ xray/ ]
-        E --> F[ prober/ ]
-        F --> G[ app/ ]
-        G --> H[ cli/ ]
-        H --> I[ main.rs ]
-        E --> J[ singbox/ ]
-        D --> G
-        A --> K[ server/ ]
-        D --> K
-    end
+    classDef entry  fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef domain fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef probe  fill:#2a2a1a,stroke:#c0df5b,color:#e6edf3
+    classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef iface  fill:#1a3a2a,stroke:#5bdf8a,color:#e6edf3
+
+    support["support/"]:::domain
+    model["model/"]:::domain
+    config["config/"]:::domain
+    db["db/"]:::store
+    xray["xray/"]:::engine
+    singbox["singbox/"]:::engine
+    prober["prober/"]:::probe
+    app["app/"]:::app
+    cli["cli/"]:::iface
+    server["server/"]:::iface
+    main["main.rs"]:::entry
+
+    support --> model
+    model --> config
+    config --> db
+    config --> xray
+    xray --> prober
+    xray --> singbox
+    prober --> app
+    db --> app
+    app --> cli
+    cli --> main
+    support --> server
+    db --> server
 ```
 
 ## Source Tree

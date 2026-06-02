@@ -7,20 +7,25 @@ IPC requests from CLI/TUI clients, runs health checks, and drives auto-rotation.
 
 ```mermaid
 graph TB
-    CLI[xrat daemon start]
-    PARENT["Parent: validates config, forks child"]
-    CHILD["Child: execs 'xrat daemon run-server'"]
-    SOCK[Unix socket /path/to/xrat.sock]
-    CLIENT1[xrat status]
-    CLIENT2[xrat connect]
-    CLIENT3[xrat proxy start]
+    classDef cli    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef proc   fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef client fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+    classDef sock   fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+
+    CLI["xrat daemon start"]:::cli
+    PARENT["Parent process\nvalidates config, forks child"]:::proc
+    CHILD["Child process\nexecs 'xrat daemon run-server'"]:::proc
+    SOCK["Unix socket\n/path/to/xrat.sock"]:::sock
+    CLIENT1["xrat status"]:::client
+    CLIENT2["xrat connect"]:::client
+    CLIENT3["xrat proxy start"]:::client
 
     CLI --> PARENT
     PARENT -- "std::process::Command" --> CHILD
-    CHILD -- creates --> SOCK
-    CLIENT1 -- IPC request --> SOCK
-    CLIENT2 -- IPC request --> SOCK
-    CLIENT3 -- IPC request --> SOCK
+    CHILD -- "creates" --> SOCK
+    CLIENT1 -- "IPC request" --> SOCK
+    CLIENT2 -- "IPC request" --> SOCK
+    CLIENT3 -- "IPC request" --> SOCK
 ```
 
 ## Daemon Startup Sequence
@@ -145,43 +150,51 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    REQ[DaemonRequestKind]
-    REQ --> TYPE{Which request?}
-    TYPE -- DaemonPing --> TS[transport/ping_shutdown.rs]
-    TYPE -- DaemonShutdown --> TS
-    TYPE -- ProxyStart --> TP[transport/proxy.rs]
-    TYPE -- ProxyStop --> TP
-    TYPE -- ProxyStatus --> TP
-    TYPE -- RuntimeConnect --> TR[transport/runtime.rs]
-    TYPE -- RuntimeDisconnect --> TR
-    TYPE -- RuntimeReplace --> TR
-    TYPE -- RuntimeStatus --> TR
+    classDef req    fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+    classDef route  fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef trans  fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+
+    REQ["DaemonRequestKind"]:::req
+    TYPE{"dispatch"}:::route
+    TS["transport/ping_shutdown.rs"]:::trans
+    TP["transport/proxy.rs"]:::trans
+    TR["transport/runtime.rs"]:::trans
+
+    REQ --> TYPE
+    TYPE -- "DaemonPing\nDaemonShutdown" --> TS
+    TYPE -- "ProxyStart\nProxyStop\nProxyStatus" --> TP
+    TYPE -- "RuntimeConnect\nRuntimeDisconnect\nRuntimeReplace\nRuntimeStatus" --> TR
 ```
 
 ## Health Checking
 
 ```mermaid
 flowchart TD
-    TICK[Health tick fires]
-    CHECK{Active session?}
-    PROBE[Probe inbound SOCKS / HTTP ports]
-    OPEN{All inbounds reachable?}
-    RECORD[Record success]
-    INCR[Increment failure count]
-    THRESH{Failures > threshold?}
-    TRIGGER[Trigger rotation HealthCheckFailed]
-    COOLDOWN[Enter cooldown period]
-    WAIT[skip / wait]
+    classDef tick    fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef check   fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef ok      fill:#1a3a1a,stroke:#5bdf8a,color:#e6edf3
+    classDef warn    fill:#3a2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef fail    fill:#3a1a1a,stroke:#df5b5b,color:#e6edf3
+
+    TICK["health tick fires"]:::tick
+    CHECK{"active session?"}:::check
+    PROBE["probe inbound SOCKS / HTTP ports"]:::check
+    OPEN{"all inbounds reachable?"}:::check
+    RECORD["record success\nreset failure count"]:::ok
+    WAIT["skip"]:::ok
+    INCR["increment failure count"]:::warn
+    THRESH{"failures > threshold?"}:::warn
+    TRIGGER["trigger rotation\n(HealthCheckFailed)"]:::fail
+    COOLDOWN["enter cooldown period"]:::warn
 
     TICK --> CHECK
-    CHECK -- yes --> PROBE
-    CHECK -- no --> WAIT
+    CHECK -- "yes" --> PROBE
+    CHECK -- "no"  --> WAIT
     PROBE --> OPEN
-    OPEN -- yes --> RECORD
-    OPEN -- no --> INCR
-    INCR --> THRESH
-    THRESH -- yes --> TRIGGER
-    THRESH -- no --> COOLDOWN
+    OPEN  -- "yes" --> RECORD
+    OPEN  -- "no"  --> INCR --> THRESH
+    THRESH -- "yes" --> TRIGGER
+    THRESH -- "no"  --> COOLDOWN
 ```
 
 Inbound health is reported as `RuntimeInboundHealth` with per-endpoint
@@ -210,16 +223,27 @@ reports it via `ProxyStatusPayload` (`rotation_enabled`, `interval_secs`,
 
 ```mermaid
 flowchart TD
-    TRIG{Trigger source}
-    TRIG -- Timer fired --> NEXT[Select next candidate config]
-    TRIG -- Health failed --> NEXT
-    TRIG -- Manual IPC --> NEXT
-    NEXT --> BUILD["handle_runtime_replace (supervisor/handlers/runtime/runtime_lifecycle)"]
-    BUILD --> SPAWN[Spawn new Xray with new ports]
-    SPAWN --> WAIT_HEALTH[Wait for inbound health]
-    WAIT_HEALTH --> ATOMIC{Healthy?}
-    ATOMIC -- yes --> SWITCH[Atomically swap active config]
-    ATOMIC -- no --> CLEAN[Kill new process, keep old]
-    SWITCH --> STOP_OLD[Stop old process]
-    STOP_OLD --> PERSIST[Persist new session record]
+    classDef trigger fill:#1a2744,stroke:#4a9eff,color:#e6edf3
+    classDef step    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
+    classDef ok      fill:#1a3a1a,stroke:#5bdf8a,color:#e6edf3
+    classDef fail    fill:#3a1a1a,stroke:#df5b5b,color:#e6edf3
+    classDef store   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
+
+    TRIG{"trigger source"}:::trigger
+    NEXT["select next candidate config"]:::step
+    BUILD["handle_runtime_replace\nsupervisor/handlers/runtime/"]:::step
+    SPAWN["spawn new Xray\n(ephemeral ports)"]:::step
+    WAIT_HEALTH["wait for inbound health"]:::step
+    ATOMIC{"healthy?"}
+    SWITCH["atomically swap active config"]:::ok
+    CLEAN["kill new process\nkeep old session"]:::fail
+    STOP_OLD["stop old process"]:::ok
+    PERSIST["persist new session record"]:::store
+
+    TRIG -- "Timer"         --> NEXT
+    TRIG -- "HealthCheckFailed" --> NEXT
+    TRIG -- "Manual IPC"   --> NEXT
+    NEXT --> BUILD --> SPAWN --> WAIT_HEALTH --> ATOMIC
+    ATOMIC -- "yes" --> SWITCH --> STOP_OLD --> PERSIST
+    ATOMIC -- "no"  --> CLEAN
 ```

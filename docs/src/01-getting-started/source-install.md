@@ -15,7 +15,7 @@ Install:
 - Rust via [rustup](https://rustup.rs/)
 - `just`
 - `xray` in `PATH`
-- `sing-box` if you need sing-box parsing or runtime support
+- `sing-box` if you need sing-box parsing or runtime-config preview support
 
 Install `just` with Cargo if your distribution does not package it:
 

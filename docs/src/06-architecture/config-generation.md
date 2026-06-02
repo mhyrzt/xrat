@@ -11,6 +11,27 @@ The config generation pipeline:
 2. Supports probe configs (short-lived, for testing) and runtime configs
    (long-lived)
 
+```mermaid
+flowchart LR
+    classDef domain fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
+    classDef select fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+    classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
+    classDef out    fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+
+    NODE["model::Node\n(protocol, address, port, ...)"]:::domain
+    ENGINE{{"resolve_engine()\nAuto | Xray | SingBox"}}:::select
+    XGEN["xray/config/generator/\ngenerate_probe_config()\ngenerate_runtime_config()"]:::engine
+    SGEN["singbox/config/\ngenerate_probe_config()\ngenerate_runtime_config()"]:::engine
+    XOUT["Xray JSON config\n(XrayConfig)"]:::out
+    SOUT["sing-box JSON config\n(serde_json::Value)"]:::out
+
+    NODE --> ENGINE
+    ENGINE -- "VLESS, VMess, Trojan\nSS, SOCKS5, HTTP" --> XGEN
+    ENGINE -- "Hysteria2" --> SGEN
+    XGEN --> XOUT
+    SGEN --> SOUT
+```
+
 ## Xray Config Generation
 
 Located in `src/xray/config/`.

@@ -7,30 +7,44 @@ structure for developers and contributors.
 
 ```mermaid
 graph TB
-    User((User))
-    CLI[CLI / Terminal]
-    TUI[TUI ratatui]
-    Daemon[Daemon Supervisor]
-    API[HTTP API axum]
-    Xray[Xray-core]
-    SingBox[sing-box]
-    DB[(SQLite/Postgres)]
+    classDef user   fill:#3a2c1a,stroke:#dfa85b,color:#e6edf3
+    classDef iface  fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
+    classDef core   fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
+    classDef engine fill:#1a3a1a,stroke:#5bdf5b,color:#e6edf3
+    classDef store  fill:#1a3a3a,stroke:#5bdfd3,color:#e6edf3
+
+    User(("User")):::user
+
+    subgraph interfaces["User Interfaces"]
+        CLI["CLI  (terminal)"]:::iface
+        TUI["TUI  (ratatui)"]:::iface
+        API["HTTP API  (axum)"]:::iface
+    end
+
+    subgraph xrat_core["xrat Core"]
+        Daemon["Daemon Supervisor"]:::core
+    end
+
+    subgraph engines["Proxy Engines"]
+        Xray["Xray-core"]:::engine
+        SingBox["sing-box"]:::engine
+    end
+
+    DB[("SQLite / Postgres")]:::store
 
     User --> CLI
     User --> TUI
-    User -- http --> API
-    CLI -- ipc --> Daemon
-    TUI -- ipc --> Daemon
-    Daemon -- spawns --> Xray
-    Daemon -- spawns --> SingBox
+    User -- "HTTP" --> API
+
+    CLI -- "IPC" --> Daemon
+    TUI -- "IPC" --> Daemon
+
+    Daemon -- "spawns" --> Xray
+    Daemon -- "spawns" --> SingBox
+
     CLI --> DB
     Daemon --> DB
     API --> DB
-
-    style Xray fill:#4a9eff
-    style SingBox fill:#4a9eff
-    style Daemon fill:#ff9a4a
-    style DB fill:#4aff9a
 ```
 
 ## Pages

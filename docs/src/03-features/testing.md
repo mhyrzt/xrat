@@ -36,7 +36,7 @@ timeout = 5000
 
 [testing.real_delay]
 enabled = true
-url = "https://www.google.com/generate_204"
+url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
 
 [testing.download]
@@ -44,16 +44,13 @@ enabled = false
 url = "https://cachefly.cachefly.net/50mb.test"
 timeout = 30_000
 
-[testing.upload]
-enabled = false
-url = "https://example.com/upload"
-timeout = 30_000
 ```
 
 ### Stage Order
 
-The `order` array controls which stages run and in what sequence. Stages not
-listed are skipped.
+The `order` array controls ICMP, real-delay, and download ordering. TCP is a
+gate before real-delay when enabled. Upload is optional and runs after download
+only when `--upload-url` is provided.
 
 Example: skip ICMP, run only real-delay and download:
 
@@ -148,7 +145,7 @@ Measures actual HTTP round-trip latency through the proxy.
 ```toml
 [testing.real_delay]
 enabled = true
-url = "https://www.google.com/generate_204"
+url = "https://www.gstatic.com/generate_204"
 timeout = 10_000  # ms
 ```
 
@@ -215,13 +212,10 @@ timeout = 30_000  # ms
 
 Measures upload throughput by POSTing data through the proxy.
 
-### Configuration
+### Invocation
 
-```toml
-[testing.upload]
-enabled = false
-url = "https://example.com/upload"
-timeout = 30_000  # ms
+```bash
+xrat test 42 --upload-url https://example.com/upload --upload-timeout 30000
 ```
 
 ### Output
@@ -334,7 +328,7 @@ provider = "ipwhois"         # ipwhois | ip-api
 endpoint = ""                # override API endpoint (empty = provider default)
 timeout_ms = 5000
 api_key = ""                 # provider-specific (if required)
-rate_limit_per_minute = 60
+rate_limit_per_minute = 30
 ```
 
 #### Chain backend
@@ -355,8 +349,8 @@ Remote lookups are cached in memory to reduce API calls:
 ```toml
 [testing.geoip.cache]
 enabled = true
-ttl_secs = 300               # per-entry TTL
-max_entries = 1000
+ttl_secs = 86400             # per-entry TTL
+max_entries = 10000
 ```
 
 ### Test Result Enrichment
@@ -365,7 +359,7 @@ When GeoIP enrichment is enabled, test results include:
 
 - `endpoint_ip` — resolved IP address
 - `endpoint_country` — ISO country code (e.g. `NL`)
-- `endpoint_city` — city and country (e.g. `Amsterdam/NL`)
+- `endpoint_location` — location label such as city/country when available
 - `endpoint_asn` — Autonomous System Number and organization (e.g.
   `AS15169 Google LLC`)
 

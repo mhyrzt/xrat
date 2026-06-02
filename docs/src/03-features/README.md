@@ -35,10 +35,11 @@ xrat supports 7 proxy protocols:
 - **SQLite** — single-user, file-based, zero configuration
 - **PostgreSQL** — multi-user, connection pooling, production-ready
 
-### Dual Engine Support
+### Engine Support
 
-- **Xray-core** — primary engine for all protocols except Hysteria2
-- **sing-box** — secondary engine, required for Hysteria2
+- **Xray-core/V2Ray** — managed runtime engines used by `xrat connect`
+- **sing-box** — parse-time and runtime-config preview support, including
+  Hysteria2 diagnostics through `xrat parse --engine sing-box`
 
 ### Configurable Testing Pipeline
 
