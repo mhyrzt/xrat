@@ -13,6 +13,7 @@
   - [runtime](02-cli/runtime.md)
   - [daemon](02-cli/daemon.md)
   - [proxy](02-cli/proxy.md)
+  - [geoip](02-cli/geoip.md)
   - [serve](02-cli/serve.md)
 - [Features](03-features/README.md)
   - [Importing](03-features/importing.md)

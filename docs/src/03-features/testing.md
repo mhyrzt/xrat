@@ -291,19 +291,92 @@ Ping loop for config 42 (vless://example.com:443)
 
 ## GeoIP Enrichment
 
-Optionally enrich test results with GeoIP data:
+Optionally enrich test results with GeoIP data (country, city, ASN) using
+configurable lookup backends.
+
+### Backend Types
+
+| Backend   | Description                                   |
+| --------- | --------------------------------------------- |
+| `mmdb`    | Local GeoLite2 MMDB files (default)           |
+| `ipwhois` | Remote [ipwhois.app](https://ipwhois.app) API |
+| `ip-api`  | Remote [ip-api.com](https://ip-api.com) API   |
+| `chain`   | Local MMDB with remote fallback               |
+
+### Configuration
 
 ```toml
-[testing]
-geoip_mmdb = "/path/to/GeoLite2-City.mmdb"
-asn_mmdb = "/path/to/GeoLite2-ASN.mmdb"
+[testing.geoip]
+enabled = true
+backend = "mmdb"             # mmdb | ipwhois | ip-api | chain
 ```
 
-When enabled, test results include:
+#### mmdb backend
+
+Paths for local GeoLite2 MMDB files. Relative paths are resolved from the config
+file location, or from `XRAT_PATH` when set.
+
+```toml
+[testing.geoip]
+country_path = "mmdb/GeoLite2-Country.mmdb"
+city_path = "mmdb/GeoLite2-City.mmdb"
+asn_path = "mmdb/GeoLite2-ASN.mmdb"
+```
+
+Download MMDB files with the [`geoip download`](../02-cli/geoip.md#download)
+command.
+
+#### Remote backends (ipwhois / ip-api)
+
+```toml
+[testing.geoip.remote]
+provider = "ipwhois"         # ipwhois | ip-api
+endpoint = ""                # override API endpoint (empty = provider default)
+timeout_ms = 5000
+api_key = ""                 # provider-specific (if required)
+rate_limit_per_minute = 60
+```
+
+#### Chain backend
+
+Primary is local MMDB; falls back to a remote service on cache/miss or MMDB
+absence.
+
+```toml
+[testing.geoip]
+backend = "chain"
+fallback = "ipwhois"         # ipwhois | ip-api
+```
+
+#### Caching
+
+Remote lookups are cached in memory to reduce API calls:
+
+```toml
+[testing.geoip.cache]
+enabled = true
+ttl_secs = 300               # per-entry TTL
+max_entries = 1000
+```
+
+### Test Result Enrichment
+
+When GeoIP enrichment is enabled, test results include:
 
 - `endpoint_ip` — resolved IP address
-- `endpoint_country` — ISO country code
-- `endpoint_asn` — Autonomous System Number
+- `endpoint_country` — ISO country code (e.g. `NL`)
+- `endpoint_city` — city and country (e.g. `Amsterdam/NL`)
+- `endpoint_asn` — Autonomous System Number and organization (e.g.
+  `AS15169 Google LLC`)
+
+### Related
+
+- [`geoip` CLI](../02-cli/geoip.md) — manage MMDB assets, inspect backends, and
+  run ad-hoc IP lookups
+- [`[mmdb]` config](../05-reference/config-file.md#mmdb) — MMDB asset
+  configuration
+- [`[testing.geoip]` config](../05-reference/config-file.md#testinggeoip) — full
+  configuration reference
 
 ## Test Runs
 

@@ -385,6 +385,40 @@ enable_parallel_query = true
 
 ---
 
+## [mmdb]
+
+Dedicated MaxMind MMDB asset configuration, separate from `[geo]` routing
+assets.
+
+```toml
+[mmdb]
+dir = "mmdb"
+download_url = "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb"
+timeout_secs = 60
+default_editions = ["country", "city", "asn"]
+auto_update = false
+update_interval_hours = 168
+```
+
+| Field                   | Type     | Default                                                                          | Description                                                      |
+| ----------------------- | -------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `dir`                   | string   | `mmdb`                                                                           | MMDB directory (relative to `XRAT_PATH` or config location)      |
+| `download_url`          | string   | `https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb` | Download URL template. `{edition}` is replaced with edition name |
+| `timeout_secs`          | integer  | `60`                                                                             | HTTP request timeout for downloads                               |
+| `default_editions`      | string[] | `["country", "city", "asn"]`                                                     | Editions downloaded when no `--edition` or `--all` flag given    |
+| `auto_update`           | boolean  | `false`                                                                          | Enable periodic update checks                                    |
+| `update_interval_hours` | integer  | `168`                                                                            | Update interval in hours                                         |
+
+The `dir` field is resolved in this order:
+
+1. If `XRAT_PATH` is set, relative to `XRAT_PATH`
+2. If a config file is loaded, relative to the config file directory
+3. Relative to the default config directory (`~/.config/xrat`)
+
+Absolute paths are used as-is.
+
+---
+
 ## [testing]
 
 Connection testing configuration.
@@ -418,27 +452,61 @@ timeout = 5000
 enabled = false
 url = "https://example.com/upload"
 timeout = 30_000
+
+[testing.geoip]
+enabled = false
+backend = "mmdb"
+fallback = "none"
+country_path = "mmdb/GeoLite2-Country.mmdb"
+city_path = "mmdb/GeoLite2-City.mmdb"
+asn_path = "mmdb/GeoLite2-ASN.mmdb"
+
+[testing.geoip.remote]
+provider = "ipwhois"
+endpoint = ""
+timeout_ms = 5000
+api_key = ""
+rate_limit_per_minute = 60
+
+[testing.geoip.cache]
+enabled = true
+ttl_secs = 300
+max_entries = 1000
 ```
 
-| Section        | Field            | Type     | Default                               | Description               |
-| -------------- | ---------------- | -------- | ------------------------------------- | ------------------------- |
-| `[testing]`    | `concurrency`    | integer  | `0`                                   | Test workers (0 = auto)   |
-| `[testing]`    | `order`          | string[] | `["icmp", "real_delay", "download"]`  | Stage execution order     |
-| `[testing]`    | `failure_policy` | enum     | `continue`                            | Behavior on stage failure |
-| `[icmp]`       | `enabled`        | boolean  | `true`                                | Enable ICMP stage         |
-| `[icmp]`       | `timeout`        | integer  | `3000`                                | ICMP timeout (ms)         |
-| `[icmp]`       | `attempts`       | integer  | `3`                                   | ICMP attempt count        |
-| `[tcp]`        | `enabled`        | boolean  | `true`                                | Enable TCP stage          |
-| `[tcp]`        | `timeout`        | integer  | `5000`                                | TCP timeout (ms)          |
-| `[real_delay]` | `enabled`        | boolean  | `true`                                | Enable real-delay stage   |
-| `[real_delay]` | `url`            | string   | `https://www.google.com/generate_204` | Test URL                  |
-| `[real_delay]` | `timeout`        | integer  | `10000`                               | HTTP request timeout (ms) |
-| `[download]`   | `enabled`        | boolean  | `false`                               | Enable download stage     |
-| `[download]`   | `url`            | string   | -                                     | Download URL              |
-| `[download]`   | `timeout`        | integer  | `30000`                               | Download timeout (ms)     |
-| `[upload]`     | `enabled`        | boolean  | `false`                               | Enable upload stage       |
-| `[upload]`     | `url`            | string   | -                                     | Upload URL                |
-| `[upload]`     | `timeout`        | integer  | `30000`                               | Upload timeout (ms)       |
+| Section           | Field                   | Type     | Default                               | Description                                                           |
+| ----------------- | ----------------------- | -------- | ------------------------------------- | --------------------------------------------------------------------- |
+| `[testing]`       | `concurrency`           | integer  | `0`                                   | Test workers (0 = auto)                                               |
+| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`  | Stage execution order                                                 |
+| `[testing]`       | `failure_policy`        | enum     | `continue`                            | Behavior on stage failure                                             |
+| `[icmp]`          | `enabled`               | boolean  | `true`                                | Enable ICMP stage                                                     |
+| `[icmp]`          | `timeout`               | integer  | `3000`                                | ICMP timeout (ms)                                                     |
+| `[icmp]`          | `attempts`              | integer  | `3`                                   | ICMP attempt count                                                    |
+| `[tcp]`           | `enabled`               | boolean  | `true`                                | Enable TCP stage                                                      |
+| `[tcp]`           | `timeout`               | integer  | `5000`                                | TCP timeout (ms)                                                      |
+| `[real_delay]`    | `enabled`               | boolean  | `true`                                | Enable real-delay stage                                               |
+| `[real_delay]`    | `url`                   | string   | `https://www.google.com/generate_204` | Test URL                                                              |
+| `[real_delay]`    | `timeout`               | integer  | `10000`                               | HTTP request timeout (ms)                                             |
+| `[download]`      | `enabled`               | boolean  | `false`                               | Enable download stage                                                 |
+| `[download]`      | `url`                   | string   | -                                     | Download URL                                                          |
+| `[download]`      | `timeout`               | integer  | `30000`                               | Download timeout (ms)                                                 |
+| `[upload]`        | `enabled`               | boolean  | `false`                               | Enable upload stage                                                   |
+| `[upload]`        | `url`                   | string   | -                                     | Upload URL                                                            |
+| `[upload]`        | `timeout`               | integer  | `30000`                               | Upload timeout (ms)                                                   |
+| `[testing.geoip]` | `enabled`               | boolean  | `false`                               | Enable GeoIP enrichment                                               |
+| `[testing.geoip]` | `backend`               | enum     | `mmdb`                                | Lookup backend: `mmdb`, `ipwhois`, `ip-api`, `chain`                  |
+| `[testing.geoip]` | `fallback`              | enum     | `none`                                | Fallback backend when primary is `chain`: `ipwhois`, `ip-api`, `none` |
+| `[testing.geoip]` | `country_path`          | string   | `mmdb/GeoLite2-Country.mmdb`          | Country MMDB path (relative to config)                                |
+| `[testing.geoip]` | `city_path`             | string   | `mmdb/GeoLite2-City.mmdb`             | City MMDB path (relative to config)                                   |
+| `[testing.geoip]` | `asn_path`              | string   | `mmdb/GeoLite2-ASN.mmdb`              | ASN MMDB path (relative to config)                                    |
+| `[remote]`        | `provider`              | enum     | `ipwhois`                             | Remote provider: `ipwhois`, `ip-api`                                  |
+| `[remote]`        | `endpoint`              | string   | `""` (uses provider default)          | Remote API endpoint override                                          |
+| `[remote]`        | `timeout_ms`            | integer  | `5000`                                | Remote request timeout in milliseconds                                |
+| `[remote]`        | `api_key`               | string   | `""`                                  | API key (provider-specific)                                           |
+| `[remote]`        | `rate_limit_per_minute` | integer  | `60`                                  | Max remote requests per minute                                        |
+| `[cache]`         | `enabled`               | boolean  | `true`                                | Enable in-memory caching                                              |
+| `[cache]`         | `ttl_secs`              | integer  | `300`                                 | Cache entry TTL in seconds                                            |
+| `[cache]`         | `max_entries`           | integer  | `1000`                                | Maximum cache entries                                                 |
 
 ---
 
