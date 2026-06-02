@@ -10,292 +10,12 @@ implementation targets grounded in the current codebase.
 Target platform: **Linux** (primary). Windows binary builds are produced by CI
 but have limited testing and no platform-specific integration.
 
----
-
-## 1. Daemon Install and Uninstall Commands
-
-Add first-class commands for installing and removing the xrat daemon as a
-systemd user service:
-
-```bash
-xrat daemon install [--start] [--dry-run] [--with-api]
-xrat daemon uninstall [--dry-run]
-```
-
-### Current State
-
-The daemon command surface in `src/cli/daemon.rs` defines `DaemonAction` with
-four variants: `start`, `run-server` (hidden), `status`, and `stop`. The
-`packaging/systemd/` directory already contains two hand-written service files:
-
-- `xrat-daemon.service` — runs `xrat daemon run-server`
-- `xrat-api.service` — runs `xrat serve`
-
-Both files include security hardening (`NoNewPrivileges=true`,
-`ProtectSystem=strict`, `ProtectHome=read-only`,
-`ReadWritePaths=%h/.config/xrat`, `PrivateTmp=true`) and environment variables
-(`XRAT_PATH=%h/.config/xrat`, `XRAT_API_KEY=`, `RUST_LOG=info`).
-
-The current documentation at `docs/src/04-deployment/systemd.md` (393 lines)
-walks users through manually copying these files. The goal is to automate that
-process.
-
-### CLI Changes
-
-Add two new variants to `DaemonAction` in `src/cli/daemon.rs`:
-
-```rust
-Install(DaemonInstallArgs),
-Uninstall(DaemonUninstallArgs),
-```
-
-Argument structs:
-
-```rust
-#[derive(Args)]
-struct DaemonInstallArgs {
-    /// Start the daemon immediately after enabling
-    #[arg(long)]
-    start: bool,
-
-    /// Print the generated service unit without writing files
-    #[arg(long)]
-    dry_run: bool,
-
-    /// Install the API server service alongside the daemon
-    #[arg(long)]
-    with_api: bool,
-}
-
-#[derive(Args)]
-struct DaemonUninstallArgs {
-    /// Print actions without executing them
-    #[arg(long)]
-    dry_run: bool,
-}
-```
-
-### Implementation Details
-
-**Service file generation** — add `src/app/commands/daemon_install.rs`:
-
-1. Read the current binary path from `std::env::current_exe()` to populate
-   `ExecStart`. Fall back to `/usr/local/bin/xrat` if the binary path is not
-   resolvable (e.g., running from a build directory).
-2. Resolve the target service directory:
-   - `$XDG_CONFIG_HOME/systemd/user/` or `$HOME/.config/systemd/user/`
-   - Create the directory if it does not exist.
-3. Generate the service unit from the existing template in
-   `packaging/systemd/xrat-daemon.service`, substituting:
-   - `ExecStart` with the resolved binary path + `daemon run-server`
-   - `Environment=XRAT_PATH=...` when a non-default root is active (i.e.,
-     `XRAT_PATH` is set or `--config` points outside `~/.config/xrat/`)
-   - `Environment=XRAT_API_KEY=...` when the server is enabled in config.toml
-4. Write `xrat-daemon.service` to the target directory.
-5. If `--with-api` is set, also generate and write `xrat-api.service`.
-6. Execute `systemctl --user daemon-reload`.
-7. Execute `systemctl --user enable xrat-daemon.service`.
-8. If `--start` is set, execute `systemctl --user start xrat-daemon.service`.
-9. Print a summary: service file path, enabled state, running state.
-
-**Uninstall** — add `src/app/commands/daemon_uninstall.rs`:
-
-1. Execute `systemctl --user stop xrat-daemon.service` (ignore failure if not
-   running).
-2. Execute `systemctl --user disable xrat-daemon.service`.
-3. Remove `$HOME/.config/systemd/user/xrat-daemon.service`.
-4. Repeat for `xrat-api.service` if present.
-5. Execute `systemctl --user daemon-reload`.
-6. Do NOT delete user config, database, logs, runtime directory, or imported
-   configs.
-7. Print a summary of removed files and preserved state.
-
-**Platform detection**:
-
-- Check `cfg!(target_os = "linux")` at compile time.
-- On non-Linux platforms, return
-  `AppError::UnsupportedPlatform("daemon install is only supported on Linux with systemd")`.
-- At runtime, verify systemd is available by checking if
-  `systemctl --user status` exits successfully. If not, return a clear error
-  message.
-
-### Open Decisions
-
-- Whether `daemon install` should default to `--start` (start immediately) or
-  require the flag explicitly. Recommendation: do not start by default; let the
-  user opt in with `--start`.
-- Whether to support system-wide installation (`/etc/systemd/system/`) via a
-  `--system` flag. Recommendation: defer; user services are sufficient for the
-  initial implementation.
-
-### Definition of Done
-
-- `xrat daemon install` generates a service unit, writes it to the user systemd
-  directory, reloads the manager, and enables the service.
-- `xrat daemon install --start` also starts the daemon.
-- `xrat daemon install --dry-run` prints the generated unit and planned actions
-  without writing or executing anything.
-- `xrat daemon uninstall` stops, disables, and removes the service file while
-  preserving all application state.
-- CLI parser tests in `src/cli/tests/` cover both commands and all flags.
-- Integration test verifies service file content matches expected template.
-- `docs/src/04-deployment/systemd.md` is updated: the manual copy path becomes a
-  troubleshooting reference; `xrat daemon install` becomes the primary setup
-  flow.
+> **Completed:** `xrat daemon install/uninstall` (section 1) and `xrat init`
+> (section 2) are fully implemented. Remaining work starts at section 1 below.
 
 ---
 
-## 2. Init Command
-
-Add an explicit initialization command:
-
-```bash
-xrat init [--dry-run]
-```
-
-### Current State
-
-xrat resolves its app root via `src/app/app_paths.rs`:
-
-1. `XRAT_PATH` environment variable (if set)
-2. `$HOME/.config/xrat/` (fallback)
-3. Error: `AppError::MissingHomeDirectory` if `$HOME` is unavailable
-
-The default config file is auto-created with content
-`"# XRAT configuration\n\n"` — only a comment header with no usable defaults.
-The SQLite database is created and migrated on first command execution via
-`sqlx::migrate!`.
-
-There is no explicit initialization step. Users rely on implicit bootstrap side
-effects from running any command. `xrat init` should make this deliberate,
-visible, and safe.
-
-### CLI Changes
-
-Add a new top-level command in `src/cli/command.rs`:
-
-```rust
-Init(InitArgs),
-```
-
-```rust
-#[derive(Args)]
-struct InitArgs {
-    /// Print planned actions without executing them
-    #[arg(long)]
-    dry_run: bool,
-}
-```
-
-### Implementation Details
-
-Add `src/app/commands/init.rs` with the following steps:
-
-1. **Resolve app root** using the same logic as `app_paths.rs`:
-   - `XRAT_PATH` → `$HOME/.config/xrat/`
-   - Respect `--config` and `--database` global flags for path overrides.
-
-2. **Create directory structure**:
-   - `<root>/` — the app root directory
-   - `<root>/runtime/` — runtime directory for daemon socket and session logs
-   - `<root>/logs/` — log output directory (referenced by `[runtime.log].dir`)
-   - `<root>/mmdb/` — GeoIP MMDB storage (referenced by `[mmdb].dir`)
-
-3. **Generate `config.toml`** from a useful default template:
-
-   ```toml
-   # XRAT configuration
-   # See https://mhyrzt.github.io/xrat/reference/config-file.html for full reference.
-
-   [runtime]
-   engine = "xray"
-
-   [runtime.socks]
-   enabled = true
-   host = "127.0.0.1"
-   port = 1080
-
-   [runtime.http]
-   enabled = false
-   host = "127.0.0.1"
-   port = 8080
-
-   [runtime.log]
-   enabled = true
-   level = "warning"
-
-   [testing]
-   concurrency = 4
-
-   [geo]
-   auto_update = false
-   ```
-
-   This template provides a working SOCKS inbound on port 1080, sensible
-   defaults matching the current `AppConfig` serde defaults, and commented
-   reference to the documentation.
-
-4. **Create or migrate the SQLite database** at `<root>/db.sqlite`:
-   - If the file does not exist, create it and run all migrations via
-     `sqlx::migrate!("./migrations/sqlite")`.
-   - If the file exists, run pending migrations only (idempotent).
-   - Print the migration count applied.
-
-5. **Idempotency**:
-   - If `config.toml` already exists, skip generation and print "config.toml
-     already exists, skipping".
-   - If `db.sqlite` already exists, run pending migrations only.
-   - If directories already exist, skip creation.
-   - No `--force` flag in the initial implementation.
-
-6. **Print summary**:
-
-   ```
-   xrat initialized successfully.
-
-   Created:
-     /home/user/.config/xrat/
-     /home/user/.config/xrat/config.toml
-     /home/user/.config/xrat/db.sqlite (3 migrations applied)
-     /home/user/.config/xrat/runtime/
-     /home/user/.config/xrat/logs/
-     /home/user/.config/xrat/mmdb/
-
-   Already present:
-     (none)
-
-   Next steps:
-     xrat import <subscription-url>
-     xrat list configs
-   ```
-
-### Open Decisions
-
-- Whether `xrat init` should validate required runtime binaries (`xray`,
-  `v2ray`, `sing-box`) by checking `$PATH`. Recommendation: defer to a separate
-  `xrat doctor` or `xrat check` command; `init` should not fail because a binary
-  is missing.
-- Whether `xrat init --postgres` should exist to scaffold PostgreSQL tables.
-  Recommendation: defer; PostgreSQL setup is config-driven and documented in
-  `docs/src/04-deployment/database-backends.md`.
-- Whether to add `--force` to overwrite existing config. Recommendation: defer
-  until a concrete use case emerges; idempotent skip-if-exists is safer.
-
-### Definition of Done
-
-- `xrat init` creates the directory structure, a useful `config.toml`, and a
-  migrated SQLite database.
-- Running `xrat init` twice does not overwrite existing files.
-- `xrat init --dry-run` prints planned actions without creating anything.
-- A new user can run `xrat init`, then `xrat import ...`, without relying on
-  implicit bootstrap side effects.
-- Tests cover: default paths, `XRAT_PATH` override, `--config`/`--database`
-  overrides, existing-file preservation, database migration creation, and
-  idempotency.
-
----
-
-## 3. Prerequisites and Installation Documentation
+## 1. Prerequisites and Installation Documentation
 
 ### Current State
 
@@ -338,7 +58,6 @@ parse, list, and test (except real-delay) work without any engine binary.
 
 1. From release binary (once published):
    ```bash
-   # Download and extract
    tar xzf xrat-<version>-x86_64-unknown-linux-gnu.tar.gz
    mv xrat ~/.local/bin/
    ```
@@ -382,9 +101,9 @@ xrat connect <id>            # Start proxy
    ```
 3. Update `docs/src/01-getting-started/quickstart.md` to begin with `xrat init`
    and link to the installation page.
-4. Update `docs/src/04-deployment/systemd.md` after `daemon install` exists:
-   move manual service file setup to a "Reference: Manual Setup" section; make
-   `xrat daemon install` the primary path.
+4. Update `docs/src/04-deployment/systemd.md`: move manual service file setup to
+   a "Reference: Manual Setup" section; make `xrat daemon install` the primary
+   path.
 
 ### Definition of Done
 
@@ -396,7 +115,7 @@ xrat connect <id>            # Start proxy
 
 ---
 
-## 4. Shell Completion
+## 2. Shell Completion
 
 ### Current State
 
@@ -467,7 +186,7 @@ and includes them in the release tarball.
 
 ---
 
-## 5. Man Page
+## 3. Man Page
 
 ### Current State
 
@@ -527,7 +246,7 @@ The generated man page includes:
 
 ---
 
-## 6. Release Workflow Improvements
+## 4. Release Workflow Improvements
 
 ### Current State
 
@@ -619,7 +338,7 @@ Each package should:
 
 ---
 
-## 7. Desktop Entry (Linux)
+## 5. Desktop Entry (Linux)
 
 ### Current State
 
@@ -679,7 +398,7 @@ After installation, run (non-fatal if missing):
 
 ---
 
-## 8. `xrat integrate` Command
+## 6. `xrat integrate` Command
 
 ### CLI Changes
 
@@ -736,7 +455,36 @@ Add `src/app/commands/integrate.rs`:
 
 ---
 
-## 9. System Notifications (Optional)
+## 7. Documentation Updates
+
+### Pages to Create
+
+| Path                                          | Content                                          |
+| --------------------------------------------- | ------------------------------------------------ |
+| `docs/src/01-getting-started/installation.md` | Prerequisites, install methods, first-time setup |
+
+### Pages to Update
+
+| Path                                        | Changes                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `docs/src/SUMMARY.md`                       | Add Installation page before Quickstart                            |
+| `docs/src/01-getting-started/quickstart.md` | Begin with `xrat init`; link to installation                       |
+| `docs/src/02-cli/daemon.md`                 | Add `install`/`uninstall` command reference                        |
+| `docs/src/04-deployment/systemd.md`         | Make `xrat daemon install` primary; manual setup becomes reference |
+| `docs/src/02-cli/`                          | Add `init.md`, `integrate.md`, `tray.md` command pages             |
+
+### Platform-Specific Notes
+
+Document in installation or tray docs:
+
+- **Wayland**: `libayatana-appindicator` has inconsistent Wayland support. On
+  GNOME Wayland, tray icons require the AppIndicator extension or
+  KStatusNotifierItem protocol. Document this caveat.
+- **X11**: tray icons work out of the box with `libayatana-appindicator`.
+
+---
+
+## 8. System Notifications (Optional)
 
 ### Dependency
 
@@ -780,41 +528,12 @@ Rate limiting:
 
 ---
 
-## 10. Documentation Updates
-
-### Pages to Create
-
-| Path                                          | Content                                          |
-| --------------------------------------------- | ------------------------------------------------ |
-| `docs/src/01-getting-started/installation.md` | Prerequisites, install methods, first-time setup |
-
-### Pages to Update
-
-| Path                                        | Changes                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------ |
-| `docs/src/SUMMARY.md`                       | Add Installation page before Quickstart                            |
-| `docs/src/01-getting-started/quickstart.md` | Begin with `xrat init`; link to installation                       |
-| `docs/src/02-cli/daemon.md`                 | Add `install`/`uninstall` command reference                        |
-| `docs/src/04-deployment/systemd.md`         | Make `xrat daemon install` primary; manual setup becomes reference |
-| `docs/src/02-cli/`                          | Add `init.md`, `integrate.md`, `tray.md` command pages             |
-
-### Platform-Specific Notes
-
-Document in installation or tray docs:
-
-- **Wayland**: `libayatana-appindicator` has inconsistent Wayland support. On
-  GNOME Wayland, tray icons require the AppIndicator extension or
-  KStatusNotifierItem protocol. Document this caveat.
-- **X11**: tray icons work out of the box with `libayatana-appindicator`.
-
----
-
-## 11. Tray Icon (Lowest Priority)
+## 9. Tray Icon (Lowest Priority)
 
 > This section is intentionally last. All other deliverables in this phase
-> (init, daemon install, documentation, shell completion, man pages, release
-> workflow, desktop entry, integrate command, notifications) should be completed
-> before starting tray icon work.
+> (documentation, shell completion, man pages, release workflow, desktop entry,
+> integrate command, notifications) should be completed before starting tray icon
+> work.
 
 ### Current State
 
@@ -990,13 +709,6 @@ The Cargo crate links against whichever is found via `pkg-config`.
    runtime binaries, database connectivity, config syntax, and daemon
    reachability? Useful for troubleshooting but separate from this phase.
 
-7. **`daemon install --start` default** — Should `daemon install` start the
-   daemon immediately or only enable it? Recommendation: do not start by
-   default; let the user opt in with `--start`.
-
-8. **System-wide systemd install** — Should `daemon install --system` write to
-   `/etc/systemd/system/`? Recommendation: defer; user services are sufficient.
-
 ---
 
 ## Out of Scope
@@ -1013,37 +725,21 @@ The Cargo crate links against whichever is found via `pkg-config`.
 
 ## Implementation Slices
 
-### Slice A: Init Command
-
-1. Add `Init` to `src/cli/command.rs`.
-2. Add `src/app/commands/init.rs`.
-3. Implement directory creation, config template, database migration.
-4. Add CLI parser tests.
-5. Add integration tests for idempotency and path overrides.
-
-### Slice B: Daemon Install/Uninstall
-
-1. Add `Install`/`Uninstall` to `DaemonAction` in `src/cli/daemon.rs`.
-2. Add `src/app/commands/daemon_install.rs` and `daemon_uninstall.rs`.
-3. Implement service file generation from `packaging/systemd/` templates.
-4. Implement `systemctl --user` commands.
-5. Add CLI parser tests.
-6. Update `docs/src/04-deployment/systemd.md`.
-
-### Slice C: Installation Documentation
+### Slice A: Installation Documentation
 
 1. Create `docs/src/01-getting-started/installation.md`.
 2. Update `docs/src/SUMMARY.md`.
 3. Update quickstart to begin with `xrat init`.
+4. Update `docs/src/04-deployment/systemd.md`.
 
-### Slice D: Shell Completion and Man Page
+### Slice B: Shell Completion and Man Page
 
 1. Add `clap_complete` and `clap_mangen` to `Cargo.toml`.
 2. Add hidden `completions` and `manpage` commands.
 3. Implement generation handlers.
 4. Add CLI parser tests.
 
-### Slice E: Release Workflow
+### Slice C: Release Workflow
 
 1. Update `.github/workflows/release.yml` with pre-release validation.
 2. Change artifact naming to target-triple format.
@@ -1051,7 +747,7 @@ The Cargo crate links against whichever is found via `pkg-config`.
 4. Add completion and man page generation to the workflow.
 5. Evaluate musl and ARM64 targets.
 
-### Slice F: Desktop Entry and `xrat integrate`
+### Slice D: Desktop Entry and `xrat integrate`
 
 1. Add `Integrate` to `src/cli/command.rs`.
 2. Add `src/app/commands/integrate.rs`.
@@ -1059,17 +755,17 @@ The Cargo crate links against whichever is found via `pkg-config`.
    `media/icons/`.
 4. Add CLI parser tests.
 
-### Slice G: Documentation
+### Slice E: Documentation
 
-1. Create/update all documentation pages listed in Section 10.
+1. Create/update all documentation pages listed in Section 7.
 2. Verify mdBook build passes.
 
-### Slice H: Notifications (Optional)
+### Slice F: Notifications (Optional)
 
 1. Add `notify-rust` as optional dependency with `notifications` feature.
 2. Implement state transition detection and rate-limited notifications.
 
-### Slice I: Tray Icon (Lowest Priority)
+### Slice G: Tray Icon (Lowest Priority)
 
 1. Add `tray-icon` as optional dependency with `tray` feature.
 2. Add `Tray` to `src/cli/command.rs`.
@@ -1083,19 +779,15 @@ The Cargo crate links against whichever is found via `pkg-config`.
 
 This phase is complete when:
 
-1. `xrat daemon install` creates, enables, and optionally starts the systemd
-   user service.
-2. `xrat daemon uninstall` removes service integration and preserves state.
-3. `xrat init` creates config, database, and directories idempotently.
-4. `xrat integrate` installs desktop entry and icon assets on Linux.
-5. Shell completions are generated and included in release artifacts.
-6. Man pages are generated and included in release artifacts.
-7. Release workflow produces named, checksummed archives with completions and
+1. `xrat integrate` installs desktop entry and icon assets on Linux.
+2. Shell completions are generated and included in release artifacts.
+3. Man pages are generated and included in release artifacts.
+4. Release workflow produces named, checksummed archives with completions and
    man pages.
-8. Installation documentation covers prerequisites, install methods, and
+5. Installation documentation covers prerequisites, install methods, and
    first-time setup.
-9. `cargo fmt` and `cargo test -q` pass.
-10. `xrat tray` shows a status icon with a working context menu (lowest
-    priority).
-11. The tray icon reflects daemon state via IPC.
-12. `cargo build --features tray` succeeds on Linux.
+6. `cargo fmt` and `cargo test -q` pass.
+7. `xrat tray` shows a status icon with a working context menu (lowest
+   priority).
+8. The tray icon reflects daemon state via IPC.
+9. `cargo build --features tray` succeeds on Linux.

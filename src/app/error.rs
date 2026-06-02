@@ -47,6 +47,9 @@ pub enum AppError {
     #[error("invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("unsupported platform: {0}")]
+    UnsupportedPlatform(String),
+
     #[error("geoip download failed for {edition} from {url}: {reason}")]
     GeoipDownload {
         edition: String,

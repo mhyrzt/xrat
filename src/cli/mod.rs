@@ -5,6 +5,7 @@ mod daemon;
 mod disconnect;
 mod geoip;
 mod import;
+mod init;
 mod lifecycle;
 mod list;
 mod parse;
@@ -21,7 +22,8 @@ pub use add::AddArgs;
 pub use command::Command;
 pub use connect::ConnectArgs;
 pub use daemon::{
-    DaemonAction, DaemonArgs, DaemonServeArgs, DaemonStartArgs, DaemonStatusArgs, DaemonStopArgs,
+    DaemonAction, DaemonArgs, DaemonInstallArgs, DaemonServeArgs, DaemonStartArgs,
+    DaemonStatusArgs, DaemonStopArgs, DaemonUninstallArgs,
 };
 pub use disconnect::DisconnectArgs;
 pub use geoip::{
@@ -29,6 +31,7 @@ pub use geoip::{
     GeoIpStatusArgs, GeoIpUpdateArgs,
 };
 pub use import::ImportArgs;
+pub use init::InitArgs;
 pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use parse::{ParseArgs, ParseEngine};

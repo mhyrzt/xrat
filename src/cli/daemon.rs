@@ -17,20 +17,42 @@ pub enum DaemonAction {
     Status(DaemonStatusArgs),
     #[command(about = "Request daemon shutdown via local IPC.")]
     Stop(DaemonStopArgs),
+    #[command(about = "Install xrat-daemon.service as a systemd user service.")]
+    Install(DaemonInstallArgs),
+    #[command(about = "Remove the installed xrat-daemon.service systemd user service.")]
+    Uninstall(DaemonUninstallArgs),
 }
 
-/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct DaemonStartArgs {}
 
-/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct DaemonServeArgs {}
 
-/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct DaemonStatusArgs {}
 
-/// No additional arguments.
 #[derive(Debug, Args, Default)]
 pub struct DaemonStopArgs {}
+
+#[derive(Debug, Args)]
+pub struct DaemonInstallArgs {
+    /// Start the daemon immediately after enabling.
+    #[arg(long)]
+    pub start: bool,
+
+    /// Print the generated service unit without writing files.
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// Install the API server service alongside the daemon.
+    #[arg(long)]
+    pub with_api: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct DaemonUninstallArgs {
+    /// Print actions without executing them.
+    #[arg(long)]
+    pub dry_run: bool,
+}

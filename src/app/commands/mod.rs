@@ -1,9 +1,11 @@
 mod add;
 mod connect;
 mod daemon;
+mod daemon_install;
 mod disconnect;
 mod geoip;
 mod import;
+mod init;
 mod lifecycle;
 mod list;
 mod parse;
@@ -19,6 +21,7 @@ use crate::cli::Command;
 
 pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<()> {
     match command {
+        Command::Init(args) => init::run(context, args),
         Command::Import(args) => import::run(context, &args.input).await,
         Command::Add(args) => add::run(context, &args.input).await,
         Command::List(args) => list::run(context, args).await,

@@ -1,3 +1,4 @@
+use crate::app::commands::daemon_install;
 use crate::app::context::AppContext;
 use crate::app::daemon::{ipc, supervisor};
 use crate::cli::{DaemonAction, DaemonArgs};
@@ -7,7 +8,7 @@ use tokio::time::{Duration, sleep};
 pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<()> {
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
 
-    match args.action {
+    match &args.action {
         DaemonAction::Start(_) => {
             if ipc::ping_daemon(&socket_path).await.is_ok() {
                 println!("Daemon already running. Socket: {}", socket_path.display());
@@ -107,6 +108,8 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             }
             Err(err) => return Err(err),
         },
+        DaemonAction::Install(args) => daemon_install::install(context, &args)?,
+        DaemonAction::Uninstall(args) => daemon_install::uninstall(context, &args)?,
     }
 
     Ok(())

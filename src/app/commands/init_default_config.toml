@@ -1,0 +1,25 @@
+# XRAT configuration
+# See https://mhyrzt.github.io/xrat/reference/config-file.html for full reference.
+
+[runtime]
+engine = "xray"
+
+[runtime.socks]
+enabled = true
+host = "127.0.0.1"
+port = 1080
+
+[runtime.http]
+enabled = false
+host = "127.0.0.1"
+port = 8080
+
+[runtime.log]
+enabled = true
+level = "warning"
+
+[testing]
+concurrency = 4
+
+[geo]
+auto_update = false

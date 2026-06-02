@@ -1,0 +1,22 @@
+[Unit]
+Description=XRAT HTTP API Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{EXE}} serve
+Restart=on-failure
+RestartSec=5
+
+Environment=XRAT_PATH={{XRAT_PATH}}
+Environment=XRAT_API_KEY=
+Environment=RUST_LOG=info
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{XRAT_PATH}}
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
