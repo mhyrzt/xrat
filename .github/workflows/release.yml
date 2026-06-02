@@ -2,68 +2,163 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
 
 permissions:
   contents: write
 
 jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test -q --locked
+      - name: Verify version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CARGO_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*= "\(.*\)".*/\1/')
+          if [ "$TAG" != "$CARGO_VERSION" ]; then
+            echo "error: tag $GITHUB_REF_NAME does not match Cargo.toml version $CARGO_VERSION"
+            exit 1
+          fi
+
   build:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    needs: validate
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact_name: xrat-linux-x86_64
-            binary_path: target/release/xrat
-          - os: macos-latest
-            artifact_name: xrat-macos
-            binary_path: target/release/xrat
-          - os: windows-latest
-            artifact_name: xrat-windows-x86_64.exe
-            binary_path: target/release/xrat.exe
+          - target: x86_64-unknown-linux-musl
+            cross: false
+          - target: aarch64-unknown-linux-musl
+            cross: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install musl-tools
+        if: ${{ !matrix.cross }}
+        run: sudo apt-get install -y musl-tools
 
-      - name: Build release binary
-        run: cargo build --release --locked
+      - name: Install cross
+        if: ${{ matrix.cross }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build (native)
+        if: ${{ !matrix.cross }}
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Build (cross)
+        if: ${{ matrix.cross }}
+        run: cross build --release --locked --target ${{ matrix.target }}
 
       - name: Package binary
-        shell: bash
         run: |
-          mkdir -p dist
-          cp "${{ matrix.binary_path }}" "dist/${{ matrix.artifact_name }}"
+          VERSION="${GITHUB_REF_NAME}"
+          TARGET="${{ matrix.target }}"
+          mkdir -p stage
+          cp "target/${TARGET}/release/xrat" stage/xrat
+          cp LICENSE README.md stage/
+          ARCHIVE="xrat-${VERSION}-${TARGET}.tar.gz"
+          tar -czf "$ARCHIVE" -C stage .
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.artifact_name }}
+          name: xrat-${{ matrix.target }}
+          path: xrat-*.tar.gz
+          if-no-files-found: error
+
+  extras:
+    name: Generate extras
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-unknown-linux-musl
+      - run: sudo apt-get install -y musl-tools
+      - run: cargo build --release --locked --target x86_64-unknown-linux-musl
+
+      - name: Generate man pages
+        run: |
+          mkdir -p extras/man/man1
+          ./target/x86_64-unknown-linux-musl/release/xrat manpage --output extras/man/man1/
+
+      - name: Generate completions
+        run: |
+          mkdir -p extras/completions
+          ./target/x86_64-unknown-linux-musl/release/xrat completions bash > extras/completions/xrat.bash
+          ./target/x86_64-unknown-linux-musl/release/xrat completions zsh > extras/completions/_xrat
+          ./target/x86_64-unknown-linux-musl/release/xrat completions fish > extras/completions/xrat.fish
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extras
+          path: extras/
           if-no-files-found: error
 
   publish:
-    name: Publish GitHub Release
+    name: Publish
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, extras]
     steps:
-      - name: Download artifacts
+      - uses: actions/checkout@v4
+
+      - name: Download archives
         uses: actions/download-artifact@v4
         with:
-          path: dist
+          pattern: xrat-*
           merge-multiple: true
+          path: dist/
 
-      - name: Publish release
+      - name: Download extras
+        uses: actions/download-artifact@v4
+        with:
+          name: extras
+          path: extras/
+
+      - name: Bundle extras into archives
+        run: |
+          for archive in dist/xrat-*.tar.gz; do
+            tmpdir=$(mktemp -d)
+            tar -xzf "$archive" -C "$tmpdir"
+            cp -r extras/man "$tmpdir/man"
+            cp -r extras/completions "$tmpdir/completions"
+            mkdir -p "$tmpdir/packaging"
+            cp -r packaging/systemd "$tmpdir/packaging/systemd"
+            tar -czf "$archive" -C "$tmpdir" .
+            rm -rf "$tmpdir"
+          done
+
+      - name: Generate checksums
+        run: sha256sum dist/xrat-*.tar.gz > dist/SHASUMS256.txt
+
+      - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG_NAME" dist/* \
-            --title "$TAG_NAME" \
-            --notes "Automated release for $TAG_NAME."
+          gh release create "${{ github.ref_name }}" \
+            dist/xrat-*.tar.gz \
+            dist/SHASUMS256.txt \
+            --title "${{ github.ref_name }}" \
+            --generate-notes

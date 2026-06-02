@@ -2,30 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [master]
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  rust:
-    name: Rust
+  check:
+    name: Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
-
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-      - name: Run clippy
-        run: cargo clippy --all-targets --all-features
-
-      - name: Run tests
-        run: cargo test -q
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test -q --locked
