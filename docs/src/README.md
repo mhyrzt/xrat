@@ -2,10 +2,15 @@
   <img src="media/xrat-hero.png" alt="xrat" width="800">
 </p>
 
-# xrat Documentation
+# 🐀 XRAT Documentation
 
-User-facing and developer-facing documentation for **xrat** — a Rust-based CLI
-tool and daemon for managing proxy configurations.
+Welcome to **XRAT** — your all-in-one proxy management toolkit.
+
+- Import and parse proxy configs from subscriptions or raw links
+- List, filter, sort, enable, disable, and delete configs
+- Test proxies with real-delay, TCP, ICMP, and speed measurements
+- Run Xray-core or sing-box as a managed runtime with auto-rotation
+- Control everything through CLI, TUI, HTTP API, or background daemon
 
 ## Sections
 
@@ -17,4 +22,3 @@ tool and daemon for managing proxy configurations.
 | [Deployment](04-deployment/README.md)           | systemd services, database backends             |
 | [Reference](05-reference/README.md)             | Protocols, config file, database schema, errors |
 | [Architecture](06-architecture/README.md)       | Module map, config generation pipeline          |
-| [Backlog](08-backlog/README.md)                 | Planning, validation checklists, UI notes       |
