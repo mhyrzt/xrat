@@ -2,6 +2,7 @@
 
 - [Home](README.md)
 - [Getting Started](01-getting-started/README.md)
+  - [Installation](01-getting-started/installation.md)
   - [Quickstart](01-getting-started/quickstart.md)
   - [Configuration](01-getting-started/configuration.md)
 - [CLI Reference](02-cli/README.md)
