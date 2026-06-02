@@ -1,3 +1,4 @@
+mod completions;
 mod daemon;
 mod manpage;
 mod parse;

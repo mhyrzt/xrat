@@ -1,4 +1,5 @@
 mod add;
+mod completions;
 mod connect;
 mod daemon;
 mod daemon_install;
@@ -44,5 +45,6 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Parse(args) => parse::run(args).await,
         Command::GeoIp(args) => geoip::run(context, args).await,
         Command::Manpage(args) => manpage::run(context, args),
+        Command::Completions(args) => completions::run(context, args),
     }
 }

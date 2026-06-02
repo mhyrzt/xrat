@@ -10,9 +10,9 @@ implementation targets grounded in the current codebase.
 Target platform: **Linux** (primary). Windows binary builds are produced by CI
 but have limited testing and no platform-specific integration.
 
-> **Completed:** `xrat daemon install/uninstall`, `xrat init`, and
-> `xrat manpage` are fully implemented. `--version` flag wired up. Remaining
-> work starts at section 1 below.
+> **Completed:** `xrat daemon install/uninstall`, `xrat init`, `xrat manpage`,
+> and `xrat completions` are fully implemented. `--version` flag wired up.
+> Remaining work starts at section 1 below.
 
 ---
 
@@ -116,78 +116,7 @@ xrat connect <id>            # Start proxy
 
 ---
 
-## 2. Shell Completion
-
-### Current State
-
-No shell completion support exists. The CLI is defined via Clap 4.6.1 with
-`derive` feature in `src/cli/`. Clap provides `clap_complete` for generating
-completions from the command tree.
-
-### Implementation
-
-Add `clap_complete` to `Cargo.toml`:
-
-```toml
-clap_complete = "4"
-```
-
-Add a hidden `completions` command to `src/cli/command.rs`:
-
-```rust
-Completions(CompletionsArgs),
-```
-
-```rust
-#[derive(Args)]
-struct CompletionsArgs {
-    /// Shell to generate completions for
-    #[arg(value_enum)]
-    shell: clap_complete::Shell,
-}
-```
-
-The handler in `src/app/commands/completions.rs` calls
-`clap_complete::generate()` with the root Clap command and writes to stdout.
-
-### Usage
-
-```bash
-# Bash
-xrat completions bash > ~/.local/share/bash-completion/completions/xrat
-
-# Zsh
-xrat completions zsh > ~/.zfunc/_xrat
-
-# Fish
-xrat completions fish > ~/.config/fish/completions/xrat.fish
-
-# PowerShell
-xrat completions powershell > xrat.ps1
-```
-
-### Packaging Integration
-
-Release archives should include pre-generated completion scripts:
-
-- `completions/xrat.bash`
-- `completions/_xrat` (zsh)
-- `completions/xrat.fish`
-
-CI generates these during the release workflow using `xrat completions <shell>`
-and includes them in the release tarball.
-
-### Definition of Done
-
-- `xrat completions bash` generates a working bash completion script.
-- Completions cover all commands, subcommands, and flags.
-- Completion output updates automatically when CLI changes.
-- Release artifacts include pre-generated completion scripts.
-- Documentation covers installation for each shell.
-
----
-
-## 3. Release Workflow Improvements
+## 2. Release Workflow Improvements
 
 ### Current State
 
@@ -279,7 +208,7 @@ Each package should:
 
 ---
 
-## 4. Desktop Entry (Linux)
+## 3. Desktop Entry (Linux)
 
 ### Current State
 
@@ -339,7 +268,7 @@ After installation, run (non-fatal if missing):
 
 ---
 
-## 5. `xrat integrate` Command
+## 4. `xrat integrate` Command
 
 ### CLI Changes
 
@@ -396,7 +325,7 @@ Add `src/app/commands/integrate.rs`:
 
 ---
 
-## 6. Documentation Updates
+## 5. Documentation Updates
 
 ### Pages to Create
 
@@ -425,7 +354,7 @@ Document in installation or tray docs:
 
 ---
 
-## 7. System Notifications (Optional)
+## 6. System Notifications (Optional)
 
 ### Dependency
 
@@ -469,7 +398,7 @@ Rate limiting:
 
 ---
 
-## 8. Tray Icon (Lowest Priority)
+## 7. Tray Icon (Lowest Priority)
 
 > This section is intentionally last. All other deliverables in this phase
 > (documentation, shell completion, man pages, release workflow, desktop entry,
@@ -698,7 +627,7 @@ The Cargo crate links against whichever is found via `pkg-config`.
 
 ### Slice E: Documentation
 
-1. Create/update all documentation pages listed in Section 6.
+1. Create/update all documentation pages listed in Section 5.
 2. Verify mdBook build passes.
 
 ### Slice F: Notifications (Optional)

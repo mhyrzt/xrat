@@ -1,9 +1,9 @@
 use clap::Subcommand;
 
 use crate::cli::{
-    AddArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs, EnableArgs,
-    GeoIpArgs, ImportArgs, InitArgs, ListArgs, ManpageArgs, ParseArgs, ProxyArgs, RestoreArgs,
-    ScanArgs, SelectArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
+    AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs,
+    EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, ManpageArgs, ParseArgs, ProxyArgs,
+    RestoreArgs, ScanArgs, SelectArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -52,4 +52,6 @@ pub enum Command {
     GeoIp(GeoIpArgs),
     #[command(hide = true)]
     Manpage(ManpageArgs),
+    #[command(hide = true)]
+    Completions(CompletionsArgs),
 }
