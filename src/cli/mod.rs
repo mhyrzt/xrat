@@ -3,6 +3,7 @@ mod command;
 mod connect;
 mod daemon;
 mod disconnect;
+mod geoip;
 mod import;
 mod lifecycle;
 mod list;
@@ -23,6 +24,7 @@ pub use daemon::{
     DaemonAction, DaemonArgs, DaemonServeArgs, DaemonStartArgs, DaemonStatusArgs, DaemonStopArgs,
 };
 pub use disconnect::DisconnectArgs;
+pub use geoip::{GeoIpAction, GeoIpArgs, GeoIpPathArgs, GeoIpStatusArgs};
 pub use import::ImportArgs;
 pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};

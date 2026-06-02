@@ -32,3 +32,29 @@ fn parses_parser_settings() {
         crate::xray::parsing::ParseMode::Lenient
     );
 }
+
+#[test]
+fn parses_mmdb_settings() {
+    let config: AppConfig = toml::from_str(
+        r#"
+[mmdb]
+dir = "assets/mmdb"
+download_url = "https://mirror.example.com/{edition}.mmdb"
+timeout_secs = 30
+default_editions = ["country", "asn"]
+auto_update = true
+update_interval_hours = 24
+"#,
+    )
+    .expect("config should parse");
+
+    assert_eq!(config.mmdb.dir, std::path::PathBuf::from("assets/mmdb"));
+    assert_eq!(
+        config.mmdb.download_url,
+        "https://mirror.example.com/{edition}.mmdb"
+    );
+    assert_eq!(config.mmdb.timeout_secs, 30);
+    assert_eq!(config.mmdb.default_editions, vec!["country", "asn"]);
+    assert!(config.mmdb.auto_update);
+    assert_eq!(config.mmdb.update_interval_hours, 24);
+}

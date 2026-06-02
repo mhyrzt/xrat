@@ -2,8 +2,8 @@ use clap::Subcommand;
 
 use crate::cli::{
     AddArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs, EnableArgs,
-    ImportArgs, ListArgs, ParseArgs, ProxyArgs, RestoreArgs, ScanArgs, SelectArgs, ServeArgs,
-    ShowArgs, StatusArgs, TestArgs, TuiArgs,
+    GeoIpArgs, ImportArgs, ListArgs, ParseArgs, ProxyArgs, RestoreArgs, ScanArgs, SelectArgs,
+    ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -46,4 +46,6 @@ pub enum Command {
     Tui(TuiArgs),
     #[command(about = "Parse and validate config links without persisting.")]
     Parse(ParseArgs),
+    #[command(name = "geoip", about = "Inspect and manage GeoLite2 MMDB assets.")]
+    GeoIp(GeoIpArgs),
 }

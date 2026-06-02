@@ -97,3 +97,29 @@ fn cli_test_settings_override_app_config() {
     assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
     assert_eq!(settings.download_timeout, Duration::from_millis(45_000));
 }
+
+#[test]
+fn default_geoip_paths_resolve_from_runtime_root_mmdb_dir() {
+    let app_config = AppConfig::default();
+    let args = test_args(Some(1));
+    let runtime_paths = crate::app::context::RuntimePaths {
+        root_dir: "/tmp/xrat-root".into(),
+        config_path: "/tmp/custom/config.toml".into(),
+        ..test_runtime_paths()
+    };
+
+    let settings = resolve_test_settings(&args, &app_config, &runtime_paths).expect("settings");
+
+    assert_eq!(
+        settings.geoip_country_path,
+        PathBuf::from("/tmp/xrat-root/mmdb/GeoLite2-Country.mmdb")
+    );
+    assert_eq!(
+        settings.geoip_city_path,
+        PathBuf::from("/tmp/xrat-root/mmdb/GeoLite2-City.mmdb")
+    );
+    assert_eq!(
+        settings.geoip_asn_path,
+        PathBuf::from("/tmp/xrat-root/mmdb/GeoLite2-ASN.mmdb")
+    );
+}

@@ -20,6 +20,7 @@ fn parses_example_config() {
     assert_eq!(config.runtime.rotation.interval_secs, 1800);
     assert!(config.runtime.rotation.health_trigger_enabled);
     assert_eq!(config.runtime.rotation.cooldown_secs, 300);
+    assert_eq!(config.mmdb.dir, std::path::PathBuf::from("mmdb"));
     assert_eq!(config.runtime.socks.auth.username.as_deref(), Some("xrat"));
     assert_eq!(
         config.runtime.socks.auth.password,

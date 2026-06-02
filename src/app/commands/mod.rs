@@ -2,6 +2,7 @@ mod add;
 mod connect;
 mod daemon;
 mod disconnect;
+mod geoip;
 mod import;
 mod lifecycle;
 mod list;
@@ -37,5 +38,6 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Serve(args) => serve::run(context, args).await,
         Command::Tui(args) => tui::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
+        Command::GeoIp(args) => geoip::run(context, args).await,
     }
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::paths::mmdb;
 
 pub(crate) fn resolve_test_settings(
     args: &TestArgs,
@@ -55,17 +56,23 @@ pub(crate) fn resolve_test_settings(
         run_upload: args.upload_url.is_some() && !args.skip_upload,
         concurrency,
         geoip_enabled: app_config.testing.geoip.enabled,
-        geoip_country_path: config::resolve_config_path(
-            &runtime_paths.config_path,
+        geoip_country_path: mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
             &app_config.testing.geoip.country_path,
+            "GeoLite2-Country.mmdb",
         ),
-        geoip_city_path: config::resolve_config_path(
-            &runtime_paths.config_path,
+        geoip_city_path: mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
             &app_config.testing.geoip.city_path,
+            "GeoLite2-City.mmdb",
         ),
-        geoip_asn_path: config::resolve_config_path(
-            &runtime_paths.config_path,
+        geoip_asn_path: mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
             &app_config.testing.geoip.asn_path,
+            "GeoLite2-ASN.mmdb",
         ),
     })
 }

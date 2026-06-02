@@ -6,6 +6,7 @@ pub mod daemon;
 mod error;
 pub mod import;
 pub mod input;
+pub mod paths;
 pub mod runtime_service;
 
 pub use error::{AppError, Result};

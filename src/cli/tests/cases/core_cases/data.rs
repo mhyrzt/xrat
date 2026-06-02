@@ -60,7 +60,8 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Enable(_)
         | Command::Disable(_)
         | Command::Delete(_)
-        | Command::Restore(_) => {
+        | Command::Restore(_)
+        | Command::GeoIp(_) => {
             panic!("expected import command")
         }
     }
@@ -89,7 +90,8 @@ fn parses_add_subcommand() {
         | Command::Enable(_)
         | Command::Disable(_)
         | Command::Delete(_)
-        | Command::Restore(_) => {
+        | Command::Restore(_)
+        | Command::GeoIp(_) => {
             panic!("expected add command")
         }
     }
@@ -121,7 +123,8 @@ fn parses_list_subscriptions_alias() {
         | Command::Enable(_)
         | Command::Disable(_)
         | Command::Delete(_)
-        | Command::Restore(_) => {
+        | Command::Restore(_)
+        | Command::GeoIp(_) => {
             panic!("expected list command")
         }
     }
@@ -163,7 +166,8 @@ fn parses_list_config_filters() {
         | Command::Enable(_)
         | Command::Disable(_)
         | Command::Delete(_)
-        | Command::Restore(_) => {
+        | Command::Restore(_)
+        | Command::GeoIp(_) => {
             panic!("expected list command")
         }
     }

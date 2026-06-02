@@ -94,6 +94,15 @@ auto_update = false
 update_interval_hours = 168
 # save_dir = "geo/"
 
+[mmdb]
+# Dedicated MaxMind MMDB asset directory, separate from [geo] routing assets.
+dir = "mmdb"
+download_url = "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb"
+timeout_secs = 60
+default_editions = ["country", "city", "asn"]
+auto_update = false
+update_interval_hours = 168
+
 [[geo.profiles]]
 name = "default"
 geosite = "https://example.com/geosite.dat"

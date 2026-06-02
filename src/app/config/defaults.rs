@@ -37,6 +37,13 @@ pub const DEFAULT_ROUTING_DOMAIN_STRATEGY: &str = "IPIfNonMatch";
 pub const DEFAULT_GEO_AUTO_UPDATE: bool = false;
 pub const DEFAULT_GEO_UPDATE_INTERVAL_HOURS: u64 = 168;
 
+pub const DEFAULT_MMDB_DIR: &str = "mmdb";
+pub const DEFAULT_MMDB_DOWNLOAD_URL: &str =
+    "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb";
+pub const DEFAULT_MMDB_TIMEOUT_SECS: u64 = 60;
+pub const DEFAULT_MMDB_AUTO_UPDATE: bool = false;
+pub const DEFAULT_MMDB_UPDATE_INTERVAL_HOURS: u64 = 168;
+
 pub const DEFAULT_DNS_QUERY_STRATEGY: &str = "UseSystem";
 pub const DEFAULT_DNS_USE_SYSTEM_HOSTS: bool = true;
 pub const DEFAULT_DNS_DISABLE_CACHE: bool = false;
@@ -57,9 +64,9 @@ pub const DEFAULT_DOWNLOAD_TIMEOUT_MS: u64 = 30_000;
 pub const DEFAULT_UPLOAD_TIMEOUT_MS: u64 = 30_000;
 pub const DEFAULT_UPLOAD_PAYLOAD_BYTES: usize = 1_000_000;
 pub const DEFAULT_TEST_GEOIP_ENABLED: bool = false;
-pub const DEFAULT_TEST_GEOIP_COUNTRY_PATH: &str = "geoip/GeoLite2-Country.mmdb";
-pub const DEFAULT_TEST_GEOIP_CITY_PATH: &str = "geoip/GeoLite2-City.mmdb";
-pub const DEFAULT_TEST_GEOIP_ASN_PATH: &str = "geoip/GeoLite2-ASN.mmdb";
+pub const DEFAULT_TEST_GEOIP_COUNTRY_PATH: &str = "mmdb/GeoLite2-Country.mmdb";
+pub const DEFAULT_TEST_GEOIP_CITY_PATH: &str = "mmdb/GeoLite2-City.mmdb";
+pub const DEFAULT_TEST_GEOIP_ASN_PATH: &str = "mmdb/GeoLite2-ASN.mmdb";
 
 pub const DEFAULT_SERVER_ENABLED: bool = false;
 pub const DEFAULT_SERVER_HOST: &str = "127.0.0.1";

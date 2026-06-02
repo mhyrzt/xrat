@@ -24,6 +24,15 @@ fn parses_minimal_config_with_defaults() {
     assert!(config.testing.icmp.enabled);
     assert_eq!(config.testing.icmp.attempts, 3);
     assert_eq!(config.testing.icmp.timeout, 3000);
+    assert_eq!(config.mmdb.dir, std::path::PathBuf::from("mmdb"));
+    assert_eq!(
+        config.mmdb.download_url,
+        crate::app::config::defaults::DEFAULT_MMDB_DOWNLOAD_URL
+    );
+    assert_eq!(
+        config.mmdb.timeout_secs,
+        crate::app::config::defaults::DEFAULT_MMDB_TIMEOUT_SECS
+    );
     assert_eq!(
         config.testing.real_delay.url,
         crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL

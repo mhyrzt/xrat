@@ -6,6 +6,7 @@ mod database;
 pub(crate) mod defaults;
 mod dns;
 mod geo;
+mod mmdb;
 mod parser;
 mod path_settings;
 mod proxy;
@@ -19,6 +20,7 @@ pub use database::{
 };
 pub use dns::{DnsHostValue, DnsSettings};
 pub use geo::{GeoProfile, GeoSettings};
+pub use mmdb::MmdbSettings;
 pub use parser::ParserSettings;
 pub use path_settings::PathSettings;
 pub use proxy::{
@@ -41,6 +43,7 @@ pub struct AppConfig {
     pub runtime: RuntimeSettings,
     pub routing: RoutingSettings,
     pub geo: GeoSettings,
+    pub mmdb: MmdbSettings,
     pub dns: DnsSettings,
     pub parser: ParserSettings,
     pub testing: TestingSettings,
