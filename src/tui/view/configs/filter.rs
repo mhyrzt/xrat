@@ -21,6 +21,10 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         ConfigFilter::None => String::new(),
         f => format!("  [{}]", f.label()),
     };
+    let proto_label = match &app.config_list.protocol_filter {
+        None => String::new(),
+        Some(p) => format!("  [proto:{p}]"),
+    };
     let mut spans = vec![
         Span::styled("Search: ", theme::muted_style()),
         Span::raw(search),
@@ -31,11 +35,14 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     if !filter_label.is_empty() {
         spans.push(Span::styled(filter_label, theme::accent_style()));
     }
+    if !proto_label.is_empty() {
+        spans.push(Span::styled(proto_label, theme::accent_style()));
+    }
     spans.extend([
         Span::raw("   "),
         Span::styled("Visible: ", theme::muted_style()),
         Span::raw(app.visible_configs().len().to_string()),
-        Span::raw("   / search  f deleted  F filter  s sort"),
+        Span::raw("   / search  f deleted  F filter  P proto  s sort"),
     ]);
 
     frame.render_widget(

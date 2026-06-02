@@ -46,6 +46,14 @@ pub async fn copy_selected_uris(context: &AppContext, app: &mut TuiApp, ids: Vec
     set_clipboard(app, text);
 }
 
+pub fn open_qr_for_source(app: &mut TuiApp, source_name: String, source_url: String) {
+    app.qr_modal = Some(QrModalState::new(source_name, source_url));
+}
+
+pub fn copy_source_uri(app: &mut TuiApp, source_url: String) {
+    set_clipboard(app, source_url);
+}
+
 fn set_clipboard(app: &mut TuiApp, text: String) {
     match arboard::Clipboard::new() {
         Ok(mut cb) => match cb.set_text(&text) {

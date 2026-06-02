@@ -9,7 +9,7 @@ use crate::tui::theme;
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let sections = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(8), Constraint::Min(4)])
+        .constraints([Constraint::Length(10), Constraint::Min(4)])
         .split(area);
 
     render_info(frame, sections[0], app);
@@ -53,6 +53,14 @@ fn render_info(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Line::from(vec![
             Span::styled("Sources:       ", theme::muted_style()),
             Span::raw(app.data.sources.len().to_string()),
+        ]),
+        Line::from(vec![
+            Span::styled("Database:      ", theme::muted_style()),
+            Span::raw(app.data.db_label.as_str()),
+        ]),
+        Line::from(vec![
+            Span::styled("Config file:   ", theme::muted_style()),
+            Span::raw(app.data.config_path.as_str()),
         ]),
         Line::from(vec![
             Span::styled("Log entries:   ", theme::muted_style()),

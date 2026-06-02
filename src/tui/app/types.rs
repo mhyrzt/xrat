@@ -23,6 +23,7 @@ pub enum TuiAction {
     ConfirmSearch,
     CycleSort,
     CycleFilter,
+    CycleProtocolFilter,
     ToggleDeletedFilter,
     SelectFocused,
     EnableFocused,
@@ -37,6 +38,7 @@ pub enum TuiAction {
     RuntimeStart,
     RuntimeStop,
     RuntimeRestart,
+    RuntimeSwitch,
     RefreshFocusedSource,
     RefreshAllSources,
     OpenImportModal,
@@ -120,6 +122,7 @@ pub struct ConfigListState {
     pub editing_search: bool,
     pub sort: ConfigSort,
     pub filter: ConfigFilter,
+    pub protocol_filter: Option<String>,
     pub include_deleted: bool,
 }
 
@@ -163,6 +166,8 @@ pub enum ConfigSort {
     Name,
     Protocol,
     Source,
+    LastTested,
+    ImportedAt,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

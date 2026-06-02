@@ -99,6 +99,67 @@ pub fn spawn_runtime_stop(
     });
 }
 
+pub fn spawn_runtime_switch(
+    context: AppContext,
+    app: &mut TuiApp,
+    task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
+) {
+    if app.task_state.running.is_some() {
+        app.set_status("another operation is already running");
+        return;
+    }
+
+    let config_id = match app
+        .data
+        .runtime
+        .selected_config_id
+        .filter(|&id| Some(id) != app.data.runtime.active_config_id)
+        .or(app.data.runtime.selected_config_id)
+    {
+        Some(id) => id,
+        None => {
+            app.set_status("no selected config — select one from the Configs view first");
+            return;
+        }
+    };
+
+    let kind = TuiTaskKind::RuntimeOp;
+    let include_deleted = app.config_list.include_deleted;
+    let _ = app.task_state.start(kind);
+    let _ = task_tx.send(TuiTaskEvent::Started { kind });
+
+    let task_tx = task_tx.clone();
+    tokio::spawn(async move {
+        let service = RuntimeService::new(&context);
+        if let Err(err) = service.disconnect().await {
+            let _ = task_tx.send(TuiTaskEvent::Failed {
+                kind,
+                error: format!("switch: stop failed: {err}"),
+            });
+            return;
+        }
+        let result = service.connect(ConnectRequest { config_id }).await;
+        let event = match result {
+            Ok(res) => match TuiData::load(&context, include_deleted).await {
+                Ok(data) => TuiTaskEvent::Completed {
+                    kind,
+                    message: format!("switched runtime to config #{}", res.config.id),
+                    data: Some(data),
+                },
+                Err(err) => TuiTaskEvent::Failed {
+                    kind,
+                    error: format!("runtime switched but reload failed: {err}"),
+                },
+            },
+            Err(err) => TuiTaskEvent::Failed {
+                kind,
+                error: format!("switch: start failed: {err}"),
+            },
+        };
+        let _ = task_tx.send(event);
+    });
+}
+
 pub fn spawn_runtime_restart(
     context: AppContext,
     app: &mut TuiApp,

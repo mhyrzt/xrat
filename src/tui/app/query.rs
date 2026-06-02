@@ -35,8 +35,12 @@ impl TuiApp {
             ConfigFilter::None => String::new(),
             f => format!(" - filter:{}", f.label()),
         };
+        let proto_part = match &self.config_list.protocol_filter {
+            None => String::new(),
+            Some(p) => format!(" - proto:{p}"),
+        };
         format!(
-            "{search} - sort:{}{filter_part} - {deleted}",
+            "{search} - sort:{}{filter_part}{proto_part} - {deleted}",
             self.config_list.sort.label()
         )
     }

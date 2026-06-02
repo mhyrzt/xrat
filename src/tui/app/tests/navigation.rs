@@ -84,6 +84,50 @@ fn cycles_config_sort_order() {
         .map(|row| row.id)
         .collect();
     assert_eq!(visible, vec![1, 2]);
+
+    app.apply(TuiAction::CycleSort); // Name
+    app.apply(TuiAction::CycleSort); // Protocol
+    app.apply(TuiAction::CycleSort); // Source
+    app.apply(TuiAction::CycleSort);
+    assert_eq!(app.config_list.sort, ConfigSort::LastTested);
+    app.apply(TuiAction::CycleSort);
+    assert_eq!(app.config_list.sort, ConfigSort::ImportedAt);
+    app.apply(TuiAction::CycleSort);
+    assert_eq!(app.config_list.sort, ConfigSort::RealDelay);
+}
+
+#[test]
+fn cycles_protocol_filter() {
+    let mut vless = row(1);
+    vless.protocol = "vless".to_string();
+
+    let mut trojan = row(2);
+    trojan.protocol = "trojan".to_string();
+
+    let mut vless2 = row(3);
+    vless2.protocol = "vless".to_string();
+
+    let data = TuiData::from_configs(vec![vless, trojan, vless2]);
+    let mut app = TuiApp::with_data(data);
+
+    assert!(app.config_list.protocol_filter.is_none());
+    assert_eq!(app.visible_configs().len(), 3);
+
+    app.apply(TuiAction::CycleProtocolFilter);
+    assert_eq!(app.config_list.protocol_filter.as_deref(), Some("trojan"));
+    let visible: Vec<i64> = app.visible_configs().iter().map(|r| r.id).collect();
+    assert_eq!(visible, vec![2]);
+
+    app.apply(TuiAction::CycleProtocolFilter);
+    assert_eq!(app.config_list.protocol_filter.as_deref(), Some("vless"));
+    let visible: Vec<i64> = app.visible_configs().iter().map(|r| r.id).collect();
+    assert_eq!(visible.len(), 2);
+    assert!(visible.contains(&1));
+    assert!(visible.contains(&3));
+
+    app.apply(TuiAction::CycleProtocolFilter);
+    assert!(app.config_list.protocol_filter.is_none());
+    assert_eq!(app.visible_configs().len(), 3);
 }
 
 #[test]

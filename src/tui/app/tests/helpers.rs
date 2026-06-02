@@ -13,6 +13,8 @@ pub(crate) fn row(id: i64) -> TuiConfigRow {
         tcp_ms: Some(20),
         failure_reason: None,
         source_id: None,
+        tested_at: Some("2026-01-01T00:00:00Z".to_string()),
+        imported_at: "2026-01-01T00:00:00Z".to_string(),
         is_active: false,
         is_enabled: true,
         is_selected: false,

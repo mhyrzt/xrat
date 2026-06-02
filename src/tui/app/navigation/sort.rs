@@ -28,6 +28,41 @@ impl TuiApp {
         self.status_message = format!("filter: {}", self.config_list.filter.label());
     }
 
+    pub(crate) fn cycle_protocol_filter(&mut self) {
+        if self.active_view != TuiView::Configs || self.config_list.editing_search {
+            return;
+        }
+
+        let mut protocols: Vec<String> = {
+            let mut seen = std::collections::BTreeSet::new();
+            self.data
+                .configs
+                .iter()
+                .filter(|c| seen.insert(c.protocol.clone()))
+                .map(|c| c.protocol.clone())
+                .collect()
+        };
+        protocols.sort();
+
+        let next = match &self.config_list.protocol_filter {
+            None => protocols.into_iter().next(),
+            Some(current) => {
+                let pos = protocols.iter().position(|p| p == current);
+                match pos {
+                    Some(i) if i + 1 < protocols.len() => Some(protocols[i + 1].clone()),
+                    _ => None,
+                }
+            }
+        };
+
+        self.config_list.protocol_filter = next;
+        self.config_list.focused = 0;
+        self.status_message = match &self.config_list.protocol_filter {
+            Some(p) => format!("protocol: {p}"),
+            None => "protocol: all".to_string(),
+        };
+    }
+
     pub(crate) fn toggle_deleted_filter(&mut self) {
         if self.active_view != TuiView::Configs || self.config_list.editing_search {
             return;
@@ -45,6 +80,7 @@ impl TuiApp {
     pub(crate) fn visible_config_indices(&self) -> Vec<usize> {
         let query = self.config_list.search_query.trim().to_lowercase();
         let filter = self.config_list.filter;
+        let proto = self.config_list.protocol_filter.as_deref();
         let mut indices: Vec<usize> = self
             .data
             .configs
@@ -56,6 +92,11 @@ impl TuiApp {
                 }
                 if !filter.matches(config) {
                     return None;
+                }
+                if let Some(p) = proto {
+                    if config.protocol != p {
+                        return None;
+                    }
                 }
                 Some(idx)
             })

@@ -65,17 +65,40 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     } else {
                         Vec::new()
                     };
-                let qr_config_id = if matches!(action, crate::tui::app::TuiAction::OpenQrFocused) {
+                let is_sources_view = app.active_view == crate::tui::app::TuiView::Sources;
+                let qr_config_id = if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
+                    && !is_sources_view
+                {
                     app.focused_config()
                         .map(|c| (c.id, c.display_name().to_string()))
                 } else {
                     None
                 };
-                let copy_focused_id = if matches!(action, crate::tui::app::TuiAction::CopyFocused) {
+                let qr_source = if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
+                    && is_sources_view
+                {
+                    app.focused_source()
+                        .filter(|s| !s.value.is_empty())
+                        .map(|s| (s.display_name().to_string(), s.value.clone()))
+                } else {
+                    None
+                };
+                let copy_focused_id = if matches!(action, crate::tui::app::TuiAction::CopyFocused)
+                    && !is_sources_view
+                {
                     app.focused_config().map(|c| c.id)
                 } else {
                     None
                 };
+                let copy_focused_source =
+                    if matches!(action, crate::tui::app::TuiAction::CopyFocused) && is_sources_view
+                    {
+                        app.focused_source()
+                            .filter(|s| !s.value.is_empty())
+                            .map(|s| s.value.clone())
+                    } else {
+                        None
+                    };
                 let copy_selected_ids: Vec<i64> =
                     if matches!(action, crate::tui::app::TuiAction::CopySelected) {
                         app.data
@@ -133,6 +156,9 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 if matches!(action, crate::tui::app::TuiAction::RuntimeRestart) {
                     tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
                 }
+                if matches!(action, crate::tui::app::TuiAction::RuntimeSwitch) {
+                    tasks::spawn_runtime_switch(context.clone(), &mut app, &task_tx);
+                }
                 if let Some((source_id, source_value)) = focused_source_value {
                     tasks::spawn_source_refresh(
                         context.clone(),
@@ -166,8 +192,14 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 if let Some((config_id, config_name)) = qr_config_id {
                     tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;
                 }
+                if let Some((source_name, source_url)) = qr_source {
+                    tasks::open_qr_for_source(&mut app, source_name, source_url);
+                }
                 if let Some(config_id) = copy_focused_id {
                     tasks::copy_config_uri(context, &mut app, config_id).await;
+                }
+                if let Some(source_url) = copy_focused_source {
+                    tasks::copy_source_uri(&mut app, source_url);
                 }
                 if !copy_selected_ids.is_empty() {
                     tasks::copy_selected_uris(context, &mut app, copy_selected_ids).await;

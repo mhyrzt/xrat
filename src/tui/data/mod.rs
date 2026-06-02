@@ -22,6 +22,8 @@ pub struct TuiData {
     pub selected_configs: usize,
     pub deleted_configs: usize,
     pub failed_configs: usize,
+    pub db_label: String,
+    pub config_path: String,
 }
 
 impl TuiData {
@@ -52,7 +54,10 @@ impl TuiData {
         let runtime = RuntimeService::new(context).status().await?.into();
         let tests = TuiTestStatus::load(context, &configs).await?;
 
-        Ok(Self::from_parts(configs, sources, runtime, tests))
+        let mut data = Self::from_parts(configs, sources, runtime, tests);
+        data.db_label = context.runtime_paths.database_label.clone();
+        data.config_path = context.runtime_paths.config_path.display().to_string();
+        Ok(data)
     }
 
     pub fn from_configs(configs: Vec<TuiConfigRow>) -> Self {
@@ -96,6 +101,8 @@ impl TuiData {
             selected_configs,
             deleted_configs,
             failed_configs,
+            db_label: String::new(),
+            config_path: String::new(),
         }
     }
 }

@@ -8,7 +8,9 @@ impl ConfigSort {
             Self::Id => Self::Name,
             Self::Name => Self::Protocol,
             Self::Protocol => Self::Source,
-            Self::Source => Self::RealDelay,
+            Self::Source => Self::LastTested,
+            Self::LastTested => Self::ImportedAt,
+            Self::ImportedAt => Self::RealDelay,
         }
     }
 
@@ -20,6 +22,8 @@ impl ConfigSort {
             Self::Name => "name",
             Self::Protocol => "protocol",
             Self::Source => "source",
+            Self::LastTested => "last-tested",
+            Self::ImportedAt => "imported-at",
         }
     }
 
@@ -45,6 +49,19 @@ impl ConfigSort {
                 .then_with(|| left.id.cmp(&right.id)),
             Self::Source => (left.source_id.unwrap_or(i64::MAX), left.id)
                 .cmp(&(right.source_id.unwrap_or(i64::MAX), right.id)),
+            Self::LastTested => {
+                // newest first; untested ("0000") sorts last
+                let l = left.tested_at.as_deref().unwrap_or("0000");
+                let r = right.tested_at.as_deref().unwrap_or("0000");
+                r.cmp(l).then_with(|| left.id.cmp(&right.id))
+            }
+            Self::ImportedAt => {
+                // newest first
+                right
+                    .imported_at
+                    .cmp(&left.imported_at)
+                    .then_with(|| left.id.cmp(&right.id))
+            }
         }
     }
 }

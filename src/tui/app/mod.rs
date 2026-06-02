@@ -32,6 +32,7 @@ impl TuiApp {
             TuiAction::ConfirmSearch => self.close_search(),
             TuiAction::CycleSort => self.cycle_config_sort(),
             TuiAction::CycleFilter => self.cycle_config_filter(),
+            TuiAction::CycleProtocolFilter => self.cycle_protocol_filter(),
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
@@ -39,6 +40,7 @@ impl TuiApp {
             | TuiAction::RuntimeStart
             | TuiAction::RuntimeStop
             | TuiAction::RuntimeRestart
+            | TuiAction::RuntimeSwitch
             | TuiAction::RefreshFocusedSource
             | TuiAction::RefreshAllSources
             | TuiAction::OpenQrFocused
