@@ -768,7 +768,8 @@ Tasks:
 - [x] Refresh focused source via `r`.
 - [x] Refresh all sources via `R`.
 - [x] Add/import URL, file, and raw-text sources via `i` import modal.
-- [ ] Copy and QR source URLs.
+- [x] Copy and QR source URLs. (`y` QR source URL, `c` copy source URL; `u`/`U`
+      QR/copy HTTP API subscription URL)
 - [ ] Show latest refresh/import errors per-source in the detail panel.
 
 Acceptance:
