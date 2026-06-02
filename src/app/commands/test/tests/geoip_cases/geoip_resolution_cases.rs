@@ -1,7 +1,7 @@
 use super::super::super::*;
 
-#[test]
-fn resolves_endpoint_meta_priority_with_real_mmdb_when_provided() {
+#[tokio::test]
+async fn resolves_endpoint_meta_priority_with_real_mmdb_when_provided() {
     let Some(city_path) = std::env::var_os("XRAT_GEOIP_TEST_CITY_MMDB") else {
         return;
     };
@@ -13,13 +13,12 @@ fn resolves_endpoint_meta_priority_with_real_mmdb_when_provided() {
     };
 
     let ip = "8.8.8.8";
-    let meta = resolve_endpoint_meta(
-        Some(ip),
-        true,
-        city_path.as_ref(),
-        country_path.as_ref(),
-        asn_path.as_ref(),
+    let lookup = geoip::LocalMmdbLookup::new(
+        country_path.clone().into(),
+        city_path.clone().into(),
+        asn_path.clone().into(),
     );
+    let meta = resolve_endpoint_meta(Some(ip), true, &lookup).await;
 
     if let Some(city) = geoip::lookup_city_label(city_path.as_ref(), ip) {
         assert_eq!(meta.location.as_deref(), Some(city.as_str()));

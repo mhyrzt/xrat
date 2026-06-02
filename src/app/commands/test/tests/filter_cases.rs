@@ -120,30 +120,26 @@ fn classifies_endpoint_location_from_ip() {
     assert!(classify_endpoint_location(None).is_none());
 }
 
-#[test]
-fn resolves_endpoint_location_with_geoip_fallback() {
+#[tokio::test]
+async fn resolves_endpoint_location_with_geoip_fallback() {
+    let lookup = crate::support::geoip::LocalMmdbLookup::new(
+        "/tmp/no-country.mmdb".into(),
+        "/tmp/no-city.mmdb".into(),
+        "/tmp/no-asn.mmdb".into(),
+    );
+
     assert_eq!(
-        resolve_endpoint_meta(
-            Some("8.8.8.8"),
-            true,
-            "/tmp/no-city.mmdb".as_ref(),
-            "/tmp/no-country.mmdb".as_ref(),
-            "/tmp/no-asn.mmdb".as_ref(),
-        )
-        .location
-        .as_deref(),
+        resolve_endpoint_meta(Some("8.8.8.8"), true, &lookup,)
+            .await
+            .location
+            .as_deref(),
         Some("public")
     );
     assert_eq!(
-        resolve_endpoint_meta(
-            Some("10.0.0.1"),
-            false,
-            "/tmp/no-city.mmdb".as_ref(),
-            "/tmp/no-country.mmdb".as_ref(),
-            "/tmp/no-asn.mmdb".as_ref(),
-        )
-        .location
-        .as_deref(),
+        resolve_endpoint_meta(Some("10.0.0.1"), false, &lookup,)
+            .await
+            .location
+            .as_deref(),
         Some("private_ipv4")
     );
 }

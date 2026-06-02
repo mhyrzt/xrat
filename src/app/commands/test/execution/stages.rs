@@ -85,10 +85,9 @@ pub(crate) async fn run_real_delay_stage(
     let endpoint_meta = resolve_endpoint_meta(
         result.endpoint_ip.as_deref(),
         settings.geoip_enabled,
-        &settings.geoip_city_path,
-        &settings.geoip_country_path,
-        &settings.geoip_asn_path,
-    );
+        settings.geoip_lookup.as_ref(),
+    )
+    .await;
     result.endpoint_location = endpoint_meta.location;
     result.endpoint_country = endpoint_meta.country;
     result.endpoint_asn = endpoint_meta.asn;

@@ -42,6 +42,56 @@ fn parses_geoip_update_flags() {
 }
 
 #[test]
+fn parses_geoip_lookup_flags() {
+    let cli = Cli::parse_from([
+        "xrat",
+        "geoip",
+        "lookup",
+        "8.8.8.8",
+        "--backend",
+        "ipwhois",
+        "--no-cache",
+        "--json",
+    ]);
+
+    match cli.command {
+        Command::GeoIp(args) => match args.action {
+            GeoIpAction::Lookup(args) => {
+                assert_eq!(args.ip, "8.8.8.8");
+                assert_eq!(args.backend.as_deref(), Some("ipwhois"));
+                assert!(args.no_cache);
+                assert!(args.json);
+            }
+            _ => panic!("expected geoip lookup command"),
+        },
+        _ => panic!("expected geoip command"),
+    }
+}
+
+#[test]
+fn parses_geoip_backend_flags() {
+    let cli = Cli::parse_from([
+        "xrat",
+        "geoip",
+        "backend",
+        "--backend",
+        "ip-api",
+        "--no-cache",
+    ]);
+
+    match cli.command {
+        Command::GeoIp(args) => match args.action {
+            GeoIpAction::Backend(args) => {
+                assert_eq!(args.backend.as_deref(), Some("ip-api"));
+                assert!(args.no_cache);
+            }
+            _ => panic!("expected geoip backend command"),
+        },
+        _ => panic!("expected geoip command"),
+    }
+}
+
+#[test]
 fn parses_geoip_path_subcommand() {
     let cli = Cli::parse_from(["xrat", "geoip", "path"]);
 
