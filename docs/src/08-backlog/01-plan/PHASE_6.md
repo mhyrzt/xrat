@@ -925,13 +925,13 @@ Manual checks:
 
 Update docs when the phase starts:
 
-- add Phase 6 to `docs/src/SUMMARY.md`
-- add usage docs for `xrat tui`
-- document keybindings
-- document QR/clipboard limitations
-- document soft delete vs purge semantics
-- document how TUI maps to CLI/runtime behavior
-- keep `docs/ui/tui/index.html` linked as the prototype reference
+- [x] add Phase 6 to `docs/src/SUMMARY.md`
+- [x] add usage docs for `xrat tui`
+- [x] document keybindings
+- [x] document QR/clipboard limitations
+- [x] document soft delete vs purge semantics
+- [x] document how TUI maps to CLI/runtime behavior
+- [x] keep `docs/ui/tui/index.html` linked as the prototype reference
 
 ## Completion Criteria
 
