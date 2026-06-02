@@ -201,6 +201,12 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 if let Some(source_url) = copy_focused_source {
                     tasks::copy_source_uri(&mut app, source_url);
                 }
+                if matches!(action, crate::tui::app::TuiAction::OpenQrApiUrl) {
+                    tasks::open_qr_for_api_url(&mut app);
+                }
+                if matches!(action, crate::tui::app::TuiAction::CopyApiUrl) {
+                    tasks::copy_api_url(&mut app);
+                }
                 if !copy_selected_ids.is_empty() {
                     tasks::copy_selected_uris(context, &mut app, copy_selected_ids).await;
                 }

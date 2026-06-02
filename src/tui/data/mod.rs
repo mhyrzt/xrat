@@ -24,6 +24,7 @@ pub struct TuiData {
     pub failed_configs: usize,
     pub db_label: String,
     pub config_path: String,
+    pub api_b64_url: String,
 }
 
 impl TuiData {
@@ -57,6 +58,8 @@ impl TuiData {
         let mut data = Self::from_parts(configs, sources, runtime, tests);
         data.db_label = context.runtime_paths.database_label.clone();
         data.config_path = context.runtime_paths.config_path.display().to_string();
+        let server = &context.app_config.server;
+        data.api_b64_url = format!("http://{}:{}/b64", server.host, server.port);
         Ok(data)
     }
 
@@ -103,6 +106,7 @@ impl TuiData {
             failed_configs,
             db_label: String::new(),
             config_path: String::new(),
+            api_b64_url: String::new(),
         }
     }
 }

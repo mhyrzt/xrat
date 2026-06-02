@@ -45,7 +45,9 @@ impl TuiApp {
             | TuiAction::RefreshAllSources
             | TuiAction::OpenQrFocused
             | TuiAction::CopyFocused
-            | TuiAction::CopySelected => {}
+            | TuiAction::CopySelected
+            | TuiAction::OpenQrApiUrl
+            | TuiAction::CopyApiUrl => {}
             TuiAction::OpenImportModal => {
                 self.import_modal = Some(crate::tui::app::ImportModalState::default());
             }

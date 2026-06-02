@@ -54,6 +54,24 @@ pub fn copy_source_uri(app: &mut TuiApp, source_url: String) {
     set_clipboard(app, source_url);
 }
 
+pub fn open_qr_for_api_url(app: &mut TuiApp) {
+    let url = app.data.api_b64_url.clone();
+    if url.is_empty() {
+        app.set_status("API subscription URL not available");
+        return;
+    }
+    app.qr_modal = Some(QrModalState::new("API /b64 subscription", url));
+}
+
+pub fn copy_api_url(app: &mut TuiApp) {
+    let url = app.data.api_b64_url.clone();
+    if url.is_empty() {
+        app.set_status("API subscription URL not available");
+        return;
+    }
+    set_clipboard(app, url);
+}
+
 fn set_clipboard(app: &mut TuiApp, text: String) {
     match arboard::Clipboard::new() {
         Ok(mut cb) => match cb.set_text(&text) {

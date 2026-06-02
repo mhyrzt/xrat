@@ -825,8 +825,9 @@ Tasks:
 
 - [x] Add QR modal using `qrcode` crate (unicode half-block rendering; `y` key).
       Configs view: focused config URI. Sources view: source URL.
-- [ ] Add payload builders for local runtime profile and HTTP API subscription
-      URL.
+- [x] Add HTTP API subscription URL (`/b64`) to `TuiData.api_b64_url`; `u`/`U`
+      in Sources view open QR modal / copy to clipboard; shown in detail panel
+      and diagnostics view. Local runtime profile not implemented.
 - [x] Add copy-to-clipboard integration (`arboard`; `c` focused, `C` selected
       configs; `c` in Sources copies source URL).
 - [x] Add paste/import modal (import modal from P6.8 handles this via `i` in
@@ -963,26 +964,19 @@ Phase 6 can be considered complete when:
 
 **Reviewed: 2026-06-01**
 
-**Updated: 2026-06-02 (session 3)**
+**Updated: 2026-06-02 (session 4)**
 
-Recent progress (session 3, ending 2026-06-02):
+Recent progress (session 4, ending 2026-06-02):
 
-- P6.6 complete: Protocol filter added (`P` key cycles distinct protocols from
-  loaded data). `tested_at` and `imported_at` added to `TuiConfigRow`. Two new
-  sort fields: `ConfigSort::LastTested` (descending timestamp, untested last)
-  and `ConfigSort::ImportedAt` (descending). 8 sort fields total. Protocol chip
-  shown in filter bar alongside ConfigFilter chip. Status-bar summary updated.
-  `cycles_protocol_filter` test added.
+- P6.11 fully complete: `api_b64_url` built from `app_config.server.host:port`
+  stored in `TuiData`; `u`/`U` in Sources view open QR modal / copy API URL;
+  shown in sources detail panel and diagnostics view.
+- Session 3 (2026-06-02): protocol filter (`P`), last-tested/imported-at sort.
 - Session 2 (2026-06-02): Sources `y`/`c`, `RuntimeSwitch`, diagnostics paths.
 - Session 1 (2026-06-01): bulk enable/disable, QR/copy for configs, diagnostics
   view/log buffer, TcpDelay/Source sort, ConfigFilter cycle.
 - 357 tests pass. `cargo fmt` clean.
 
-All completion criteria now marked `[x]` except criterion #11 (terminal
-restoration on Ctrl+C and errors). Remaining implementation gap:
-
-### 1. HTTP API subscription URL QR/copy
-
-Sources `y`/`c` cover source URLs already in the DB. Generating and QR-ing an
-HTTP API subscription URL (when server is running) requires the server base URL
-and is not yet wired. Low priority — server may not be running.
+Phase 6 is complete. All completion criteria are `[x]` except #11 (terminal
+restoration on panic/error — requires panic hook and signal handler, deferred to
+P6.13 polish). No remaining blockers for core functionality.

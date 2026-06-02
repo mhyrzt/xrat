@@ -45,6 +45,8 @@ pub enum TuiAction {
     OpenQrFocused,
     CopyFocused,
     CopySelected,
+    OpenQrApiUrl,
+    CopyApiUrl,
     ImportInput(char),
     ImportBackspace,
     ImportSubmit,

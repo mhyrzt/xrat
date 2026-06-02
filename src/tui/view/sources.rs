@@ -16,7 +16,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         .split(area);
 
     render_table(frame, columns[0], app);
-    render_detail(frame, columns[1], app.focused_source());
+    render_detail(
+        frame,
+        columns[1],
+        app.focused_source(),
+        &app.data.api_b64_url,
+    );
 }
 
 fn render_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -61,7 +66,7 @@ fn render_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     frame.render_widget(table, area);
 }
 
-fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow>) {
+fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow>, api_url: &str) {
     let lines = match source {
         Some(source) => vec![
             Line::styled(
@@ -76,7 +81,11 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow
             detail_line("Updated", &source.updated_at),
             Line::raw(""),
             Line::styled("Actions", theme::muted_style()),
-            Line::raw("r refresh focused  R refresh all  i import  y QR  c copy URL"),
+            Line::raw("r refresh  R refresh all  i import  y QR  c copy URL"),
+            Line::raw(""),
+            Line::styled("API subscription URL", theme::muted_style()),
+            Line::raw(api_url),
+            Line::raw("u QR-API  U copy-API"),
         ],
         None => vec![
             Line::styled(
@@ -85,6 +94,10 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow
             ),
             Line::raw(""),
             Line::raw("Import a subscription with `xrat import <input>`."),
+            Line::raw(""),
+            Line::styled("API subscription URL", theme::muted_style()),
+            Line::raw(api_url),
+            Line::raw("u QR-API  U copy-API"),
         ],
     };
 

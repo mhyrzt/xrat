@@ -29,6 +29,8 @@ pub fn action_for_view_key(key: KeyEvent, active_view: TuiView) -> TuiAction {
         KeyCode::Char('i') if active_view == TuiView::Sources => TuiAction::OpenImportModal,
         KeyCode::Char('y') if active_view == TuiView::Sources => TuiAction::OpenQrFocused,
         KeyCode::Char('c') if active_view == TuiView::Sources => TuiAction::CopyFocused,
+        KeyCode::Char('u') if active_view == TuiView::Sources => TuiAction::OpenQrApiUrl,
+        KeyCode::Char('U') if active_view == TuiView::Sources => TuiAction::CopyApiUrl,
         KeyCode::Char('s') => TuiAction::CycleSort,
         KeyCode::Char(' ') => TuiAction::SelectFocused,
         KeyCode::Char('e') => TuiAction::EnableFocused,
