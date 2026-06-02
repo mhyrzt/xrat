@@ -9,8 +9,8 @@
 - `src/app/` contains app runtime bootstrap and command handlers. Keep command
   logic under `src/app/commands/` and keep lifecycle concerns in
   `src/app/daemon/`, `src/app/runtime_service/`, and `src/xray/process_mgmt/`.
-- `src/app/context/` and `src/app/config/` contain application bootstrap, path
-  resolution, and command-specific runtime settings.
+- `src/app/context/`, `src/app/config/`, and `src/app/paths/` contain
+  application bootstrap, path resolution, and command-specific runtime settings.
 - `src/config/` contains import, parsing, normalization, and protocol link
   support. Keep external input parsing separate from runtime config generation.
 - `src/xray/` contains Xray parsing, generated runtime config builders, and
@@ -23,7 +23,8 @@
 - `src/model/` contains shared domain types.
 - `src/server/` contains HTTP API routes, auth, response, and server state.
 - `src/tui/` contains terminal UI state, views, keymaps, and data adapters.
-- `src/support/` contains small shared helpers.
+- `src/support/` contains small shared helpers for decode, GeoIP, cancellation,
+  network, time, and URL handling.
 - `migrations/sqlite/` and `migrations/postgres/` hold ordered SQL migrations.
 - `docs/src/` holds user-facing documentation. Backlog plans and validation
   checklists live under `docs/src/08-backlog/`.
@@ -42,7 +43,8 @@
   - `cargo run -- scan`
   - `cargo run -- serve`
   - `cargo run -- tui`
-  - `cargo run -- runtime status`
+  - `cargo run -- status`
+  - `cargo run -- geoip status`
 
 Run `cargo fmt` and `cargo test -q` before committing.
 
