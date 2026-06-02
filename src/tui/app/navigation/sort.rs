@@ -93,10 +93,10 @@ impl TuiApp {
                 if !filter.matches(config) {
                     return None;
                 }
-                if let Some(p) = proto {
-                    if config.protocol != p {
-                        return None;
-                    }
+                if let Some(p) = proto
+                    && config.protocol != p
+                {
+                    return None;
                 }
                 Some(idx)
             })

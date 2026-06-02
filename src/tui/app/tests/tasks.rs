@@ -1,5 +1,5 @@
 use super::helpers::row;
-use crate::tui::app::{TuiAction, TuiApp};
+use crate::tui::app::TuiApp;
 use crate::tui::data::TuiData;
 use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 

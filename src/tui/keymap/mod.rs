@@ -1,5 +1,6 @@
 mod confirm;
 mod search;
+#[cfg(test)]
 mod tests;
 mod view;
 

@@ -42,6 +42,7 @@ use stages::*;
 #[cfg(test)]
 mod tests;
 
+#[allow(dead_code)]
 pub(crate) async fn run_bulk_for_config_ids_cancellable(
     args: &TestArgs,
     context: &AppContext,

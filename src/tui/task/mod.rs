@@ -1,4 +1,5 @@
 mod state;
+#[cfg(test)]
 mod tests;
 
 use crate::tui::data::TuiData;
@@ -14,6 +15,7 @@ pub enum TuiTaskKind {
 }
 
 #[derive(Debug)]
+#[allow(dead_code, clippy::large_enum_variant)]
 pub enum TuiTaskEvent {
     Started {
         kind: TuiTaskKind,

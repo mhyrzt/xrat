@@ -63,10 +63,12 @@ impl TuiData {
         Ok(data)
     }
 
+    #[allow(dead_code)]
     pub fn from_configs(configs: Vec<TuiConfigRow>) -> Self {
         Self::from_configs_and_sources(configs, Vec::new())
     }
 
+    #[allow(dead_code)]
     pub fn from_configs_and_sources(
         configs: Vec<TuiConfigRow>,
         sources: Vec<TuiSourceRow>,

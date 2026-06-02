@@ -27,6 +27,7 @@ pub(crate) fn resolve_engine_binary_path(
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct ResolvedTestSettings {
     pub(crate) stage_order: Vec<ConnectionTestStage>,
     pub(crate) failure_policy: TestFailurePolicy,

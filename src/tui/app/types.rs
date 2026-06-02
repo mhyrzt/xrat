@@ -141,6 +141,7 @@ pub struct TestViewState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(dead_code)]
 pub enum TestScope {
     Focused,
     Selected,
@@ -152,6 +153,7 @@ pub enum TestScope {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(dead_code)]
 pub enum TestMode {
     Tcp,
     RealDelay,

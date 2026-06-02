@@ -6,7 +6,7 @@ mod source;
 mod test_batch;
 
 pub use commands::{run_bulk_enable_disable, run_config_command};
-pub use data::{reload_data, spawn_reload_data};
+pub use data::spawn_reload_data;
 pub use runtime::{
     spawn_runtime_restart, spawn_runtime_start, spawn_runtime_stop, spawn_runtime_switch,
 };

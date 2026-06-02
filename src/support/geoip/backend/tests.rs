@@ -1,7 +1,3 @@
-use super::super::{
-    CachedLookup, ChainedLookup, GeoIpLookup, LocalMmdbLookup, RateLimitedLookup,
-    RemoteIpApiLookup, RemoteIpWhoisLookup,
-};
 use super::validation::validate_geoip_settings;
 use super::*;
 use crate::app::config::{GeoIpCacheSettings, GeoIpTestSettings};

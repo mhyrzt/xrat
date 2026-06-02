@@ -2,7 +2,7 @@ use crate::db::{ConnectionTestRecord, ConnectionTestRunRecord};
 
 use super::TuiConfigRow;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TuiTestStatus {
     pub latest_run_id: Option<i64>,
     pub latest_run_kind: Option<String>,
@@ -24,22 +24,6 @@ pub struct TuiTestResultRow {
     pub tcp_ms: Option<i64>,
     pub failure_reason: Option<String>,
     pub tested_at: String,
-}
-
-impl Default for TuiTestStatus {
-    fn default() -> Self {
-        Self {
-            latest_run_id: None,
-            latest_run_kind: None,
-            latest_run_created_at: None,
-            total_results: 0,
-            success_results: 0,
-            failed_results: 0,
-            untested_configs: 0,
-            stale_configs: 0,
-            recent_results: Vec::new(),
-        }
-    }
 }
 
 impl TuiTestStatus {

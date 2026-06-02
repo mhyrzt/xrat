@@ -116,14 +116,14 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     match qrcode::QrCode::new(modal.uri.as_bytes()) {
         Ok(code) => {
             let width = code.width();
-            let pixels = code.to_vec();
+            let pixels = code.to_colors();
             let mut row = 0usize;
             while row < width {
                 let mut spans: Vec<Span> = Vec::new();
                 for col in 0..width {
-                    let top = pixels[row * width + col];
+                    let top = pixels[row * width + col] == qrcode::Color::Dark;
                     let bot = if row + 1 < width {
-                        pixels[(row + 1) * width + col]
+                        pixels[(row + 1) * width + col] == qrcode::Color::Dark
                     } else {
                         false
                     };

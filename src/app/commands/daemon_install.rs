@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::app::AppError;
 use crate::app::context::AppContext;
@@ -24,17 +24,17 @@ const DAEMON_SERVICE_TEMPLATE: &str =
 const API_SERVICE_TEMPLATE: &str =
     include_str!("../../../packaging/systemd/xrat-api.service.template");
 
-fn render_service(template: &str, exe: &PathBuf, xrat_path: &str) -> String {
+fn render_service(template: &str, exe: &Path, xrat_path: &str) -> String {
     template
         .replace("{{EXE}}", &exe.display().to_string())
         .replace("{{XRAT_PATH}}", xrat_path)
 }
 
-fn generate_daemon_service(exe: &PathBuf, xrat_path: &str) -> String {
+fn generate_daemon_service(exe: &Path, xrat_path: &str) -> String {
     render_service(DAEMON_SERVICE_TEMPLATE, exe, xrat_path)
 }
 
-fn generate_api_service(exe: &PathBuf, xrat_path: &str) -> String {
+fn generate_api_service(exe: &Path, xrat_path: &str) -> String {
     render_service(API_SERVICE_TEMPLATE, exe, xrat_path)
 }
 

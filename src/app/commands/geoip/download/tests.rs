@@ -3,9 +3,7 @@ use std::time::Duration;
 use axum::http::StatusCode;
 
 use super::super::edition::{MmdbEdition, SUPPORTED_EDITIONS};
-use super::executor::{
-    DownloadOutcome, build_download_url, download_one, download_one_with_client,
-};
+use super::executor::{DownloadOutcome, build_download_url, download_one_with_client};
 use super::progress::ensure_non_empty_download;
 use super::request::{DownloadRequest, resolve_requested_editions};
 use super::summary::{DownloadFailure, DownloadSummary};

@@ -37,6 +37,7 @@ pub(crate) async fn run_bulk_for_configs(
     bulk_executor::run_bulk_for_configs(context, settings, configs, run_kind, show_progress).await
 }
 
+#[allow(dead_code)]
 pub(crate) async fn run_bulk_for_configs_cancellable(
     context: &AppContext,
     settings: ResolvedTestSettings,

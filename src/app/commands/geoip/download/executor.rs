@@ -84,7 +84,7 @@ pub(crate) async fn download_one(
         return Ok(DownloadOutcome::Skipped);
     }
 
-    let url = build_download_url(&request.url_template, edition);
+    let _url = build_download_url(&request.url_template, edition);
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(request.timeout_secs))
         .build()?;
