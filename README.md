@@ -66,33 +66,11 @@ GeoLite2 files can be downloaded from:
 
 - <https://github.com/P3TERX/GeoLite.mmdb/>
 
-Helper script included:
+Use the built-in download command:
 
 ```bash
-./scripts/download_geolite2_mmdb.sh
+xrat geoip download
 ```
-
-Or via `just`:
-
-```bash
-just geoip-download
-```
-
-Download into repo-local testdata folder:
-
-```bash
-just geoip-download-testdata
-```
-
-Optional overrides:
-
-```bash
-XRAT_PATH=~/.config/xrat GEOIP_EDITION=GeoLite2-City \
-  ./scripts/download_geolite2_mmdb.sh
-```
-
-Note: for now, XRAT ships with shell-based downloader (script) rather than
-built-in downloader.
 
 Optional test-time GeoIP lookup config:
 
