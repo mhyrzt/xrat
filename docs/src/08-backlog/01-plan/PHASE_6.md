@@ -870,22 +870,25 @@ Goal: make the TUI comfortable across terminal sizes and color themes.
 
 Tasks:
 
-- [x] Add high-contrast status colors. (`warning_style()` added for stale/untested
-      rows; distinct from `failure_style()` and `muted_style()`)
+- [x] Add high-contrast status colors. (`warning_style()` added for
+      stale/untested rows; distinct from `failure_style()` and `muted_style()`)
 - [x] Avoid color-only indicators by using badges/glyphs/text. (`status_label()`
       shows "stale" text for untested enabled configs; "fail"/"off"/"del"/"run"
       text badges on all states)
 - [ ] Improve truncation and wrapping for Unicode names.
-- [x] Handle terminal resize events. (`Event::Resize` matched explicitly in event
-      loop; redraw happens automatically on next iteration)
+- [x] Handle terminal resize events. (`Event::Resize` matched explicitly in
+      event loop; redraw happens automatically on next iteration)
 - [ ] Add mouse scroll/click if low-risk.
 - [ ] Add read-only mode if useful for monitoring.
 
 Acceptance:
 
-- [x] UI remains legible in common 80x24 and wider terminals. (color + text badges)
-- [x] important states are understandable without color. (text labels on all states)
-- [x] resize does not panic. (Resize event consumed; ratatui handles new dimensions)
+- [x] UI remains legible in common 80x24 and wider terminals. (color + text
+      badges)
+- [x] important states are understandable without color. (text labels on all
+      states)
+- [x] resize does not panic. (Resize event consumed; ratatui handles new
+      dimensions)
 
 ### P6.14 Test Matrix
 
@@ -899,10 +902,12 @@ Required tests:
 - [x] config filter/search/sort behavior (ConfigFilter cycle, TcpDelay/Source
       sort).
 - [x] selection, enable/disable, delete, restore, and purge confirmation state.
-- [x] payload builders for copy/QR selected configs. (`selected_configs_scope_for_copy`
-      test verifies selected-ID collection logic)
-- [x] source refresh/import action dispatch. (`refresh_focused_source_action_targets_correct_source`
-      test verifies focused_source capture logic for both positions)
+- [x] payload builders for copy/QR selected configs.
+      (`selected_configs_scope_for_copy` test verifies selected-ID collection
+      logic)
+- [x] source refresh/import action dispatch.
+      (`refresh_focused_source_action_targets_correct_source` test verifies
+      focused_source capture logic for both positions)
 - [x] test progress reducer (incremental per-config progress events).
 - [x] runtime status reducer.
 - [ ] terminal lifecycle smoke test if practical.
@@ -940,8 +945,8 @@ Phase 6 can be considered complete when:
 1. [x] `xrat tui` starts and exits cleanly.
 2. [x] Configs, Sources, Tests, Runtime, and Diagnostics views are navigable.
 3. [x] Config table and detail panel use real DB data.
-4. [x] search, filters, sorting, and selection work for large config sets. (text,
-       enabled/failed/has-delay/protocol filters; 8 sort fields including
+4. [x] search, filters, sorting, and selection work for large config sets.
+       (text, enabled/failed/has-delay/protocol filters; 8 sort fields including
        last-tested and imported-at; filter+proto chips in filter bar)
 5. [x] config enable/disable/select/delete/restore flows work safely. (focused
        and bulk-selected enable/disable now wired)

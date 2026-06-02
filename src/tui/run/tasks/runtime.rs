@@ -88,8 +88,13 @@ pub fn spawn_runtime_stop(
         let service = RuntimeService::new(&context);
         let event = match service.disconnect().await {
             Ok(_) => {
-                complete_after_reload(context, include_deleted, kind, "runtime stopped".to_string())
-                    .await
+                complete_after_reload(
+                    context,
+                    include_deleted,
+                    kind,
+                    "runtime stopped".to_string(),
+                )
+                .await
             }
             Err(err) => TuiTaskEvent::Failed {
                 kind,
