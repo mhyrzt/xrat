@@ -22,17 +22,17 @@ services as the CLI commands.
 | `1` | Configs     | Browse, filter, select, enable, disable, delete, and share configs              |
 | `2` | Sources     | Inspect subscription sources, refresh/import sources, and share source/API URLs |
 | `3` | Tests       | Start/cancel background test batches and inspect recent results                 |
-| `4` | Runtime     | Inspect and control the managed runtime session                                 |
-| `5` | Diagnostics | Inspect paths, runtime/source summaries, and recent operation messages          |
+| `4` | Diagnostics | Inspect paths, runtime/source summaries, and recent operation messages          |
 
-The TUI opens in the Configs view. The status bar shows the active view, config
-counts, active filters, task state, and the latest status message.
+The TUI opens in the Configs view. The bottom bar shows view shortcuts, help
+and quit actions, active filters, task state, and the latest status message.
 
 ## Global Keys
 
 | Key           | Action                                |
 | ------------- | ------------------------------------- |
-| `1`-`5`       | Switch primary view                   |
+| `1`-`4`       | Switch primary view                   |
+| `Tab`         | Cycle primary views                   |
 | `j`, `k`      | Move focus down/up                    |
 | arrow keys    | Move focus down/up                    |
 | `?`           | Open help                             |
@@ -42,7 +42,10 @@ counts, active filters, task state, and the latest status message.
 ## Configs View
 
 The Configs view shows stored configs with latest test summaries and config
-state. It supports focused actions and selected-config bulk actions.
+state. The status marker column uses `●` for active, `✓` for selected, `✕` for
+soft-deleted, `○` for disabled, and `!` for failed configs. Long names are
+truncated in the table. It supports focused actions, selected-config bulk
+actions, test batches, and managed runtime controls.
 
 | Key      | Action                                              |
 | -------- | --------------------------------------------------- |
@@ -53,11 +56,17 @@ state. It supports focused actions and selected-config bulk actions.
 | `P`      | Cycle protocol filter                               |
 | `f`      | Show or hide soft-deleted configs                   |
 | `Space`  | Mark the focused config as selected                 |
+| `Enter`  | Select and start the focused config                 |
 | `e`, `x` | Enable or disable the focused config                |
 | `E`, `X` | Enable or disable all selected configs              |
 | `d`      | Soft-delete the focused config after confirmation   |
 | `D`      | Purge the focused config after confirmation         |
 | `r`      | Restore the focused soft-deleted config             |
+| `t`      | Start a test batch for the current Configs scope    |
+| `a`      | Test all enabled, non-deleted configs               |
+| `v`      | Test visible configs matching current filters       |
+| `K`      | Stop/disconnect the managed runtime                 |
+| `R`      | Restart the managed runtime                         |
 | `y`      | Show a QR code for the focused config URI           |
 | `c`      | Copy the focused config URI                         |
 | `C`      | Copy selected config URIs as newline-separated text |
@@ -68,6 +77,17 @@ are hidden by default; press `f` to include them.
 
 Soft delete hides a config from normal views and workflows. Purge permanently
 deletes it. Both destructive actions require confirmation.
+
+The Runtime panel inside the Configs view shows the current managed runtime
+state, active config, selected config, current task, proxy endpoint, and failure
+message when present. Runtime actions use the same runtime service as
+`xrat connect`, `xrat disconnect`, and `xrat status`. The same runtime
+prerequisites apply: the configured Xray/V2Ray binary must be available, runtime
+paths must be writable, and daemon/runtime configuration must be valid.
+
+Select a preferred config in the Configs view before starting or switching the
+runtime. Runtime operations run in the background and reload TUI data after
+completion.
 
 ## Sources View
 
@@ -80,6 +100,8 @@ available.
 | `r` | Refresh the focused source                              |
 | `R` | Refresh all sources with stored values                  |
 | `i` | Open the import modal                                   |
+| `n` | Rename the focused source                               |
+| `d` | Delete the focused source and its configs               |
 | `y` | Show a QR code for the focused source URL               |
 | `c` | Copy the focused source URL                             |
 | `u` | Show a QR code for the HTTP API `/b64` subscription URL |
@@ -112,31 +134,9 @@ While a batch is running, the progress bar updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports
 cancelled once the shared test executor observes the cancellation request.
 
-## Runtime View
-
-The Runtime view shows the current managed runtime state, session details, PID
-status, active config, selected config, inbound addresses, timestamps, and
-failure or transition messages.
-
-| Key | Action                                                                         |
-| --- | ------------------------------------------------------------------------------ |
-| `s` | Start/connect using the selected config, or active config if present           |
-| `x` | Stop/disconnect the runtime                                                    |
-| `r` | Restart using the active config, or selected config if no active config exists |
-| `w` | Switch runtime to the selected config                                          |
-
-Runtime actions use the same runtime service as `xrat connect`,
-`xrat disconnect`, and `xrat status`. The same runtime prerequisites apply: the
-configured Xray/V2Ray binary must be available, runtime paths must be writable,
-and daemon/runtime configuration must be valid.
-
-Select a preferred config in the Configs view before starting or switching the
-runtime. Runtime operations run in the background and reload TUI data after
-completion.
-
 ## Diagnostics and Help
 
-Press `5` to open Diagnostics. It summarizes important runtime, database,
+Press `4` to open Diagnostics. It summarizes important runtime, database,
 source, API, and operation state, including recent TUI task messages.
 
 Press `?` from any view to open the help modal. Press `Esc` to close it.

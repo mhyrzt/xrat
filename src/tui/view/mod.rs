@@ -19,7 +19,7 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
         .split(area);
 
     render_body(frame, shell[0], app);
-    chrome::render_key_bar(frame, shell[1]);
+    chrome::render_key_bar(frame, shell[1], app.active_view);
 
     if app.show_help {
         modals::render_help(frame, modals::centered_rect(82, 42, area));
@@ -43,16 +43,10 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
 }
 
 fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(22), Constraint::Min(20)])
-        .split(area);
-
-    chrome::render_mode_rail(frame, columns[0], app.active_view);
     match app.active_view {
-        TuiView::Configs => configs::render(frame, columns[1], app),
-        TuiView::Sources => sources::render(frame, columns[1], app),
-        TuiView::Tests => tests::render(frame, columns[1], app),
-        TuiView::Diagnostics => diagnostics::render(frame, columns[1], app),
+        TuiView::Configs => configs::render(frame, area, app),
+        TuiView::Sources => sources::render(frame, area, app),
+        TuiView::Tests => tests::render(frame, area, app),
+        TuiView::Diagnostics => diagnostics::render(frame, area, app),
     }
 }

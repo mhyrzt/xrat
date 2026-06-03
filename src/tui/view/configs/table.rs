@@ -6,8 +6,10 @@ use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
+const MAX_NAME_CHARS: usize = 24;
+
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let header = Row::new(["ID", "Name", "Proto", "Address:Port", "Net", "Delay"])
+    let header = Row::new(["St", "ID", "Name", "Proto", "Address", "Net", "Delay"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let visible = app.visible_configs();
@@ -38,8 +40,9 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         }
 
         Row::new(vec![
-            Cell::from(format!("{}{}", state_marker(config), config.id)),
-            Cell::from(config.display_name().to_string()),
+            Cell::from(state_marker(config)),
+            Cell::from(config.id.to_string()),
+            Cell::from(truncate_name(config.display_name())),
             Cell::from(config.protocol.clone()),
             Cell::from(config.endpoint()),
             Cell::from(config.network_label()),
@@ -51,10 +54,11 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let table = Table::new(
         rows,
         [
-            Constraint::Length(7),
-            Constraint::Percentage(28),
+            Constraint::Length(2),
+            Constraint::Length(6),
+            Constraint::Max(MAX_NAME_CHARS as u16),
             Constraint::Length(9),
-            Constraint::Percentage(31),
+            Constraint::Percentage(35),
             Constraint::Length(10),
             Constraint::Length(8),
         ],
@@ -74,15 +78,27 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     frame.render_widget(table, area);
 }
 
+fn truncate_name(name: &str) -> String {
+    let char_count = name.chars().count();
+    if char_count <= MAX_NAME_CHARS {
+        return name.to_string();
+    }
+
+    name.chars()
+        .take(MAX_NAME_CHARS.saturating_sub(3))
+        .chain("...".chars())
+        .collect()
+}
+
 fn state_marker(config: &crate::tui::data::TuiConfigRow) -> &'static str {
     if config.is_active {
-        "*"
+        "●"
     } else if config.is_selected {
-        ">"
+        "✓"
     } else if config.is_deleted {
-        "d"
+        "✕"
     } else if !config.is_enabled {
-        "x"
+        "○"
     } else if config.failure_reason.is_some() {
         "!"
     } else {

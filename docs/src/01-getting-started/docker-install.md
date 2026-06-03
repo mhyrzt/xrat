@@ -16,7 +16,7 @@ docker pull ghcr.io/mhyrzt/xrat:latest
 For a specific release, use the version tag:
 
 ```bash
-docker pull ghcr.io/mhyrzt/xrat:0.1.1
+docker pull ghcr.io/mhyrzt/xrat:0.1.2
 ```
 
 ## State

@@ -23,7 +23,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     let mut lines = vec![
         Line::styled(
-            format!("Runtime  [{}]", rt.status),
+            format!("[{}]", rt.status),
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
         Line::raw(""),
