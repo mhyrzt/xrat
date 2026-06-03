@@ -10,6 +10,12 @@ documentation = "https://mhyrzt.github.io/xrat/"
 readme = "README.md"
 keywords = ["xray", "sing-box", "proxy", "vpn", "vless", "vmess", "trojan", "shadowsocks"]
 categories = ["command-line-utilities", "network-programming"]
+exclude = [
+    "testdata/",
+    "docs/",
+    "media/",
+    "packaging/desktop/",
+]
 
 [dependencies]
 async-trait = "0.1.89"
