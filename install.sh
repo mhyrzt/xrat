@@ -14,12 +14,23 @@ NC='\033[0m'
 print_ascii() {
     echo -e "${BLU}"
     cat <<'EOF'
-  __  ______  ___  ______
-  \ \/ / __ \/ _ \/_  __/
-   >  < / /_/ / __ |/ /
-  /_/\_\____/_/ |_/_/
+██╗  ██╗██████╗  █████╗ ████████╗
+╚██╗██╔╝██╔══██╗██╔══██╗╚══██╔══╝
+ ╚███╔╝ ██████╔╝███████║   ██║
+ ██╔██╗ ██╔══██╗██╔══██║   ██║
+██╔╝ ██╗██║  ██║██║  ██║   ██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 EOF
-    echo -e "${NC}  Proxy config manager for Xray and sing-box"
+    echo -e "${YLW}"
+    cat <<'EOF'
+        /\___/\
+       ( o   ^ )   ~
+        > ._. <   /
+       /       \_/
+      (  )   (  )
+EOF
+    echo -e "${NC}  installing xrat - squeak squeak"
+    echo -e "  Proxy config manager for Xray and sing-box"
     echo
 }
 

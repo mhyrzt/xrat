@@ -8,7 +8,7 @@ repository = "https://github.com/mhyrzt/xrat"
 homepage = "https://mhyrzt.github.io/xrat/"
 documentation = "https://mhyrzt.github.io/xrat/"
 readme = "README.md"
-keywords = ["xray", "sing-box", "proxy", "vpn", "vless", "vmess", "trojan", "shadowsocks"]
+keywords = ["xray", "sing-box", "ratatui", "tunnel", "cli"]
 categories = ["command-line-utilities", "network-programming"]
 exclude = [
     "testdata/",
