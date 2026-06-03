@@ -200,13 +200,13 @@ main() {
     echo
 
     ask "Automatically set up xrat? (init config + optional systemd daemon) [Y/n]"
-    read -r do_setup
+    read -r do_setup </dev/tty || do_setup=""
     if [[ "${do_setup,,}" != "n" ]]; then
         echo
         run_init
         echo
         ask "Install xrat-daemon as a systemd user service? [y/N]"
-        read -r do_daemon
+        read -r do_daemon </dev/tty || do_daemon=""
         if [[ "${do_daemon,,}" == "y" ]]; then
             run_daemon_install
         fi
