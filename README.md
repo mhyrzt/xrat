@@ -13,6 +13,7 @@
   <img alt="Rust" src="https://img.shields.io/badge/rust-stable-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
   <a href="https://mhyrzt.github.io/xrat"><img src="https://img.shields.io/badge/docs-mhyrzt.github.io%2Fxrat-blue" alt="Documentation"></a>
+  <a href="https://crates.io/crates/xrat"><img src="https://img.shields.io/crates/v/xrat" alt="crates.io"></a>
 </p>
 
 XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
