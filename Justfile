@@ -27,6 +27,10 @@ install:
 reinstall:
     cargo install --path . --locked --force
 
+# Build from this checkout and install via install.sh (respects INSTALL_DIR, defaults to ~/.local/bin)
+install-sh:
+    BUILD_FROM_SOURCE=1 bash install.sh
+
 # Remove the cargo-installed xrat binary
 uninstall:
     cargo uninstall xrat

@@ -69,6 +69,38 @@ export PATH="$HOME/.local/bin:$PATH"
 Add that line to `~/.bashrc`, `~/.zshrc`, or your shell's equivalent startup
 file if needed.
 
+## Build and Install From Local Checkout
+
+Set `BUILD_FROM_SOURCE=1` to have the installer build the binary from the
+repository instead of downloading a release archive. Run the script directly
+from the repo root — piping from `curl` will not work because the script needs
+`Cargo.toml` present alongside it.
+
+Requirements: `cargo` must be in `PATH`. `git`, `curl`, `tar`, and `sha256sum`
+are not needed.
+
+```bash
+git clone https://github.com/mhyrzt/xrat.git
+cd xrat
+BUILD_FROM_SOURCE=1 bash install.sh
+```
+
+To install to a different directory:
+
+```bash
+BUILD_FROM_SOURCE=1 INSTALL_DIR=/usr/local/bin bash install.sh
+```
+
+The script will:
+
+1. Run `cargo build --release` inside the checkout.
+2. Generate man pages and shell completions from the built binary.
+3. Install `xrat` and extras the same way as the release path.
+4. Offer first-time setup prompts.
+
+For a pure Cargo-managed install or a development workflow, see
+[Build From Source](source-install.md).
+
 ## First-Time Setup
 
 If you skipped the installer's setup prompts, initialize xrat manually:

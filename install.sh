@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO="mhyrzt/xrat"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
+BUILD_FROM_SOURCE="${BUILD_FROM_SOURCE:-}"
 
 RED='\033[0;31m'
 YLW='\033[1;33m'
@@ -109,8 +110,8 @@ download_and_verify() {
     curl -fsSL -o "/tmp/SHASUMS256.txt" "${base_url}/SHASUMS256.txt"
     (cd /tmp && grep "${filename}" SHASUMS256.txt | sha256sum -c -)
 
-    step "Extracting binary..."
-    tar -xzf "/tmp/${filename}" -C /tmp ./xrat
+    step "Extracting binary and extras..."
+    tar -xzf "/tmp/${filename}" -C /tmp ./xrat ./man ./completions
     rm "/tmp/${filename}" "/tmp/SHASUMS256.txt"
 }
 
@@ -119,6 +120,55 @@ install_binary() {
     mv /tmp/xrat "$INSTALL_DIR/xrat"
     chmod +x "$INSTALL_DIR/xrat"
     info "Installed to ${INSTALL_DIR}/xrat"
+}
+
+build_from_source() {
+    require_cmd cargo
+
+    local repo_dir
+    repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if [[ ! -f "$repo_dir/Cargo.toml" ]]; then
+        error "BUILD_FROM_SOURCE requires running install.sh directly from the repo (no Cargo.toml found at ${repo_dir})"
+        exit 1
+    fi
+
+    step "Building xrat from ${repo_dir}..."
+    (cd "$repo_dir" && cargo build --release)
+
+    step "Generating man pages and completions..."
+    local bin="$repo_dir/target/release/xrat"
+    mkdir -p /tmp/man/man1 /tmp/completions
+    "$bin" manpage --output /tmp/man/man1
+    "$bin" completions bash > /tmp/completions/xrat.bash
+    "$bin" completions zsh  > /tmp/completions/_xrat
+    "$bin" completions fish > /tmp/completions/xrat.fish
+
+    cp "$bin" /tmp/xrat
+}
+
+install_extras() {
+    local data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+    if [[ -d /tmp/man ]]; then
+        local man_dir="${data_dir}/man/man1"
+        mkdir -p "$man_dir"
+        cp /tmp/man/man1/*.1 "$man_dir/" 2>/dev/null || true
+        rm -rf /tmp/man
+        info "Man pages installed to ${man_dir}"
+    fi
+
+    if [[ -d /tmp/completions ]]; then
+        local bash_dir="${data_dir}/bash-completion/completions"
+        local zsh_dir="${data_dir}/zsh/site-functions"
+        local fish_dir="${HOME}/.config/fish/completions"
+
+        [[ -f /tmp/completions/xrat.bash ]] && { mkdir -p "$bash_dir"; cp /tmp/completions/xrat.bash "$bash_dir/xrat"; }
+        [[ -f /tmp/completions/_xrat ]]      && { mkdir -p "$zsh_dir";  cp /tmp/completions/_xrat "$zsh_dir/_xrat"; }
+        [[ -f /tmp/completions/xrat.fish ]] && { mkdir -p "$fish_dir"; cp /tmp/completions/xrat.fish "$fish_dir/xrat.fish"; }
+        rm -rf /tmp/completions
+        info "Shell completions installed"
+    fi
 }
 
 check_path() {
@@ -173,28 +223,36 @@ main() {
         exit 1
     fi
 
-    require_cmd curl
-    require_cmd tar
-    require_cmd sha256sum
-
-    local arch
-    arch=$(detect_arch)
-    info "Architecture: ${arch}"
-    echo
-
     check_xray
     check_singbox
 
-    step "Fetching latest release..."
     local version
-    version=$(get_latest_version)
-    info "Latest version: ${version}"
-    echo
+    if [[ -n "$BUILD_FROM_SOURCE" ]]; then
+        build_from_source
+        install_binary
+        install_extras
+        version=$("$INSTALL_DIR/xrat" --version | awk '{print $NF}')
+    else
+        require_cmd curl
+        require_cmd tar
+        require_cmd sha256sum
 
-    download_and_verify "$version" "$arch"
-    install_binary
+        local arch
+        arch=$(detect_arch)
+        info "Architecture: ${arch}"
+        echo
+
+        step "Fetching latest release..."
+        version=$(get_latest_version)
+        info "Latest version: ${version}"
+        echo
+
+        download_and_verify "$version" "$arch"
+        install_binary
+        install_extras
+    fi
+
     check_path
-
     echo
     info "xrat ${version} installed successfully."
     echo
