@@ -26,8 +26,14 @@ curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bas
 ```
 
 Requires `xray` on your system. For other installation methods (manual binary
-download, build from source, shell completions, man pages) see the
+download, Docker, build from source, shell completions, man pages) see the
 [installation docs](https://mhyrzt.github.io/xrat/01-getting-started/installation.html).
+
+Docker images are published to GitHub Container Registry:
+
+```bash
+docker run --rm -it -v xrat-data:/data/xrat ghcr.io/mhyrzt/xrat:latest --help
+```
 
 ## Current Features
 

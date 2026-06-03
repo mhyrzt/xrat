@@ -4,8 +4,9 @@ Use the installer script for a normal Linux install. It downloads the matching
 release archive, verifies the checksum, installs `xrat`, and can run first-time
 setup for you.
 
-For other install paths, see [Manual Binary Install](manual-binary-install.md)
-or [Build From Source](source-install.md).
+For other install paths, see [Docker Install](docker-install.md),
+[Manual Binary Install](manual-binary-install.md), or
+[Build From Source](source-install.md).
 
 ## Requirements
 

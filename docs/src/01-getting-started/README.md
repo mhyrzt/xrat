@@ -17,6 +17,8 @@ Choose one install path:
 
 - [Installation Script](installation.md) — recommended Linux install from the
   latest verified release archive
+- [Docker Install](docker-install.md) — run the published container image with
+  bundled Xray-core
 - [Manual Binary Install](manual-binary-install.md) — download, verify, and
   place release files yourself
 - [Build From Source](source-install.md) — Justfile-oriented workflow for local

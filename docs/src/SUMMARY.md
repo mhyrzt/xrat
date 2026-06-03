@@ -3,6 +3,7 @@
 - [Home](README.md)
 - [Getting Started](01-getting-started/README.md)
   - [Installation Script](01-getting-started/installation.md)
+  - [Docker Install](01-getting-started/docker-install.md)
   - [Manual Binary Install](01-getting-started/manual-binary-install.md)
   - [Build From Source](01-getting-started/source-install.md)
   - [Quickstart](01-getting-started/quickstart.md)

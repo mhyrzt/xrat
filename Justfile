@@ -53,6 +53,10 @@ test:
 postgres-up:
     docker compose up -d postgres
 
+# Build the local Docker image
+docker-build tag="xrat:latest":
+    docker build -t {{tag}} .
+
 # Stop the local PostgreSQL verification database
 postgres-down:
     docker compose down
