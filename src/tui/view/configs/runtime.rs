@@ -36,7 +36,10 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     }
 
     lines.push(Line::raw(""));
-    lines.push(Line::styled("S start  0 stop  R restart  w switch", theme::muted_style()));
+    lines.push(Line::styled(
+        "S start  0 stop  R restart  w switch",
+        theme::muted_style(),
+    ));
 
     frame.render_widget(
         Paragraph::new(lines)

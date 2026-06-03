@@ -49,8 +49,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     let confirmed_source_delete =
                         if matches!(action, crate::tui::app::TuiAction::Confirm) {
                             if let Some(confirm) = &app.confirm {
-                                if let crate::tui::app::ConfirmKind::DeleteSource(id) =
-                                    confirm.kind
+                                if let crate::tui::app::ConfirmKind::DeleteSource(id) = confirm.kind
                                 {
                                     Some(id)
                                 } else {

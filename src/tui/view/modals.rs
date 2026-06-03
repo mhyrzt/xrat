@@ -114,7 +114,10 @@ pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     frame.render_widget(Clear, area);
     let cursor_input = format!("{}█", modal.input);
     let mut lines = vec![
-        Line::styled("Enter a new name for this subscription.", theme::muted_style()),
+        Line::styled(
+            "Enter a new name for this subscription.",
+            theme::muted_style(),
+        ),
         Line::raw(""),
         Line::styled(&cursor_input, theme::accent_style()),
     ];
@@ -123,7 +126,10 @@ pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         lines.push(Line::styled(err.as_str(), theme::failure_style()));
     }
     lines.push(Line::raw(""));
-    lines.push(Line::styled("Enter save   Esc cancel", theme::muted_style()));
+    lines.push(Line::styled(
+        "Enter save   Esc cancel",
+        theme::muted_style(),
+    ));
 
     frame.render_widget(
         Paragraph::new(lines)

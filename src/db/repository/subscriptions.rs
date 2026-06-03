@@ -96,18 +96,22 @@ pub async fn find_or_create(pool: &DbPool, source: &ImportSource) -> crate::db::
 pub async fn set_name(pool: &DbPool, id: i64, name: &str) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(pool) => {
-            sqlx::query("UPDATE subscriptions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-                .bind(name)
-                .bind(id)
-                .execute(pool)
-                .await?;
+            sqlx::query(
+                "UPDATE subscriptions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            )
+            .bind(name)
+            .bind(id)
+            .execute(pool)
+            .await?;
         }
         DbPool::Postgres(pool) => {
-            sqlx::query("UPDATE subscriptions SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2")
-                .bind(name)
-                .bind(id)
-                .execute(pool)
-                .await?;
+            sqlx::query(
+                "UPDATE subscriptions SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+            )
+            .bind(name)
+            .bind(id)
+            .execute(pool)
+            .await?;
         }
     }
     Ok(())
