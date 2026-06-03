@@ -16,6 +16,7 @@ fn maps_global_quit_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::Quit
@@ -24,6 +25,7 @@ fn maps_global_quit_keys() {
         action_for_key(
             KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -42,6 +44,7 @@ fn maps_view_switching_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::SwitchView(TuiView::Configs)
@@ -53,9 +56,10 @@ fn maps_view_switching_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Runtime)
+        TuiAction::SwitchView(TuiView::Diagnostics)
     );
 }
 
@@ -65,6 +69,7 @@ fn maps_navigation_and_help_keys() {
         action_for_key(
             key(KeyCode::Down),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -79,6 +84,7 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::MoveUp
@@ -87,6 +93,7 @@ fn maps_navigation_and_help_keys() {
         action_for_key(
             key(KeyCode::Char('?')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -101,6 +108,7 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::Back
@@ -109,6 +117,7 @@ fn maps_navigation_and_help_keys() {
         action_for_key(
             key(KeyCode::Char('/')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -123,9 +132,26 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::CycleSort
+    );
+}
+
+#[test]
+fn maps_enter_toggle_in_configs() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Enter),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::ToggleFocused
     );
 }
 
@@ -135,6 +161,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char(' ')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -149,6 +176,7 @@ fn maps_config_action_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::EnableFocused
@@ -157,6 +185,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('x')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -171,6 +200,7 @@ fn maps_config_action_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RequestDeleteFocused
@@ -179,6 +209,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('D')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -193,6 +224,7 @@ fn maps_config_action_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RestoreFocused
@@ -201,6 +233,7 @@ fn maps_config_action_keys() {
         action_for_key(
             key(KeyCode::Char('f')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -219,6 +252,7 @@ fn maps_cycle_filter_key() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::CycleFilter
@@ -234,6 +268,7 @@ fn maps_qr_and_copy_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::OpenQrFocused
@@ -245,6 +280,7 @@ fn maps_qr_and_copy_keys() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::CopyFocused
@@ -253,6 +289,7 @@ fn maps_qr_and_copy_keys() {
         action_for_key(
             key(KeyCode::Char('C')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -271,6 +308,7 @@ fn qr_modal_open_consumes_keys() {
             false,
             false,
             false,
+            false,
             true
         ),
         TuiAction::Back
@@ -282,6 +320,7 @@ fn qr_modal_open_consumes_keys() {
             false,
             false,
             false,
+            false,
             true
         ),
         TuiAction::Back
@@ -290,6 +329,7 @@ fn qr_modal_open_consumes_keys() {
         action_for_key(
             key(KeyCode::Char('s')),
             TuiView::Configs,
+            false,
             false,
             false,
             false,
@@ -308,6 +348,7 @@ fn maps_sources_view_actions() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RefreshFocusedSource
@@ -319,6 +360,7 @@ fn maps_sources_view_actions() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::RefreshAllSources
@@ -327,6 +369,7 @@ fn maps_sources_view_actions() {
         action_for_key(
             key(KeyCode::Char('i')),
             TuiView::Sources,
+            false,
             false,
             false,
             false,
@@ -345,6 +388,7 @@ fn maps_import_modal_keys() {
             false,
             false,
             true,
+            false,
             false
         ),
         TuiAction::ImportInput('a')
@@ -356,6 +400,7 @@ fn maps_import_modal_keys() {
             false,
             false,
             true,
+            false,
             false
         ),
         TuiAction::ImportBackspace
@@ -367,6 +412,7 @@ fn maps_import_modal_keys() {
             false,
             false,
             true,
+            false,
             false
         ),
         TuiAction::ImportSubmit
@@ -378,6 +424,7 @@ fn maps_import_modal_keys() {
             false,
             false,
             true,
+            false,
             false
         ),
         TuiAction::Back

@@ -2,10 +2,12 @@ use super::{ConfirmKind, TuiAction, TuiApp, TuiConfigCommand, TuiView};
 
 impl TuiApp {
     pub fn pending_confirm_command(&self) -> Option<TuiConfigCommand> {
-        self.confirm.as_ref().map(|confirm| match confirm.kind {
-            ConfirmKind::SoftDeleteConfig(id) => TuiConfigCommand::SoftDelete(id),
-            ConfirmKind::PurgeConfig(id) => TuiConfigCommand::Purge(id),
-        })
+        let confirm = self.confirm.as_ref()?;
+        match confirm.kind {
+            ConfirmKind::SoftDeleteConfig(id) => Some(TuiConfigCommand::SoftDelete(id)),
+            ConfirmKind::PurgeConfig(id) => Some(TuiConfigCommand::Purge(id)),
+            ConfirmKind::DeleteSource(_) => None,
+        }
     }
 
     pub fn config_command_for_action(&self, action: TuiAction) -> Option<TuiConfigCommand> {
@@ -26,6 +28,13 @@ impl TuiApp {
             }
             TuiAction::DisableFocused if !config.is_deleted => {
                 Some(TuiConfigCommand::Disable(config.id))
+            }
+            TuiAction::ToggleFocused if !config.is_deleted => {
+                if config.is_enabled {
+                    Some(TuiConfigCommand::Disable(config.id))
+                } else {
+                    Some(TuiConfigCommand::Enable(config.id))
+                }
             }
             TuiAction::RestoreFocused if config.is_deleted => {
                 Some(TuiConfigCommand::Restore(config.id))

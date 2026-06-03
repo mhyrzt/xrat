@@ -43,7 +43,7 @@ impl TuiConfigRow {
 
     pub fn delay_label(&self) -> String {
         if self.failure_reason.is_some() {
-            "FAIL".to_string()
+            ":(".to_string()
         } else {
             self.real_delay_ms
                 .map(|delay| format!("{delay}ms"))

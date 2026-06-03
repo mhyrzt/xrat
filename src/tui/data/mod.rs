@@ -25,6 +25,7 @@ pub struct TuiData {
     pub db_label: String,
     pub config_path: String,
     pub api_b64_url: String,
+    pub server_enabled: bool,
 }
 
 impl TuiData {
@@ -60,6 +61,7 @@ impl TuiData {
         data.config_path = context.runtime_paths.config_path.display().to_string();
         let server = &context.app_config.server;
         data.api_b64_url = format!("http://{}:{}/b64", server.host, server.port);
+        data.server_enabled = server.enabled;
         Ok(data)
     }
 
@@ -109,6 +111,7 @@ impl TuiData {
             db_label: String::new(),
             config_path: String::new(),
             api_b64_url: String::new(),
+            server_enabled: false,
         }
     }
 }

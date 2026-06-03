@@ -16,6 +16,7 @@ fn maps_confirm_keys() {
             false,
             true,
             false,
+            false,
             false
         ),
         TuiAction::Confirm
@@ -27,6 +28,7 @@ fn maps_confirm_keys() {
             false,
             true,
             false,
+            false,
             false
         ),
         TuiAction::Confirm
@@ -37,6 +39,7 @@ fn maps_confirm_keys() {
             TuiView::Configs,
             false,
             true,
+            false,
             false,
             false
         ),
@@ -53,6 +56,7 @@ fn maps_search_editing_keys() {
             true,
             false,
             false,
+            false,
             false
         ),
         TuiAction::SearchInput('v')
@@ -62,6 +66,7 @@ fn maps_search_editing_keys() {
             key(KeyCode::Backspace),
             TuiView::Configs,
             true,
+            false,
             false,
             false,
             false
@@ -75,6 +80,7 @@ fn maps_search_editing_keys() {
             true,
             false,
             false,
+            false,
             false
         ),
         TuiAction::ConfirmSearch
@@ -84,6 +90,7 @@ fn maps_search_editing_keys() {
             KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
             TuiView::Configs,
             true,
+            false,
             false,
             false,
             false
@@ -101,6 +108,7 @@ fn maps_tests_view_actions() {
             false,
             false,
             false,
+            false,
             false
         ),
         TuiAction::StartTestBatch
@@ -109,6 +117,7 @@ fn maps_tests_view_actions() {
         action_for_key(
             key(KeyCode::Char('c')),
             TuiView::Tests,
+            false,
             false,
             false,
             false,

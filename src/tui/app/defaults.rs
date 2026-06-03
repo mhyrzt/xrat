@@ -16,6 +16,7 @@ impl Default for TuiApp {
             task_state: TuiTaskState::default(),
             confirm: None,
             import_modal: None,
+            rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),
         }

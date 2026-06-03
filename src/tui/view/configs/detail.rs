@@ -4,11 +4,17 @@ use ratatui::style::Modifier;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
+use crate::tui::app::TuiApp;
 use crate::tui::data::TuiConfigRow;
 use crate::tui::theme;
 use crate::tui::view::shared::detail_line;
 
-pub fn render(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow>) {
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let config = app.focused_config();
+    render_detail(frame, area, config);
+}
+
+fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow>) {
     let lines = match config {
         Some(config) => vec![
             Line::styled(
@@ -37,8 +43,8 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow>) 
             detail_line("Status", config.status_label()),
             Line::raw(""),
             Line::styled("Actions", theme::muted_style()),
-            Line::raw("Space select - e enable - x disable"),
-            Line::raw("d delete - r restore - D purge - ? help"),
+            Line::raw("Enter/e/x toggle  Space select"),
+            Line::raw("t test  d delete  r restore  ? help"),
             Line::raw(""),
             detail_line("Failure", config.failure_reason.as_deref().unwrap_or("-")),
         ],
@@ -53,9 +59,15 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow>) 
         ],
     };
 
+    use ratatui::widgets::BorderType;
     frame.render_widget(
         Paragraph::new(lines)
-            .block(Block::default().title(" Detail ").borders(Borders::ALL))
+            .block(
+                Block::default()
+                    .title(" Detail ")
+                    .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
+                    .border_type(BorderType::Plain),
+            )
             .style(theme::chrome_style())
             .wrap(Wrap { trim: true }),
         area,

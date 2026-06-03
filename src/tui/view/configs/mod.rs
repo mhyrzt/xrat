@@ -1,5 +1,6 @@
 mod detail;
 mod filter;
+mod runtime;
 mod table;
 
 use ratatui::Frame;
@@ -21,5 +22,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         .split(sections[1]);
 
     table::render(frame, columns[0], app);
-    detail::render(frame, columns[1], app.focused_config());
+
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(columns[1]);
+
+    detail::render(frame, right[0], app);
+    runtime::render(frame, right[1], app);
 }

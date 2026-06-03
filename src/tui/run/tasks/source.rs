@@ -138,6 +138,39 @@ async fn refresh_one(
     }
 }
 
+pub async fn run_source_delete(
+    context: &AppContext,
+    app: &mut crate::tui::app::TuiApp,
+    source_id: i64,
+) {
+    match context.db.delete_subscription_with_configs(source_id).await {
+        Ok(_) => {
+            super::data::reload_data(context, app).await;
+            app.set_status(format!("deleted source #{source_id} and its configs"));
+        }
+        Err(err) => {
+            app.set_status(format!("delete failed: {err}"));
+        }
+    }
+}
+
+pub async fn run_source_rename(
+    context: &AppContext,
+    app: &mut crate::tui::app::TuiApp,
+    source_id: i64,
+    name: String,
+) {
+    match context.db.set_subscription_name(source_id, &name).await {
+        Ok(_) => {
+            super::data::reload_data(context, app).await;
+            app.set_status(format!("renamed source #{source_id}"));
+        }
+        Err(err) => {
+            app.set_status(format!("rename failed: {err}"));
+        }
+    }
+}
+
 async fn import_from(
     context: &AppContext,
     input: &str,

@@ -21,6 +21,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         columns[1],
         app.focused_source(),
         &app.data.api_b64_url,
+        app.data.server_enabled,
     );
 }
 
@@ -66,39 +67,56 @@ fn render_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     frame.render_widget(table, area);
 }
 
-fn render_detail(frame: &mut Frame<'_>, area: Rect, source: Option<&TuiSourceRow>, api_url: &str) {
+fn render_detail(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    source: Option<&TuiSourceRow>,
+    api_url: &str,
+    server_enabled: bool,
+) {
     let lines = match source {
-        Some(source) => vec![
-            Line::styled(
-                format!("#{} {}", source.id, source.display_name()),
-                theme::accent_style().add_modifier(Modifier::BOLD),
-            ),
-            Line::raw(""),
-            detail_line("Kind", &source.kind),
-            detail_line("Value", source.value_label()),
-            detail_line("Configs", source.config_count.to_string()),
-            detail_line("Created", &source.created_at),
-            detail_line("Updated", &source.updated_at),
-            Line::raw(""),
-            Line::styled("Actions", theme::muted_style()),
-            Line::raw("r refresh  R refresh all  i import  y QR  c copy URL"),
-            Line::raw(""),
-            Line::styled("API subscription URL", theme::muted_style()),
-            Line::raw(api_url),
-            Line::raw("u QR-API  U copy-API"),
-        ],
-        None => vec![
-            Line::styled(
-                "No sources",
-                theme::accent_style().add_modifier(Modifier::BOLD),
-            ),
-            Line::raw(""),
-            Line::raw("Import a subscription with `xrat import <input>`."),
-            Line::raw(""),
-            Line::styled("API subscription URL", theme::muted_style()),
-            Line::raw(api_url),
-            Line::raw("u QR-API  U copy-API"),
-        ],
+        Some(source) => {
+            let mut lines = vec![
+                Line::styled(
+                    format!("#{} {}", source.id, source.display_name()),
+                    theme::accent_style().add_modifier(Modifier::BOLD),
+                ),
+                Line::raw(""),
+                detail_line("Kind", &source.kind),
+                detail_line("Value", source.value_label()),
+                detail_line("Configs", source.config_count.to_string()),
+                detail_line("Created", &source.created_at),
+                detail_line("Updated", &source.updated_at),
+                Line::raw(""),
+                Line::styled("Actions", theme::muted_style()),
+                Line::raw("r refresh  R refresh all  i import  n rename  d delete"),
+                Line::raw("y QR  c copy URL"),
+            ];
+            if server_enabled {
+                lines.push(Line::raw(""));
+                lines.push(Line::styled("API subscription URL", theme::muted_style()));
+                lines.push(Line::raw(api_url));
+                lines.push(Line::raw("u QR-API  U copy-API"));
+            }
+            lines
+        }
+        None => {
+            let mut lines = vec![
+                Line::styled(
+                    "No sources",
+                    theme::accent_style().add_modifier(Modifier::BOLD),
+                ),
+                Line::raw(""),
+                Line::raw("Import a subscription with `xrat import <input>`."),
+            ];
+            if server_enabled {
+                lines.push(Line::raw(""));
+                lines.push(Line::styled("API subscription URL", theme::muted_style()));
+                lines.push(Line::raw(api_url));
+                lines.push(Line::raw("u QR-API  U copy-API"));
+            }
+            lines
+        }
     };
 
     frame.render_widget(

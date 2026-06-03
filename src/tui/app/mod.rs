@@ -11,8 +11,8 @@ mod views;
 
 pub use types::{
     ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState,
-    QrModalState, SourceListState, TestMode, TestScope, TestViewState, TuiAction, TuiApp,
-    TuiConfigCommand, TuiView,
+    QrModalState, RenameModalState, SourceListState, TestMode, TestScope, TestViewState, TuiAction,
+    TuiApp, TuiConfigCommand, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -36,6 +36,7 @@ impl TuiApp {
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
+            TuiAction::RequestDeleteSource => self.request_delete_source(),
             TuiAction::StartTestBatch
             | TuiAction::RuntimeStart
             | TuiAction::RuntimeStop
@@ -47,9 +48,22 @@ impl TuiApp {
             | TuiAction::CopyFocused
             | TuiAction::CopySelected
             | TuiAction::OpenQrApiUrl
-            | TuiAction::CopyApiUrl => {}
+            | TuiAction::CopyApiUrl
+            | TuiAction::OpenRenameModal
+            | TuiAction::RenameSubmit => {}
             TuiAction::OpenImportModal => {
                 self.import_modal = Some(crate::tui::app::ImportModalState::default());
+            }
+            TuiAction::RenameInput(ch) => {
+                if let Some(modal) = &mut self.rename_modal {
+                    modal.input.push(ch);
+                    modal.error = None;
+                }
+            }
+            TuiAction::RenameBackspace => {
+                if let Some(modal) = &mut self.rename_modal {
+                    modal.input.pop();
+                }
             }
             TuiAction::ImportInput(ch) => {
                 if let Some(modal) = &mut self.import_modal {
@@ -82,6 +96,7 @@ impl TuiApp {
             TuiAction::SelectFocused
             | TuiAction::EnableFocused
             | TuiAction::DisableFocused
+            | TuiAction::ToggleFocused
             | TuiAction::EnableSelected
             | TuiAction::DisableSelected
             | TuiAction::RestoreFocused => {}

@@ -37,6 +37,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         app.config_list.editing_search,
                         app.confirm.is_some(),
                         app.import_modal.is_some(),
+                        app.rename_modal.is_some(),
                         app.qr_modal.is_some(),
                     );
                     let confirmed_command = if matches!(action, crate::tui::app::TuiAction::Confirm)
@@ -45,6 +46,22 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     } else {
                         None
                     };
+                    let confirmed_source_delete =
+                        if matches!(action, crate::tui::app::TuiAction::Confirm) {
+                            if let Some(confirm) = &app.confirm {
+                                if let crate::tui::app::ConfirmKind::DeleteSource(id) =
+                                    confirm.kind
+                                {
+                                    Some(id)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
                     let direct_command = app.config_command_for_action(action);
                     let bulk_enable_ids: Vec<i64> =
                         if matches!(action, crate::tui::app::TuiAction::EnableSelected) {
@@ -124,6 +141,21 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     } else {
                         None
                     };
+                    let rename_submit =
+                        if matches!(action, crate::tui::app::TuiAction::RenameSubmit) {
+                            app.rename_modal
+                                .as_ref()
+                                .map(|m| (m.source_id, m.input.trim().to_string()))
+                        } else {
+                            None
+                        };
+                    let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
+                    let rename_prefill = if open_rename {
+                        app.focused_source()
+                            .map(|s| (s.id, s.name.clone().unwrap_or_default()))
+                    } else {
+                        None
+                    };
                     let focused_source_value =
                         if matches!(action, crate::tui::app::TuiAction::RefreshFocusedSource) {
                             app.focused_source()
@@ -195,6 +227,20 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         } else if let Some(modal) = &mut app.import_modal {
                             modal.error = Some("input is empty".to_string());
                         }
+                    }
+                    if let Some((id, name)) = rename_prefill {
+                        app.rename_modal = Some(crate::tui::app::RenameModalState {
+                            source_id: id,
+                            input: name,
+                            error: None,
+                        });
+                    }
+                    if let Some((source_id, name)) = rename_submit {
+                        app.rename_modal = None;
+                        tasks::run_source_rename(context, &mut app, source_id, name).await;
+                    }
+                    if let Some(source_id) = confirmed_source_delete {
+                        tasks::run_source_delete(context, &mut app, source_id).await;
                     }
                     if let Some((config_id, config_name)) = qr_config_id {
                         tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;

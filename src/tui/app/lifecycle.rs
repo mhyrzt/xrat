@@ -23,6 +23,9 @@ impl TuiApp {
         } else if self.import_modal.is_some() {
             self.import_modal = None;
             self.status_message = "cancelled".to_string();
+        } else if self.rename_modal.is_some() {
+            self.rename_modal = None;
+            self.status_message = "cancelled".to_string();
         } else if self.confirm.is_some() {
             self.confirm = None;
             self.status_message = "cancelled".to_string();

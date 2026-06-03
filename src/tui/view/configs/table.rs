@@ -19,6 +19,10 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             && !config.is_deleted;
         let mut style = if idx == app.config_list.focused {
             theme::accent_style().add_modifier(Modifier::BOLD)
+        } else if config.is_active {
+            theme::success_style().add_modifier(Modifier::BOLD)
+        } else if config.is_selected {
+            theme::accent_style()
         } else if !config.is_enabled || config.is_deleted {
             theme::muted_style()
         } else if config.failure_reason.is_some() {
@@ -50,11 +54,11 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         [
             Constraint::Length(5),
             Constraint::Percentage(24),
-            Constraint::Length(8),
-            Constraint::Percentage(28),
+            Constraint::Length(9),
+            Constraint::Percentage(27),
             Constraint::Length(10),
-            Constraint::Length(8),
-            Constraint::Min(8),
+            Constraint::Length(6),
+            Constraint::Min(10),
         ],
     )
     .header(header)

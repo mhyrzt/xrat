@@ -14,6 +14,7 @@ pub fn action_for_key(
     editing_search: bool,
     confirming: bool,
     import_modal_open: bool,
+    rename_modal_open: bool,
     qr_modal_open: bool,
 ) -> TuiAction {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
@@ -29,6 +30,10 @@ pub fn action_for_key(
 
     if import_modal_open {
         return action_for_import_modal_key(key);
+    }
+
+    if rename_modal_open {
+        return action_for_rename_modal_key(key);
     }
 
     if confirming {
@@ -48,6 +53,16 @@ fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {
         KeyCode::Enter => TuiAction::ImportSubmit,
         KeyCode::Backspace => TuiAction::ImportBackspace,
         KeyCode::Char(ch) => TuiAction::ImportInput(ch),
+        _ => TuiAction::None,
+    }
+}
+
+fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {
+    match key.code {
+        KeyCode::Esc => TuiAction::Back,
+        KeyCode::Enter => TuiAction::RenameSubmit,
+        KeyCode::Backspace => TuiAction::RenameBackspace,
+        KeyCode::Char(ch) => TuiAction::RenameInput(ch),
         _ => TuiAction::None,
     }
 }
