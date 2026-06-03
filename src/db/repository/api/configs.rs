@@ -10,7 +10,7 @@ pub async fn import_nodes(
     source: &ImportSource,
     nodes: &[Node],
 ) -> crate::db::Result<ImportSummary> {
-    let subscription_id = subscriptions::insert(pool, source).await?;
+    let subscription_id = subscriptions::find_or_create(pool, source).await?;
     configs::import_nodes(pool, subscription_id, nodes).await
 }
 

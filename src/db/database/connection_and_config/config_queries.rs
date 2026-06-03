@@ -41,6 +41,14 @@ impl Database {
         repository::list_subscriptions(&self.pool).await
     }
 
+    pub async fn set_subscription_name(&self, id: i64, name: &str) -> crate::db::Result<()> {
+        repository::set_subscription_name(&self.pool, id, name).await
+    }
+
+    pub async fn delete_subscription_with_configs(&self, id: i64) -> crate::db::Result<()> {
+        repository::delete_subscription_with_configs(&self.pool, id).await
+    }
+
     pub async fn get_connection_test_count(&self) -> crate::db::Result<i64> {
         repository::get_connection_test_count(&self.pool).await
     }

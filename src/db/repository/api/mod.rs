@@ -24,4 +24,7 @@ pub use runtime_sessions::{
     update_runtime_session_failure_tracking, update_runtime_session_state,
     update_runtime_session_transition_metadata,
 };
-pub use subscriptions::{get_subscription_count, list_subscriptions};
+pub use subscriptions::{
+    delete_subscription_with_configs, get_subscription_count, list_subscriptions,
+    set_subscription_name,
+};

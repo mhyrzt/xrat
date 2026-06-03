@@ -40,6 +40,79 @@ where
         .push_bind(source.name.as_deref());
 }
 
+pub async fn delete_with_configs(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("DELETE FROM configs WHERE subscription_id = ?")
+                .bind(id)
+                .execute(pool)
+                .await?;
+            sqlx::query("DELETE FROM subscriptions WHERE id = ?")
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("DELETE FROM configs WHERE subscription_id = $1")
+                .bind(id)
+                .execute(pool)
+                .await?;
+            sqlx::query("DELETE FROM subscriptions WHERE id = $1")
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn find_or_create(pool: &DbPool, source: &ImportSource) -> crate::db::Result<i64> {
+    if matches!(source.kind, SourceKind::Url) && !source.value.is_empty() {
+        let existing = match pool {
+            DbPool::Sqlite(pool) => {
+                sqlx::query_scalar::<_, i64>(
+                    "SELECT id FROM subscriptions WHERE source_url = ? LIMIT 1",
+                )
+                .bind(&source.value)
+                .fetch_optional(pool)
+                .await?
+            }
+            DbPool::Postgres(pool) => {
+                sqlx::query_scalar::<_, i64>(
+                    "SELECT id FROM subscriptions WHERE source_url = $1 LIMIT 1",
+                )
+                .bind(&source.value)
+                .fetch_optional(pool)
+                .await?
+            }
+        };
+        if let Some(id) = existing {
+            return Ok(id);
+        }
+    }
+    insert(pool, source).await
+}
+
+pub async fn set_name(pool: &DbPool, id: i64, name: &str) -> crate::db::Result<()> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("UPDATE subscriptions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+                .bind(name)
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("UPDATE subscriptions SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2")
+                .bind(name)
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(
