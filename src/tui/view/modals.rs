@@ -8,38 +8,72 @@ use crate::tui::theme;
 
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
     frame.render_widget(Clear, area);
-    let text = vec![
-        Line::styled("XRAT TUI Help", theme::accent_style().bold()),
-        Line::raw(""),
-        Line::raw("1-4       switch views (4 = diagnostics)"),
-        Line::raw("j/k       move focus"),
-        Line::raw("arrows    move focus"),
-        Line::raw("/         edit config search"),
-        Line::raw("f         show/hide deleted configs"),
-        Line::raw("F         cycle config filter (none/enabled/failed/has-delay)"),
-        Line::raw("s         cycle config sort (configs) / start batch (tests)"),
-        Line::raw("c         cancel running test batch (tests view)"),
-        Line::raw("Space     select focused config"),
-        Line::raw("Enter/e/x toggle / enable / disable focused config"),
-        Line::raw("E/X       enable/disable all selected configs (configs)"),
-        Line::raw("t         run connection tests (configs)"),
-        Line::raw("S/0/R/w   start/stop/restart/switch runtime (configs)"),
-        Line::raw("d/D       soft delete / purge focused config"),
-        Line::raw("r         restore focused config (configs)"),
-        Line::raw("y/c/C     QR focused / copy focused / copy selected (configs)"),
-        Line::raw("r/R/i/n   refresh / refresh all / import / rename (sources)"),
-        Line::raw("Ctrl+U    clear search while editing"),
-        Line::raw("Esc       close modal/back"),
-        Line::raw("q/Ctrl+C  quit"),
-    ];
     let block = Block::default().title(" Help ").borders(Borders::ALL);
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(inner);
+
+    let left = vec![
+        Line::styled("Navigation", theme::muted_style()),
+        help_line("1/2/3/4", "configs / sources / tests / diagnostics"),
+        help_line("Tab", "cycle modes"),
+        help_line("j/k, ↑/↓", "move focus"),
+        help_line("Esc", "close modal or go back"),
+        help_line("q, Ctrl+C", "quit"),
+        Line::raw(""),
+        Line::styled("Configs", theme::muted_style()),
+        help_line("Enter", "select and start focused config"),
+        help_line("Space", "select focused config"),
+        help_line("e/x", "enable / disable focused"),
+        help_line("E/X", "enable / disable selected"),
+        help_line("d/D/r", "soft delete / purge / restore"),
+        help_line("y/c/C", "QR / copy focused / copy selected"),
+    ];
+
+    let right = vec![
+        Line::styled("Search and Filters", theme::muted_style()),
+        help_line("/", "edit config search"),
+        help_line("Ctrl+U", "clear search while editing"),
+        help_line("f/F/P/s", "deleted / filter / protocol / sort"),
+        Line::raw(""),
+        Line::styled("Tests", theme::muted_style()),
+        help_line("t", "test current scope from Configs"),
+        help_line("a/v", "test all enabled / visible filtered"),
+        help_line("s/c", "start / cancel batch in Tests"),
+        Line::raw(""),
+        Line::styled("Runtime", theme::muted_style()),
+        help_line("K/R", "kill / restart"),
+        Line::raw(""),
+        Line::styled("Sources", theme::muted_style()),
+        help_line("r/R", "refresh focused / refresh all"),
+        help_line("i/n/d", "import / rename / delete"),
+        help_line("y/c/u/U", "QR / copy / QR API / copy API"),
+    ];
+
     frame.render_widget(
-        Paragraph::new(text)
-            .block(block)
+        Paragraph::new(left)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
-        area,
+        columns[0],
     );
+    frame.render_widget(
+        Paragraph::new(right)
+            .alignment(Alignment::Left)
+            .style(theme::chrome_style()),
+        columns[1],
+    );
+}
+
+fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
+    Line::from(vec![
+        Span::raw("  "),
+        Span::styled(format!("{key:<12}"), theme::accent_style().bold()),
+        Span::raw(description),
+    ])
 }
 
 pub fn render_confirm(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {

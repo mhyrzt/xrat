@@ -5,7 +5,6 @@ pub enum TuiView {
     Configs,
     Sources,
     Tests,
-    Runtime,
     Diagnostics,
 }
 
@@ -26,20 +25,20 @@ pub enum TuiAction {
     CycleProtocolFilter,
     ToggleDeletedFilter,
     SelectFocused,
+    SelectAndStartFocused,
     EnableFocused,
     DisableFocused,
-    ToggleFocused,
     EnableSelected,
     DisableSelected,
     RestoreFocused,
     RequestDeleteFocused,
     RequestPurgeFocused,
     StartTestBatch,
+    StartTestAllEnabled,
+    StartTestFiltered,
     CancelTestBatch,
-    RuntimeStart,
     RuntimeStop,
     RuntimeRestart,
-    RuntimeSwitch,
     RefreshFocusedSource,
     RefreshAllSources,
     OpenImportModal,
@@ -130,6 +129,9 @@ pub struct TuiApp {
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,
+    pub needs_full_clear: bool,
+    pub testing_config_ids: Vec<i64>,
+    pub spinner_tick: usize,
 }
 
 #[derive(Debug, Default)]

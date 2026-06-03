@@ -59,6 +59,7 @@ pub fn spawn_source_refresh_all(
                 Err(err) => TuiTaskEvent::Failed {
                     kind,
                     error: format!("refresh done but reload failed: {err}"),
+                    data: None,
                 },
             }
         } else {
@@ -69,6 +70,7 @@ pub fn spawn_source_refresh_all(
                     errors.len(),
                     errors.join("; ")
                 ),
+                data: None,
             }
         };
         let _ = task_tx.send(event);
@@ -98,11 +100,13 @@ pub fn spawn_source_import(
                 Err(err) => TuiTaskEvent::Failed {
                     kind,
                     error: format!("import done but reload failed: {err}"),
+                    data: None,
                 },
             },
             Err(err) => TuiTaskEvent::Failed {
                 kind,
                 error: format!("import failed: {err}"),
+                data: None,
             },
         };
         let _ = task_tx.send(event);
@@ -129,11 +133,13 @@ async fn refresh_one(
             Err(err) => TuiTaskEvent::Failed {
                 kind,
                 error: format!("refresh done but reload failed: {err}"),
+                data: None,
             },
         },
         Err(err) => TuiTaskEvent::Failed {
             kind,
             error: format!("refresh source #{source_id} failed: {err}"),
+            data: None,
         },
     }
 }

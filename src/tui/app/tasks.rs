@@ -27,17 +27,36 @@ impl TuiApp {
                 if let Some(data) = data {
                     self.reload_data(data);
                 }
+                if kind == crate::tui::task::TuiTaskKind::TestBatch {
+                    self.testing_config_ids.clear();
+                }
                 self.push_log(format!("OK  {message}"));
                 self.status_message = message;
             }
-            crate::tui::task::TuiTaskEvent::Failed { kind, error } => {
+            crate::tui::task::TuiTaskEvent::Failed { kind, error, data } => {
                 self.task_state
                     .apply(&crate::tui::task::TuiTaskEvent::Failed {
                         kind,
                         error: error.clone(),
+                        data: None,
                     });
+                if let Some(data) = data {
+                    self.reload_data(data);
+                }
+                if kind == crate::tui::task::TuiTaskKind::TestBatch {
+                    self.testing_config_ids.clear();
+                }
                 self.push_log(format!("ERR {error}"));
                 self.status_message = format!("operation failed: {error}");
+            }
+            crate::tui::task::TuiTaskEvent::Cancelled { kind } => {
+                self.task_state
+                    .apply(&crate::tui::task::TuiTaskEvent::Cancelled { kind });
+                if kind == crate::tui::task::TuiTaskKind::TestBatch {
+                    self.testing_config_ids.clear();
+                }
+                self.push_log(format!("OK  {:?} cancelled", kind));
+                self.status_message = self.task_state.label();
             }
             event => {
                 self.task_state.apply(&event);

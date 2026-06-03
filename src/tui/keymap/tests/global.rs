@@ -64,6 +64,34 @@ fn maps_view_switching_keys() {
 }
 
 #[test]
+fn maps_tab_to_next_view() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Tab),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::SwitchView(TuiView::Sources)
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Tab),
+            TuiView::Diagnostics,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::SwitchView(TuiView::Configs)
+    );
+}
+
+#[test]
 fn maps_navigation_and_help_keys() {
     assert_eq!(
         action_for_key(
@@ -140,7 +168,7 @@ fn maps_navigation_and_help_keys() {
 }
 
 #[test]
-fn maps_enter_toggle_in_configs() {
+fn maps_enter_select_and_start_in_configs() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Enter),
@@ -151,7 +179,35 @@ fn maps_enter_toggle_in_configs() {
             false,
             false
         ),
-        TuiAction::ToggleFocused
+        TuiAction::SelectAndStartFocused
+    );
+}
+
+#[test]
+fn maps_config_test_scope_shortcuts() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('a')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::StartTestAllEnabled
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('v')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::StartTestFiltered
     );
 }
 
@@ -192,6 +248,18 @@ fn maps_config_action_keys() {
             false
         ),
         TuiAction::DisableFocused
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('K')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::RuntimeStop
     );
     assert_eq!(
         action_for_key(

@@ -14,24 +14,32 @@ impl TuiApp {
         self.config_list.editing_search = false;
         self.confirm = None;
         self.status_message = "help".to_string();
+        self.needs_full_clear = true;
     }
 
     pub(super) fn back(&mut self) {
         if self.qr_modal.is_some() {
             self.qr_modal = None;
             self.status_message = "ready".to_string();
+            self.needs_full_clear = true;
         } else if self.import_modal.is_some() {
             self.import_modal = None;
             self.status_message = "cancelled".to_string();
+            self.needs_full_clear = true;
         } else if self.rename_modal.is_some() {
             self.rename_modal = None;
             self.status_message = "cancelled".to_string();
+            self.needs_full_clear = true;
         } else if self.confirm.is_some() {
             self.confirm = None;
             self.status_message = "cancelled".to_string();
+            self.needs_full_clear = true;
         } else if self.config_list.editing_search {
             self.close_search();
         } else {
+            if self.show_help {
+                self.needs_full_clear = true;
+            }
             self.show_help = false;
             self.status_message = "ready".to_string();
         }
@@ -50,6 +58,7 @@ impl TuiApp {
         self.show_help = false;
         self.config_list.editing_search = false;
         self.confirm = None;
-        self.status_message = format!("view: {}", view.label());
+        self.status_message.clear();
+        self.needs_full_clear = true;
     }
 }

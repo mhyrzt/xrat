@@ -29,7 +29,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         detail_line("Failed/Stale", tests.stale_configs.to_string()),
         Line::raw(""),
         Line::styled("Actions", theme::muted_style()),
-        Line::raw("s start - c cancel running batch"),
+        Line::raw("[s]tart  [c]ancel running batch"),
     ];
 
     frame.render_widget(

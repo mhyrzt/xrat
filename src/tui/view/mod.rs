@@ -2,7 +2,6 @@ mod chrome;
 mod configs;
 mod diagnostics;
 mod modals;
-mod runtime;
 mod shared;
 mod sources;
 mod tests;
@@ -16,19 +15,14 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     let area = frame.area();
     let shell = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(5),
-            Constraint::Length(1),
-        ])
+        .constraints([Constraint::Min(5), Constraint::Length(1)])
         .split(area);
 
-    chrome::render_status_bar(frame, shell[0], app);
-    render_body(frame, shell[1], app);
-    chrome::render_key_bar(frame, shell[2]);
+    render_body(frame, shell[0], app);
+    chrome::render_key_bar(frame, shell[1]);
 
     if app.show_help {
-        modals::render_help(frame, modals::centered_rect(68, 54, area));
+        modals::render_help(frame, modals::centered_rect(82, 42, area));
     }
 
     if app.confirm.is_some() {
@@ -58,7 +52,6 @@ fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     match app.active_view {
         TuiView::Configs => configs::render(frame, columns[1], app),
         TuiView::Sources => sources::render(frame, columns[1], app),
-        TuiView::Runtime => runtime::render(frame, columns[1], app),
         TuiView::Tests => tests::render(frame, columns[1], app),
         TuiView::Diagnostics => diagnostics::render(frame, columns[1], app),
     }

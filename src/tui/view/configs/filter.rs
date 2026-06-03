@@ -42,7 +42,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Span::raw("   "),
         Span::styled("Visible: ", theme::muted_style()),
         Span::raw(app.visible_configs().len().to_string()),
-        Span::raw("   / search  f deleted  F filter  P proto  s sort"),
+        Span::raw("   [/]search  [f]deleted  [F]ilter  [P]roto  [s]ort"),
     ]);
 
     frame.render_widget(

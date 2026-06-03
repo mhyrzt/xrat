@@ -8,7 +8,7 @@ build:
     cargo build
 
 # Run xrat from this checkout
-run +args:
+run *args:
     cargo run --locked -- {{args}}
 
 # Check the project with the locked dependency graph
@@ -106,6 +106,10 @@ ci: fmt-rust-check lint test
 # Serve docs as an mdBook
 docs:
     mdbook serve docs --open
+
+# Watch for changes and rebuild/rerun the TUI
+watch-tui:
+    cargo watch -x 'run --locked -- tui'
 
 # Clean build artifacts
 clean:

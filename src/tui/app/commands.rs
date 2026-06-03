@@ -23,18 +23,14 @@ impl TuiApp {
             TuiAction::SelectFocused if !config.is_deleted => {
                 Some(TuiConfigCommand::Select(config.id))
             }
+            TuiAction::SelectAndStartFocused if !config.is_deleted => {
+                Some(TuiConfigCommand::Select(config.id))
+            }
             TuiAction::EnableFocused if !config.is_deleted => {
                 Some(TuiConfigCommand::Enable(config.id))
             }
             TuiAction::DisableFocused if !config.is_deleted => {
                 Some(TuiConfigCommand::Disable(config.id))
-            }
-            TuiAction::ToggleFocused if !config.is_deleted => {
-                if config.is_enabled {
-                    Some(TuiConfigCommand::Disable(config.id))
-                } else {
-                    Some(TuiConfigCommand::Enable(config.id))
-                }
             }
             TuiAction::RestoreFocused if config.is_deleted => {
                 Some(TuiConfigCommand::Restore(config.id))

@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -66,7 +66,7 @@ pub async fn spawn_detached(
         Err(error) => {
             let _ = child.kill();
             let _ = child.wait();
-            Err(error)
+            Err(error.with_process_stderr(&paths.stderr_path))
         }
     }
 }
@@ -120,4 +120,42 @@ pub fn process_is_running(pid: i64) -> bool {
         let _ = pid;
         false
     }
+}
+
+trait StartupErrorExt {
+    fn with_process_stderr(self, stderr_path: &Path) -> Self;
+}
+
+impl StartupErrorExt for crate::app::AppError {
+    fn with_process_stderr(self, stderr_path: &Path) -> Self {
+        let Some(stderr_tail) = read_stderr_tail(stderr_path) else {
+            return self;
+        };
+
+        match self {
+            crate::app::AppError::XrayExited(status) => {
+                crate::app::AppError::XrayExited(format!("{status}; stderr: {stderr_tail}"))
+            }
+            crate::app::AppError::XrayStartupTimeout { port } => {
+                crate::app::AppError::XraySpawn(format!(
+                    "Xray did not open local port {port} before startup timeout; stderr: {stderr_tail}"
+                ))
+            }
+            other => other,
+        }
+    }
+}
+
+fn read_stderr_tail(path: &Path) -> Option<String> {
+    let mut file = File::open(path).ok()?;
+    let mut output = String::new();
+    file.read_to_string(&mut output).ok()?;
+    let output = output.trim();
+    if output.is_empty() {
+        return None;
+    }
+
+    let mut lines: Vec<&str> = output.lines().rev().take(6).collect();
+    lines.reverse();
+    Some(lines.join(" | "))
 }

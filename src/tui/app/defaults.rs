@@ -19,6 +19,9 @@ impl Default for TuiApp {
             rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),
+            needs_full_clear: true,
+            testing_config_ids: Vec::new(),
+            spinner_tick: 0,
         }
     }
 }
@@ -26,7 +29,7 @@ impl Default for TuiApp {
 impl TuiApp {
     pub fn with_data(data: TuiData) -> Self {
         Self {
-            status_message: format!("loaded {} configs", data.total_configs),
+            status_message: "ready".to_string(),
             data,
             ..Self::default()
         }

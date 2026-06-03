@@ -99,6 +99,21 @@ fn collects_config_ids_for_current_test_scope() {
 }
 
 #[test]
+fn test_scope_shortcuts_update_scope() {
+    use crate::tui::app::TestScope;
+
+    let data = TuiData::from_configs(vec![row(1)]);
+    let mut app = TuiApp::with_data(data);
+
+    app.test_state.scope = TestScope::Focused;
+    app.apply(TuiAction::StartTestAllEnabled);
+    assert_eq!(app.test_state.scope, TestScope::AllEnabled);
+
+    app.apply(TuiAction::StartTestFiltered);
+    assert_eq!(app.test_state.scope, TestScope::Filtered);
+}
+
+#[test]
 fn refresh_focused_source_action_targets_correct_source() {
     let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
     let mut app = TuiApp::with_data(data);
@@ -154,18 +169,4 @@ fn selected_configs_scope_for_copy() {
         .collect();
     assert_eq!(selected_ids, vec![1, 2]);
     assert!(!selected_ids.contains(&3));
-}
-
-#[test]
-fn status_label_shows_stale_for_untested_enabled_config() {
-    let mut untested = row(1);
-    untested.real_delay_ms = None;
-    untested.tcp_ms = None;
-    untested.failure_reason = None;
-
-    assert_eq!(untested.status_label(), "stale");
-
-    let mut tested = row(2);
-    tested.real_delay_ms = Some(100);
-    assert_eq!(tested.status_label(), "ok");
 }

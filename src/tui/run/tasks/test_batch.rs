@@ -20,6 +20,7 @@ pub fn spawn_test_batch(
         app.set_status("no configs match the current test scope");
         return;
     }
+    app.testing_config_ids = config_ids.clone();
 
     let kind = TuiTaskKind::TestBatch;
     let args = test_args_for_app(app);
@@ -58,12 +59,14 @@ pub fn spawn_test_batch(
                 Err(error) => TuiTaskEvent::Failed {
                     kind,
                     error: format!("test completed but reload failed: {error}"),
+                    data: None,
                 },
             },
             Err(_) if was_cancelled => TuiTaskEvent::Cancelled { kind },
             Err(error) => TuiTaskEvent::Failed {
                 kind,
                 error: error.to_string(),
+                data: None,
             },
         };
         let _ = task_tx.send(event);

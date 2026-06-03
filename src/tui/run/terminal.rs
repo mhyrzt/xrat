@@ -28,6 +28,10 @@ impl TerminalSession {
     {
         self.terminal.draw(render).map(|_| ())
     }
+
+    pub fn clear(&mut self) -> io::Result<()> {
+        self.terminal.clear()
+    }
 }
 
 impl Drop for TerminalSession {

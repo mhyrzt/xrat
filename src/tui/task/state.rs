@@ -65,7 +65,7 @@ impl TuiTaskState {
                 self.last_summary = Some(message.clone());
                 self.last_error = None;
             }
-            TuiTaskEvent::Failed { kind, error } => {
+            TuiTaskEvent::Failed { kind, error, .. } => {
                 if self.running == Some(*kind) {
                     self.running = None;
                     self.cancellation = None;

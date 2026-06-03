@@ -7,7 +7,7 @@ use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let header = Row::new(["ID", "Name", "Proto", "Address:Port", "Net", "Delay", "St"])
+    let header = Row::new(["ID", "Name", "Proto", "Address:Port", "Net", "Delay"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let visible = app.visible_configs();
@@ -38,13 +38,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         }
 
         Row::new(vec![
-            Cell::from(config.id.to_string()),
+            Cell::from(format!("{}{}", state_marker(config), config.id)),
             Cell::from(config.display_name().to_string()),
             Cell::from(config.protocol.clone()),
             Cell::from(config.endpoint()),
             Cell::from(config.network_label()),
-            Cell::from(config.delay_label()),
-            Cell::from(config.status_label()),
+            Cell::from(delay_label(app, config)),
         ])
         .style(style)
     });
@@ -52,13 +51,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let table = Table::new(
         rows,
         [
-            Constraint::Length(5),
-            Constraint::Percentage(24),
+            Constraint::Length(7),
+            Constraint::Percentage(28),
             Constraint::Length(9),
-            Constraint::Percentage(27),
+            Constraint::Percentage(31),
             Constraint::Length(10),
-            Constraint::Length(6),
-            Constraint::Min(10),
+            Constraint::Length(8),
         ],
     )
     .header(header)
@@ -74,4 +72,29 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     .column_spacing(1);
 
     frame.render_widget(table, area);
+}
+
+fn state_marker(config: &crate::tui::data::TuiConfigRow) -> &'static str {
+    if config.is_active {
+        "*"
+    } else if config.is_selected {
+        ">"
+    } else if config.is_deleted {
+        "d"
+    } else if !config.is_enabled {
+        "x"
+    } else if config.failure_reason.is_some() {
+        "!"
+    } else {
+        " "
+    }
+}
+
+fn delay_label(app: &TuiApp, config: &crate::tui::data::TuiConfigRow) -> String {
+    if app.is_testing_config(config.id) {
+        const SPINNER: [&str; 4] = ["|", "/", "-", "\\"];
+        SPINNER[app.spinner_tick % SPINNER.len()].to_string()
+    } else {
+        config.delay_label()
+    }
 }

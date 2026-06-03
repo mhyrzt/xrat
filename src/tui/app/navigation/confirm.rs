@@ -19,6 +19,7 @@ impl TuiApp {
             ),
         });
         self.status_message = "confirm delete source".to_string();
+        self.needs_full_clear = true;
     }
 }
 
@@ -49,6 +50,7 @@ impl TuiApp {
             ),
         });
         self.status_message = "confirm soft delete".to_string();
+        self.needs_full_clear = true;
     }
 
     pub(crate) fn request_purge_focused(&mut self) {
@@ -72,5 +74,6 @@ impl TuiApp {
             ),
         });
         self.status_message = "confirm purge".to_string();
+        self.needs_full_clear = true;
     }
 }

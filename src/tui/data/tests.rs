@@ -40,13 +40,12 @@ fn summarizes_config_counts() {
 }
 
 #[test]
-fn formats_network_delay_and_status_labels() {
+fn formats_network_and_delay_labels() {
     let mut active = row(4, Some(88));
     active.is_active = true;
 
     assert_eq!(active.network_label(), "ws+tls");
     assert_eq!(active.delay_label(), "88ms");
-    assert_eq!(active.status_label(), "sel,run");
 }
 
 #[test]

@@ -38,10 +38,8 @@ impl TuiApp {
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
             TuiAction::RequestDeleteSource => self.request_delete_source(),
             TuiAction::StartTestBatch
-            | TuiAction::RuntimeStart
             | TuiAction::RuntimeStop
             | TuiAction::RuntimeRestart
-            | TuiAction::RuntimeSwitch
             | TuiAction::RefreshFocusedSource
             | TuiAction::RefreshAllSources
             | TuiAction::OpenQrFocused
@@ -51,8 +49,15 @@ impl TuiApp {
             | TuiAction::CopyApiUrl
             | TuiAction::OpenRenameModal
             | TuiAction::RenameSubmit => {}
+            TuiAction::StartTestAllEnabled => {
+                self.test_state.scope = TestScope::AllEnabled;
+            }
+            TuiAction::StartTestFiltered => {
+                self.test_state.scope = TestScope::Filtered;
+            }
             TuiAction::OpenImportModal => {
                 self.import_modal = Some(crate::tui::app::ImportModalState::default());
+                self.needs_full_clear = true;
             }
             TuiAction::RenameInput(ch) => {
                 if let Some(modal) = &mut self.rename_modal {
@@ -92,11 +97,12 @@ impl TuiApp {
             TuiAction::Cancel => {
                 self.confirm = None;
                 self.status_message = "cancelled".to_string();
+                self.needs_full_clear = true;
             }
             TuiAction::SelectFocused
+            | TuiAction::SelectAndStartFocused
             | TuiAction::EnableFocused
             | TuiAction::DisableFocused
-            | TuiAction::ToggleFocused
             | TuiAction::EnableSelected
             | TuiAction::DisableSelected
             | TuiAction::RestoreFocused => {}
@@ -107,6 +113,23 @@ impl TuiApp {
 
     pub fn set_status(&mut self, message: impl Into<String>) {
         self.status_message = message.into();
+    }
+
+    pub fn take_needs_full_clear(&mut self) -> bool {
+        let needs_clear = self.needs_full_clear;
+        self.needs_full_clear = false;
+        needs_clear
+    }
+
+    pub fn tick(&mut self) {
+        if self.task_state.running == Some(crate::tui::task::TuiTaskKind::TestBatch) {
+            self.spinner_tick = self.spinner_tick.wrapping_add(1);
+        }
+    }
+
+    pub fn is_testing_config(&self, config_id: i64) -> bool {
+        self.task_state.running == Some(crate::tui::task::TuiTaskKind::TestBatch)
+            && self.testing_config_ids.contains(&config_id)
     }
 }
 

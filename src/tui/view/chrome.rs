@@ -3,32 +3,8 @@ use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
-use crate::tui::app::{TuiApp, TuiView};
+use crate::tui::app::TuiView;
 use crate::tui::theme;
-
-pub fn render_status_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let line = Line::from(vec![
-        Span::styled(" XRAT ", theme::accent_style().bold()),
-        Span::styled(app.active_view.badge(), theme::chrome_style()),
-        Span::raw(format!(
-            " {} total - {} on - {} sel - {} del - {} fail - {}",
-            app.data.total_configs,
-            app.data.enabled_configs,
-            app.data.selected_configs,
-            app.data.deleted_configs,
-            app.data.failed_configs,
-            app.config_filter_summary()
-        )),
-        Span::raw("   "),
-        Span::styled(
-            format!("* {}", app.task_state.label()),
-            theme::success_style().bold(),
-        ),
-        Span::raw("   "),
-        Span::styled(&app.status_message, theme::muted_style()),
-    ]);
-    frame.render_widget(Paragraph::new(line), area);
-}
 
 pub fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView) {
     let modes = [
@@ -49,9 +25,10 @@ pub fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView)
             Line::from(vec![
                 Span::raw(marker),
                 Span::raw(" "),
+                Span::raw("["),
                 Span::styled(key, style),
-                Span::raw(" "),
-                Span::styled(label, style),
+                Span::raw("] "),
+                Span::styled(label.to_uppercase(), style),
             ])
         })
         .collect();
@@ -61,13 +38,13 @@ pub fn render_mode_rail(frame: &mut Frame<'_>, area: Rect, active_view: TuiView)
 }
 
 pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect) {
-    let line = Line::from(vec![
-        Span::styled(" Mode:", theme::muted_style()),
-        Span::raw(" 1 configs  2 sources  3 tests  4 diag   "),
-        Span::styled("Runtime:", theme::muted_style()),
-        Span::raw(" S start  0 stop  R restart  w switch   "),
-        Span::styled("Other:", theme::muted_style()),
-        Span::raw(" t test  / search  ? help  q quit"),
-    ]);
+    let spans = vec![
+        Span::styled("XRAT ", theme::accent_style().bold()),
+        Span::raw("  "),
+        Span::styled("[?]help", theme::chrome_style()),
+        Span::raw("  "),
+        Span::styled("[q]quit", theme::chrome_style()),
+    ];
+    let line = Line::from(spans);
     frame.render_widget(Paragraph::new(line), area);
 }

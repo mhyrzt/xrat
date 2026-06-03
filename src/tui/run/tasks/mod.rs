@@ -7,9 +7,7 @@ mod test_batch;
 
 pub use commands::{run_bulk_enable_disable, run_config_command};
 pub use data::spawn_reload_data;
-pub use runtime::{
-    spawn_runtime_restart, spawn_runtime_start, spawn_runtime_stop, spawn_runtime_switch,
-};
+pub use runtime::{spawn_runtime_restart, spawn_runtime_start_config, spawn_runtime_stop};
 pub use share::{
     copy_api_url, copy_config_uri, copy_selected_uris, copy_source_uri, open_qr_for_api_url,
     open_qr_for_config, open_qr_for_source,

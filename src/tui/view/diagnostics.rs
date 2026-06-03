@@ -9,7 +9,7 @@ use crate::tui::theme;
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let sections = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(11), Constraint::Min(4)])
+        .constraints([Constraint::Length(12), Constraint::Min(4)])
         .split(area);
 
     render_info(frame, sections[0], app);
@@ -70,6 +70,10 @@ fn render_info(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             Span::styled("Log entries:   ", theme::muted_style()),
             Span::raw(app.event_log.len().to_string()),
         ]),
+        Line::from(vec![
+            Span::styled("Runtime error: ", theme::muted_style()),
+            Span::raw(app.data.runtime.failure_reason.as_deref().unwrap_or("-")),
+        ]),
     ];
 
     frame.render_widget(
@@ -81,7 +85,26 @@ fn render_info(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 }
 
 fn render_log(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let lines: Vec<Line<'_>> = if app.event_log.is_empty() {
+    let mut failure_lines: Vec<Line<'_>> = app
+        .data
+        .configs
+        .iter()
+        .filter_map(|config| {
+            config.failure_reason.as_deref().map(|reason| {
+                Line::styled(
+                    format!("FAIL config #{}: {reason}", config.id),
+                    theme::failure_style(),
+                )
+            })
+        })
+        .take(8)
+        .collect();
+
+    if !failure_lines.is_empty() && !app.event_log.is_empty() {
+        failure_lines.push(Line::raw(""));
+    }
+
+    let event_lines: Vec<Line<'_>> = if app.event_log.is_empty() {
         vec![Line::styled(
             "No events recorded yet.",
             theme::muted_style(),
@@ -100,12 +123,13 @@ fn render_log(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             })
             .collect()
     };
+    failure_lines.extend(event_lines);
 
     frame.render_widget(
-        Paragraph::new(lines)
+        Paragraph::new(failure_lines)
             .block(
                 Block::default()
-                    .title(" Event Log (newest first) ")
+                    .title(" Failures and Event Log ")
                     .borders(Borders::ALL),
             )
             .style(theme::chrome_style())

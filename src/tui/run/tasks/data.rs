@@ -24,6 +24,7 @@ pub fn spawn_reload_data(
             Err(error) => TuiTaskEvent::Failed {
                 kind,
                 error: error.to_string(),
+                data: None,
             },
         };
         let _ = task_tx.send(event);

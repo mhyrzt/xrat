@@ -33,6 +33,7 @@ pub enum TuiTaskEvent {
     Failed {
         kind: TuiTaskKind,
         error: String,
+        data: Option<TuiData>,
     },
     Cancelled {
         kind: TuiTaskKind,

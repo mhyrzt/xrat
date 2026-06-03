@@ -21,6 +21,10 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
 
     loop {
         drain_task_events(&mut app, &mut task_rx);
+        app.tick();
+        if app.take_needs_full_clear() {
+            terminal.clear()?;
+        }
         terminal.draw(|frame| crate::tui::view::render(frame, &app))?;
 
         if app.should_quit {
@@ -29,7 +33,9 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
 
         if event::poll(Duration::from_millis(100))? {
             match event::read()? {
-                Event::Resize(_, _) => {}
+                Event::Resize(_, _) => {
+                    app.needs_full_clear = true;
+                }
                 Event::Key(key) => {
                     let action = crate::tui::keymap::action_for_key(
                         key,
@@ -62,6 +68,14 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             None
                         };
                     let direct_command = app.config_command_for_action(action);
+                    let select_and_start_id =
+                        if matches!(action, crate::tui::app::TuiAction::SelectAndStartFocused) {
+                            app.focused_config()
+                                .filter(|config| !config.is_deleted)
+                                .map(|config| config.id)
+                        } else {
+                            None
+                        };
                     let bulk_enable_ids: Vec<i64> =
                         if matches!(action, crate::tui::app::TuiAction::EnableSelected) {
                             app.data
@@ -182,20 +196,19 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             &task_tx,
                         );
                     }
-                    if matches!(action, crate::tui::app::TuiAction::StartTestBatch) {
+                    if matches!(
+                        action,
+                        crate::tui::app::TuiAction::StartTestBatch
+                            | crate::tui::app::TuiAction::StartTestAllEnabled
+                            | crate::tui::app::TuiAction::StartTestFiltered
+                    ) {
                         tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::RuntimeStart) {
-                        tasks::spawn_runtime_start(context.clone(), &mut app, &task_tx);
                     }
                     if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
                         tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);
                     }
                     if matches!(action, crate::tui::app::TuiAction::RuntimeRestart) {
                         tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::RuntimeSwitch) {
-                        tasks::spawn_runtime_switch(context.clone(), &mut app, &task_tx);
                     }
                     if let Some((source_id, source_value)) = focused_source_value {
                         tasks::spawn_source_refresh(
@@ -233,6 +246,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             input: name,
                             error: None,
                         });
+                        app.needs_full_clear = true;
                     }
                     if let Some((source_id, name)) = rename_submit {
                         app.rename_modal = None;
@@ -272,6 +286,14 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     }
                     if let Some(command) = confirmed_command.or(direct_command) {
                         tasks::run_config_command(context, &mut app, command).await;
+                    }
+                    if let Some(config_id) = select_and_start_id {
+                        tasks::spawn_runtime_start_config(
+                            context.clone(),
+                            &mut app,
+                            &task_tx,
+                            config_id,
+                        );
                     }
                 }
                 _ => {}

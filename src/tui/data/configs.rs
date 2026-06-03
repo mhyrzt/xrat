@@ -43,38 +43,11 @@ impl TuiConfigRow {
 
     pub fn delay_label(&self) -> String {
         if self.failure_reason.is_some() {
-            ":(".to_string()
+            "fail".to_string()
         } else {
             self.real_delay_ms
                 .map(|delay| format!("{delay}ms"))
                 .unwrap_or_else(|| "-".to_string())
-        }
-    }
-
-    pub fn status_label(&self) -> String {
-        let mut flags = Vec::new();
-        if self.is_deleted {
-            flags.push("del");
-        }
-        if !self.is_enabled {
-            flags.push("off");
-        }
-        if self.is_selected {
-            flags.push("sel");
-        }
-        if self.is_active {
-            flags.push("run");
-        }
-        if self.failure_reason.is_some() {
-            flags.push("fail");
-        }
-        if flags.is_empty() {
-            let stale = self.real_delay_ms.is_none()
-                && self.tcp_ms.is_none()
-                && self.failure_reason.is_none();
-            if stale { "stale" } else { "ok" }.to_string()
-        } else {
-            flags.join(",")
         }
     }
 

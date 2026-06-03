@@ -36,27 +36,30 @@ async fn complete_after_reload(
         Err(err) => TuiTaskEvent::Failed {
             kind,
             error: format!("{success_message} but reload failed: {err}"),
+            data: None,
         },
     }
 }
 
-pub fn spawn_runtime_start(
+async fn fail_after_reload(
+    context: AppContext,
+    include_deleted: bool,
+    kind: TuiTaskKind,
+    error: String,
+) -> TuiTaskEvent {
+    TuiTaskEvent::Failed {
+        kind,
+        error,
+        data: TuiData::load(&context, include_deleted).await.ok(),
+    }
+}
+
+pub fn spawn_runtime_start_config(
     context: AppContext,
     app: &mut TuiApp,
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
+    config_id: i64,
 ) {
-    let config_id = match app
-        .data
-        .runtime
-        .selected_config_id
-        .or(app.data.runtime.active_config_id)
-    {
-        Some(id) => id,
-        None => {
-            app.set_status("no selected config — select one from the Configs view first");
-            return;
-        }
-    };
     let Some((kind, include_deleted, task_tx)) = begin_runtime_op(app, task_tx) else {
         return;
     };
@@ -67,10 +70,15 @@ pub fn spawn_runtime_start(
                 let msg = format!("started runtime with config #{}", res.config.id);
                 complete_after_reload(context, include_deleted, kind, msg).await
             }
-            Err(err) => TuiTaskEvent::Failed {
-                kind,
-                error: format!("runtime start failed: {err}"),
-            },
+            Err(err) => {
+                fail_after_reload(
+                    context,
+                    include_deleted,
+                    kind,
+                    format!("runtime start failed: {err}"),
+                )
+                .await
+            }
         };
         let _ = task_tx.send(event);
     });
@@ -99,6 +107,7 @@ pub fn spawn_runtime_stop(
             Err(err) => TuiTaskEvent::Failed {
                 kind,
                 error: format!("runtime stop failed: {err}"),
+                data: None,
             },
         };
         let _ = task_tx.send(event);
@@ -131,6 +140,7 @@ pub fn spawn_runtime_restart(
             let _ = task_tx.send(TuiTaskEvent::Failed {
                 kind,
                 error: format!("restart: stop failed: {err}"),
+                data: None,
             });
             return;
         }
@@ -139,54 +149,15 @@ pub fn spawn_runtime_restart(
                 let msg = format!("restarted runtime with config #{}", res.config.id);
                 complete_after_reload(context, include_deleted, kind, msg).await
             }
-            Err(err) => TuiTaskEvent::Failed {
-                kind,
-                error: format!("restart: start failed: {err}"),
-            },
-        };
-        let _ = task_tx.send(event);
-    });
-}
-
-pub fn spawn_runtime_switch(
-    context: AppContext,
-    app: &mut TuiApp,
-    task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
-) {
-    let config_id = match app
-        .data
-        .runtime
-        .selected_config_id
-        .filter(|&id| Some(id) != app.data.runtime.active_config_id)
-        .or(app.data.runtime.selected_config_id)
-    {
-        Some(id) => id,
-        None => {
-            app.set_status("no selected config — select one from the Configs view first");
-            return;
-        }
-    };
-    let Some((kind, include_deleted, task_tx)) = begin_runtime_op(app, task_tx) else {
-        return;
-    };
-    tokio::spawn(async move {
-        let service = RuntimeService::new(&context);
-        if let Err(err) = service.disconnect().await {
-            let _ = task_tx.send(TuiTaskEvent::Failed {
-                kind,
-                error: format!("switch: stop failed: {err}"),
-            });
-            return;
-        }
-        let event = match service.connect(ConnectRequest { config_id }).await {
-            Ok(res) => {
-                let msg = format!("switched runtime to config #{}", res.config.id);
-                complete_after_reload(context, include_deleted, kind, msg).await
+            Err(err) => {
+                fail_after_reload(
+                    context,
+                    include_deleted,
+                    kind,
+                    format!("restart: start failed: {err}"),
+                )
+                .await
             }
-            Err(err) => TuiTaskEvent::Failed {
-                kind,
-                error: format!("switch: start failed: {err}"),
-            },
         };
         let _ = task_tx.send(event);
     });

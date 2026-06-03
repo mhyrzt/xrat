@@ -39,9 +39,6 @@ impl TuiApp {
         };
 
         self.config_list.focused = next;
-        if let Some(config) = self.focused_config() {
-            self.status_message = format!("#{} {}", config.id, config.display_name());
-        }
     }
 
     pub(crate) fn move_source_focus(&mut self, delta: isize) {
