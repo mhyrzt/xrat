@@ -26,8 +26,7 @@
 - `src/support/` contains small shared helpers for decode, GeoIP, cancellation,
   network, time, and URL handling.
 - `migrations/sqlite/` and `migrations/postgres/` hold ordered SQL migrations.
-- `docs/src/` holds user-facing documentation. Backlog plans and validation
-  checklists live under `docs/src/08-backlog/`.
+- `docs/src/` holds user-facing documentation.
 - `packaging/systemd/` holds user-service templates used by
   `xrat daemon install`; `packaging/desktop/` holds desktop entry and icon
   packaging assets.

@@ -255,5 +255,4 @@ callers can paginate by batch.
 `output/print.rs` and `output/format.rs` produce the per-row and tabular output
 for the CLI. The TUI reuses the same in-process executors through
 `app::commands::test::bulk::*` and does not shell out to a child `xrat test`
-process — see [Phase 6 TUI Application](../08-backlog/01-plan/PHASE_6.md) for
-how the TUI surfaces progress and recent results.
+process.

@@ -115,5 +115,4 @@ For a new command or flag, usually touch:
 just docs     # serves docs at http://localhost:3000
 ```
 
-Docs live in `docs/src/`. Backlog plans and validation checklists go under
-`docs/src/08-backlog/`.
+Docs live in `docs/src/`.
