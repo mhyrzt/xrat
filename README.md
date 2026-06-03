@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/xrat-hero.png" alt="xrat" width="600">
+  <img src="media/icons/xrat-icon-1024x1024.png" alt="xrat" width="256">
 </p>
 
 <h1 align="center">XRAT</h1>
@@ -37,3 +37,8 @@ download, build from source, shell completions, man pages) see the
 - Run one stored config as a managed local Xray runtime.
 - Show runtime status and stop the active runtime session.
 - Parse and validate links without importing, with optional JSON output.
+
+## Acknowledgments
+
+Some functionalities in XRAT have been inspired by
+[xray-knife](https://github.com/lilendian0x00/xray-knife).

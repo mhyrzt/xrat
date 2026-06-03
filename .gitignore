@@ -19,4 +19,4 @@ docs/mermaid.min.js
 docs/css/
 docs/theme/
 
-# docs/src/media/ is tracked (xrat-logo.png is a symlink to ../media/xrat-logo.png)
+# docs/src/media/ is tracked (xrat-icon.png is a symlink to ../media/icons/xrat-icon-1024x1024.png)

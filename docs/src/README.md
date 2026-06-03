@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/xrat-hero.png" alt="xrat — proxy manager for Xray-core and sing-box" width="800">
+  <img src="media/xrat-icon.png" alt="xrat — proxy manager for Xray-core and sing-box" width="256">
 </p>
 
 # xrat 🐀
