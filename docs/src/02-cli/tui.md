@@ -24,8 +24,8 @@ services as the CLI commands.
 | `3` | Tests       | Start/cancel background test batches and inspect recent results                 |
 | `4` | Diagnostics | Inspect paths, runtime/source summaries, and recent operation messages          |
 
-The TUI opens in the Configs view. The bottom bar shows view shortcuts, help
-and quit actions, active filters, task state, and the latest status message.
+The TUI opens in the Configs view. The bottom bar shows view shortcuts, help and
+quit actions, active filters, task state, and the latest status message.
 
 ## Global Keys
 
