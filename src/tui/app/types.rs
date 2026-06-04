@@ -6,6 +6,26 @@ pub enum TuiView {
     Sources,
 }
 
+/// The four dashboard cards. `Tab`/`Shift+Tab` cycle focus between them; the
+/// focused card scrolls (or, for `Table`, moves the row selection).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TuiPanel {
+    #[default]
+    Table,
+    Detail,
+    Log,
+    Runtime,
+}
+
+/// Vertical scroll offsets for the scrollable cards. Wrapped in `Cell` so the
+/// render pass can clamp them to the live content/viewport sizes it computes.
+#[derive(Debug, Default)]
+pub struct PanelScroll {
+    pub detail: std::cell::Cell<u16>,
+    pub log: std::cell::Cell<u16>,
+    pub runtime: std::cell::Cell<u16>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiAction {
     Quit,
@@ -22,6 +42,8 @@ pub enum TuiAction {
     CycleFilter,
     CycleProtocolFilter,
     ToggleDeletedFilter,
+    FocusNextPanel,
+    FocusPrevPanel,
     StartFocused,
     EnableFocused,
     DisableFocused,
@@ -109,6 +131,8 @@ impl QrModalState {
 #[derive(Debug)]
 pub struct TuiApp {
     pub active_view: TuiView,
+    pub focused_panel: TuiPanel,
+    pub panel_scroll: PanelScroll,
     pub show_help: bool,
     pub should_quit: bool,
     pub status_message: String,
@@ -136,6 +160,18 @@ pub struct ConfigListState {
     pub filter: ConfigFilter,
     pub protocol_filter: Option<String>,
     pub include_deleted: bool,
+    pub source_filter: SourceFilter,
+}
+
+/// Which configs the Sources tab is scoping the Configs tab to. Mirrors the
+/// focused row in the Sources table: the synthetic "All" and "Orphans" rows,
+/// or a concrete subscription.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SourceFilter {
+    #[default]
+    All,
+    Orphans,
+    Source(i64),
 }
 
 #[derive(Debug, Default)]

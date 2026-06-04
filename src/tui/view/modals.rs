@@ -7,27 +7,14 @@ use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
-    frame.render_widget(Clear, area);
-    let block = Block::default().title(" Help ").borders(Borders::ALL);
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
-
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-        ])
-        .split(inner);
-
     let column_one = vec![
         Line::styled("Navigation", theme::muted_style()),
-        help_line("1", "Configs view"),
-        help_line("2", "Sources view"),
-        help_line("Tab", "Cycle views"),
-        help_line("j, ↓", "Move focus down"),
-        help_line("k, ↑", "Move focus up"),
+        help_line("1", "Configs tab"),
+        help_line("2", "Sources tab"),
+        help_line("Tab", "Focus next card"),
+        help_line("S-Tab", "Focus prev card"),
+        help_line("j, ↓", "Move row / scroll down"),
+        help_line("k, ↑", "Move row / scroll up"),
         help_line("Esc", "Close modal / back"),
         help_line("q, Ctrl+C", "Quit"),
         Line::raw(""),
@@ -75,6 +62,55 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
         help_line("U", "Copy API link"),
     ];
 
+    const GAP: u16 = 3;
+    let column_width = |column: &[Line<'_>]| {
+        column
+            .iter()
+            .map(|line| line.width() as u16)
+            .max()
+            .unwrap_or(0)
+    };
+    let widths = [
+        column_width(&column_one),
+        column_width(&column_two),
+        column_width(&column_three),
+    ];
+
+    let docs = format!("  Docs: {}", env!("CARGO_PKG_HOMEPAGE"));
+    let content_lines = column_one
+        .len()
+        .max(column_two.len())
+        .max(column_three.len()) as u16;
+    let inner_width = (widths.iter().sum::<u16>() + GAP * 2).max(docs.chars().count() as u16);
+    // content + top/bottom borders + blank spacer + docs footer
+    let height = (content_lines + 4).min(area.height);
+    let area = centered_rect_fixed(inner_width + 2, height, area);
+
+    frame.render_widget(Clear, area);
+    let block = Block::default().title(" Help ").borders(Borders::ALL);
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(content_lines),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(widths[0]),
+            Constraint::Length(GAP),
+            Constraint::Length(widths[1]),
+            Constraint::Length(GAP),
+            Constraint::Length(widths[2]),
+        ])
+        .split(rows[0]);
+
     frame.render_widget(
         Paragraph::new(column_one)
             .alignment(Alignment::Left)
@@ -85,13 +121,20 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
         Paragraph::new(column_two)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
-        columns[1],
+        columns[2],
     );
     frame.render_widget(
         Paragraph::new(column_three)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
-        columns[2],
+        columns[4],
+    );
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled("  Docs: ", theme::muted_style()),
+            Span::styled(env!("CARGO_PKG_HOMEPAGE"), theme::accent_style()),
+        ])),
+        rows[2],
     );
 }
 
@@ -268,6 +311,18 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             .style(theme::chrome_style()),
         area,
     );
+}
+
+/// Centered rect with a fixed width and height (in cells), clamped to `area`.
+pub fn centered_rect_fixed(width: u16, height: u16, area: Rect) -> Rect {
+    let width = width.min(area.width);
+    let height = height.min(area.height);
+    Rect {
+        x: area.x + area.width.saturating_sub(width) / 2,
+        y: area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    }
 }
 
 pub fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {

@@ -1,5 +1,17 @@
 use ratatui::style::{Color, Style};
 
+/// Blank columns kept between a right-aligned action group and the edge.
+pub const EDGE_MARGIN: usize = 2;
+
+/// Shared label-column width for the detail/runtime panels so their
+/// `Label: value` columns line up to the same offset.
+pub const DETAIL_LABEL_WIDTH: usize = 13;
+
+/// Right padding for detail/runtime panels. Gives wrapped lines slack so
+/// emoji-heavy config names (whose rendered width exceeds `unicode-width`'s
+/// estimate) wrap before they collide with the right border.
+pub const DETAIL_RIGHT_PAD: u16 = 3;
+
 pub fn chrome_style() -> Style {
     Style::default().fg(Color::Rgb(237, 225, 205))
 }

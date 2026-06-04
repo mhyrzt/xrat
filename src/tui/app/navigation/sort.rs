@@ -1,5 +1,5 @@
 use super::TuiApp;
-use crate::tui::app::TuiView;
+use crate::tui::app::{SourceFilter, TuiView};
 
 impl TuiApp {
     pub(crate) fn clear_search(&mut self) {
@@ -81,6 +81,7 @@ impl TuiApp {
         let query = self.config_list.search_query.trim().to_lowercase();
         let filter = self.config_list.filter;
         let proto = self.config_list.protocol_filter.as_deref();
+        let source_filter = self.config_list.source_filter;
         let mut indices: Vec<usize> = self
             .data
             .configs
@@ -97,6 +98,15 @@ impl TuiApp {
                     && config.protocol != p
                 {
                     return None;
+                }
+                match source_filter {
+                    SourceFilter::All => {}
+                    SourceFilter::Orphans if config.source_id.is_some() => return None,
+                    SourceFilter::Orphans => {}
+                    SourceFilter::Source(source_id) if config.source_id != Some(source_id) => {
+                        return None;
+                    }
+                    SourceFilter::Source(_) => {}
                 }
                 Some(idx)
             })

@@ -2,23 +2,55 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::data::TuiConfigRow;
 use crate::tui::theme;
-use crate::tui::view::shared::{append_bottom_lines, push_detail};
+use crate::tui::view::shared::{PanelStyle, push_detail, render_scroll_panel};
 
-pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let config = app.focused_config();
-    render_detail(frame, area, config);
+    let source_label = config
+        .map(|config| source_label(app, config))
+        .unwrap_or_default();
+    let lines = detail_lines(area, config, &source_label);
+    render_scroll_panel(
+        frame,
+        area,
+        lines,
+        &app.panel_scroll.detail,
+        PanelStyle {
+            title: " Detail ",
+            focused,
+            right_pad: RIGHT_PAD,
+            wrap_trim: true,
+        },
+    );
 }
 
-const LABEL_WIDTH: usize = 12;
+const LABEL_WIDTH: usize = crate::tui::theme::DETAIL_LABEL_WIDTH;
+const RIGHT_PAD: u16 = crate::tui::theme::DETAIL_RIGHT_PAD;
 
-fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow>) {
-    let content_width = area.width.saturating_sub(2) as usize;
-    let lines = match config {
+fn source_label(app: &TuiApp, config: &TuiConfigRow) -> String {
+    match config.source_id {
+        Some(source_id) => app
+            .data
+            .sources
+            .iter()
+            .find(|source| source.id == source_id)
+            .map(|source| format!("#{source_id} {}", source.display_name()))
+            .unwrap_or_else(|| format!("#{source_id}")),
+        None => "none".to_string(),
+    }
+}
+
+fn detail_lines<'a>(
+    area: Rect,
+    config: Option<&'a TuiConfigRow>,
+    source_label: &'a str,
+) -> Vec<Line<'a>> {
+    let content_width = area.width.saturating_sub(2 + RIGHT_PAD) as usize;
+    match config {
         Some(config) => {
             let mut lines = vec![
                 Line::styled(
@@ -68,10 +100,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow
             push_detail(
                 &mut lines,
                 "Source",
-                config
-                    .source_id
-                    .map(|source_id| format!("#{source_id}"))
-                    .unwrap_or_else(|| "-".to_string()),
+                source_label,
                 LABEL_WIDTH,
                 content_width,
             );
@@ -104,16 +133,6 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow
                 LABEL_WIDTH,
                 content_width,
             );
-            append_bottom_lines(
-                &mut lines,
-                vec![
-                    Line::styled("Actions", theme::muted_style()),
-                    Line::raw("[Enter]start  [e]nable  [x]disable"),
-                    Line::raw("[t]est  [a]ll  [v]isible  [d]elete  [r]estore"),
-                ],
-                area,
-                2,
-            );
             lines
         }
         None => vec![
@@ -125,16 +144,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow
             Line::raw("Import configs with `xrat import <input>`"),
             Line::raw("or add one with `xrat add <config-uri>`."),
         ],
-    };
-
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines)
-            .block(Block::default().title(" Detail ").borders(Borders::ALL))
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: true }),
-        area,
-    );
+    }
 }
 
 fn yes_no(value: bool) -> &'static str {

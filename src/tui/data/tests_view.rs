@@ -63,7 +63,7 @@ impl TuiTestStatus {
     pub fn progress_label(&self) -> String {
         match self.latest_run_id {
             Some(_) => format!(
-                "{} done - {} ok - {} failed",
+                "{} done · {} ok · {} failed",
                 self.total_results, self.success_results, self.failed_results
             ),
             None => "no test run yet".to_string(),

@@ -7,6 +7,9 @@ impl TuiApp {
         self.data = data;
         self.clamp_config_focus();
         self.clamp_source_focus();
+        self.panel_scroll.detail.set(0);
+        self.panel_scroll.log.set(0);
+        self.panel_scroll.runtime.set(0);
     }
 
     pub(super) fn show_help(&mut self) {
@@ -60,5 +63,10 @@ impl TuiApp {
         self.confirm = None;
         self.status_message.clear();
         self.needs_full_clear = true;
+        self.panel_scroll.detail.set(0);
+        match view {
+            TuiView::Configs => self.clamp_config_focus(),
+            TuiView::Sources => self.clamp_source_focus(),
+        }
     }
 }

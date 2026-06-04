@@ -105,6 +105,10 @@ fn refresh_focused_source_action_targets_correct_source() {
     let mut app = TuiApp::with_data(data);
     app.apply(TuiAction::SwitchView(TuiView::Sources));
 
+    // indices 0 and 1 are "All" and "Orphans"; move twice to the first source.
+    app.apply(TuiAction::MoveDown);
+    app.apply(TuiAction::MoveDown);
+
     // simulate the capture logic from run/mod.rs
     let focused = app
         .focused_source()
@@ -126,6 +130,13 @@ fn focused_source_returns_current_source() {
     let mut app = TuiApp::with_data(data);
     app.apply(TuiAction::SwitchView(TuiView::Sources));
 
+    // indices 0 and 1 are the synthetic "All" and "Orphans" rows.
+    assert_eq!(app.focused_source().map(|s| s.id), None);
+
+    app.apply(TuiAction::MoveDown);
+    assert_eq!(app.focused_source().map(|s| s.id), None);
+
+    app.apply(TuiAction::MoveDown);
     assert_eq!(app.focused_source().map(|s| s.id), Some(1));
 
     app.apply(TuiAction::MoveDown);

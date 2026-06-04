@@ -22,9 +22,10 @@ fn moves_source_focus_within_bounds() {
     let mut app = TuiApp::with_data(data);
     app.apply(TuiAction::SwitchView(TuiView::Sources));
 
+    // indices 0 and 1 are the "All" and "Orphans" rows; sources start at 2.
     app.apply(TuiAction::MoveDown);
     app.apply(TuiAction::MoveDown);
-    assert_eq!(app.source_list.focused, 1);
+    assert_eq!(app.source_list.focused, 2);
 
     app.apply(TuiAction::MoveUp);
     app.apply(TuiAction::MoveUp);

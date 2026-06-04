@@ -16,8 +16,13 @@ impl TuiApp {
             .collect()
     }
 
+    /// The Sources tab renders synthetic "All" (index 0) and "Orphans"
+    /// (index 1) rows, so a real source begins at index 2.
     pub fn focused_source(&self) -> Option<&TuiSourceRow> {
-        self.data.sources.get(self.source_list.focused)
+        self.source_list
+            .focused
+            .checked_sub(2)
+            .and_then(|idx| self.data.sources.get(idx))
     }
 
     pub fn config_filter_summary(&self) -> String {

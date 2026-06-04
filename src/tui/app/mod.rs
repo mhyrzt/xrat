@@ -11,8 +11,8 @@ mod views;
 
 pub use types::{
     ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState,
-    QrModalState, RenameModalState, SourceListState, TestMode, TestScope, TestViewState, TuiAction,
-    TuiApp, TuiConfigCommand, TuiView,
+    PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
+    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -34,6 +34,8 @@ impl TuiApp {
             TuiAction::CycleFilter => self.cycle_config_filter(),
             TuiAction::CycleProtocolFilter => self.cycle_protocol_filter(),
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
+            TuiAction::FocusNextPanel => self.focus_panel(self.focused_panel.next()),
+            TuiAction::FocusPrevPanel => self.focus_panel(self.focused_panel.prev()),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
             TuiAction::RequestDeleteSource => self.request_delete_source(),

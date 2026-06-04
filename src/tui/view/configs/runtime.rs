@@ -2,15 +2,15 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
-use crate::tui::view::shared::{append_bottom_lines, push_detail};
+use crate::tui::view::shared::{PanelStyle, push_detail, render_scroll_panel};
 
-const LABEL_WIDTH: usize = 13;
+const LABEL_WIDTH: usize = crate::tui::theme::DETAIL_LABEL_WIDTH;
+const RIGHT_PAD: u16 = crate::tui::theme::DETAIL_RIGHT_PAD;
 
-pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let rt = &app.data.runtime;
 
     let proxy = match (&rt.socks, &rt.http) {
@@ -22,7 +22,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let active = rt.active_config.as_deref().unwrap_or("-");
     let task = app.task_state.label();
     let data = &app.data;
-    let content_width = area.width.saturating_sub(2) as usize;
+    let content_width = area.width.saturating_sub(2 + RIGHT_PAD) as usize;
 
     let mut lines = vec![
         Line::styled(
@@ -38,7 +38,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         &mut lines,
         "Configs",
         format!(
-            "{} total  {} enabled  {} deleted  {} failed",
+            "{} total · {} enabled · {} deleted · {} failed",
             data.total_configs, data.enabled_configs, data.deleted_configs, data.failed_configs,
         ),
         LABEL_WIDTH,
@@ -84,22 +84,16 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         push_detail(&mut lines, "Failure", reason, LABEL_WIDTH, content_width);
     }
 
-    append_bottom_lines(
-        &mut lines,
-        vec![
-            Line::styled("Actions", theme::muted_style()),
-            Line::raw("[K]ill  [R]estart"),
-        ],
+    render_scroll_panel(
+        frame,
         area,
-        2,
-    );
-
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines)
-            .block(Block::default().title(" Runtime ").borders(Borders::ALL))
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: true }),
-        area,
+        lines,
+        &app.panel_scroll.runtime,
+        PanelStyle {
+            title: " Runtime ",
+            focused,
+            right_pad: RIGHT_PAD,
+            wrap_trim: true,
+        },
     );
 }

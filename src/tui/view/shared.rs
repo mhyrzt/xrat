@@ -1,5 +1,12 @@
-use ratatui::layout::Rect;
+use std::cell::Cell;
+
+use ratatui::Frame;
+use ratatui::layout::{Margin, Rect};
 use ratatui::text::{Line, Span};
+use ratatui::widgets::{
+    Block, Borders, Clear, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Wrap,
+};
 
 use crate::tui::theme;
 
@@ -24,14 +31,61 @@ pub fn push_detail<'a>(
     }
 }
 
-pub fn append_bottom_lines(
-    lines: &mut Vec<Line<'static>>,
-    bottom_lines: Vec<Line<'static>>,
+pub struct PanelStyle {
+    pub title: &'static str,
+    pub focused: bool,
+    pub right_pad: u16,
+    pub wrap_trim: bool,
+}
+
+/// Render a bordered, vertically scrollable card. The focused card gets an
+/// accent border. `scroll` is clamped here against the live content and
+/// viewport heights, and a scrollbar is drawn when the content overflows.
+pub fn render_scroll_panel(
+    frame: &mut Frame<'_>,
     area: Rect,
-    border_height: u16,
+    lines: Vec<Line<'_>>,
+    scroll: &Cell<u16>,
+    style: PanelStyle,
 ) {
-    let content_height = area.height.saturating_sub(border_height) as usize;
-    let blank_lines = content_height.saturating_sub(lines.len() + bottom_lines.len());
-    lines.extend(std::iter::repeat_with(Line::default).take(blank_lines));
-    lines.extend(bottom_lines);
+    let border_style = if style.focused {
+        theme::accent_style()
+    } else {
+        theme::chrome_style()
+    };
+    let block = Block::default()
+        .title(style.title)
+        .borders(Borders::ALL)
+        .border_style(border_style)
+        .padding(Padding::new(0, style.right_pad, 0, 0));
+
+    let viewport = block.inner(area).height;
+    let content_len = lines.len() as u16;
+    let offset = scroll.get().min(content_len.saturating_sub(viewport));
+    scroll.set(offset);
+
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(block)
+            .style(theme::chrome_style())
+            .wrap(Wrap {
+                trim: style.wrap_trim,
+            })
+            .scroll((offset, 0)),
+        area,
+    );
+
+    if content_len > viewport {
+        let mut state = ScrollbarState::new(content_len as usize)
+            .viewport_content_length(viewport as usize)
+            .position(offset as usize);
+        frame.render_stateful_widget(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(None)
+                .end_symbol(None),
+            area.inner(Margin::new(0, 1)),
+            &mut state,
+        );
+    }
 }

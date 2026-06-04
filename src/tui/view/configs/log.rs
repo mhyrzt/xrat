@@ -1,12 +1,12 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
+use crate::tui::view::shared::{PanelStyle, render_scroll_panel};
 
-pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let mut failure_lines: Vec<Line<'_>> = app
         .data
         .configs
@@ -19,7 +19,6 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
                 )
             })
         })
-        .take(8)
         .collect();
 
     if !failure_lines.is_empty() && !app.event_log.is_empty() {
@@ -47,16 +46,16 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     };
     failure_lines.extend(event_lines);
 
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(failure_lines)
-            .block(
-                Block::default()
-                    .title(" Failures and Event Log ")
-                    .borders(Borders::ALL),
-            )
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: false }),
+    render_scroll_panel(
+        frame,
         area,
+        failure_lines,
+        &app.panel_scroll.log,
+        PanelStyle {
+            title: " Failures and Event Log ",
+            focused,
+            right_pad: 0,
+            wrap_trim: false,
+        },
     );
 }

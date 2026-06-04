@@ -1,4 +1,8 @@
 use super::TuiApp;
+use crate::tui::app::SourceFilter;
+
+/// Sources tab rows: 0 = All, 1 = Orphans, 2.. = concrete sources.
+const SOURCE_PSEUDO_ROWS: usize = 2;
 
 impl TuiApp {
     pub(crate) fn clamp_config_focus(&mut self) {
@@ -11,12 +15,23 @@ impl TuiApp {
     }
 
     pub(crate) fn clamp_source_focus(&mut self) {
-        let len = self.data.sources.len();
-        if len == 0 {
-            self.source_list.focused = 0;
-        } else if self.source_list.focused >= len {
+        let len = self.data.sources.len() + SOURCE_PSEUDO_ROWS;
+        if self.source_list.focused >= len {
             self.source_list.focused = len - 1;
         }
+        self.sync_source_filter();
+    }
+
+    /// Mirror the focused Sources-tab row onto the configs source filter.
+    pub(crate) fn sync_source_filter(&mut self) {
+        self.config_list.source_filter = match self.source_list.focused {
+            0 => SourceFilter::All,
+            1 => SourceFilter::Orphans,
+            _ => self
+                .focused_source()
+                .map(|source| SourceFilter::Source(source.id))
+                .unwrap_or(SourceFilter::All),
+        };
     }
 
     pub(crate) fn move_config_focus(&mut self, delta: isize) {
@@ -39,14 +54,11 @@ impl TuiApp {
         };
 
         self.config_list.focused = next;
+        self.panel_scroll.detail.set(0);
     }
 
     pub(crate) fn move_source_focus(&mut self, delta: isize) {
-        let len = self.data.sources.len();
-        if len == 0 {
-            self.source_list.focused = 0;
-            return;
-        }
+        let len = self.data.sources.len() + SOURCE_PSEUDO_ROWS;
 
         let next = if delta.is_negative() {
             self.source_list
@@ -57,8 +69,16 @@ impl TuiApp {
         };
 
         self.source_list.focused = next;
-        if let Some(source) = self.focused_source() {
-            self.status_message = format!("source #{} {}", source.id, source.display_name());
-        }
+        self.panel_scroll.detail.set(0);
+        self.sync_source_filter();
+
+        self.status_message = match self.config_list.source_filter {
+            SourceFilter::All => "all configs".to_string(),
+            SourceFilter::Orphans => "orphan configs (no source)".to_string(),
+            SourceFilter::Source(_) => match self.focused_source() {
+                Some(source) => format!("source #{} {}", source.id, source.display_name()),
+                None => "all configs".to_string(),
+            },
+        };
     }
 }

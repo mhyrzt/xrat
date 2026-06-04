@@ -1,14 +1,15 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::Modifier;
-use ratatui::widgets::{Block, Borders, Cell, Clear, Row, Table};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Row, Table, TableState};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 const MAX_NAME_CHARS: usize = 24;
 
-pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let header = Row::new(["St", "ID", "Name", "Proto", "Address", "Net", "Delay"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
@@ -19,7 +20,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             && config.failure_reason.is_none()
             && config.is_enabled
             && !config.is_deleted;
-        let mut style = if idx == app.config_list.focused {
+        let style = if idx == app.config_list.focused {
             theme::accent_style().add_modifier(Modifier::BOLD)
         } else if config.is_active {
             theme::success_style().add_modifier(Modifier::BOLD)
@@ -32,10 +33,6 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         } else {
             theme::chrome_style()
         };
-
-        if config.is_active {
-            style = style.add_modifier(Modifier::UNDERLINED);
-        }
 
         Row::new(vec![
             Cell::from(state_marker(config)),
@@ -64,17 +61,62 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     .header(header)
     .block(
         Block::default()
-            .title(format!(
-                " Configs ({}/{}) ",
-                visible.len(),
-                app.data.total_configs
-            ))
-            .borders(Borders::ALL),
+            .title(tab_title(app))
+            .borders(Borders::ALL)
+            .border_style(border_style(focused)),
     )
     .column_spacing(1);
 
+    let mut state = TableState::default().with_selected(Some(app.config_list.focused));
     frame.render_widget(Clear, area);
-    frame.render_widget(table, area);
+    frame.render_stateful_widget(table, area, &mut state);
+}
+
+fn border_style(focused: bool) -> ratatui::style::Style {
+    if focused {
+        theme::accent_style()
+    } else {
+        theme::chrome_style()
+    }
+}
+
+fn tab_title(app: &TuiApp) -> Line<'static> {
+    let mut spans = vec![
+        Span::styled(
+            " [Configs]",
+            theme::accent_style().add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" Sources ", theme::muted_style()),
+        Span::styled(
+            format!(
+                "({}/{}) ",
+                app.visible_configs().len(),
+                app.data.total_configs
+            ),
+            theme::chrome_style(),
+        ),
+    ];
+
+    let scope = match app.config_list.source_filter {
+        crate::tui::app::SourceFilter::All => None,
+        crate::tui::app::SourceFilter::Orphans => Some("orphans".to_string()),
+        crate::tui::app::SourceFilter::Source(source_id) => Some(
+            app.data
+                .sources
+                .iter()
+                .find(|source| source.id == source_id)
+                .map(|source| source.display_name().to_string())
+                .unwrap_or_else(|| format!("#{source_id}")),
+        ),
+    };
+    if let Some(scope) = scope {
+        spans.push(Span::styled(
+            format!("· src:{scope} "),
+            theme::accent_style(),
+        ));
+    }
+
+    Line::from(spans)
 }
 
 fn truncate_name(name: &str) -> String {

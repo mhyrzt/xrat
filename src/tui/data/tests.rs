@@ -106,7 +106,7 @@ fn summarizes_latest_test_run() {
     assert_eq!(status.success_results, 1);
     assert_eq!(status.failed_results, 1);
     assert_eq!(status.untested_configs, 1);
-    assert_eq!(status.progress_label(), "2 done - 1 ok - 1 failed");
+    assert_eq!(status.progress_label(), "2 done · 1 ok · 1 failed");
 }
 
 fn test_record(id: i64, config_id: i64, failure_reason: Option<&str>) -> ConnectionTestRecord {

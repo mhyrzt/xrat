@@ -64,7 +64,7 @@ fn maps_view_switching_keys() {
 }
 
 #[test]
-fn maps_tab_to_next_view() {
+fn maps_tab_to_panel_focus() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Tab),
@@ -75,19 +75,19 @@ fn maps_tab_to_next_view() {
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Sources)
+        TuiAction::FocusNextPanel
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Tab),
-            TuiView::Sources,
+            key(KeyCode::BackTab),
+            TuiView::Configs,
             false,
             false,
             false,
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Configs)
+        TuiAction::FocusPrevPanel
     );
 }
 

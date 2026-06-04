@@ -1,11 +1,16 @@
 use crate::tui::data::TuiData;
 
-use super::{ConfigListState, SourceListState, TestViewState, TuiApp, TuiTaskState, TuiView};
+use super::{
+    ConfigListState, PanelScroll, SourceListState, TestViewState, TuiApp, TuiPanel, TuiTaskState,
+    TuiView,
+};
 
 impl Default for TuiApp {
     fn default() -> Self {
         Self {
             active_view: TuiView::Configs,
+            focused_panel: TuiPanel::Table,
+            panel_scroll: PanelScroll::default(),
             show_help: false,
             should_quit: false,
             status_message: "ready".to_string(),

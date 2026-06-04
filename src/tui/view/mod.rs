@@ -2,12 +2,11 @@ mod chrome;
 mod configs;
 mod modals;
 mod shared;
-mod sources;
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
-use crate::tui::app::{TuiApp, TuiView};
+use crate::tui::app::TuiApp;
 
 pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     let area = frame.area();
@@ -17,10 +16,10 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
         .split(area);
 
     render_body(frame, shell[0], app);
-    chrome::render_key_bar(frame, shell[1], app.active_view);
+    chrome::render_key_bar(frame, shell[1]);
 
     if app.show_help {
-        modals::render_help(frame, modals::centered_rect(88, 64, area));
+        modals::render_help(frame, area);
     }
 
     if app.confirm.is_some() {
@@ -41,8 +40,5 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
 }
 
 fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    match app.active_view {
-        TuiView::Configs => configs::render(frame, area, app),
-        TuiView::Sources => sources::render(frame, area, app),
-    }
+    configs::render(frame, area, app);
 }
