@@ -1,7 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
@@ -47,6 +47,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     };
     failure_lines.extend(event_lines);
 
+    frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(failure_lines)
             .block(

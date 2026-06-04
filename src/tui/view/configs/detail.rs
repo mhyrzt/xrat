@@ -112,7 +112,7 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow
                     Line::raw("[t]est  [a]ll  [v]isible  [d]elete  [r]estore"),
                 ],
                 area,
-                1,
+                2,
             );
             lines
         }
@@ -127,16 +127,10 @@ fn render_detail(frame: &mut Frame<'_>, area: Rect, config: Option<&TuiConfigRow
         ],
     };
 
-    use ratatui::widgets::BorderType;
     frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .title(" Detail ")
-                    .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-                    .border_type(BorderType::Plain),
-            )
+            .block(Block::default().title(" Detail ").borders(Borders::ALL))
             .style(theme::chrome_style())
             .wrap(Wrap { trim: true }),
         area,

@@ -1,7 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::Modifier;
-use ratatui::widgets::{Block, Borders, Cell, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Row, Table};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
@@ -73,6 +73,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     )
     .column_spacing(1);
 
+    frame.render_widget(Clear, area);
     frame.render_widget(table, area);
 }
 

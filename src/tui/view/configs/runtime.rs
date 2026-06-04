@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
@@ -94,6 +94,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         2,
     );
 
+    frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(lines)
             .block(Block::default().title(" Runtime ").borders(Borders::ALL))
