@@ -1,8 +1,17 @@
 use serde_json::json;
 use std::collections::HashMap;
 
-use super::types::{GrpcSettings, StreamSettings, TcpSettings, TlsSettings, WsSettings};
+use super::types::{
+    GrpcSettings, StreamSettings, TcpSettings, TlsSettings, WsSettings, XhttpSettings,
+};
 use crate::model::{Node, Protocol};
+
+fn extension(node: &Node, key: &str) -> Option<String> {
+    node.extensions
+        .as_ref()
+        .and_then(|extensions| extensions.get(key))
+        .cloned()
+}
 
 pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> {
     let network = node.network.as_str();
@@ -13,9 +22,18 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
 
     let security = node.tls.as_ref().map(|s| s.to_string());
     let tls_settings = if node.tls.as_deref() == Some("tls") {
+        let alpn = extension(node, "alpn").map(|value| {
+            value
+                .split(',')
+                .map(|part| part.trim().to_string())
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+        });
         Some(TlsSettings {
             server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
             allow_insecure: None,
+            fingerprint: extension(node, "fp"),
+            alpn: alpn.filter(|parts| !parts.is_empty()),
         })
     } else {
         None
@@ -59,6 +77,16 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         None
     };
 
+    let xhttp_settings = if network == "xhttp" {
+        Some(XhttpSettings {
+            host: node.host.clone(),
+            path: node.path.clone().unwrap_or_else(|| "/".to_string()),
+            mode: extension(node, "mode"),
+        })
+    } else {
+        None
+    };
+
     Ok(Some(StreamSettings {
         network: network.to_string(),
         security,
@@ -66,5 +94,6 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         ws_settings,
         tcp_settings,
         grpc_settings,
+        xhttp_settings,
     }))
 }

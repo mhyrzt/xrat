@@ -24,6 +24,7 @@ pub struct Inbound {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Outbound {
     pub tag: String,
     pub protocol: String,
@@ -46,6 +47,8 @@ pub struct StreamSettings {
     pub tcp_settings: Option<TcpSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grpc_settings: Option<GrpcSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xhttp_settings: Option<XhttpSettings>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,6 +57,20 @@ pub struct TlsSettings {
     pub server_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_insecure: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fingerprint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alpn: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct XhttpSettings {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,8 +2,10 @@ use clap::ValueEnum;
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
 pub enum TestFormat {
-    /// Tab-separated values (default, easy to read in terminal).
+    /// Aligned table for terminals (default, human-readable).
     #[default]
+    Table,
+    /// Tab-separated values (script-friendly).
     Tsv,
     /// Comma-separated values (spreadsheet compatible).
     Csv,
@@ -14,6 +16,7 @@ pub enum TestFormat {
 impl std::fmt::Display for TestFormat {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Table => formatter.write_str("table"),
             Self::Tsv => formatter.write_str("tsv"),
             Self::Csv => formatter.write_str("csv"),
             Self::Json => formatter.write_str("json"),

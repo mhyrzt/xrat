@@ -1,7 +1,15 @@
+use std::io::IsTerminal;
+
+use unicode_width::UnicodeWidthStr;
+
 use super::*;
 
 pub(crate) fn write_results(args: &TestArgs, outputs: &[TestOutputRow]) -> crate::app::Result<()> {
     let data = match args.format {
+        TestFormat::Table => {
+            let color = args.output.is_none() && std::io::stdout().is_terminal();
+            format_table(outputs, color)
+        }
         TestFormat::Tsv => format_tsv(outputs),
         TestFormat::Csv => format_csv(outputs),
         TestFormat::Json => serde_json::to_string_pretty(outputs)?,
@@ -14,6 +22,151 @@ pub(crate) fn write_results(args: &TestArgs, outputs: &[TestOutputRow]) -> crate
     }
 
     Ok(())
+}
+
+const DIM: &str = "\x1b[2m";
+const GREEN: &str = "\x1b[32m";
+const RED: &str = "\x1b[31m";
+const RESET: &str = "\x1b[0m";
+const MAX_NAME_WIDTH: usize = 28;
+
+pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
+    if outputs.is_empty() {
+        return "No configs matched.".to_string();
+    }
+
+    let headers = [
+        "#", "STATUS", "ICMP", "REAL", "DOWN", "UP", "PROTO", "ADDRESS", "NAME",
+    ];
+    let right_aligned = [false, false, true, true, true, true, false, false, false];
+
+    let mut rows: Vec<[String; 9]> = Vec::with_capacity(outputs.len());
+    for output in outputs {
+        rows.push([
+            output.id.to_string(),
+            status_label(output.status),
+            ms_cell(output.icmp_ms),
+            ms_cell(output.real_delay_ms),
+            mbps_cell(output.download_mbps),
+            mbps_cell(output.upload_mbps),
+            output.protocol.clone(),
+            format!("{}:{}", output.address, output.port),
+            truncate_display(output.name.as_deref().unwrap_or("-"), MAX_NAME_WIDTH),
+        ]);
+    }
+
+    let mut widths = [0usize; 9];
+    for (index, header) in headers.iter().enumerate() {
+        widths[index] = header.width();
+    }
+    for row in &rows {
+        for (index, cell) in row.iter().enumerate() {
+            widths[index] = widths[index].max(cell.width());
+        }
+    }
+
+    let mut lines = Vec::with_capacity(rows.len() + 2);
+
+    let header_line = headers
+        .iter()
+        .enumerate()
+        .map(|(index, header)| pad(header, widths[index], right_aligned[index]))
+        .collect::<Vec<_>>()
+        .join("  ");
+    lines.push(maybe_color(&header_line, DIM, color));
+
+    for (output, row) in outputs.iter().zip(&rows) {
+        let cells = row
+            .iter()
+            .enumerate()
+            .map(|(index, cell)| {
+                let padded = pad(cell, widths[index], right_aligned[index]);
+                if index == 1 && color {
+                    colorize_status(&padded, output.status)
+                } else {
+                    padded
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("  ");
+        lines.push(cells.trim_end().to_string());
+    }
+
+    let failures: Vec<&TestOutputRow> = outputs
+        .iter()
+        .filter(|output| matches!(output.status, TestStatus::Failed) && output.error.is_some())
+        .collect();
+    if !failures.is_empty() {
+        lines.push(String::new());
+        lines.push(maybe_color("Failures:", DIM, color));
+        for output in failures {
+            let reason = output.error.as_deref().unwrap_or_default();
+            lines.push(format!("  #{} {}", output.id, reason));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn status_label(status: TestStatus) -> String {
+    match status {
+        TestStatus::Ok => "✓ ok".to_string(),
+        TestStatus::Failed => "✗ fail".to_string(),
+        TestStatus::Skipped => "– skip".to_string(),
+    }
+}
+
+fn colorize_status(text: &str, status: TestStatus) -> String {
+    let code = match status {
+        TestStatus::Ok => GREEN,
+        TestStatus::Failed => RED,
+        TestStatus::Skipped => DIM,
+    };
+    format!("{code}{text}{RESET}")
+}
+
+fn maybe_color(text: &str, code: &str, color: bool) -> String {
+    if color {
+        format!("{code}{text}{RESET}")
+    } else {
+        text.to_string()
+    }
+}
+
+fn ms_cell(value: Option<u32>) -> String {
+    value.map(|value| format!("{value}ms")).unwrap_or_default()
+}
+
+fn mbps_cell(value: Option<f64>) -> String {
+    value.map(|value| format!("{value:.1}")).unwrap_or_default()
+}
+
+fn pad(text: &str, width: usize, right_aligned: bool) -> String {
+    let padding = width.saturating_sub(text.width());
+    let spaces = " ".repeat(padding);
+    if right_aligned {
+        format!("{spaces}{text}")
+    } else {
+        format!("{text}{spaces}")
+    }
+}
+
+fn truncate_display(text: &str, max_width: usize) -> String {
+    if text.width() <= max_width {
+        return text.to_string();
+    }
+    let mut result = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let char_width = ch.to_string().width();
+        if used + char_width > max_width.saturating_sub(1) {
+            break;
+        }
+        result.push(ch);
+        used += char_width;
+    }
+    result.push('…');
+    result
 }
 
 pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {

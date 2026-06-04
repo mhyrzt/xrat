@@ -20,6 +20,19 @@ fn parses_vless_like_python_reference() {
 }
 
 #[test]
+fn captures_vless_xhttp_extensions() {
+    let input = "vless://uuid-123@example.com:2087?type=xhttp&security=tls&host=cdn.example.com&mode=auto&sni=cdn.example.com&fp=chrome&alpn=h2#Node";
+    let nodes = parse_text(input);
+    assert_eq!(nodes.len(), 1);
+    let node = &nodes[0];
+    assert_eq!(node.network, "xhttp");
+    let extensions = node.extensions.as_ref().unwrap();
+    assert_eq!(extensions.get("fp").map(String::as_str), Some("chrome"));
+    assert_eq!(extensions.get("alpn").map(String::as_str), Some("h2"));
+    assert_eq!(extensions.get("mode").map(String::as_str), Some("auto"));
+}
+
+#[test]
 fn parses_vmess_like_python_reference() {
     let input = "vmess://eyJhZGQiOiJ2bWVzcy5leGFtcGxlLmNvbSIsInBvcnQiOiI4NDQzIiwiaWQiOiJ1dWlkLTQ1NiIsIm5ldCI6IndzIiwidGxzIjoidGxzIiwic25pIjoiZWRnZS5leGFtcGxlLmNvbSIsImhvc3QiOiJob3N0LmV4YW1wbGUuY29tIiwicGF0aCI6Ii92bWVzcyIsInBzIjoiVk1lc3MgTm9kZSJ9";
     let nodes = parse_text(input);

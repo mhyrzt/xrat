@@ -29,7 +29,7 @@ impl XrayProcess {
         config: &XrayConfig,
         startup_timeout: Duration,
     ) -> Result<Self, XrayProcessError> {
-        let mut temp_file = NamedTempFile::new()?;
+        let mut temp_file = tempfile::Builder::new().suffix(".json").tempfile()?;
         let config_json = serde_json::to_string_pretty(config)?;
         temp_file.write_all(config_json.as_bytes())?;
         temp_file.flush()?;
@@ -105,15 +105,29 @@ impl XrayProcess {
     }
 
     fn read_stderr(&mut self) -> String {
-        let Some(stderr) = self.child.stderr.as_mut() else {
-            return "stderr unavailable".to_string();
-        };
-
         let mut output = String::new();
-        match stderr.read_to_string(&mut output) {
-            Ok(_) if !output.trim().is_empty() => output.trim().to_string(),
-            Ok(_) => "process exited without stderr output".to_string(),
-            Err(error) => format!("failed to read stderr: {error}"),
+
+        if let Some(stdout) = self.child.stdout.as_mut() {
+            let mut buffer = String::new();
+            if stdout.read_to_string(&mut buffer).is_ok() && !buffer.trim().is_empty() {
+                output.push_str(buffer.trim());
+            }
+        }
+
+        if let Some(stderr) = self.child.stderr.as_mut() {
+            let mut buffer = String::new();
+            if stderr.read_to_string(&mut buffer).is_ok() && !buffer.trim().is_empty() {
+                if !output.is_empty() {
+                    output.push('\n');
+                }
+                output.push_str(buffer.trim());
+            }
+        }
+
+        if output.trim().is_empty() {
+            "process exited without output".to_string()
+        } else {
+            output
         }
     }
 }

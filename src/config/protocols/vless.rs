@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use url::Url;
 
 use crate::config::ConfigParseError;
@@ -20,6 +21,15 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
     let fragment = parsed.fragment().map(percent_decode);
     let path = query.get("path").map(String::as_str).unwrap_or_default();
 
+    let mut extensions = BTreeMap::new();
+    for key in ["fp", "alpn", "mode", "flow", "pbk", "sid", "spx"] {
+        if let Some(value) = query.get(key)
+            && !value.is_empty()
+        {
+            extensions.insert(key.to_string(), value.clone());
+        }
+    }
+
     Ok(Node {
         protocol: Protocol::Vless,
         address,
@@ -37,7 +47,11 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
         host: query.get("host").cloned(),
         path: empty_to_none(percent_decode(path)),
         name: fragment.and_then(empty_to_none),
-        extensions: None,
+        extensions: if extensions.is_empty() {
+            None
+        } else {
+            Some(extensions)
+        },
         raw_config: line.to_string(),
     })
 }

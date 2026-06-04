@@ -11,9 +11,9 @@ pub fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {
         XrayProcessError::StartupTimeout => {
             (FailureKind::Timeout, "Xray startup timeout".to_string())
         }
-        XrayProcessError::ProcessExited(_) => (
+        XrayProcessError::ProcessExited(stderr) => (
             FailureKind::Process,
-            "Xray process exited unexpectedly".to_string(),
+            format!("Xray process exited unexpectedly: {stderr}"),
         ),
         XrayProcessError::PortNotReady(_) => (
             FailureKind::Process,

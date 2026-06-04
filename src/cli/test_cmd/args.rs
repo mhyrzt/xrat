@@ -91,7 +91,7 @@ pub struct TestArgs {
     #[arg(
         long = "format",
         default_value_t,
-        help = "Output format for bulk results [default: tsv]."
+        help = "Output format for bulk results [default: table]."
     )]
     pub format: TestFormat,
     #[arg(
