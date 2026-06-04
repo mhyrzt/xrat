@@ -18,9 +18,8 @@ CLI commands.
 ## Tabs
 
 The TUI is a single dashboard. The top-left table has two tabs; switching the
-tab also swaps the detail panel on the right. The Testing Progress strip, the
-Failures and Event Log panel, and the Runtime panel stay visible under both
-tabs.
+tab also swaps the detail panel on the right. The Testing strip, the Logs panel,
+and the Runtime panel stay visible under both tabs.
 
 | Key | Tab     | Purpose                                                                         |
 | --- | ------- | ------------------------------------------------------------------------------- |
@@ -47,11 +46,11 @@ separate Tests view.
 
 ## Cards and Scrolling
 
-The dashboard has four cards: the table (Configs/Sources), the detail panel, the
-Failures and Event Log, and Runtime. `Tab` / `Shift+Tab` move focus between
-them; the focused card is drawn with an accent border. `j`/`k` (or the arrow
-keys) move the row selection when the table is focused, and scroll the focused
-card otherwise. Cards that overflow their height show a scrollbar.
+The dashboard has four cards: the table (Configs/Sources), the detail panel,
+Logs, and Runtime. `Tab` / `Shift+Tab` move focus between them; the focused card
+is drawn with an accent border. `j`/`k` (or the arrow keys) move the row
+selection when the table is focused, and scroll the focused card otherwise.
+Cards that overflow their height show a scrollbar.
 
 ## Configs Tab
 
@@ -144,11 +143,12 @@ JSON, or Xray JSON. Press `Enter` to import and `Esc` to cancel.
 Source refresh and import run as background tasks. When they finish, the TUI
 reloads database-backed data so both tabs reflect the new state.
 
-## Testing Progress Strip
+## Testing Strip
 
-A full-width Testing Progress strip sits below the filter bar under both tabs.
-Its left side summarizes the test scope and count, mode, concurrency, and the
-latest run id/time; its right side is a live progress gauge.
+A full-width Testing strip sits below the filter bar under both tabs. Its left
+side summarizes the test scope and count, mode, and concurrency. Its right side
+shows a live progress gauge while a batch is running, then summarizes nonzero
+completed result counts as done, ok, and failed.
 
 Test batches run TCP and real-delay tests with concurrency `4` and skip
 download, upload, and ICMP stages. Start a batch with `t` (current scope), `a`
@@ -158,12 +158,12 @@ While a batch is running, the gauge updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports
 cancelled once the shared test executor observes the cancellation request.
 
-## Runtime, Failures, and Help
+## Runtime, Logs, and Help
 
 The merged runtime panel summarizes runtime, database, source, API, and
-config-count state alongside the active config. The adjacent Failures and Event
-Log panel lists per-config failures and recent TUI task messages. Both panels
-stay visible under both tabs.
+config-count state alongside the active config. The adjacent Logs panel lists
+per-config failures and recent TUI task messages. Both panels stay visible under
+both tabs.
 
 Press `?` from either tab to open the help modal. Press `Esc` to close it.
 

@@ -52,7 +52,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         failure_lines,
         &app.panel_scroll.log,
         PanelStyle {
-            title: " Failures and Event Log ",
+            title: " Logs ",
             focused,
             right_pad: 0,
             wrap_trim: false,

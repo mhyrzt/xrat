@@ -109,6 +109,33 @@ fn summarizes_latest_test_run() {
     assert_eq!(status.progress_label(), "2 done · 1 ok · 1 failed");
 }
 
+#[test]
+fn omits_zero_counts_from_test_progress_label() {
+    let configs = vec![row(1, Some(100)), row(2, Some(200))];
+    let run = Some(ConnectionTestRunRecord {
+        id: 5,
+        kind: "real-delay".to_string(),
+        created_at: "created".to_string(),
+    });
+
+    let all_ok = TuiTestStatus::from_run_and_results(
+        run.clone(),
+        vec![test_record(11, 1, None), test_record(12, 2, None)],
+        &configs,
+    );
+    assert_eq!(all_ok.progress_label(), "2 done · 2 ok");
+
+    let all_failed = TuiTestStatus::from_run_and_results(
+        run,
+        vec![
+            test_record(11, 1, Some("timeout")),
+            test_record(12, 2, Some("timeout")),
+        ],
+        &configs,
+    );
+    assert_eq!(all_failed.progress_label(), "2 done · 2 failed");
+}
+
 fn test_record(id: i64, config_id: i64, failure_reason: Option<&str>) -> ConnectionTestRecord {
     ConnectionTestRecord {
         id,
