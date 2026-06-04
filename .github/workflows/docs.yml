@@ -14,12 +14,10 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -33,12 +31,26 @@ jobs:
         working-directory: docs
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache mdBook tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/mdbook
+            ~/.cargo/bin/mdbook-mermaid
+          key: ${{ runner.os }}-mdbook-${{ env.MDBOOK_VERSION }}-mermaid-${{ env.MDBOOK_MERMAID_VERSION }}
       - name: Install mdBook
         run: |
-          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
-          rustup update
-          cargo install --version ${MDBOOK_VERSION} mdbook --locked
-          cargo install --version ${MDBOOK_MERMAID_VERSION} mdbook-mermaid --locked
+          installed_version() {
+            "$1" --version | awk '{print $2}' | sed 's/^v//'
+          }
+
+          if ! command -v mdbook >/dev/null || [ "$(installed_version mdbook)" != "${MDBOOK_VERSION}" ]; then
+            cargo install --version ${MDBOOK_VERSION} mdbook --locked
+          fi
+          if ! command -v mdbook-mermaid >/dev/null || [ "$(installed_version mdbook-mermaid)" != "${MDBOOK_MERMAID_VERSION}" ]; then
+            cargo install --version ${MDBOOK_MERMAID_VERSION} mdbook-mermaid --locked
+          fi
       - name: Install mermaid assets
         run: mdbook-mermaid install .
       - name: Restore custom mermaid theme
@@ -55,6 +67,11 @@ jobs:
 
   deploy:
     name: Deploy
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
