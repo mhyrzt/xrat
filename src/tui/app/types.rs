@@ -4,7 +4,6 @@ use crate::tui::data::TuiData;
 pub enum TuiView {
     Configs,
     Sources,
-    Tests,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

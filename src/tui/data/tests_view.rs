@@ -12,18 +12,6 @@ pub struct TuiTestStatus {
     pub failed_results: usize,
     pub untested_configs: usize,
     pub stale_configs: usize,
-    pub recent_results: Vec<TuiTestResultRow>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct TuiTestResultRow {
-    pub id: i64,
-    pub config_id: i64,
-    pub status: String,
-    pub real_delay_ms: Option<i64>,
-    pub tcp_ms: Option<i64>,
-    pub failure_reason: Option<String>,
-    pub tested_at: String,
 }
 
 impl TuiTestStatus {
@@ -59,11 +47,6 @@ impl TuiTestStatus {
             .iter()
             .filter(|config| config.failure_reason.is_some())
             .count();
-        let recent_results = results
-            .into_iter()
-            .take(8)
-            .map(TuiTestResultRow::from)
-            .collect();
 
         Self {
             latest_run_id: run.as_ref().map(|run| run.id),
@@ -74,7 +57,6 @@ impl TuiTestStatus {
             failed_results,
             untested_configs,
             stale_configs,
-            recent_results,
         }
     }
 
@@ -85,26 +67,6 @@ impl TuiTestStatus {
                 self.total_results, self.success_results, self.failed_results
             ),
             None => "no test run yet".to_string(),
-        }
-    }
-}
-
-impl From<ConnectionTestRecord> for TuiTestResultRow {
-    fn from(value: ConnectionTestRecord) -> Self {
-        let status = if value.failure_reason.is_some() || value.failure_kind.is_some() {
-            "fail".to_string()
-        } else {
-            "ok".to_string()
-        };
-
-        Self {
-            id: value.id,
-            config_id: value.config_id,
-            status,
-            real_delay_ms: value.real_delay_ms,
-            tcp_ms: value.tcp_ms,
-            failure_reason: value.failure_reason.or(value.failure_kind),
-            tested_at: value.tested_at,
         }
     }
 }

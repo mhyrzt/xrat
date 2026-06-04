@@ -10,7 +10,6 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, active_view: TuiView) {
     let modes = [
         ("1", "Configs", TuiView::Configs),
         ("2", "Sources", TuiView::Sources),
-        ("3", "Tests", TuiView::Tests),
     ];
 
     let mut views = vec![Span::styled("view:", theme::muted_style()), Span::raw(" ")];

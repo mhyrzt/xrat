@@ -51,7 +51,7 @@ fn maps_view_switching_keys() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('3')),
+            key(KeyCode::Char('2')),
             TuiView::Configs,
             false,
             false,
@@ -59,7 +59,7 @@ fn maps_view_switching_keys() {
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Tests)
+        TuiAction::SwitchView(TuiView::Sources)
     );
 }
 
@@ -80,7 +80,7 @@ fn maps_tab_to_next_view() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Tab),
-            TuiView::Tests,
+            TuiView::Sources,
             false,
             false,
             false,

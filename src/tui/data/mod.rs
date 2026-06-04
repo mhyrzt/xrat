@@ -6,7 +6,7 @@ mod tests_view;
 pub use configs::TuiConfigRow;
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
-pub use tests_view::{TuiTestResultRow, TuiTestStatus};
+pub use tests_view::TuiTestStatus;
 
 use crate::app::runtime_service::RuntimeService;
 use crate::db::ConfigListFilter;

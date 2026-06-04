@@ -3,6 +3,7 @@ mod filter;
 mod log;
 mod runtime;
 mod table;
+mod testbar;
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -12,15 +13,20 @@ use crate::tui::app::TuiApp;
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let sections = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(6)])
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Min(6),
+        ])
         .split(area);
 
     filter::render(frame, sections[0], app);
+    testbar::render(frame, sections[1], app);
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(58), Constraint::Percentage(42)])
-        .split(sections[1]);
+        .split(sections[2]);
 
     let top = Layout::default()
         .direction(Direction::Horizontal)

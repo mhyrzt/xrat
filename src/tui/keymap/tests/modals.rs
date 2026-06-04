@@ -100,11 +100,11 @@ fn maps_search_editing_keys() {
 }
 
 #[test]
-fn maps_tests_view_actions() {
+fn maps_config_test_batch_actions() {
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('s')),
-            TuiView::Tests,
+            key(KeyCode::Char('t')),
+            TuiView::Configs,
             false,
             false,
             false,
@@ -115,8 +115,8 @@ fn maps_tests_view_actions() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('c')),
-            TuiView::Tests,
+            key(KeyCode::Char('C')),
+            TuiView::Configs,
             false,
             false,
             false,

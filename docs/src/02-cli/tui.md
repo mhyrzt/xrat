@@ -19,18 +19,19 @@ services as the CLI commands.
 
 | Key | View        | Purpose                                                                         |
 | --- | ----------- | ------------------------------------------------------------------------------- |
-| `1` | Configs     | Browse, filter, start, enable, disable, delete, and share configs               |
+| `1` | Configs     | Browse, filter, start, test, enable, disable, delete, and share configs         |
 | `2` | Sources     | Inspect subscription sources, refresh/import sources, and share source/API URLs |
-| `3` | Tests       | Start/cancel background test batches and inspect recent results                 |
 
 The TUI opens in the Configs view. The bottom bar shows view shortcuts, help and
-quit actions, active filters, task state, and the latest status message.
+quit actions, active filters, task state, and the latest status message. Test
+batches are started and monitored from the Configs view itself; there is no
+longer a separate Tests view.
 
 ## Global Keys
 
 | Key           | Action                                |
 | ------------- | ------------------------------------- |
-| `1`-`3`       | Switch primary view                   |
+| `1`-`2`       | Switch primary view                   |
 | `Tab`         | Cycle primary views                   |
 | `j`, `k`      | Move focus down/up                    |
 | arrow keys    | Move focus down/up                    |
@@ -61,6 +62,7 @@ It supports focused actions, test batches, and managed runtime controls.
 | `t`      | Start a test batch for the current Configs scope    |
 | `a`      | Test all enabled, non-deleted configs               |
 | `v`      | Test visible configs matching current filters       |
+| `C`      | Cancel the running test batch                       |
 | `K`      | Stop/disconnect the managed runtime                 |
 | `R`      | Restart the managed runtime                         |
 | `y`      | Show a QR code for the focused config URI           |
@@ -110,31 +112,26 @@ Source refresh and import run as background tasks. When they finish, the TUI
 reloads database-backed data so the Configs and Sources views reflect the new
 state.
 
-## Tests View
+## Testing Progress Strip
 
-The Tests view shows the latest test run summary, current test settings,
-progress, and recent results.
+The Configs view shows a full-width Testing Progress strip below the filter bar.
+Its left side summarizes the test scope and count, mode, concurrency, and the
+latest run id/time; its right side is a live progress gauge.
 
-| Key | Action                        |
-| --- | ----------------------------- |
-| `s` | Start a background test batch |
-| `c` | Cancel the running test batch |
+Test batches run TCP and real-delay tests with concurrency `4` and skip
+download, upload, and ICMP stages. Start a batch with `t` (current scope), `a`
+(all enabled), or `v` (visible), and cancel a running batch with `C`.
 
-The current implementation starts a batch for all enabled, non-deleted configs.
-It runs TCP and real-delay tests with concurrency `4` and skips download,
-upload, and ICMP stages. The scope, mode, and concurrency are displayed in the
-view, but there are not yet keybindings to change them interactively.
-
-While a batch is running, the progress bar updates without blocking navigation.
+While a batch is running, the gauge updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports
 cancelled once the shared test executor observes the cancellation request.
 
 ## Runtime, Failures, and Help
 
 The Configs view shows the merged runtime panel, which summarizes runtime,
-database, source, API, and config-count state alongside the active and selected
-configs. The adjacent Failures and Event Log panel lists per-config failures and
-recent TUI task messages.
+database, source, API, and config-count state alongside the active config. The
+adjacent Failures and Event Log panel lists per-config failures and recent TUI
+task messages.
 
 Press `?` from any view to open the help modal. Press `Esc` to close it.
 

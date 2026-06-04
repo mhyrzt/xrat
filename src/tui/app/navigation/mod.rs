@@ -11,7 +11,6 @@ impl TuiApp {
         match self.active_view {
             TuiView::Configs => self.move_config_focus(delta),
             TuiView::Sources => self.move_source_focus(delta),
-            TuiView::Tests => {}
         }
     }
 }

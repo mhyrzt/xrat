@@ -4,8 +4,7 @@ impl TuiView {
     pub fn next(self) -> Self {
         match self {
             Self::Configs => Self::Sources,
-            Self::Sources => Self::Tests,
-            Self::Tests => Self::Configs,
+            Self::Sources => Self::Configs,
         }
     }
 }

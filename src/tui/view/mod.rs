@@ -3,7 +3,6 @@ mod configs;
 mod modals;
 mod shared;
 mod sources;
-mod tests;
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -45,6 +44,5 @@ fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     match app.active_view {
         TuiView::Configs => configs::render(frame, area, app),
         TuiView::Sources => sources::render(frame, area, app),
-        TuiView::Tests => tests::render(frame, area, app),
     }
 }
