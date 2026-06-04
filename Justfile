@@ -27,7 +27,7 @@ install:
 reinstall:
     cargo install --path . --locked --force
 
-# Build from this checkout and install via install.sh (respects INSTALL_DIR, defaults to ~/.local/bin)
+# Build from this checkout and install via install.sh
 install-sh:
     BUILD_FROM_SOURCE=1 bash install.sh
 

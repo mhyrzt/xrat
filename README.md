@@ -5,7 +5,7 @@
 <h1 align="center">XRAT</h1>
 
 <p align="center">
-  <em>A modern proxy configuration manager for Xray-core and sing-box</em>
+  <em>A fast, polished CLI and TUI proxy manager for Xray-core and sing-box</em>
 </p>
 
 <p align="center">
@@ -16,8 +16,8 @@
   <a href="https://crates.io/crates/xrat"><img src="https://img.shields.io/crates/v/xrat" alt="crates.io"></a>
 </p>
 
-XRAT is a Rust CLI for importing, storing, testing, and running Xray-compatible
-proxy configurations.
+XRAT is a Rust CLI and TUI for importing, storing, testing, and running
+Xray-compatible proxy configurations.
 
 ## Installation
 

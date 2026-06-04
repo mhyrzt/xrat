@@ -2,7 +2,7 @@
 name = "xrat"
 version = "0.1.2"
 edition = "2024"
-description = "A modern proxy configuration manager for Xray-core and sing-box"
+description = "A fast, polished CLI and TUI proxy manager for Xray-core and sing-box"
 license = "MIT"
 repository = "https://github.com/mhyrzt/xrat"
 homepage = "https://mhyrzt.github.io/xrat/"
@@ -10,12 +10,7 @@ documentation = "https://mhyrzt.github.io/xrat/"
 readme = "README.md"
 keywords = ["xray", "sing-box", "ratatui", "tunnel", "cli"]
 categories = ["command-line-utilities", "network-programming"]
-exclude = [
-    "testdata/",
-    "docs/",
-    "media/",
-    "packaging/desktop/",
-]
+exclude = ["testdata/", "docs/", "media/", "packaging/desktop/"]
 
 [dependencies]
 async-trait = "0.1.89"
@@ -23,27 +18,27 @@ axum = "0.8.9"
 base64 = "0.22.1"
 clap = { version = "4.6.1", features = ["derive"] }
 clap_complete = "4"
-clap_mangen = "0.2"
+clap_mangen = "0.3.0"
 crossterm = "0.29.0"
 indicatif = "0.18.4"
 ratatui = "0.30.0"
-reqwest = { version = "0.13.3", default-features = false, features = [
+reqwest = { version = "0.13.4", default-features = false, features = [
     "blocking",
     "rustls",
     "socks",
 ] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 percent-encoding = "2.3.2"
 sqlx = { version = "0.8.6", features = [
     "sqlite",
     "postgres",
     "runtime-tokio-rustls",
 ] }
-tokio = { version = "1.52.1", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 url = "2.5.8"
 serde_path_to_error = "0.1.20"
-uuid = { version = "1.23.1", features = ["v4"] }
+uuid = { version = "1.23.2", features = ["v4"] }
 tempfile = "3.27.0"
 thiserror = "2.0.18"
 toml = "1.1.2"
