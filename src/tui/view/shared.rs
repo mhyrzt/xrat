@@ -1,15 +1,27 @@
-use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use crate::tui::theme;
 
-pub fn detail_line(label: &str, value: impl Into<String>) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(format!("{label}: "), theme::muted_style()),
-        Span::raw(value.into()),
-    ])
+pub fn push_detail<'a>(
+    lines: &mut Vec<Line<'a>>,
+    label: &str,
+    value: impl Into<String>,
+    label_width: usize,
+    content_width: usize,
+) {
+    let value = value.into();
+    let label_text = format!("{label}:");
+
+    if label_width + value.chars().count() <= content_width {
+        lines.push(Line::from(vec![
+            Span::styled(format!("{label_text:<label_width$}"), theme::muted_style()),
+            Span::raw(value),
+        ]));
+    } else {
+        lines.push(Line::from(Span::styled(label_text, theme::muted_style())));
+        lines.push(Line::from(Span::raw(format!("  {value}"))));
+    }
 }
 
 pub fn append_bottom_lines(
@@ -22,14 +34,4 @@ pub fn append_bottom_lines(
     let blank_lines = content_height.saturating_sub(lines.len() + bottom_lines.len());
     lines.extend(std::iter::repeat_with(Line::default).take(blank_lines));
     lines.extend(bottom_lines);
-}
-
-pub fn render_card(frame: &mut Frame<'_>, area: Rect, title: &'static str, value: &str) {
-    frame.render_widget(
-        Paragraph::new(value.to_string())
-            .block(Block::default().title(title).borders(Borders::ALL))
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: true }),
-        area,
-    );
 }

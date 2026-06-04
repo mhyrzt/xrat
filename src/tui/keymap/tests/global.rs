@@ -51,7 +51,7 @@ fn maps_view_switching_keys() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('4')),
+            key(KeyCode::Char('3')),
             TuiView::Configs,
             false,
             false,
@@ -59,7 +59,7 @@ fn maps_view_switching_keys() {
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Diagnostics)
+        TuiAction::SwitchView(TuiView::Tests)
     );
 }
 
@@ -80,7 +80,7 @@ fn maps_tab_to_next_view() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Tab),
-            TuiView::Diagnostics,
+            TuiView::Tests,
             false,
             false,
             false,
@@ -155,7 +155,7 @@ fn maps_navigation_and_help_keys() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('s')),
+            key(KeyCode::Char('S')),
             TuiView::Configs,
             false,
             false,
@@ -168,7 +168,7 @@ fn maps_navigation_and_help_keys() {
 }
 
 #[test]
-fn maps_enter_select_and_start_in_configs() {
+fn maps_enter_start_in_configs() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Enter),
@@ -179,7 +179,7 @@ fn maps_enter_select_and_start_in_configs() {
             false,
             false
         ),
-        TuiAction::SelectAndStartFocused
+        TuiAction::StartFocused
     );
 }
 
@@ -213,18 +213,6 @@ fn maps_config_test_scope_shortcuts() {
 
 #[test]
 fn maps_config_action_keys() {
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char(' ')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::SelectFocused
-    );
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('e')),
@@ -299,7 +287,7 @@ fn maps_config_action_keys() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('f')),
+            key(KeyCode::Char('T')),
             TuiView::Configs,
             false,
             false,
@@ -352,18 +340,6 @@ fn maps_qr_and_copy_keys() {
             false
         ),
         TuiAction::CopyFocused
-    );
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('C')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::CopySelected
     );
 }
 

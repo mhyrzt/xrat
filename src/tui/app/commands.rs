@@ -20,12 +20,6 @@ impl TuiApp {
 
         let config = self.focused_config()?;
         match action {
-            TuiAction::SelectFocused if !config.is_deleted => {
-                Some(TuiConfigCommand::Select(config.id))
-            }
-            TuiAction::SelectAndStartFocused if !config.is_deleted => {
-                Some(TuiConfigCommand::Select(config.id))
-            }
             TuiAction::EnableFocused if !config.is_deleted => {
                 Some(TuiConfigCommand::Enable(config.id))
             }
@@ -45,13 +39,6 @@ impl TuiApp {
                 .focused_config()
                 .map(|row| row.id)
                 .into_iter()
-                .collect(),
-            super::TestScope::Selected => self
-                .data
-                .configs
-                .iter()
-                .filter(|config| config.is_selected && config.is_enabled && !config.is_deleted)
-                .map(|config| config.id)
                 .collect(),
             super::TestScope::Filtered => self
                 .visible_configs()

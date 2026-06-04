@@ -6,7 +6,9 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
-use crate::tui::view::shared::{append_bottom_lines, detail_line};
+use crate::tui::view::shared::{append_bottom_lines, push_detail};
+
+const LABEL_WIDTH: usize = 13;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let rt = &app.data.runtime;
@@ -18,8 +20,9 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     };
 
     let active = rt.active_config.as_deref().unwrap_or("-");
-    let selected = rt.selected_config.as_deref().unwrap_or("-");
     let task = app.task_state.label();
+    let data = &app.data;
+    let content_width = area.width.saturating_sub(2) as usize;
 
     let mut lines = vec![
         Line::styled(
@@ -27,14 +30,58 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
         Line::raw(""),
-        detail_line("Active", active),
-        detail_line("Selected", selected),
-        detail_line("Task", &task),
-        detail_line("Proxy", &proxy),
     ];
+    push_detail(&mut lines, "Active", active, LABEL_WIDTH, content_width);
+    push_detail(&mut lines, "Task", &task, LABEL_WIDTH, content_width);
+    push_detail(&mut lines, "Proxy", &proxy, LABEL_WIDTH, content_width);
+    push_detail(
+        &mut lines,
+        "Configs",
+        format!(
+            "{} total  {} enabled  {} deleted  {} failed",
+            data.total_configs, data.enabled_configs, data.deleted_configs, data.failed_configs,
+        ),
+        LABEL_WIDTH,
+        content_width,
+    );
+    push_detail(
+        &mut lines,
+        "Sources",
+        data.sources.len().to_string(),
+        LABEL_WIDTH,
+        content_width,
+    );
+    push_detail(
+        &mut lines,
+        "Database",
+        data.db_label.as_str(),
+        LABEL_WIDTH,
+        content_width,
+    );
+    push_detail(
+        &mut lines,
+        "Config file",
+        data.config_path.as_str(),
+        LABEL_WIDTH,
+        content_width,
+    );
+    push_detail(
+        &mut lines,
+        "API sub URL",
+        data.api_b64_url.as_str(),
+        LABEL_WIDTH,
+        content_width,
+    );
+    push_detail(
+        &mut lines,
+        "Log entries",
+        app.event_log.len().to_string(),
+        LABEL_WIDTH,
+        content_width,
+    );
 
     if let Some(reason) = rt.failure_reason.as_deref() {
-        lines.push(detail_line("Failure", reason));
+        push_detail(&mut lines, "Failure", reason, LABEL_WIDTH, content_width);
     }
 
     append_bottom_lines(

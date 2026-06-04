@@ -23,8 +23,6 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             theme::accent_style().add_modifier(Modifier::BOLD)
         } else if config.is_active {
             theme::success_style().add_modifier(Modifier::BOLD)
-        } else if config.is_selected {
-            theme::accent_style()
         } else if !config.is_enabled || config.is_deleted {
             theme::muted_style()
         } else if config.failure_reason.is_some() {
@@ -93,8 +91,6 @@ fn truncate_name(name: &str) -> String {
 fn state_marker(config: &crate::tui::data::TuiConfigRow) -> &'static str {
     if config.is_active {
         "●"
-    } else if config.is_selected {
-        "✓"
     } else if config.is_deleted {
         "✕"
     } else if !config.is_enabled {

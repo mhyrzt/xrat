@@ -19,7 +19,6 @@ pub struct TuiData {
     pub tests: TuiTestStatus,
     pub total_configs: usize,
     pub enabled_configs: usize,
-    pub selected_configs: usize,
     pub deleted_configs: usize,
     pub failed_configs: usize,
     pub db_label: String,
@@ -91,7 +90,6 @@ impl TuiData {
     ) -> Self {
         let total_configs = configs.len();
         let enabled_configs = configs.iter().filter(|row| row.is_enabled).count();
-        let selected_configs = configs.iter().filter(|row| row.is_selected).count();
         let deleted_configs = configs.iter().filter(|row| row.is_deleted).count();
         let failed_configs = configs
             .iter()
@@ -105,7 +103,6 @@ impl TuiData {
             tests,
             total_configs,
             enabled_configs,
-            selected_configs,
             deleted_configs,
             failed_configs,
             db_label: String::new(),

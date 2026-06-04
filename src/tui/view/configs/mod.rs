@@ -1,5 +1,6 @@
 mod detail;
 mod filter;
+mod log;
 mod runtime;
 mod table;
 
@@ -16,18 +17,24 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     filter::render(frame, sections[0], app);
 
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(58), Constraint::Percentage(42)])
         .split(sections[1]);
 
-    table::render(frame, columns[0], app);
+    let top = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .split(rows[0]);
 
-    let right = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-        .split(columns[1]);
+    table::render(frame, top[0], app);
+    detail::render(frame, top[1], app);
 
-    detail::render(frame, right[0], app);
-    runtime::render(frame, right[1], app);
+    let bottom = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .split(rows[1]);
+
+    log::render(frame, bottom[0], app);
+    runtime::render(frame, bottom[1], app);
 }

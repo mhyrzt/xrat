@@ -1,6 +1,5 @@
 mod chrome;
 mod configs;
-mod diagnostics;
 mod modals;
 mod shared;
 mod sources;
@@ -22,7 +21,7 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     chrome::render_key_bar(frame, shell[1], app.active_view);
 
     if app.show_help {
-        modals::render_help(frame, modals::centered_rect(82, 42, area));
+        modals::render_help(frame, modals::centered_rect(88, 64, area));
     }
 
     if app.confirm.is_some() {
@@ -47,6 +46,5 @@ fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         TuiView::Configs => configs::render(frame, area, app),
         TuiView::Sources => sources::render(frame, area, app),
         TuiView::Tests => tests::render(frame, area, app),
-        TuiView::Diagnostics => diagnostics::render(frame, area, app),
     }
 }

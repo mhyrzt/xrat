@@ -14,64 +14,92 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
 
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+        ])
         .split(inner);
 
-    let left = vec![
+    let column_one = vec![
         Line::styled("Navigation", theme::muted_style()),
-        help_line("1/2/3/4", "configs / sources / tests / diagnostics"),
-        help_line("Tab", "cycle modes"),
-        help_line("j/k, ↑/↓", "move focus"),
-        help_line("Esc", "close modal or go back"),
-        help_line("q, Ctrl+C", "quit"),
+        help_line("1", "Configs view"),
+        help_line("2", "Sources view"),
+        help_line("3", "Tests view"),
+        help_line("Tab", "Cycle views"),
+        help_line("j/k ↑/↓", "Move focus"),
+        help_line("Esc", "Close modal / back"),
+        help_line("q, Ctrl+C", "Quit"),
         Line::raw(""),
-        Line::styled("Configs", theme::muted_style()),
-        help_line("Enter", "select and start focused config"),
-        help_line("Space", "select focused config"),
-        help_line("e/x", "enable / disable focused"),
-        help_line("E/X", "enable / disable selected"),
-        help_line("d/D/r", "soft delete / purge / restore"),
-        help_line("y/c/C", "QR / copy focused / copy selected"),
+        Line::styled("Search and Filters", theme::muted_style()),
+        help_line("/", "Search configs"),
+        help_line("Ctrl+U", "Clear search"),
+        help_line("T", "Toggle deleted"),
+        help_line("F", "Cycle filter"),
+        help_line("P", "Cycle protocol"),
+        help_line("S", "Cycle sort"),
     ];
 
-    let right = vec![
-        Line::styled("Search and Filters", theme::muted_style()),
-        help_line("/", "edit config search"),
-        help_line("Ctrl+U", "clear search while editing"),
-        help_line("f/F/P/s", "deleted / filter / protocol / sort"),
-        Line::raw(""),
-        Line::styled("Tests", theme::muted_style()),
-        help_line("t", "test current scope from Configs"),
-        help_line("a/v", "test all enabled / visible filtered"),
-        help_line("s/c", "start / cancel batch in Tests"),
+    let column_two = vec![
+        Line::styled("Configs", theme::muted_style()),
+        help_line("Enter", "Start focused"),
+        help_line("e", "Enable focused"),
+        help_line("x", "Disable focused"),
+        help_line("d", "Soft delete"),
+        help_line("D", "Purge (hard)"),
+        help_line("r", "Restore"),
+        help_line("y", "Show QR"),
+        help_line("c", "Copy link"),
         Line::raw(""),
         Line::styled("Runtime", theme::muted_style()),
-        help_line("K/R", "kill / restart"),
+        help_line("K", "Kill runtime"),
+        help_line("R", "Restart runtime"),
+    ];
+
+    let column_three = vec![
+        Line::styled("Tests", theme::muted_style()),
+        help_line("t", "Test current scope"),
+        help_line("a", "Test all enabled"),
+        help_line("v", "Test visible"),
+        help_line("s", "Start batch"),
+        help_line("c", "Cancel batch"),
         Line::raw(""),
         Line::styled("Sources", theme::muted_style()),
-        help_line("r/R", "refresh focused / refresh all"),
-        help_line("i/n/d", "import / rename / delete"),
-        help_line("y/c/u/U", "QR / copy / QR API / copy API"),
+        help_line("r", "Refresh focused"),
+        help_line("R", "Refresh all"),
+        help_line("i", "Import source"),
+        help_line("n", "Rename source"),
+        help_line("d", "Delete source"),
+        help_line("y", "Show QR"),
+        help_line("c", "Copy link"),
+        help_line("u", "Show API QR"),
+        help_line("U", "Copy API link"),
     ];
 
     frame.render_widget(
-        Paragraph::new(left)
+        Paragraph::new(column_one)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
         columns[0],
     );
     frame.render_widget(
-        Paragraph::new(right)
+        Paragraph::new(column_two)
             .alignment(Alignment::Left)
             .style(theme::chrome_style()),
         columns[1],
+    );
+    frame.render_widget(
+        Paragraph::new(column_three)
+            .alignment(Alignment::Left)
+            .style(theme::chrome_style()),
+        columns[2],
     );
 }
 
 fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
     Line::from(vec![
         Span::raw("  "),
-        Span::styled(format!("{key:<12}"), theme::accent_style().bold()),
+        Span::styled(format!("{key:<10}"), theme::accent_style().bold()),
         Span::raw(description),
     ])
 }

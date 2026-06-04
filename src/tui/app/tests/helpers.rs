@@ -17,7 +17,6 @@ pub(crate) fn row(id: i64) -> TuiConfigRow {
         imported_at: "2026-01-01T00:00:00Z".to_string(),
         is_active: false,
         is_enabled: true,
-        is_selected: false,
         is_deleted: false,
     }
 }

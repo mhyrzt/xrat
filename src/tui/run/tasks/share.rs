@@ -27,26 +27,6 @@ pub async fn copy_config_uri(context: &AppContext, app: &mut TuiApp, config_id: 
     }
 }
 
-pub async fn copy_selected_uris(context: &AppContext, app: &mut TuiApp, ids: Vec<i64>) {
-    let mut uris: Vec<String> = Vec::new();
-    for id in &ids {
-        match context.db.get_config_by_id(*id).await {
-            Ok(Some(record)) => uris.push(record.raw_config),
-            Ok(None) => {}
-            Err(err) => {
-                app.set_status(format!("failed to load config {id}: {err}"));
-                return;
-            }
-        }
-    }
-    if uris.is_empty() {
-        app.set_status("no URIs found for selected configs".to_string());
-        return;
-    }
-    let text = uris.join("\n");
-    set_clipboard(app, text);
-}
-
 pub fn open_qr_for_source(app: &mut TuiApp, source_name: String, source_url: String) {
     app.qr_modal = Some(QrModalState::new(source_name, source_url));
     app.needs_full_clear = true;

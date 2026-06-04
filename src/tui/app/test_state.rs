@@ -14,7 +14,6 @@ impl TestScope {
     pub fn label(self) -> &'static str {
         match self {
             Self::Focused => "focused",
-            Self::Selected => "selected",
             Self::Filtered => "filtered",
             Self::AllEnabled => "all enabled",
             Self::Failed => "failed",

@@ -8,10 +8,6 @@ fn maps_focused_config_actions_to_commands() {
     let app = TuiApp::with_data(data);
 
     assert_eq!(
-        app.config_command_for_action(TuiAction::SelectFocused),
-        Some(TuiConfigCommand::Select(1))
-    );
-    assert_eq!(
         app.config_command_for_action(TuiAction::EnableFocused),
         Some(TuiConfigCommand::Enable(1))
     );
@@ -62,17 +58,12 @@ fn restore_command_only_applies_to_deleted_configs() {
 fn counts_current_test_scope() {
     use crate::tui::app::TestScope;
 
-    let mut selected = row(2);
-    selected.is_selected = true;
     let mut failed = row(3);
     failed.failure_reason = Some("timeout".to_string());
-    let data = TuiData::from_configs(vec![row(1), selected, failed]);
+    let data = TuiData::from_configs(vec![row(1), row(2), failed]);
     let mut app = TuiApp::with_data(data);
 
     assert_eq!(app.test_scope_count(), 3);
-
-    app.test_state.scope = TestScope::Selected;
-    assert_eq!(app.test_scope_count(), 1);
 
     app.test_state.scope = TestScope::Failed;
     assert_eq!(app.test_scope_count(), 1);
@@ -82,17 +73,12 @@ fn counts_current_test_scope() {
 fn collects_config_ids_for_current_test_scope() {
     use crate::tui::app::TestScope;
 
-    let mut selected = row(2);
-    selected.is_selected = true;
     let mut failed = row(3);
     failed.failure_reason = Some("timeout".to_string());
-    let data = TuiData::from_configs(vec![row(1), selected, failed]);
+    let data = TuiData::from_configs(vec![row(1), row(2), failed]);
     let mut app = TuiApp::with_data(data);
 
     assert_eq!(app.test_config_ids(), vec![1, 2, 3]);
-
-    app.test_state.scope = TestScope::Selected;
-    assert_eq!(app.test_config_ids(), vec![2]);
 
     app.test_state.scope = TestScope::Failed;
     assert_eq!(app.test_config_ids(), vec![3]);
@@ -147,26 +133,4 @@ fn focused_source_returns_current_source() {
 
     app.apply(TuiAction::MoveDown);
     assert_eq!(app.focused_source().map(|s| s.id), Some(2));
-}
-
-#[test]
-fn selected_configs_scope_for_copy() {
-    let mut sel_a = row(1);
-    sel_a.is_selected = true;
-    let mut sel_b = row(2);
-    sel_b.is_selected = true;
-    let unsel = row(3);
-
-    let data = TuiData::from_configs(vec![sel_a, sel_b, unsel]);
-    let app = TuiApp::with_data(data);
-
-    let selected_ids: Vec<i64> = app
-        .data
-        .configs
-        .iter()
-        .filter(|c| c.is_selected)
-        .map(|c| c.id)
-        .collect();
-    assert_eq!(selected_ids, vec![1, 2]);
-    assert!(!selected_ids.contains(&3));
 }

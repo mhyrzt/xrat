@@ -48,12 +48,6 @@ impl TuiApp {
     pub fn test_scope_count(&self) -> usize {
         match self.test_state.scope {
             TestScope::Focused => usize::from(self.focused_config().is_some()),
-            TestScope::Selected => self
-                .data
-                .configs
-                .iter()
-                .filter(|config| config.is_selected && config.is_enabled && !config.is_deleted)
-                .count(),
             TestScope::Filtered => self
                 .visible_configs()
                 .into_iter()

@@ -84,7 +84,6 @@ fn test_args_for_app(app: &TuiApp) -> crate::cli::TestArgs {
         id: None,
         enabled_only: false,
         active_only: false,
-        selected_only: false,
         subscription: None,
         skip_icmp: true,
         skip_tcp,

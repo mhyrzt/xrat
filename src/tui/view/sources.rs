@@ -7,7 +7,7 @@ use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use crate::tui::app::TuiApp;
 use crate::tui::data::TuiSourceRow;
 use crate::tui::theme;
-use crate::tui::view::shared::detail_line;
+use crate::tui::view::shared::push_detail;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let columns = Layout::default()
@@ -67,6 +67,8 @@ fn render_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     frame.render_widget(table, area);
 }
 
+const LABEL_WIDTH: usize = 9;
+
 fn render_detail(
     frame: &mut Frame<'_>,
     area: Rect,
@@ -74,6 +76,7 @@ fn render_detail(
     api_url: &str,
     server_enabled: bool,
 ) {
+    let content_width = area.width.saturating_sub(2) as usize;
     let lines = match source {
         Some(source) => {
             let mut lines = vec![
@@ -82,16 +85,42 @@ fn render_detail(
                     theme::accent_style().add_modifier(Modifier::BOLD),
                 ),
                 Line::raw(""),
-                detail_line("Kind", &source.kind),
-                detail_line("Value", source.value_label()),
-                detail_line("Configs", source.config_count.to_string()),
-                detail_line("Created", &source.created_at),
-                detail_line("Updated", &source.updated_at),
-                Line::raw(""),
-                Line::styled("Actions", theme::muted_style()),
-                Line::raw("r refresh  R refresh all  i import  n rename  d delete"),
-                Line::raw("y QR  c copy URL"),
             ];
+            push_detail(&mut lines, "Kind", &source.kind, LABEL_WIDTH, content_width);
+            push_detail(
+                &mut lines,
+                "Value",
+                source.value_label(),
+                LABEL_WIDTH,
+                content_width,
+            );
+            push_detail(
+                &mut lines,
+                "Configs",
+                source.config_count.to_string(),
+                LABEL_WIDTH,
+                content_width,
+            );
+            push_detail(
+                &mut lines,
+                "Created",
+                &source.created_at,
+                LABEL_WIDTH,
+                content_width,
+            );
+            push_detail(
+                &mut lines,
+                "Updated",
+                &source.updated_at,
+                LABEL_WIDTH,
+                content_width,
+            );
+            lines.push(Line::raw(""));
+            lines.push(Line::styled("Actions", theme::muted_style()));
+            lines.push(Line::raw(
+                "r refresh  R refresh all  i import  n rename  d delete",
+            ));
+            lines.push(Line::raw("y QR  c copy URL"));
             if server_enabled {
                 lines.push(Line::raw(""));
                 lines.push(Line::styled("API subscription URL", theme::muted_style()));

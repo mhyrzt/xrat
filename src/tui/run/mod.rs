@@ -68,35 +68,13 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             None
                         };
                     let direct_command = app.config_command_for_action(action);
-                    let select_and_start_id =
-                        if matches!(action, crate::tui::app::TuiAction::SelectAndStartFocused) {
+                    let start_focused_id =
+                        if matches!(action, crate::tui::app::TuiAction::StartFocused) {
                             app.focused_config()
                                 .filter(|config| !config.is_deleted)
                                 .map(|config| config.id)
                         } else {
                             None
-                        };
-                    let bulk_enable_ids: Vec<i64> =
-                        if matches!(action, crate::tui::app::TuiAction::EnableSelected) {
-                            app.data
-                                .configs
-                                .iter()
-                                .filter(|c| c.is_selected && !c.is_deleted)
-                                .map(|c| c.id)
-                                .collect()
-                        } else {
-                            Vec::new()
-                        };
-                    let bulk_disable_ids: Vec<i64> =
-                        if matches!(action, crate::tui::app::TuiAction::DisableSelected) {
-                            app.data
-                                .configs
-                                .iter()
-                                .filter(|c| c.is_selected && !c.is_deleted)
-                                .map(|c| c.id)
-                                .collect()
-                        } else {
-                            Vec::new()
                         };
                     let is_sources_view = app.active_view == crate::tui::app::TuiView::Sources;
                     let qr_config_id =
@@ -134,17 +112,6 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                                 .map(|s| s.value.clone())
                         } else {
                             None
-                        };
-                    let copy_selected_ids: Vec<i64> =
-                        if matches!(action, crate::tui::app::TuiAction::CopySelected) {
-                            app.data
-                                .configs
-                                .iter()
-                                .filter(|c| c.is_selected)
-                                .map(|c| c.id)
-                                .collect()
-                        } else {
-                            Vec::new()
                         };
                     let import_input = if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
                     {
@@ -273,21 +240,10 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     if matches!(action, crate::tui::app::TuiAction::CopyApiUrl) {
                         tasks::copy_api_url(&mut app);
                     }
-                    if !copy_selected_ids.is_empty() {
-                        tasks::copy_selected_uris(context, &mut app, copy_selected_ids).await;
-                    }
-                    if !bulk_enable_ids.is_empty() {
-                        tasks::run_bulk_enable_disable(context, &mut app, bulk_enable_ids, true)
-                            .await;
-                    }
-                    if !bulk_disable_ids.is_empty() {
-                        tasks::run_bulk_enable_disable(context, &mut app, bulk_disable_ids, false)
-                            .await;
-                    }
                     if let Some(command) = confirmed_command.or(direct_command) {
                         tasks::run_config_command(context, &mut app, command).await;
                     }
-                    if let Some(config_id) = select_and_start_id {
+                    if let Some(config_id) = start_focused_id {
                         tasks::spawn_runtime_start_config(
                             context.clone(),
                             &mut app,

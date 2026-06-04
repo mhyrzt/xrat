@@ -44,7 +44,6 @@ impl TuiApp {
             | TuiAction::RefreshAllSources
             | TuiAction::OpenQrFocused
             | TuiAction::CopyFocused
-            | TuiAction::CopySelected
             | TuiAction::OpenQrApiUrl
             | TuiAction::CopyApiUrl
             | TuiAction::OpenRenameModal
@@ -99,12 +98,9 @@ impl TuiApp {
                 self.status_message = "cancelled".to_string();
                 self.needs_full_clear = true;
             }
-            TuiAction::SelectFocused
-            | TuiAction::SelectAndStartFocused
+            TuiAction::StartFocused
             | TuiAction::EnableFocused
             | TuiAction::DisableFocused
-            | TuiAction::EnableSelected
-            | TuiAction::DisableSelected
             | TuiAction::RestoreFocused => {}
             TuiAction::SwitchView(view) => self.switch_view(view),
             TuiAction::None => {}

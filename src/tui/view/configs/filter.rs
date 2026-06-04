@@ -42,12 +42,21 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Span::raw("   "),
         Span::styled("Visible: ", theme::muted_style()),
         Span::raw(app.visible_configs().len().to_string()),
-        Span::raw("   [/]search  [f]deleted  [F]ilter  [P]roto  [s]ort"),
     ]);
 
-    frame.render_widget(
-        Paragraph::new(Line::from(spans))
-            .block(Block::default().title(" Filter ").borders(Borders::ALL)),
-        area,
+    let actions = Span::styled(
+        "[/]search  [T]rash  [F]ilter  [P]roto  [S]ort",
+        theme::chrome_style(),
     );
+
+    let block = Block::default().title(" Filter ").borders(Borders::ALL);
+    let inner_width = block.inner(area).width as usize;
+    let stats_width: usize = spans.iter().map(Span::width).sum();
+    let gap = inner_width
+        .saturating_sub(stats_width + actions.width())
+        .max(3);
+    spans.push(Span::raw(" ".repeat(gap)));
+    spans.push(actions);
+
+    frame.render_widget(Paragraph::new(Line::from(spans)).block(block), area);
 }

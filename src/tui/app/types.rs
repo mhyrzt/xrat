@@ -5,7 +5,6 @@ pub enum TuiView {
     Configs,
     Sources,
     Tests,
-    Diagnostics,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,12 +23,9 @@ pub enum TuiAction {
     CycleFilter,
     CycleProtocolFilter,
     ToggleDeletedFilter,
-    SelectFocused,
-    SelectAndStartFocused,
+    StartFocused,
     EnableFocused,
     DisableFocused,
-    EnableSelected,
-    DisableSelected,
     RestoreFocused,
     RequestDeleteFocused,
     RequestPurgeFocused,
@@ -46,7 +42,6 @@ pub enum TuiAction {
     RequestDeleteSource,
     OpenQrFocused,
     CopyFocused,
-    CopySelected,
     OpenQrApiUrl,
     CopyApiUrl,
     ImportInput(char),
@@ -63,7 +58,6 @@ pub enum TuiAction {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiConfigCommand {
-    Select(i64),
     Enable(i64),
     Disable(i64),
     Restore(i64),
@@ -161,7 +155,6 @@ pub struct TestViewState {
 #[allow(dead_code)]
 pub enum TestScope {
     Focused,
-    Selected,
     Filtered,
     #[default]
     AllEnabled,

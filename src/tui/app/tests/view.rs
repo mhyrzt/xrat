@@ -4,9 +4,9 @@ use crate::tui::app::{TuiAction, TuiApp, TuiView};
 fn switches_active_view() {
     let mut app = TuiApp::default();
 
-    app.apply(TuiAction::SwitchView(TuiView::Diagnostics));
+    app.apply(TuiAction::SwitchView(TuiView::Tests));
 
-    assert_eq!(app.active_view, TuiView::Diagnostics);
+    assert_eq!(app.active_view, TuiView::Tests);
     assert_eq!(app.status_message, "");
 }
 

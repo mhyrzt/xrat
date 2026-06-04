@@ -17,7 +17,6 @@ pub struct TuiConfigRow {
     pub imported_at: String,
     pub is_active: bool,
     pub is_enabled: bool,
-    pub is_selected: bool,
     pub is_deleted: bool,
 }
 
@@ -82,7 +81,6 @@ impl From<ConfigWithLatestTest> for TuiConfigRow {
             imported_at: config.imported_at,
             is_active: config.is_active,
             is_enabled: config.is_enabled,
-            is_selected: config.is_selected,
             is_deleted: config.is_deleted,
         }
     }

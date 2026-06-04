@@ -119,15 +119,10 @@ pub fn spawn_runtime_restart(
     app: &mut TuiApp,
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
 ) {
-    let config_id = match app
-        .data
-        .runtime
-        .active_config_id
-        .or(app.data.runtime.selected_config_id)
-    {
+    let config_id = match app.data.runtime.active_config_id {
         Some(id) => id,
         None => {
-            app.set_status("no active or selected config to restart with");
+            app.set_status("no active config to restart with");
             return;
         }
     };
