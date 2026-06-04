@@ -44,12 +44,12 @@ These flags apply to every command:
 
 These words appear across the CLI, TUI, API, and database:
 
-| Term       | Meaning                                                                  |
-| ---------- | ------------------------------------------------------------------------ |
-| `enabled`  | Included in bulk tests and rotation candidate sets                       |
-| `disabled` | Stored but normally skipped by filtered workflows                        |
-| `active`   | Config attached to the current managed runtime session                   |
-| `deleted`  | Soft-deleted row hidden from normal lists unless requested               |
+| Term       | Meaning                                                    |
+| ---------- | ---------------------------------------------------------- |
+| `enabled`  | Included in bulk tests and rotation candidate sets         |
+| `disabled` | Stored but normally skipped by filtered workflows          |
+| `active`   | Config attached to the current managed runtime session     |
+| `deleted`  | Soft-deleted row hidden from normal lists unless requested |
 
 Use [`connect`](runtime.md#connect) to make a config active by starting a
 runtime session.

@@ -218,13 +218,13 @@ Paginated config list with details.
 
 **Query Parameters**:
 
-| Parameter  | Type    | Description                              | Default |
-| ---------- | ------- | ---------------------------------------- | ------- |
-| `key`      | string  | API key (if authentication enabled)      | -       |
-| `page`     | integer | Page number                              | `1`     |
-| `per_page` | integer | Items per page                           | `20`    |
-| `enabled`  | boolean | Filter: `true` for enabled configs only  | -       |
-| `protocol` | string  | Filter by protocol                       | -       |
+| Parameter  | Type    | Description                             | Default |
+| ---------- | ------- | --------------------------------------- | ------- |
+| `key`      | string  | API key (if authentication enabled)     | -       |
+| `page`     | integer | Page number                             | `1`     |
+| `per_page` | integer | Items per page                          | `20`    |
+| `enabled`  | boolean | Filter: `true` for enabled configs only | -       |
+| `protocol` | string  | Filter by protocol                      | -       |
 
 **Request**:
 

@@ -105,13 +105,13 @@ WantedBy=default.target
 
 #### `/configs`
 
-| Parameter  | Description                              |
-| ---------- | ---------------------------------------- |
-| `key`      | API key (if authentication is enabled)   |
-| `page`     | Page number (default: `1`)               |
-| `per_page` | Items per page (default: `20`)           |
-| `enabled`  | Filter: `true` for enabled configs only  |
-| `protocol` | Filter by protocol                       |
+| Parameter  | Description                             |
+| ---------- | --------------------------------------- |
+| `key`      | API key (if authentication is enabled)  |
+| `page`     | Page number (default: `1`)              |
+| `per_page` | Items per page (default: `20`)          |
+| `enabled`  | Filter: `true` for enabled configs only |
+| `protocol` | Filter by protocol                      |
 
 #### `/configs/{id}`
 
