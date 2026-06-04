@@ -37,6 +37,13 @@ impl Database {
         repository::list_subscriptions(&self.pool).await
     }
 
+    pub async fn get_subscription_by_id(
+        &self,
+        id: i64,
+    ) -> crate::db::Result<Option<SubscriptionRecord>> {
+        repository::get_subscription_by_id(&self.pool, id).await
+    }
+
     pub async fn set_subscription_name(&self, id: i64, name: &str) -> crate::db::Result<()> {
         repository::set_subscription_name(&self.pool, id, name).await
     }

@@ -29,5 +29,21 @@ async fn imports_nodes_and_creates_subscription() {
     assert_eq!(subscriptions[0].source_kind, "url");
     assert_eq!(subscriptions[0].config_count, 1);
 
+    let id = subscriptions[0].id;
+    let fetched = db
+        .get_subscription_by_id(id)
+        .await
+        .expect("query should succeed")
+        .expect("subscription should exist");
+    assert_eq!(fetched.id, id);
+    assert_eq!(fetched.config_count, 1);
+    assert_eq!(fetched.name.as_deref(), Some("Example"));
+    assert!(
+        db.get_subscription_by_id(9999)
+            .await
+            .expect("query should succeed")
+            .is_none()
+    );
+
     let _ = std::fs::remove_file(db_path);
 }

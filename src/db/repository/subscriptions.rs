@@ -41,26 +41,56 @@ where
 }
 
 pub async fn delete_with_configs(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    const SQLITE_CONFIG_IDS: &str = "SELECT id FROM configs WHERE subscription_id = ?1";
+    const POSTGRES_CONFIG_IDS: &str = "SELECT id FROM configs WHERE subscription_id = $1";
     match pool {
         DbPool::Sqlite(pool) => {
-            sqlx::query("DELETE FROM configs WHERE subscription_id = ?")
+            let mut tx = pool.begin().await?;
+            sqlx::query(&format!(
+                "DELETE FROM connection_tests WHERE config_id IN ({SQLITE_CONFIG_IDS})"
+            ))
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query(&format!(
+                "DELETE FROM runtime_sessions WHERE config_id IN ({SQLITE_CONFIG_IDS})"
+            ))
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query("DELETE FROM configs WHERE subscription_id = ?1")
                 .bind(id)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
-            sqlx::query("DELETE FROM subscriptions WHERE id = ?")
+            sqlx::query("DELETE FROM subscriptions WHERE id = ?1")
                 .bind(id)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
+            tx.commit().await?;
         }
         DbPool::Postgres(pool) => {
+            let mut tx = pool.begin().await?;
+            sqlx::query(&format!(
+                "DELETE FROM connection_tests WHERE config_id IN ({POSTGRES_CONFIG_IDS})"
+            ))
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query(&format!(
+                "DELETE FROM runtime_sessions WHERE config_id IN ({POSTGRES_CONFIG_IDS})"
+            ))
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
             sqlx::query("DELETE FROM configs WHERE subscription_id = $1")
                 .bind(id)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
             sqlx::query("DELETE FROM subscriptions WHERE id = $1")
                 .bind(id)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
+            tx.commit().await?;
         }
     }
     Ok(())
@@ -129,6 +159,62 @@ pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
         )
         .fetch_one(pool)
         .await?),
+    }
+}
+
+pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<SubscriptionRecord>> {
+    const SQLITE_SQL: &str = r#"
+        SELECT
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at,
+            COUNT(configs.id) AS config_count
+        FROM subscriptions
+        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        WHERE subscriptions.id = ?1
+        GROUP BY
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at
+        "#;
+    const POSTGRES_SQL: &str = r#"
+        SELECT
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at,
+            COUNT(configs.id) AS config_count
+        FROM subscriptions
+        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        WHERE subscriptions.id = $1
+        GROUP BY
+            subscriptions.id,
+            subscriptions.source_kind,
+            subscriptions.source_url,
+            subscriptions.name,
+            subscriptions.created_at,
+            subscriptions.updated_at
+        "#;
+
+    match pool {
+        DbPool::Sqlite(pool) => Ok(sqlx::query(SQLITE_SQL)
+            .bind(id)
+            .fetch_optional(pool)
+            .await?
+            .map(map_subscription_row)),
+        DbPool::Postgres(pool) => Ok(sqlx::query(POSTGRES_SQL)
+            .bind(id)
+            .fetch_optional(pool)
+            .await?
+            .map(map_subscription_row)),
     }
 }
 

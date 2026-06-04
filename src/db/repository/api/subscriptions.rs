@@ -10,6 +10,13 @@ pub async fn list_subscriptions(pool: &DbPool) -> crate::db::Result<Vec<Subscrip
     subscriptions::list(pool).await
 }
 
+pub async fn get_subscription_by_id(
+    pool: &DbPool,
+    id: i64,
+) -> crate::db::Result<Option<SubscriptionRecord>> {
+    subscriptions::get_by_id(pool, id).await
+}
+
 pub async fn set_subscription_name(pool: &DbPool, id: i64, name: &str) -> crate::db::Result<()> {
     subscriptions::set_name(pool, id, name).await
 }

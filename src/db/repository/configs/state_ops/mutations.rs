@@ -73,13 +73,84 @@ pub async fn restore(pool: &DbPool, id: i64) -> crate::db::Result<()> {
 }
 
 pub async fn hard_delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
-    execute_id(
-        pool,
-        "DELETE FROM configs WHERE id = ?1",
-        "DELETE FROM configs WHERE id = $1",
-        id,
-    )
-    .await
+    match pool {
+        DbPool::Sqlite(pool) => {
+            let mut tx = pool.begin().await?;
+            sqlx::query("DELETE FROM connection_tests WHERE config_id = ?1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("DELETE FROM runtime_sessions WHERE config_id = ?1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("DELETE FROM configs WHERE id = ?1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+        }
+        DbPool::Postgres(pool) => {
+            let mut tx = pool.begin().await?;
+            sqlx::query("DELETE FROM connection_tests WHERE config_id = $1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("DELETE FROM runtime_sessions WHERE config_id = $1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("DELETE FROM configs WHERE id = $1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+        }
+    }
+    Ok(())
+}
+
+pub async fn purge_deleted(pool: &DbPool) -> crate::db::Result<u64> {
+    const SELECT_DELETED: &str = "SELECT id FROM configs WHERE is_deleted = 1";
+    let rows_affected = match pool {
+        DbPool::Sqlite(pool) => {
+            let mut tx = pool.begin().await?;
+            sqlx::query(&format!(
+                "DELETE FROM connection_tests WHERE config_id IN ({SELECT_DELETED})"
+            ))
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query(&format!(
+                "DELETE FROM runtime_sessions WHERE config_id IN ({SELECT_DELETED})"
+            ))
+            .execute(&mut *tx)
+            .await?;
+            let result = sqlx::query("DELETE FROM configs WHERE is_deleted = 1")
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            result.rows_affected()
+        }
+        DbPool::Postgres(pool) => {
+            let mut tx = pool.begin().await?;
+            sqlx::query(&format!(
+                "DELETE FROM connection_tests WHERE config_id IN ({SELECT_DELETED})"
+            ))
+            .execute(&mut *tx)
+            .await?;
+            sqlx::query(&format!(
+                "DELETE FROM runtime_sessions WHERE config_id IN ({SELECT_DELETED})"
+            ))
+            .execute(&mut *tx)
+            .await?;
+            let result = sqlx::query("DELETE FROM configs WHERE is_deleted = 1")
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            result.rows_affected()
+        }
+    };
+    Ok(rows_affected)
 }
 
 async fn execute_no_bind(pool: &DbPool, sql: &str) -> crate::db::Result<()> {

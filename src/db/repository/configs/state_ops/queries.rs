@@ -7,6 +7,14 @@ pub async fn get_active(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>
     get_one_ordered(pool, "is_active = 1 AND is_deleted = 0").await
 }
 
+pub async fn count_deleted(pool: &DbPool) -> crate::db::Result<i64> {
+    const SQL: &str = "SELECT COUNT(*) FROM configs WHERE is_deleted = 1";
+    match pool {
+        DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(SQL).fetch_one(pool).await?),
+        DbPool::Postgres(pool) => Ok(sqlx::query_scalar::<_, i64>(SQL).fetch_one(pool).await?),
+    }
+}
+
 async fn get_one_ordered(
     pool: &DbPool,
     condition: &str,

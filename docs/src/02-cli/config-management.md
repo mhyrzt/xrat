@@ -9,11 +9,12 @@ These commands operate on config IDs from `xrat list configs`.
 | Command   | Use when you want to                                               |
 | --------- | ------------------------------------------------------------------ |
 | `add`     | Store one share link without creating a subscription source record |
-| `show`    | Inspect one stored config                                          |
+| `show`    | Inspect one stored config or subscription                          |
 | `enable`  | Include a config in normal filtered workflows                      |
 | `disable` | Keep a config stored but skip it in normal filtered workflows      |
-| `delete`  | Hide a config from normal lists while preserving history           |
+| `delete`  | Hide a config from normal lists, or remove a subscription          |
 | `restore` | Bring a soft-deleted config back                                   |
+| `purge`   | Permanently remove all soft-deleted configs                        |
 
 ## Config State
 
@@ -58,17 +59,19 @@ record.
 
 ## show
 
-Show details for one stored config.
+Show details for one stored config or subscription. The target is a required
+subcommand (`config` or `subscription`).
 
 ```bash
-xrat show <id> [flags]
+xrat show config <id> [--json]
+xrat show subscription <id> [--json]
 ```
 
 ### Arguments
 
-| Argument | Description       |
-| -------- | ----------------- |
-| `id`     | Config ID to show |
+| Argument | Description                       |
+| -------- | --------------------------------- |
+| `id`     | Config or subscription ID to show |
 
 ### Flags
 
@@ -79,8 +82,9 @@ xrat show <id> [flags]
 ### Examples
 
 ```bash
-xrat show 42
-xrat show 42 --json
+xrat show config 42
+xrat show config 42 --json
+xrat show subscription 3
 ```
 
 ---
@@ -106,6 +110,10 @@ xrat list configs --enabled-only
 xrat test --enabled-only
 ```
 
+`enable`/`disable` are idempotent: enabling an already-enabled config (or a
+deleted one) prints an informational notice and exits successfully without
+changing state.
+
 ---
 
 ## disable
@@ -129,23 +137,26 @@ queries, tests, and rotation candidate selection.
 
 ## delete
 
-Soft-delete a config by default.
+Delete a config (soft by default) or a whole subscription. The target is a
+required subcommand (`config` or `subscription`).
 
 ```bash
-xrat delete <id> [flags]
+xrat delete config <id> [--hard]
+xrat delete subscription <id> [--yes]
 ```
 
 ### Arguments
 
-| Argument | Description         |
-| -------- | ------------------- |
-| `id`     | Config ID to delete |
+| Argument | Description                         |
+| -------- | ----------------------------------- |
+| `id`     | Config or subscription ID to delete |
 
 ### Flags
 
-| Flag     | Description                   |
-| -------- | ----------------------------- |
-| `--hard` | Permanently delete the config |
+| Flag     | Description                                                  |
+| -------- | ----------------------------------------------------------- |
+| `--hard` | (config) Permanently delete the config instead of soft      |
+| `--yes`  | (subscription) Skip the confirmation prompt                 |
 
 Soft-deleted configs are hidden from normal lists but can still be viewed with:
 
@@ -154,7 +165,10 @@ xrat list configs --deleted
 xrat list configs --all
 ```
 
-Use `--hard` only when the row should be permanently removed.
+Use `delete config --hard` only when the row should be permanently removed.
+`delete subscription` permanently removes the subscription **and all of its
+configs** (plus their test history and runtime sessions), so it prompts for
+confirmation unless `--yes` is given.
 
 ---
 
@@ -173,7 +187,33 @@ xrat restore <id>
 | `id`     | Config ID to restore |
 
 `restore` only applies to soft-deleted configs. It does not recreate a config
-that was removed with `delete --hard`.
+that was removed with `delete config --hard`.
+
+---
+
+## purge
+
+Permanently delete **all** soft-deleted configs in one step, along with their
+test history and runtime sessions.
+
+```bash
+xrat purge [--yes]
+```
+
+### Flags
+
+| Flag    | Description                  |
+| ------- | ---------------------------- |
+| `--yes` | Skip the confirmation prompt |
+
+`purge` reports how many configs are pending and prompts for confirmation before
+deleting. In a non-interactive shell it aborts unless `--yes` is given. This is
+irreversible — restore anything you want to keep with `xrat restore` first.
+
+```bash
+xrat purge          # prompts: Permanently delete N soft-deleted config(s)? [y/N]
+xrat purge --yes    # no prompt
+```
 
 ## Related
 

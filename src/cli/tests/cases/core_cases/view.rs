@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::cli::{Cli, Command};
+use crate::cli::{Cli, Command, ShowTarget};
 
 #[test]
 fn parses_serve_overrides() {
@@ -26,27 +26,49 @@ fn parses_tui_subcommand() {
 }
 
 #[test]
-fn parses_show_subcommand() {
-    let cli = Cli::parse_from(["xrat", "show", "7"]);
+fn parses_show_config_subcommand() {
+    let cli = Cli::parse_from(["xrat", "show", "config", "7"]);
 
     match cli.command {
-        Command::Show(args) => {
-            assert_eq!(args.id, 7);
-            assert!(!args.json);
-        }
+        Command::Show(args) => match args.target {
+            ShowTarget::Config(config) => {
+                assert_eq!(config.id, 7);
+                assert!(!config.json);
+            }
+            ShowTarget::Subscription(_) => panic!("expected config target"),
+        },
         _ => panic!("expected show command"),
     }
 }
 
 #[test]
-fn parses_show_json_subcommand() {
-    let cli = Cli::parse_from(["xrat", "show", "--json", "7"]);
+fn parses_show_config_json_subcommand() {
+    let cli = Cli::parse_from(["xrat", "show", "config", "--json", "7"]);
 
     match cli.command {
-        Command::Show(args) => {
-            assert_eq!(args.id, 7);
-            assert!(args.json);
-        }
+        Command::Show(args) => match args.target {
+            ShowTarget::Config(config) => {
+                assert_eq!(config.id, 7);
+                assert!(config.json);
+            }
+            ShowTarget::Subscription(_) => panic!("expected config target"),
+        },
+        _ => panic!("expected show command"),
+    }
+}
+
+#[test]
+fn parses_show_subscription_json_subcommand() {
+    let cli = Cli::parse_from(["xrat", "show", "subscription", "--json", "4"]);
+
+    match cli.command {
+        Command::Show(args) => match args.target {
+            ShowTarget::Subscription(subscription) => {
+                assert_eq!(subscription.id, 4);
+                assert!(subscription.json);
+            }
+            ShowTarget::Config(_) => panic!("expected subscription target"),
+        },
         _ => panic!("expected show command"),
     }
 }
