@@ -1,13 +1,6 @@
 use clap::Args;
 
 #[derive(Debug, Args)]
-#[command(about = "Select a config as the current selection.")]
-pub struct SelectArgs {
-    #[arg(help = "Config ID to select.")]
-    pub id: i64,
-}
-
-#[derive(Debug, Args)]
 #[command(about = "Enable a config.")]
 pub struct EnableArgs {
     #[arg(help = "Config ID to enable.")]

@@ -14,7 +14,6 @@ pub struct ConfigsQuery {
     pub per_page: Option<u64>,
     pub enabled: Option<bool>,
     pub protocol: Option<String>,
-    pub selected: Option<bool>,
 }
 
 pub async fn list_configs(
@@ -37,7 +36,6 @@ pub async fn list_configs(
 
     let filter = ConfigListFilter {
         only_enabled: query.enabled.unwrap_or(false),
-        only_selected: query.selected.unwrap_or(false),
         only_active: false,
         only_deleted: false,
         include_deleted: false,

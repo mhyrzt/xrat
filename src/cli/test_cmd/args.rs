@@ -20,8 +20,6 @@ pub struct TestArgs {
     pub enabled_only: bool,
     #[arg(long = "active-only", help = "Filter: only the active config.")]
     pub active_only: bool,
-    #[arg(long = "selected-only", help = "Filter: only the selected config.")]
-    pub selected_only: bool,
     #[arg(
         long = "subscription",
         help = "Filter: only configs from the given subscription ID."

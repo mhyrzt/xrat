@@ -58,7 +58,6 @@ pub struct RuntimeStatusSnapshot {
     pub session: Option<RuntimeSessionRecord>,
     pub session_config: Option<ConfigRecord>,
     pub active_config: Option<ConfigRecord>,
-    pub selected_config: Option<ConfigRecord>,
     pub pid_running: bool,
     pub inbound_health: RuntimeInboundHealth,
     pub database_label: String,

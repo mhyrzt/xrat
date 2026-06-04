@@ -17,7 +17,6 @@ async fn b64_route_returns_subscription_text_payload() {
             top: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await

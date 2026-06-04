@@ -16,7 +16,6 @@ pub async fn b64(
     require_api_key(&state, query.key.as_deref())?;
     let filter = ConfigListFilter {
         only_enabled: query.enabled.unwrap_or(true),
-        only_selected: query.selected.unwrap_or(false),
         only_active: false,
         only_deleted: false,
         include_deleted: false,

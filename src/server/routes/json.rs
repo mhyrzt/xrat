@@ -13,7 +13,6 @@ pub struct JsonQuery {
     pub top: Option<u64>,
     pub enabled: Option<bool>,
     pub protocol: Option<String>,
-    pub selected: Option<bool>,
 }
 
 pub async fn json(
@@ -31,7 +30,6 @@ pub(crate) async fn list_api_configs(
 ) -> ServerResult<Vec<crate::db::ConfigWithLatestTest>> {
     let filter = ConfigListFilter {
         only_enabled: query.enabled.unwrap_or(true),
-        only_selected: query.selected.unwrap_or(false),
         only_active: false,
         only_deleted: false,
         include_deleted: false,

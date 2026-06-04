@@ -3,7 +3,7 @@ use clap::Subcommand;
 use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs,
     EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, ManpageArgs, ParseArgs, ProxyArgs,
-    RestoreArgs, ScanArgs, SelectArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
+    RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -18,8 +18,6 @@ pub enum Command {
     List(ListArgs),
     #[command(about = "Show details for a config.")]
     Show(ShowArgs),
-    #[command(about = "Select a config as the current selection.")]
-    Select(SelectArgs),
     #[command(about = "Enable a config.")]
     Enable(EnableArgs),
     #[command(about = "Disable a config.")]

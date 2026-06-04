@@ -1,22 +1,5 @@
 use crate::app::context::AppContext;
-use crate::cli::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
-
-pub async fn select(context: &AppContext, args: &SelectArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
-        crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
-    })?;
-
-    if config.is_deleted {
-        return Err(crate::app::AppError::InvalidArgument(format!(
-            "config {} is deleted",
-            args.id
-        )));
-    }
-
-    context.db.set_selected_config(args.id).await?;
-    println!("Selected config {}", args.id);
-    Ok(())
-}
+use crate::cli::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, ShowArgs};
 
 pub async fn enable(context: &AppContext, args: &EnableArgs) -> crate::app::Result<()> {
     let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
@@ -112,7 +95,6 @@ pub async fn show(context: &AppContext, args: &ShowArgs) -> crate::app::Result<(
                 "name": config.name,
                 "is_active": config.is_active,
                 "is_enabled": config.is_enabled,
-                "is_selected": config.is_selected,
                 "is_deleted": config.is_deleted,
                 "deleted_at": config.deleted_at,
                 "imported_at": config.imported_at,
@@ -134,7 +116,6 @@ pub async fn show(context: &AppContext, args: &ShowArgs) -> crate::app::Result<(
     println!("Path:         {}", config.path.as_deref().unwrap_or("-"));
     println!("Active:       {}", config.is_active);
     println!("Enabled:      {}", config.is_enabled);
-    println!("Selected:     {}", config.is_selected);
     println!("Deleted:      {}", config.is_deleted);
     if let Some(deleted_at) = &config.deleted_at {
         println!("Deleted at:   {}", deleted_at);

@@ -28,7 +28,6 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Add(args) => add::run(context, &args.input).await,
         Command::List(args) => list::run(context, args).await,
         Command::Show(args) => lifecycle::show(context, args).await,
-        Command::Select(args) => lifecycle::select(context, args).await,
         Command::Enable(args) => lifecycle::enable(context, args).await,
         Command::Disable(args) => lifecycle::disable(context, args).await,
         Command::Delete(args) => lifecycle::delete(context, args).await,

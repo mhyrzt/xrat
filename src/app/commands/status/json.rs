@@ -20,7 +20,6 @@ pub(super) fn print_json_status(snapshot: &RuntimeStatusSnapshot) -> crate::app:
             })),
             "session_config": snapshot.session_config.as_ref().map(config_json),
             "active_config": snapshot.active_config.as_ref().map(config_json),
-            "selected_config": snapshot.selected_config.as_ref().map(config_json),
             "inbounds": {
                 "socks": health_json(snapshot.inbound_health.socks.as_ref()),
                 "http": health_json(snapshot.inbound_health.http.as_ref()),
@@ -40,7 +39,6 @@ fn config_json(config: &crate::db::ConfigRecord) -> serde_json::Value {
         "address": &config.address,
         "port": config.port,
         "is_enabled": config.is_enabled,
-        "is_selected": config.is_selected,
         "is_active": config.is_active,
     })
 }

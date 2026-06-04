@@ -32,12 +32,7 @@ async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate
             config.address,
             config.port,
             config.name.unwrap_or_else(|| "-".to_string()),
-            format_config_flags(
-                config.is_enabled,
-                config.is_selected,
-                config.is_active,
-                config.is_deleted
-            ),
+            format_config_flags(config.is_enabled, config.is_active, config.is_deleted),
         );
     }
 
@@ -73,12 +68,7 @@ async fn print_subscriptions(
     Ok(())
 }
 
-fn format_config_flags(
-    is_enabled: bool,
-    is_selected: bool,
-    is_active: bool,
-    is_deleted: bool,
-) -> String {
+fn format_config_flags(is_enabled: bool, is_active: bool, is_deleted: bool) -> String {
     let mut flags = Vec::new();
 
     if is_deleted {
@@ -88,9 +78,6 @@ fn format_config_flags(
         flags.push("enabled");
     } else {
         flags.push("disabled");
-    }
-    if is_selected {
-        flags.push("selected");
     }
     if is_active {
         flags.push("active");
@@ -102,7 +89,6 @@ fn format_config_flags(
 fn build_config_list_filter(args: &ListConfigsArgs) -> ConfigListFilter {
     ConfigListFilter {
         only_enabled: args.enabled_only,
-        only_selected: args.selected_only,
         only_active: args.active_only,
         only_deleted: args.deleted_only,
         include_deleted: args.include_deleted,

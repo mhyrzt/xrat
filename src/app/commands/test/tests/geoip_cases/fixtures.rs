@@ -21,7 +21,6 @@ pub(crate) fn test_args(id: Option<i64>) -> TestArgs {
         id,
         enabled_only: false,
         active_only: false,
-        selected_only: false,
         subscription: None,
         skip_icmp: false,
         skip_tcp: false,

@@ -9,7 +9,6 @@ impl<'a> RuntimeService<'a> {
             None => None,
         };
         let active_config = self.context.db.get_active_config().await?;
-        let selected_config = self.context.db.get_selected_config().await?;
         let pid_running = latest.as_ref().is_some_and(runtime_session_is_alive);
         let inbound_health = match &latest {
             Some(session) => check_runtime_inbounds(session, pid_running).await,
@@ -22,7 +21,6 @@ impl<'a> RuntimeService<'a> {
             session: latest,
             session_config,
             active_config,
-            selected_config,
             pid_running,
             inbound_health,
             database_label: self.context.runtime_paths.database_label.clone(),

@@ -21,8 +21,6 @@ pub struct ListConfigsArgs {
     pub enabled_only: bool,
     #[arg(long = "active-only", help = "Show only the active config.")]
     pub active_only: bool,
-    #[arg(long = "selected-only", help = "Show only the selected config.")]
-    pub selected_only: bool,
     #[arg(long = "deleted", help = "Show only soft-deleted configs.")]
     pub deleted_only: bool,
     #[arg(long = "all", help = "Include soft-deleted configs in results.")]

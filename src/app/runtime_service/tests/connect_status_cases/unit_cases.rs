@@ -64,7 +64,6 @@ fn rejects_unknown_protocol() {
         raw_config: "raw".to_string(),
         is_active: false,
         is_enabled: true,
-        is_selected: false,
         is_deleted: false,
         deleted_at: None,
         imported_at: "now".to_string(),

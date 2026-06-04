@@ -35,7 +35,7 @@ pub use geoip::{
 };
 pub use import::ImportArgs;
 pub use init::InitArgs;
-pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, SelectArgs, ShowArgs};
+pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, ShowArgs};
 pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
 pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};

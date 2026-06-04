@@ -25,7 +25,6 @@ pub(crate) async fn run_rotation_bulk_tests(
             output: None,
             country: None,
             asn: None,
-            selected_only: false,
             enabled_only: false,
             active_only: false,
             subscription: None,

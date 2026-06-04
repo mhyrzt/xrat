@@ -19,7 +19,6 @@ async fn configs_routes_return_list_and_detail() {
             per_page: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -39,7 +38,6 @@ async fn configs_routes_return_list_and_detail() {
             per_page: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -61,7 +59,6 @@ async fn config_detail_returns_not_found_for_missing_id() {
             per_page: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await;
@@ -81,7 +78,6 @@ async fn configs_route_pagination_bounds() {
             per_page: Some(2),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -99,7 +95,6 @@ async fn configs_route_pagination_bounds() {
             per_page: Some(2),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -120,7 +115,6 @@ async fn configs_route_rejects_invalid_per_page() {
             per_page: Some(0),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await;
@@ -134,7 +128,6 @@ async fn configs_route_rejects_invalid_per_page() {
             per_page: Some(201),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await;
@@ -185,7 +178,6 @@ async fn config_detail_returns_null_latest_test_when_no_test_exists() {
             per_page: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await

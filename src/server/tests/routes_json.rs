@@ -16,7 +16,6 @@ async fn json_route_returns_enabled_configs_with_latest_test() {
             top: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -39,7 +38,6 @@ async fn json_route_enforces_api_key() {
             top: None,
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await;
@@ -58,7 +56,6 @@ async fn json_route_top_sorts_by_real_delay_ascending() {
             top: Some(2),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await
@@ -79,7 +76,6 @@ async fn json_route_top_zero_returns_error() {
             top: Some(0),
             enabled: None,
             protocol: None,
-            selected: None,
         }),
     )
     .await;
@@ -98,7 +94,6 @@ async fn json_route_protocol_filter_restricts_results() {
             top: None,
             enabled: None,
             protocol: Some("vless".to_string()),
-            selected: None,
         }),
     )
     .await

@@ -3,16 +3,6 @@ use clap::Parser;
 use crate::cli::{Cli, Command};
 
 #[test]
-fn parses_select_subcommand() {
-    let cli = Cli::parse_from(["xrat", "select", "42"]);
-
-    match cli.command {
-        Command::Select(args) => assert_eq!(args.id, 42),
-        _ => panic!("expected select command"),
-    }
-}
-
-#[test]
 fn parses_enable_subcommand() {
     let cli = Cli::parse_from(["xrat", "enable", "7"]);
 
