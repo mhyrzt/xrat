@@ -69,7 +69,6 @@ CREATE TABLE configs (
     raw_config TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 0,
     is_enabled INTEGER NOT NULL DEFAULT 1,
-    is_selected INTEGER NOT NULL DEFAULT 0,
     is_deleted INTEGER NOT NULL DEFAULT 0,
     imported_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -99,7 +98,6 @@ CREATE TABLE configs (
 | `raw_config`      | TEXT      | Original raw config line                                  |
 | `is_active`       | BOOLEAN   | Currently active runtime config                           |
 | `is_enabled`      | BOOLEAN   | Included in bulk operations                               |
-| `is_selected`     | BOOLEAN   | User-selected config                                      |
 | `imported_at`     | TIMESTAMP | Import timestamp                                          |
 | `is_deleted`      | BOOLEAN   | Soft-deleted flag                                         |
 | `deleted_at`      | TIMESTAMP | Deletion timestamp                                        |
@@ -110,7 +108,7 @@ CREATE TABLE configs (
 
 - `dedup_key` — UNIQUE
 - `subscription_id` — FK index
-- `is_enabled`, `is_active`, `is_selected` — filter queries
+- `is_enabled`, `is_active` — filter queries
 - `is_deleted` — soft-delete queries
 
 ---

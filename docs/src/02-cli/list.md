@@ -27,7 +27,6 @@ xrat list configs [flags]
 | --------------------- | ------------------------------------------------ |
 | `--enabled-only`      | Show only enabled configs                        |
 | `--active-only`       | Show only the active config                      |
-| `--selected-only`     | Show only the selected config                    |
 | `--deleted`           | Show only soft-deleted configs                   |
 | `--all`               | Include soft-deleted configs in results          |
 | `--subscription <id>` | Show only configs from the given subscription ID |

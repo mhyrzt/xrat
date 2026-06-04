@@ -10,7 +10,6 @@ These commands operate on config IDs from `xrat list configs`.
 | --------- | ------------------------------------------------------------------ |
 | `add`     | Store one share link without creating a subscription source record |
 | `show`    | Inspect one stored config                                          |
-| `select`  | Mark one config as the preferred config for interactive workflows  |
 | `enable`  | Include a config in normal filtered workflows                      |
 | `disable` | Keep a config stored but skip it in normal filtered workflows      |
 | `delete`  | Hide a config from normal lists while preserving history           |
@@ -18,11 +17,10 @@ These commands operate on config IDs from `xrat list configs`.
 
 ## Config State
 
-`selected`, `active`, `enabled`, and `deleted` are separate states.
+`active`, `enabled`, and `deleted` are separate states.
 
 | State      | Meaning                                                     |
 | ---------- | ----------------------------------------------------------- |
-| `selected` | The preferred config. This does not start a proxy process.  |
 | `active`   | The config used by the current managed runtime session.     |
 | `enabled`  | Included in normal list, test, and rotation workflows.      |
 | `disabled` | Stored but skipped by enabled-only workflows.               |
@@ -84,25 +82,6 @@ xrat show <id> [flags]
 xrat show 42
 xrat show 42 --json
 ```
-
----
-
-## select
-
-Select a config as the current selection.
-
-```bash
-xrat select <id>
-```
-
-### Arguments
-
-| Argument | Description         |
-| -------- | ------------------- |
-| `id`     | Config ID to select |
-
-Selection is useful for workflows that need a preferred config, including the
-TUI. It does not start or stop the managed runtime.
 
 ---
 

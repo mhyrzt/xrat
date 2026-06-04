@@ -20,7 +20,6 @@ When testing multiple configs (no `id` specified):
 | --------------------- | --------------------------------------------------- |
 | `--enabled-only`      | Filter: only enabled configs                        |
 | `--active-only`       | Filter: only the active config                      |
-| `--selected-only`     | Filter: only the selected config                    |
 | `--subscription <id>` | Filter: only configs from the given subscription ID |
 
 ## Stage Skip Flags

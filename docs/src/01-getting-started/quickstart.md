@@ -50,12 +50,6 @@ Filter by subscription source:
 xrat list configs --subscription 1
 ```
 
-You can mark a preferred config without starting a proxy:
-
-```bash
-xrat select 1
-```
-
 Use `enable` and `disable` to control whether a config appears in enabled-only
 workflows:
 

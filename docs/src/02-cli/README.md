@@ -24,7 +24,6 @@ These flags apply to every command:
 | [`add`](config-management.md#add)         | Add a single config URI directly to the database               |
 | [`list`](list.md)                         | List stored configs or subscription sources                    |
 | [`show`](config-management.md#show)       | Show details for a stored config                               |
-| [`select`](config-management.md#select)   | Mark one config as the current selection                       |
 | [`enable`](config-management.md#enable)   | Include a config in normal operations                          |
 | [`disable`](config-management.md#disable) | Exclude a config from normal operations                        |
 | [`delete`](config-management.md#delete)   | Soft-delete or permanently delete a config                     |
@@ -47,15 +46,13 @@ These words appear across the CLI, TUI, API, and database:
 
 | Term       | Meaning                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
-| `enabled`  | Included in bulk tests, selection workflows, and rotation candidate sets |
+| `enabled`  | Included in bulk tests and rotation candidate sets                       |
 | `disabled` | Stored but normally skipped by filtered workflows                        |
-| `selected` | User-selected config for workflows that need a preferred config          |
 | `active`   | Config attached to the current managed runtime session                   |
 | `deleted`  | Soft-deleted row hidden from normal lists unless requested               |
 
-Use [`select`](config-management.md#select) to choose a preferred config. Use
-[`connect`](runtime.md#connect) to make a config active by starting a runtime
-session.
+Use [`connect`](runtime.md#connect) to make a config active by starting a
+runtime session.
 
 ## Logging
 

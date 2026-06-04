@@ -96,7 +96,6 @@ WantedBy=default.target
 | `top`      | Return top N configs sorted by real-delay                   |
 | `enabled`  | Filter: `true` for enabled configs only                     |
 | `protocol` | Filter by protocol: `vless`, `vmess`, `ss`, `trojan`, `hy2` |
-| `selected` | Filter: `true` for selected configs only                    |
 
 #### `/b64`
 
@@ -113,7 +112,6 @@ WantedBy=default.target
 | `per_page` | Items per page (default: `20`)           |
 | `enabled`  | Filter: `true` for enabled configs only  |
 | `protocol` | Filter by protocol                       |
-| `selected` | Filter: `true` for selected configs only |
 
 #### `/configs/{id}`
 
@@ -156,7 +154,6 @@ curl "http://localhost:8080/configs?key=secret&page=1&per_page=10"
     "name": "My Node",
     "is_enabled": true,
     "is_active": false,
-    "is_selected": false,
     "latest_test": {
       "icmp_ok": true,
       "icmp_ms": 15,
@@ -196,7 +193,6 @@ dmxlc3M6Ly91dWlkQGV4YW1wbGUuY29tOjQ0Mz90eXBlPXdzJnNlY3VyaXR5PXRscyNNeSBOb2RlCnZt
       "name": "My Node",
       "is_enabled": true,
       "is_active": false,
-      "is_selected": false,
       "subscription_id": 1,
       "created_at": "2026-05-20T08:00:00Z",
       "updated_at": "2026-05-28T10:00:00Z",
@@ -223,7 +219,6 @@ dmxlc3M6Ly91dWlkQGV4YW1wbGUuY29tOjQ0Mz90eXBlPXdzJnNlY3VyaXR5PXRscyNNeSBOb2RlCnZt
   "name": "My Node",
   "is_enabled": true,
   "is_active": false,
-  "is_selected": false,
   "subscription_id": 1,
   "created_at": "2026-05-20T08:00:00Z",
   "updated_at": "2026-05-28T10:00:00Z",

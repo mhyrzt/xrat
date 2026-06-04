@@ -19,10 +19,9 @@ services as the CLI commands.
 
 | Key | View        | Purpose                                                                         |
 | --- | ----------- | ------------------------------------------------------------------------------- |
-| `1` | Configs     | Browse, filter, select, enable, disable, delete, and share configs              |
+| `1` | Configs     | Browse, filter, start, enable, disable, delete, and share configs               |
 | `2` | Sources     | Inspect subscription sources, refresh/import sources, and share source/API URLs |
 | `3` | Tests       | Start/cancel background test batches and inspect recent results                 |
-| `4` | Diagnostics | Inspect paths, runtime/source summaries, and recent operation messages          |
 
 The TUI opens in the Configs view. The bottom bar shows view shortcuts, help and
 quit actions, active filters, task state, and the latest status message.
@@ -31,7 +30,7 @@ quit actions, active filters, task state, and the latest status message.
 
 | Key           | Action                                |
 | ------------- | ------------------------------------- |
-| `1`-`4`       | Switch primary view                   |
+| `1`-`3`       | Switch primary view                   |
 | `Tab`         | Cycle primary views                   |
 | `j`, `k`      | Move focus down/up                    |
 | arrow keys    | Move focus down/up                    |
@@ -42,23 +41,20 @@ quit actions, active filters, task state, and the latest status message.
 ## Configs View
 
 The Configs view shows stored configs with latest test summaries and config
-state. The status marker column uses `●` for active, `✓` for selected, `✕` for
-soft-deleted, `○` for disabled, and `!` for failed configs. Long names are
-truncated in the table. It supports focused actions, selected-config bulk
-actions, test batches, and managed runtime controls.
+state. The status marker column uses `●` for active, `✕` for soft-deleted, `○`
+for disabled, and `!` for failed configs. Long names are truncated in the table.
+It supports focused actions, test batches, and managed runtime controls.
 
 | Key      | Action                                              |
 | -------- | --------------------------------------------------- |
 | `/`      | Edit config search                                  |
 | `Ctrl+U` | Clear search while editing                          |
-| `s`      | Cycle sort field                                    |
+| `S`      | Cycle sort field                                    |
 | `F`      | Cycle filter: all, enabled, failed, has-delay       |
 | `P`      | Cycle protocol filter                               |
-| `f`      | Show or hide soft-deleted configs                   |
-| `Space`  | Mark the focused config as selected                 |
-| `Enter`  | Select and start the focused config                 |
+| `T`      | Show or hide soft-deleted configs                   |
+| `Enter`  | Start the focused config                            |
 | `e`, `x` | Enable or disable the focused config                |
-| `E`, `X` | Enable or disable all selected configs              |
 | `d`      | Soft-delete the focused config after confirmation   |
 | `D`      | Purge the focused config after confirmation         |
 | `r`      | Restore the focused soft-deleted config             |
@@ -69,23 +65,22 @@ actions, test batches, and managed runtime controls.
 | `R`      | Restart the managed runtime                         |
 | `y`      | Show a QR code for the focused config URI           |
 | `c`      | Copy the focused config URI                         |
-| `C`      | Copy selected config URIs as newline-separated text |
 
 Search matches the displayed config fields. Sorting can cycle through latency,
 ID, name, protocol, source, last-tested time, and imported time. Deleted configs
-are hidden by default; press `f` to include them.
+are hidden by default; press `T` to include them.
 
 Soft delete hides a config from normal views and workflows. Purge permanently
 deletes it. Both destructive actions require confirmation.
 
 The Runtime panel inside the Configs view shows the current managed runtime
-state, active config, selected config, current task, proxy endpoint, and failure
+state, active config, current task, proxy endpoint, config counts, and failure
 message when present. Runtime actions use the same runtime service as
 `xrat connect`, `xrat disconnect`, and `xrat status`. The same runtime
 prerequisites apply: the configured Xray/V2Ray binary must be available, runtime
 paths must be writable, and daemon/runtime configuration must be valid.
 
-Select a preferred config in the Configs view before starting or switching the
+Focus a config in the Configs view and press `Enter` to start or switch the
 runtime. Runtime operations run in the background and reload TUI data after
 completion.
 
@@ -134,10 +129,12 @@ While a batch is running, the progress bar updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports
 cancelled once the shared test executor observes the cancellation request.
 
-## Diagnostics and Help
+## Runtime, Failures, and Help
 
-Press `4` to open Diagnostics. It summarizes important runtime, database,
-source, API, and operation state, including recent TUI task messages.
+The Configs view shows the merged runtime panel, which summarizes runtime,
+database, source, API, and config-count state alongside the active and selected
+configs. The adjacent Failures and Event Log panel lists per-config failures and
+recent TUI task messages.
 
 Press `?` from any view to open the help modal. Press `Esc` to close it.
 

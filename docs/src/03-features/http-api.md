@@ -120,7 +120,6 @@ List configs with latest test results as a JSON array.
 | `top`      | integer | Return top N configs sorted by real-delay                   |
 | `enabled`  | boolean | Filter: `true` for enabled configs only                     |
 | `protocol` | string  | Filter by protocol: `vless`, `vmess`, `ss`, `trojan`, `hy2` |
-| `selected` | boolean | Filter: `true` for selected configs only                    |
 
 **Request**:
 
@@ -140,7 +139,6 @@ curl "http://localhost:8080/json?key=secret&top=10&enabled=true"
     "name": "My Node",
     "is_enabled": true,
     "is_active": false,
-    "is_selected": false,
     "latest_test": {
       "icmp_ok": true,
       "icmp_ms": 15,
@@ -160,7 +158,6 @@ curl "http://localhost:8080/json?key=secret&top=10&enabled=true"
     "name": "Edge Node",
     "is_enabled": true,
     "is_active": false,
-    "is_selected": false,
     "latest_test": {
       "icmp_ok": true,
       "icmp_ms": 18,
@@ -228,7 +225,6 @@ Paginated config list with details.
 | `per_page` | integer | Items per page                           | `20`    |
 | `enabled`  | boolean | Filter: `true` for enabled configs only  | -       |
 | `protocol` | string  | Filter by protocol                       | -       |
-| `selected` | boolean | Filter: `true` for selected configs only | -       |
 
 **Request**:
 
@@ -258,7 +254,6 @@ curl "http://localhost:8080/configs?key=secret&page=1&per_page=10&enabled=true"
       "name": "My Node",
       "is_enabled": true,
       "is_active": false,
-      "is_selected": false,
       "subscription_id": 1,
       "created_at": "2026-05-20T08:00:00Z",
       "updated_at": "2026-05-28T10:00:00Z",
@@ -322,7 +317,6 @@ curl "http://localhost:8080/configs/42?key=secret"
   "name": "My Node",
   "is_enabled": true,
   "is_active": false,
-  "is_selected": false,
   "subscription_id": 1,
   "created_at": "2026-05-20T08:00:00Z",
   "updated_at": "2026-05-28T10:00:00Z",
