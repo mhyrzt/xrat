@@ -26,40 +26,31 @@ impl LocalMmdbLookup {
 
     fn lookup_country_iso_ip(mmdb_path: &Path, ip_addr: IpAddr) -> Option<String> {
         let reader = Reader::open_readfile(mmdb_path).ok()?;
-        let country: geoip2::Country<'_> = reader.lookup(ip_addr).ok()??;
+        let country: geoip2::Country<'_> = reader.lookup(ip_addr).ok()?.decode().ok()??;
 
         country
             .country
-            .and_then(|country| country.iso_code)
+            .iso_code
             .map(|code| code.to_string())
             .or_else(|| {
                 country
                     .registered_country
-                    .and_then(|country| country.iso_code)
+                    .iso_code
                     .map(|code| code.to_string())
             })
     }
 
     fn lookup_city_label_ip(mmdb_path: &Path, ip_addr: IpAddr) -> Option<String> {
         let reader = Reader::open_readfile(mmdb_path).ok()?;
-        let city: geoip2::City<'_> = reader.lookup(ip_addr).ok()??;
+        let city: geoip2::City<'_> = reader.lookup(ip_addr).ok()?.decode().ok()??;
 
-        let country = city
-            .country
-            .and_then(|country| country.iso_code)
-            .map(str::to_string);
+        let country = city.country.iso_code.map(str::to_string);
         let region = city
             .subdivisions
-            .as_ref()
-            .and_then(|subs| subs.first())
-            .and_then(|sub| sub.names.as_ref())
-            .and_then(|names| names.get("en").copied())
+            .first()
+            .and_then(|sub| sub.names.english)
             .map(str::to_string);
-        let city_name = city
-            .city
-            .and_then(|city| city.names)
-            .and_then(|names| names.get("en").copied())
-            .map(str::to_string);
+        let city_name = city.city.names.english.map(str::to_string);
 
         match (country, region, city_name) {
             (Some(cc), Some(region), Some(city)) => Some(format!("{cc}/{region}/{city}")),
@@ -71,7 +62,7 @@ impl LocalMmdbLookup {
 
     fn lookup_asn_label_ip(mmdb_path: &Path, ip_addr: IpAddr) -> Option<String> {
         let reader = Reader::open_readfile(mmdb_path).ok()?;
-        let asn: geoip2::Asn<'_> = reader.lookup(ip_addr).ok()??;
+        let asn: geoip2::Asn<'_> = reader.lookup(ip_addr).ok()?.decode().ok()??;
         let number = asn.autonomous_system_number?;
         let org = asn.autonomous_system_organization.unwrap_or("UNKNOWN");
         Some(format!("AS{number} {org}"))

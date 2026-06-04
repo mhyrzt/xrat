@@ -44,6 +44,6 @@ thiserror = "2.0.18"
 toml = "1.1.2"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
-maxminddb = "0.26.0"
+maxminddb = "0.28.1"
 qrcode = { version = "0.14.1", default-features = false }
 arboard = "3.6.1"
