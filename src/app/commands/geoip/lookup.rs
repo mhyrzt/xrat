@@ -2,6 +2,7 @@ use std::net::IpAddr;
 
 use serde::Serialize;
 
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::cli::GeoIpLookupArgs;
 
@@ -25,16 +26,19 @@ pub(crate) async fn run(context: &AppContext, args: &GeoIpLookupArgs) -> crate::
     if args.json {
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
-        println!("backend: {}", result.backend);
-        if let Some(country) = &result.country {
-            println!("country: {country}");
-        }
-        if let Some(city) = &result.city {
-            println!("city:    {city}");
-        }
-        if let Some(asn) = &result.asn {
-            println!("asn:     {asn}");
-        }
+        println!(
+            "{}",
+            output::format_kv(
+                Some("GeoIP lookup"),
+                &[
+                    ("backend", result.backend.clone()),
+                    ("country", output::dash(result.country.as_deref())),
+                    ("city", output::dash(result.city.as_deref())),
+                    ("asn", output::dash(result.asn.as_deref())),
+                ],
+                output::color_enabled(),
+            )
+        );
     }
 
     Ok(())

@@ -132,4 +132,6 @@ pub struct GeoIpStatusArgs {
         help = "Exit non-zero when any supported edition is missing."
     )]
     pub strict: bool,
+    #[arg(long = "json", help = "Print status as JSON.")]
+    pub json: bool,
 }

@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::config::{AppConfig, GeoIpBackend};
 use crate::app::context::AppContext;
 use crate::cli::GeoIpBackendArgs;
@@ -6,29 +7,48 @@ pub(crate) fn run(context: &AppContext, args: &GeoIpBackendArgs) -> crate::app::
     let config =
         override_backend_config(&context.app_config, args.backend.as_deref(), args.no_cache)?;
 
-    println!("backend: {}", backend_label(config.testing.geoip.backend));
-    println!("fallback: {}", backend_label(config.testing.geoip.fallback));
     println!(
-        "cache: {}",
-        if config.testing.geoip.cache.enabled {
-            format!(
-                "enabled (ttl={}s, max={})",
-                config.testing.geoip.cache.ttl_secs, config.testing.geoip.cache.max_entries
-            )
-        } else {
-            "disabled".to_string()
-        }
-    );
-    println!(
-        "remote: provider={} endpoint={} timeout_ms={} rate_limit_per_minute={}",
-        remote_provider_label(config.testing.geoip.remote.provider),
-        if config.testing.geoip.remote.endpoint.is_empty() {
-            "<default>"
-        } else {
-            config.testing.geoip.remote.endpoint.as_str()
-        },
-        config.testing.geoip.remote.timeout_ms,
-        config.testing.geoip.remote.rate_limit_per_minute,
+        "{}",
+        output::format_kv(
+            Some("GeoIP backend"),
+            &[
+                (
+                    "backend",
+                    backend_label(config.testing.geoip.backend).to_string(),
+                ),
+                (
+                    "fallback",
+                    backend_label(config.testing.geoip.fallback).to_string(),
+                ),
+                (
+                    "cache",
+                    if config.testing.geoip.cache.enabled {
+                        format!(
+                            "enabled (ttl={}s, max={})",
+                            config.testing.geoip.cache.ttl_secs,
+                            config.testing.geoip.cache.max_entries
+                        )
+                    } else {
+                        "disabled".to_string()
+                    },
+                ),
+                (
+                    "remote",
+                    format!(
+                        "provider={} endpoint={} timeout_ms={} rate_limit_per_minute={}",
+                        remote_provider_label(config.testing.geoip.remote.provider),
+                        if config.testing.geoip.remote.endpoint.is_empty() {
+                            "<default>"
+                        } else {
+                            config.testing.geoip.remote.endpoint.as_str()
+                        },
+                        config.testing.geoip.remote.timeout_ms,
+                        config.testing.geoip.remote.rate_limit_per_minute,
+                    ),
+                ),
+            ],
+            output::color_enabled(),
+        )
     );
 
     Ok(())

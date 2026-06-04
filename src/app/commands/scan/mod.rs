@@ -3,35 +3,20 @@ mod collect;
 use std::time::Duration;
 
 use crate::app::AppError;
+use crate::app::commands::output::{self, Align, Cell, Column, Style};
 use crate::app::context::AppContext;
-use crate::cli::ScanArgs;
-use crate::db::CfScanResultUpsert;
+use crate::cli::{ListFormat, ScanArgs};
+use crate::db::{CfScanResultRecord, CfScanResultUpsert};
 use crate::prober::tcp_check;
 
 pub async fn run(context: &AppContext, args: &ScanArgs) -> crate::app::Result<()> {
     if let Some(limit) = args.history {
         let rows = context.db.list_cf_scan_history(limit.max(1)).await?;
         if rows.is_empty() {
-            println!("No scanner history found.");
+            println!("{}", output::empty_message("No scanner history found."));
             return Ok(());
         }
-        for row in rows {
-            println!(
-                "{} latency_ms={} download_mbps={} upload_mbps={} error={} at={}",
-                row.ip,
-                row.latency_ms
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "-".to_string()),
-                row.download_mbps
-                    .map(|v| format!("{v:.2}"))
-                    .unwrap_or_else(|| "-".to_string()),
-                row.upload_mbps
-                    .map(|v| format!("{v:.2}"))
-                    .unwrap_or_else(|| "-".to_string()),
-                row.error.unwrap_or_else(|| "-".to_string()),
-                row.last_scanned_at,
-            );
-        }
+        println!("{}", format_history(&rows, args.format)?);
         return Ok(());
     }
 
@@ -57,6 +42,120 @@ pub async fn run(context: &AppContext, args: &ScanArgs) -> crate::app::Result<()
     }
 
     context.db.upsert_cf_scan_results(&results).await?;
-    println!("Persisted {} scanner rows.", results.len());
+    println!(
+        "{}",
+        output::success(
+            format!("Persisted {} scanner rows.", results.len()),
+            output::color_enabled()
+        )
+    );
     Ok(())
+}
+
+fn format_history(rows: &[CfScanResultRecord], format: ListFormat) -> crate::app::Result<String> {
+    match format {
+        ListFormat::Table => Ok(format_history_table(rows)),
+        ListFormat::Tsv => Ok(format_history_tsv(rows)),
+        ListFormat::Json => Ok(serde_json::to_string_pretty(
+            &rows.iter().map(history_json).collect::<Vec<_>>(),
+        )?),
+    }
+}
+
+fn format_history_table(rows: &[CfScanResultRecord]) -> String {
+    let columns = [
+        Column {
+            header: "IP",
+            align: Align::Left,
+        },
+        Column {
+            header: "LATENCY",
+            align: Align::Right,
+        },
+        Column {
+            header: "DOWN",
+            align: Align::Right,
+        },
+        Column {
+            header: "UP",
+            align: Align::Right,
+        },
+        Column {
+            header: "STATUS",
+            align: Align::Left,
+        },
+        Column {
+            header: "SCANNED",
+            align: Align::Left,
+        },
+    ];
+    let table_rows = rows
+        .iter()
+        .map(|row| {
+            let failed = row.error.is_some();
+            vec![
+                Cell::plain(row.ip.clone()),
+                Cell::plain(
+                    row.latency_ms
+                        .map(|value| format!("{value}ms"))
+                        .unwrap_or_default(),
+                ),
+                Cell::plain(
+                    row.download_mbps
+                        .map(|value| format!("{value:.2}"))
+                        .unwrap_or_default(),
+                ),
+                Cell::plain(
+                    row.upload_mbps
+                        .map(|value| format!("{value:.2}"))
+                        .unwrap_or_default(),
+                ),
+                Cell::styled(
+                    row.error.as_deref().unwrap_or("ok"),
+                    if failed { Style::Red } else { Style::Green },
+                ),
+                Cell::plain(row.last_scanned_at.clone()),
+            ]
+        })
+        .collect::<Vec<_>>();
+
+    output::format_table(&columns, &table_rows, output::color_enabled())
+}
+
+fn format_history_tsv(rows: &[CfScanResultRecord]) -> String {
+    let mut lines = Vec::with_capacity(rows.len() + 1);
+    lines.push("ip\tlatency_ms\tdownload_mbps\tupload_mbps\terror\tlast_scanned_at".to_string());
+    for row in rows {
+        lines.push(format!(
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            row.ip,
+            row.latency_ms
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            row.download_mbps
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_default(),
+            row.upload_mbps
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_default(),
+            row.error
+                .as_deref()
+                .unwrap_or_default()
+                .replace(['\t', '\r', '\n'], " "),
+            row.last_scanned_at,
+        ));
+    }
+    lines.join("\n")
+}
+
+fn history_json(row: &CfScanResultRecord) -> serde_json::Value {
+    serde_json::json!({
+        "id": row.id,
+        "ip": row.ip,
+        "latency_ms": row.latency_ms,
+        "download_mbps": row.download_mbps,
+        "upload_mbps": row.upload_mbps,
+        "error": row.error,
+        "last_scanned_at": row.last_scanned_at,
+    })
 }

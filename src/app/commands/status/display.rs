@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::daemon::ipc::{DaemonResponse, RuntimeStatusPayload};
 
 pub(super) fn print_daemon_status(
@@ -28,22 +29,49 @@ pub(super) fn print_daemon_status(
         return Ok(());
     }
 
-    println!("Runtime: {} (daemon)", payload.runtime_status);
-    println!("Owned: {}", payload.runtime_owned);
-    if let Some(session_id) = payload.session_id {
-        println!("Session: {session_id}");
-    }
-    if let Some(config_id) = payload.active_config_id {
-        println!("Active config: {config_id}");
-    }
-    println!("PID running: {}", payload.pid_running);
-    if payload.http_api_enabled {
-        println!(
-            "HTTP API: enabled ({})",
-            payload.http_api_addr.as_deref().unwrap_or("unknown")
-        );
-    } else {
-        println!("HTTP API: disabled");
-    }
+    println!(
+        "{}",
+        output::format_kv(
+            Some("Runtime"),
+            &[
+                ("mode", "daemon".to_string()),
+                ("status", payload.runtime_status),
+                (
+                    "owned",
+                    output::bool_label(payload.runtime_owned).to_string()
+                ),
+                (
+                    "session",
+                    payload
+                        .session_id
+                        .map(|value| value.to_string())
+                        .unwrap_or_else(|| "-".to_string()),
+                ),
+                (
+                    "active config",
+                    payload
+                        .active_config_id
+                        .map(|value| value.to_string())
+                        .unwrap_or_else(|| "-".to_string()),
+                ),
+                (
+                    "pid running",
+                    output::bool_label(payload.pid_running).to_string(),
+                ),
+                (
+                    "http api",
+                    if payload.http_api_enabled {
+                        format!(
+                            "enabled ({})",
+                            payload.http_api_addr.as_deref().unwrap_or("unknown")
+                        )
+                    } else {
+                        "disabled".to_string()
+                    },
+                ),
+            ],
+            output::color_enabled(),
+        )
+    );
     Ok(())
 }

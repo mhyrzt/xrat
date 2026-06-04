@@ -7,7 +7,7 @@ async fn main() {
     init_tracing(&args);
 
     if let Err(err) = run(&args).await {
-        tracing::error!(error = %err, "command failed");
+        eprintln!("error: {err}");
         std::process::exit(1);
     }
 }

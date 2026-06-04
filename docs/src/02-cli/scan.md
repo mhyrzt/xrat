@@ -15,6 +15,7 @@ xrat scan [flags]
 | `--port <port>`     | Target TCP port (default: `443`)                                    |
 | `--timeout <ms>`    | TCP connect timeout in milliseconds (default: `4000`)               |
 | `--history <limit>` | Print the latest N persisted scan results and exit (skips scanning) |
+| `--format <format>` | Output format for `--history`: `table`, `tsv`, `json` (default: `table`) |
 
 ## Examples
 
@@ -40,6 +41,7 @@ View scan history:
 
 ```bash
 xrat scan --history 20
+xrat scan --history 20 --format json
 ```
 
 ## Behavior
@@ -58,12 +60,8 @@ xrat scan --history 20
 
 ## Output
 
-```
-IP              Port    Latency    Status
-1.1.1.1         443     12ms       reachable
-8.8.8.8         443     15ms       reachable
-9.9.9.9         443     -          timeout
-```
+Normal scans print a concise persistence summary. `--history` prints an aligned
+table by default; use `--format tsv` or `--format json` for scripts.
 
 ## Persistence
 

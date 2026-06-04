@@ -126,11 +126,13 @@ xrat geoip status [flags]
 | ---------------- | --------------------------------------------------- |
 | `--output <dir>` | Override the MMDB target directory for this command |
 | `--strict`       | Exit non-zero when any supported edition is missing |
+| `--json`         | Print status as JSON                                |
 
 ### Example
 
 ```bash
 xrat geoip status --strict
+xrat geoip status --json
 ```
 
 ---

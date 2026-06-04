@@ -40,6 +40,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should collect");
@@ -56,6 +57,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should collect");
@@ -77,6 +79,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should collect");
@@ -95,6 +98,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should collect");
@@ -113,6 +117,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should collect from file");
@@ -131,6 +136,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should merge");
@@ -145,6 +151,7 @@ mod tests {
             port: 443,
             timeout_ms: 1000,
             history: None,
+            format: crate::cli::ListFormat::Table,
         };
 
         let ips = collect_ips(&args).expect("should return empty");

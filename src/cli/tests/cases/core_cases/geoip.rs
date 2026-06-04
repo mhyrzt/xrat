@@ -111,6 +111,7 @@ fn parses_geoip_status_flags() {
         "geoip",
         "status",
         "--strict",
+        "--json",
         "--output",
         "./tmp/mmdb",
     ]);
@@ -119,6 +120,7 @@ fn parses_geoip_status_flags() {
         Command::GeoIp(args) => match args.action {
             GeoIpAction::Status(args) => {
                 assert!(args.strict);
+                assert!(args.json);
                 assert_eq!(
                     args.output.as_deref(),
                     Some(std::path::Path::new("./tmp/mmdb"))

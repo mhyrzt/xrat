@@ -124,6 +124,9 @@ fn parses_init_command() {
 
 #[test]
 fn parses_global_logging_flags() {
+    let default_cli = Cli::parse_from(["xrat", "list", "configs"]);
+    assert_eq!(default_cli.default_log_filter(), "error");
+
     let verbose_cli = Cli::parse_from(["xrat", "-vv", "list", "configs"]);
     assert_eq!(verbose_cli.verbose, 2);
     assert!(!verbose_cli.quiet);

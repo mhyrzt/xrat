@@ -1,3 +1,5 @@
+use std::fmt;
+
 use clap::{Args, Subcommand, ValueEnum};
 
 #[derive(Debug, Args)]
@@ -30,6 +32,13 @@ pub struct ListConfigsArgs {
         help = "Show only configs from the given subscription ID."
     )]
     pub subscription: Option<i64>,
+    #[arg(
+        long = "format",
+        value_enum,
+        default_value_t,
+        help = "Output format: table, tsv, or json [default: table]."
+    )]
+    pub format: ListFormat,
 }
 
 #[derive(Debug, Args, Default)]
@@ -39,6 +48,34 @@ pub struct ListSubscriptionsArgs {
         help = "Filter by source kind: url (remote subscription link), file (local file path), or raw-text (inline text)."
     )]
     pub kind: Option<SubscriptionKind>,
+    #[arg(
+        long = "format",
+        value_enum,
+        default_value_t,
+        help = "Output format: table, tsv, or json [default: table]."
+    )]
+    pub format: ListFormat,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+pub enum ListFormat {
+    /// Aligned table for terminals.
+    #[default]
+    Table,
+    /// Tab-separated values for scripts.
+    Tsv,
+    /// Pretty JSON.
+    Json,
+}
+
+impl fmt::Display for ListFormat {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Table => formatter.write_str("table"),
+            Self::Tsv => formatter.write_str("tsv"),
+            Self::Json => formatter.write_str("json"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, ValueEnum)]

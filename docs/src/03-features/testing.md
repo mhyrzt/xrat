@@ -247,7 +247,8 @@ Testing configs ━━━━━━━━━━━━━━━━━━━━ 45/
 
 | Format | Description                                       |
 | ------ | ------------------------------------------------- |
-| `tsv`  | Tab-separated values (default, terminal-friendly) |
+| `table` | Aligned human-readable table (default)            |
+| `tsv`  | Tab-separated values for scripts                  |
 | `csv`  | Comma-separated values (spreadsheet-friendly)     |
 | `json` | JSON array with full details                      |
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::commands::output;
 
 pub(crate) fn merge_failure(
     result: &mut TestResult,
@@ -19,7 +20,13 @@ pub(crate) fn print_download_result(
     failure_reason: Option<&str>,
 ) {
     if success {
-        println!("OK {:.2} Mbps", mbps.unwrap_or_default());
+        println!(
+            "{}",
+            output::success(
+                format!("{:.2} Mbps", mbps.unwrap_or_default()),
+                output::color_enabled()
+            )
+        );
     } else {
         println!("FAIL {}", failure_reason.unwrap_or("failed"));
     }
@@ -31,7 +38,13 @@ pub(crate) fn print_stage_result(
     failure_reason: Option<&str>,
 ) {
     if success {
-        println!("OK {}ms", latency_ms.unwrap_or_default());
+        println!(
+            "{}",
+            output::success(
+                format!("{}ms", latency_ms.unwrap_or_default()),
+                output::color_enabled()
+            )
+        );
     } else {
         println!("FAIL {}", failure_reason.unwrap_or("failed"));
     }

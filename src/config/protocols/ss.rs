@@ -20,7 +20,7 @@ pub fn parse_ss(line: &str) -> Result<Node, ConfigParseError> {
         return Err(ConfigParseError::MissingBase64Userinfo);
     }
 
-    let decoded = b64_decode_text(userinfo)?;
+    let decoded = b64_decode_text(&percent_decode(userinfo))?;
     let (method, password) = decoded
         .split_once(':')
         .ok_or(ConfigParseError::InvalidShadowsocksUserinfo)?;

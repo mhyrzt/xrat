@@ -66,6 +66,20 @@ fn parses_ss_like_python_reference() {
 }
 
 #[test]
+fn parses_ss_padded_userinfo() {
+    let input = "ss://YWVzLTEyOC1nY206c2hhZG93c29ja3M=@149.22.87.240:443#JP";
+    let nodes = parse_text(input);
+    assert_eq!(nodes.len(), 1);
+    let node = &nodes[0];
+    assert_eq!(node.protocol, Protocol::Ss);
+    assert_eq!(node.address, "149.22.87.240");
+    assert_eq!(node.port, 443);
+    assert_eq!(node.method.as_deref(), Some("aes-128-gcm"));
+    assert_eq!(node.password.as_deref(), Some("shadowsocks"));
+    assert_eq!(node.name.as_deref(), Some("JP"));
+}
+
+#[test]
 fn normalizes_ws_host_and_path() {
     let input = "vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com#Node";
     let nodes = parse_text(input);

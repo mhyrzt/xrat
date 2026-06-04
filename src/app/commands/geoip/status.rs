@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::app::AppError;
+use crate::app::commands::output::{self, Align, Cell, Column, Style};
 use crate::app::context::AppContext;
 use crate::cli::GeoIpStatusArgs;
 
@@ -11,13 +12,16 @@ pub fn run(context: &AppContext, args: &GeoIpStatusArgs) -> crate::app::Result<(
     let dir = resolve_mmdb_target_dir(context, args.output.as_ref());
     let statuses = collect_statuses(&dir)?;
 
-    println!("mmdb dir: {}", dir.display());
-    for status in &statuses {
-        let size = status
-            .size_bytes
-            .map(format_bytes)
-            .unwrap_or_else(|| "-".to_string());
-        println!("{:<22} {:<8} {}", status.file_name, status.state, size);
+    if args.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "mmdb_dir": dir,
+                "editions": statuses.iter().map(status_json).collect::<Vec<_>>(),
+            }))?
+        );
+    } else {
+        println!("{}", format_status_table(&dir, &statuses));
     }
 
     if args.strict && statuses.iter().any(|status| status.is_missing()) {
@@ -69,6 +73,64 @@ fn collect_statuses(dir: &Path) -> crate::app::Result<Vec<EditionStatus>> {
     }
 
     Ok(statuses)
+}
+
+fn format_status_table(dir: &Path, statuses: &[EditionStatus]) -> String {
+    let mut lines = Vec::new();
+    lines.push(output::format_kv(
+        Some("GeoIP"),
+        &[("mmdb dir", dir.display().to_string())],
+        output::color_enabled(),
+    ));
+    lines.push(String::new());
+    lines.push(output::format_table(
+        &[
+            Column {
+                header: "EDITION",
+                align: Align::Left,
+            },
+            Column {
+                header: "STATE",
+                align: Align::Left,
+            },
+            Column {
+                header: "SIZE",
+                align: Align::Right,
+            },
+        ],
+        &statuses
+            .iter()
+            .map(|status| {
+                vec![
+                    Cell::plain(status.file_name),
+                    Cell::styled(
+                        status.state,
+                        if status.is_missing() {
+                            Style::Yellow
+                        } else {
+                            Style::Green
+                        },
+                    ),
+                    Cell::plain(
+                        status
+                            .size_bytes
+                            .map(format_bytes)
+                            .unwrap_or_else(|| "-".to_string()),
+                    ),
+                ]
+            })
+            .collect::<Vec<_>>(),
+        output::color_enabled(),
+    ));
+    lines.join("\n")
+}
+
+fn status_json(status: &EditionStatus) -> serde_json::Value {
+    serde_json::json!({
+        "file_name": status.file_name,
+        "state": status.state,
+        "size_bytes": status.size_bytes,
+    })
 }
 
 fn format_bytes(bytes: u64) -> String {

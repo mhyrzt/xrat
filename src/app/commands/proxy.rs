@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::{ProxyAction, ProxyArgs};
@@ -13,9 +14,19 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     if !response.ok {
                         return Err(crate::app::AppError::InvalidArgument(response.message));
                     }
-                    println!("Proxy rotation: {}", response.message);
                     println!(
-                        "Note: This state is volatile and resets to config defaults on daemon restart."
+                        "{}",
+                        output::success(
+                            format!("Proxy rotation: {}.", response.message),
+                            output::color_enabled()
+                        )
+                    );
+                    println!(
+                        "{}",
+                        output::notice(
+                            "State is volatile and resets to config defaults on daemon restart.",
+                            output::color_enabled()
+                        )
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
@@ -43,18 +54,65 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         println!("{}", serde_json::to_string_pretty(&payload)?);
                     } else {
                         println!(
-                            "Proxy rotation: enabled={}, interval_secs={}, health_trigger_enabled={}, cooldown_secs={}, cooldown_active={}, active_config={:?}, last_trigger={:?}, last_result={}, last_candidate_config={:?}, last_candidate_result={}, next_timer_at={:?}",
-                            payload.rotation_enabled,
-                            payload.interval_secs,
-                            payload.health_trigger_enabled,
-                            payload.cooldown_secs,
-                            payload.cooldown_active,
-                            payload.active_config_id,
-                            payload.last_trigger,
-                            payload.last_result,
-                            payload.last_candidate_config_id,
-                            payload.last_candidate_result,
-                            payload.next_timer_epoch_secs
+                            "{}",
+                            output::format_kv(
+                                Some("Proxy rotation"),
+                                &[
+                                    (
+                                        "enabled",
+                                        output::bool_label(payload.rotation_enabled).to_string(),
+                                    ),
+                                    ("interval", format!("{}s", payload.interval_secs)),
+                                    (
+                                        "health trigger",
+                                        output::bool_label(payload.health_trigger_enabled)
+                                            .to_string(),
+                                    ),
+                                    ("cooldown", format!("{}s", payload.cooldown_secs)),
+                                    (
+                                        "cooldown active",
+                                        output::bool_label(payload.cooldown_active).to_string(),
+                                    ),
+                                    (
+                                        "active config",
+                                        payload
+                                            .active_config_id
+                                            .map(|value| value.to_string())
+                                            .unwrap_or_else(|| "-".to_string()),
+                                    ),
+                                    (
+                                        "last trigger",
+                                        payload
+                                            .last_trigger
+                                            .map(|trigger| match trigger {
+                                                ipc::RotationTrigger::Manual => "manual",
+                                                ipc::RotationTrigger::Timer => "timer",
+                                                ipc::RotationTrigger::HealthCheckFailed => {
+                                                    "health_check_failed"
+                                                }
+                                            })
+                                            .unwrap_or("-")
+                                            .to_string(),
+                                    ),
+                                    ("last result", payload.last_result),
+                                    (
+                                        "candidate config",
+                                        payload
+                                            .last_candidate_config_id
+                                            .map(|value| value.to_string())
+                                            .unwrap_or_else(|| "-".to_string()),
+                                    ),
+                                    ("candidate result", payload.last_candidate_result),
+                                    (
+                                        "next timer",
+                                        payload
+                                            .next_timer_epoch_secs
+                                            .map(|value| value.to_string())
+                                            .unwrap_or_else(|| "-".to_string()),
+                                    ),
+                                ],
+                                output::color_enabled(),
+                            )
                         );
                     }
                 }
@@ -85,12 +143,22 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                         )
                     })?;
                     println!(
-                        "Proxy rotate: replaced={}, old_session_id={}, new_config_id={}, new_session_id={}, new_pid={}",
-                        payload.replaced,
-                        payload.old_session_id,
-                        payload.new_config_id,
-                        payload.new_session_id,
-                        payload.new_pid
+                        "{}",
+                        output::success("Proxy rotation completed.", output::color_enabled())
+                    );
+                    println!(
+                        "{}",
+                        output::format_kv(
+                            None,
+                            &[
+                                ("replaced", output::bool_label(payload.replaced).to_string()),
+                                ("old session", payload.old_session_id.to_string()),
+                                ("new config", payload.new_config_id.to_string()),
+                                ("new session", payload.new_session_id.to_string()),
+                                ("new pid", payload.new_pid.to_string()),
+                            ],
+                            output::color_enabled(),
+                        )
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
@@ -109,9 +177,19 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     if !response.ok {
                         return Err(crate::app::AppError::InvalidArgument(response.message));
                     }
-                    println!("Proxy rotation: {}", response.message);
                     println!(
-                        "Note: This state is volatile and resets to config defaults on daemon restart."
+                        "{}",
+                        output::success(
+                            format!("Proxy rotation: {}.", response.message),
+                            output::color_enabled()
+                        )
+                    );
+                    println!(
+                        "{}",
+                        output::notice(
+                            "State is volatile and resets to config defaults on daemon restart.",
+                            output::color_enabled()
+                        )
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {

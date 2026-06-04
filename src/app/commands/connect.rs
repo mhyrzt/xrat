@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::ConnectArgs;
@@ -25,9 +26,24 @@ pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result
                     }))?
                 );
             } else {
-                println!("Connected config {} via daemon", payload.config_id);
-                println!("Session: {}", payload.session_id);
-                println!("PID: {}", payload.pid);
+                println!(
+                    "{}",
+                    output::success(
+                        format!("Connected config {} via daemon.", payload.config_id),
+                        output::color_enabled()
+                    )
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[
+                            ("session", payload.session_id.to_string()),
+                            ("pid", payload.pid.to_string()),
+                        ],
+                        output::color_enabled(),
+                    )
+                );
             }
             Ok(())
         }

@@ -1,5 +1,7 @@
 use clap::Args;
 
+use crate::cli::ListFormat;
+
 #[derive(Debug, Clone, Args)]
 #[command(about = "Scan candidate IPs for TCP reachability and persist results.")]
 pub struct ScanArgs {
@@ -29,4 +31,12 @@ pub struct ScanArgs {
         help = "Print the latest N persisted scan results and exit (skips scanning)."
     )]
     pub history: Option<i64>,
+
+    #[arg(
+        long = "format",
+        value_enum,
+        default_value_t,
+        help = "Output format for --history: table, tsv, or json [default: table]."
+    )]
+    pub format: ListFormat,
 }

@@ -30,6 +30,7 @@ xrat list configs [flags]
 | `--deleted`           | Show only soft-deleted configs                   |
 | `--all`               | Include soft-deleted configs in results          |
 | `--subscription <id>` | Show only configs from the given subscription ID |
+| `--format <format>`   | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples
 
@@ -64,6 +65,7 @@ xrat list subscriptions [flags]
 | Flag            | Description                                         |
 | --------------- | --------------------------------------------------- |
 | `--kind <kind>` | Filter by source kind: `url`, `file`, or `raw-text` |
+| `--format <format>` | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples
 
@@ -78,3 +80,6 @@ List only URL-based subscriptions:
 ```bash
 xrat list subscriptions --kind url
 ```
+
+Use `--format tsv` or `--format json` for scripts. The default `table` format is
+optimized for humans and may change as the CLI evolves.

@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::DisconnectArgs;
@@ -43,9 +44,18 @@ pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Res
     }
 
     if result.stopped_session {
-        println!("Disconnected active runtime session");
+        println!(
+            "{}",
+            output::success(
+                "Disconnected active runtime session.",
+                output::color_enabled()
+            )
+        );
     } else {
-        println!("No active runtime session");
+        println!(
+            "{}",
+            output::notice("No active runtime session.", output::color_enabled())
+        );
     }
     Ok(())
 }

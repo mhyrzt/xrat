@@ -70,7 +70,7 @@ impl Cli {
         }
 
         match self.verbose {
-            0 => "warn",
+            0 => "error",
             1 => "info",
             2 => "debug",
             _ => "trace",

@@ -114,9 +114,12 @@ fn formats_details_output_for_valid_link() {
         .expect("node should exist");
 
     let details = format_details(&node, ResolvedEngine::Xray);
-    assert!(details.contains("engine: xray"));
-    assert!(details.contains("protocol: vless"));
-    assert!(details.contains("address: example.com"));
+    assert!(details.contains("engine"));
+    assert!(details.contains("xray"));
+    assert!(details.contains("protocol"));
+    assert!(details.contains("vless"));
+    assert!(details.contains("address"));
+    assert!(details.contains("example.com"));
 }
 
 #[test]

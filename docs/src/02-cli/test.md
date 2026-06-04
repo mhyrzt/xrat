@@ -55,7 +55,7 @@ When testing multiple configs (no `id` specified):
 | Flag                | Description                                                                                             |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `--concurrency <n>` | Bulk-test concurrency. `0` = auto-detect                                                                |
-| `--format <format>` | Output format: `tsv`, `csv`, `json` (default: `tsv`)                                                    |
+| `--format <format>` | Output format: `table`, `tsv`, `csv`, `json` (default: `table`)                                         |
 | `--output <file>`   | Write bulk results to a file instead of stdout                                                          |
 | `--sort-by <field>` | Sort order: `status`, `icmp`, `real-delay`, `download-speed`, `protocol`, `address` (default: `status`) |
 | `--no-progress`     | Hide the animated progress bar                                                                          |
@@ -166,9 +166,13 @@ xrat test --latest-run-summary --country US --asn cloudflare
 
 ## Output Formats
 
-### TSV (default)
+### Table (default)
 
-Tab-separated values, easy to read in terminal:
+Aligned human-readable table for terminal use.
+
+### TSV
+
+Tab-separated values for scripts:
 
 ```
 ID	Protocol	Address	ICMP	TCP	Real Delay	Download	Status

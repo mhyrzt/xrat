@@ -1,4 +1,5 @@
 use crate::app::AppError;
+use crate::app::commands::output;
 use crate::config::ResolvedEngine;
 use crate::model::Node;
 use crate::singbox::generate_singbox_probe_config;
@@ -67,16 +68,20 @@ pub(super) fn print_details(node: &Node, engine: ResolvedEngine) {
 }
 
 pub(super) fn format_details(node: &Node, engine: ResolvedEngine) -> String {
-    format!(
-        "  engine: {engine}\nprotocol: {}\n address: {}\n    port: {}\n network: {}\n     tls: {}\n     sni: {}\n    host: {}\n    path: {}\n    name: {}",
-        node.protocol,
-        node.address,
-        node.port,
-        node.network,
-        node.tls.as_deref().unwrap_or("none"),
-        node.sni.as_deref().unwrap_or("-"),
-        node.host.as_deref().unwrap_or("-"),
-        node.path.as_deref().unwrap_or("-"),
-        node.name.as_deref().unwrap_or("-")
+    output::format_kv(
+        Some("Parsed config"),
+        &[
+            ("engine", engine.to_string()),
+            ("protocol", node.protocol.to_string()),
+            ("address", node.address.clone()),
+            ("port", node.port.to_string()),
+            ("network", node.network.clone()),
+            ("tls", node.tls.as_deref().unwrap_or("none").to_string()),
+            ("sni", output::dash(node.sni.as_deref())),
+            ("host", output::dash(node.host.as_deref())),
+            ("path", output::dash(node.path.as_deref())),
+            ("name", output::dash(node.name.as_deref())),
+        ],
+        output::color_enabled(),
     )
 }

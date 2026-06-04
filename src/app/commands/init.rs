@@ -1,3 +1,4 @@
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::cli::InitArgs;
 
@@ -17,14 +18,25 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
     let mut present = Vec::new();
 
     if args.dry_run {
-        println!("--- dry run: no files written ---\n");
-        println!("Would create (if absent):");
-        println!("  {}/", root.display());
-        println!("  {}", config_path.display());
-        println!("  {}", db_path.display());
-        println!("  {}/", runtime_dir.display());
-        println!("  {}/", logs_dir.display());
-        println!("  {}/", mmdb_dir.display());
+        println!(
+            "{}",
+            output::notice("Dry run: no files written.", output::color_enabled())
+        );
+        println!(
+            "{}",
+            output::format_kv(
+                Some("Would create if absent"),
+                &[
+                    ("root", format!("{}/", root.display())),
+                    ("config", config_path.display().to_string()),
+                    ("database", db_path.display().to_string()),
+                    ("runtime", format!("{}/", runtime_dir.display())),
+                    ("logs", format!("{}/", logs_dir.display())),
+                    ("mmdb", format!("{}/", mmdb_dir.display())),
+                ],
+                output::color_enabled(),
+            )
+        );
         return Ok(());
     }
 
@@ -66,27 +78,39 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
         }
     }
 
-    println!("xrat initialized successfully.\n");
+    println!(
+        "{}",
+        output::success("xrat initialized successfully.", output::color_enabled())
+    );
 
     if !created.is_empty() {
-        println!("Created:");
-        for item in &created {
-            println!("  {item}");
-        }
         println!();
+        println!(
+            "{}",
+            output::format_list("Created", &created, output::color_enabled())
+        );
     }
 
     if !present.is_empty() {
-        println!("Already present:");
-        for item in &present {
-            println!("  {item}");
-        }
         println!();
+        println!(
+            "{}",
+            output::format_list("Already present", &present, output::color_enabled())
+        );
     }
 
-    println!("Next steps:");
-    println!("  xrat import <subscription-url>");
-    println!("  xrat list configs");
+    println!();
+    println!(
+        "{}",
+        output::format_list(
+            "Next steps",
+            &[
+                "xrat import <subscription-url>".to_string(),
+                "xrat list configs".to_string(),
+            ],
+            output::color_enabled(),
+        )
+    );
 
     Ok(())
 }
