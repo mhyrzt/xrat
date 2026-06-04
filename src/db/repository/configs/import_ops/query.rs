@@ -4,7 +4,7 @@ use crate::db::connection::DbPool;
 use crate::db::record::{ConfigListFilter, ConfigRecord};
 use crate::db::repository::row::map_config_row;
 
-pub const CONFIG_COLUMNS: &str = "id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_selected, is_deleted, deleted_at, imported_at, created_at, updated_at";
+pub const CONFIG_COLUMNS: &str = "id, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_deleted, deleted_at, imported_at, created_at, updated_at";
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
@@ -58,9 +58,6 @@ where
     }
     if filter.only_enabled {
         builder.push(" AND is_enabled = 1");
-    }
-    if filter.only_selected {
-        builder.push(" AND is_selected = 1");
     }
     if filter.only_active {
         builder.push(" AND is_active = 1");

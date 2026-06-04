@@ -38,7 +38,6 @@ async fn soft_delete_sets_is_deleted_and_deleted_at() {
     assert!(deleted.is_deleted);
     assert!(deleted.deleted_at.is_some());
     assert!(!deleted.is_active);
-    assert!(!deleted.is_selected);
 
     let _ = std::fs::remove_file(db_path);
 }

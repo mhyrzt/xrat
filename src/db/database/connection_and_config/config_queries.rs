@@ -25,10 +25,6 @@ impl Database {
         repository::get_config_by_id(&self.pool, id).await
     }
 
-    pub async fn get_selected_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
-        repository::get_selected_config(&self.pool).await
-    }
-
     pub async fn get_active_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
         repository::get_active_config(&self.pool).await
     }
@@ -51,9 +47,5 @@ impl Database {
 
     pub async fn get_connection_test_count(&self) -> crate::db::Result<i64> {
         repository::get_connection_test_count(&self.pool).await
-    }
-
-    pub async fn get_config_flags(&self, dedup_key: &str) -> crate::db::Result<(bool, bool, bool)> {
-        repository::get_config_flags(&self.pool, dedup_key).await
     }
 }

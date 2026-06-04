@@ -1,7 +1,7 @@
 use super::*;
 
 #[tokio::test]
-async fn config_selection_and_activation_are_exclusive() {
+async fn config_activation_is_exclusive() {
     let db_path = test_database_path("xrat-config-state");
     let db = Database::connect_sqlite(&db_path)
         .await
@@ -26,12 +26,6 @@ async fn config_selection_and_activation_are_exclusive() {
     let first_id = configs[0].id;
     let second_id = configs[1].id;
 
-    db.set_selected_config(first_id)
-        .await
-        .expect("select first should succeed");
-    db.set_selected_config(second_id)
-        .await
-        .expect("select second should succeed");
     db.set_active_config(first_id)
         .await
         .expect("activate first should succeed");
@@ -39,11 +33,6 @@ async fn config_selection_and_activation_are_exclusive() {
         .await
         .expect("activate second should succeed");
 
-    let selected = db
-        .get_selected_config()
-        .await
-        .expect("selected query should succeed")
-        .expect("selected config should exist");
     let active = db
         .get_active_config()
         .await
@@ -54,12 +43,7 @@ async fn config_selection_and_activation_are_exclusive() {
         .await
         .expect("list should succeed");
 
-    assert_eq!(selected.id, second_id);
     assert_eq!(active.id, second_id);
-    assert_eq!(
-        configs.iter().filter(|config| config.is_selected).count(),
-        1
-    );
     assert_eq!(configs.iter().filter(|config| config.is_active).count(), 1);
 
     let _ = std::fs::remove_file(db_path);

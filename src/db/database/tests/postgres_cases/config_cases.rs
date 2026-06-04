@@ -34,12 +34,6 @@ pub(super) async fn verify_import_and_config_state(db: &Database) -> (i64, i64) 
     let first_id = configs[0].id;
     let second_id = configs[1].id;
 
-    db.set_selected_config(first_id)
-        .await
-        .expect("select first should succeed");
-    db.set_selected_config(second_id)
-        .await
-        .expect("select second should succeed");
     db.set_active_config(first_id)
         .await
         .expect("activate first should succeed");
@@ -47,17 +41,11 @@ pub(super) async fn verify_import_and_config_state(db: &Database) -> (i64, i64) 
         .await
         .expect("activate second should succeed");
 
-    let selected = db
-        .get_selected_config()
-        .await
-        .expect("selected query should succeed")
-        .expect("selected config should exist");
     let active = db
         .get_active_config()
         .await
         .expect("active query should succeed")
         .expect("active config should exist");
-    assert_eq!(selected.id, second_id);
     assert_eq!(active.id, second_id);
 
     db.set_config_enabled(second_id, false)
@@ -71,7 +59,6 @@ pub(super) async fn verify_import_and_config_state(db: &Database) -> (i64, i64) 
         .await
         .expect("enabled configs should load");
     assert_eq!(enabled_configs.len(), 1);
-    assert!(db.get_selected_config().await.expect("selected").is_none());
     assert!(db.get_active_config().await.expect("active").is_none());
 
     db.set_config_enabled(second_id, true)

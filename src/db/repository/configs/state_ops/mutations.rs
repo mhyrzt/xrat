@@ -1,34 +1,5 @@
 use crate::db::connection::DbPool;
 
-pub async fn clear_all_selected(pool: &DbPool) -> crate::db::Result<()> {
-    match pool {
-        DbPool::Sqlite(_) => {
-            execute_no_bind(
-                pool,
-                "UPDATE configs SET is_selected = 0, updated_at = CURRENT_TIMESTAMP",
-            )
-            .await
-        }
-        DbPool::Postgres(_) => {
-            execute_no_bind(
-                pool,
-                "UPDATE configs SET is_selected = 0, updated_at = CURRENT_TIMESTAMP::TEXT",
-            )
-            .await
-        }
-    }
-}
-
-pub async fn mark_selected(pool: &DbPool, id: i64) -> crate::db::Result<()> {
-    execute_id(
-        pool,
-        "UPDATE configs SET is_selected = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
-        "UPDATE configs SET is_selected = 1, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1",
-        id,
-    )
-    .await
-}
-
 pub async fn clear_all_active(pool: &DbPool) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(_) => {
@@ -62,11 +33,11 @@ pub async fn set_enabled(pool: &DbPool, id: i64, enabled: bool) -> crate::db::Re
     let enabled_flag = if enabled { 1 } else { 0 };
     match pool {
         DbPool::Sqlite(pool) => {
-            sqlx::query("UPDATE configs SET is_enabled = ?2, is_selected = CASE WHEN ?2 = 0 THEN 0 ELSE is_selected END, is_active = CASE WHEN ?2 = 0 THEN 0 ELSE is_active END, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+            sqlx::query("UPDATE configs SET is_enabled = ?2, is_active = CASE WHEN ?2 = 0 THEN 0 ELSE is_active END, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
                 .bind(id).bind(enabled_flag).execute(pool).await?;
         }
         DbPool::Postgres(pool) => {
-            sqlx::query("UPDATE configs SET is_enabled = $2, is_selected = CASE WHEN $2 = 0 THEN 0 ELSE is_selected END, is_active = CASE WHEN $2 = 0 THEN 0 ELSE is_active END, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+            sqlx::query("UPDATE configs SET is_enabled = $2, is_active = CASE WHEN $2 = 0 THEN 0 ELSE is_active END, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
                 .bind(id).bind(enabled_flag).execute(pool).await?;
         }
     }
@@ -76,11 +47,11 @@ pub async fn set_enabled(pool: &DbPool, id: i64, enabled: bool) -> crate::db::Re
 pub async fn soft_delete(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     match pool {
         DbPool::Sqlite(pool) => {
-            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, is_active = 0, is_selected = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
+            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1")
                 .bind(id).execute(pool).await?;
         }
         DbPool::Postgres(pool) => {
-            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP::TEXT, is_active = 0, is_selected = 0, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
+            sqlx::query("UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP::TEXT, is_active = 0, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id = $1")
                 .bind(id).execute(pool).await?;
         }
     }

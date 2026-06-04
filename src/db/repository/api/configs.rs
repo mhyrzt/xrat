@@ -29,19 +29,8 @@ pub async fn get_config_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Optio
     configs::get_by_id(pool, id).await
 }
 
-pub async fn get_selected_config(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>> {
-    configs::get_selected(pool).await
-}
-
 pub async fn get_active_config(pool: &DbPool) -> crate::db::Result<Option<ConfigRecord>> {
     configs::get_active(pool).await
-}
-
-pub async fn get_config_flags(
-    pool: &DbPool,
-    dedup_key: &str,
-) -> crate::db::Result<(bool, bool, bool)> {
-    configs::get_flags(pool, dedup_key).await
 }
 
 pub async fn delete_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
@@ -54,11 +43,6 @@ pub async fn restore_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
 
 pub async fn hard_delete_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
     configs::hard_delete(pool, id).await
-}
-
-pub async fn set_selected_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {
-    configs::clear_all_selected(pool).await?;
-    configs::mark_selected(pool, id).await
 }
 
 pub async fn set_active_config(pool: &DbPool, id: i64) -> crate::db::Result<()> {

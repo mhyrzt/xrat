@@ -14,10 +14,6 @@ impl Database {
         repository::hard_delete_config(&self.pool, id).await
     }
 
-    pub async fn set_selected_config(&self, id: i64) -> crate::db::Result<()> {
-        repository::set_selected_config(&self.pool, id).await
-    }
-
     pub async fn set_active_config(&self, id: i64) -> crate::db::Result<()> {
         repository::set_active_config(&self.pool, id).await
     }

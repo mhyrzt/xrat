@@ -33,7 +33,6 @@ where
         raw_config: row.get("raw_config"),
         is_active: row.get::<i64, _>("is_active") != 0,
         is_enabled: row.get::<i64, _>("is_enabled") != 0,
-        is_selected: row.get::<i64, _>("is_selected") != 0,
         is_deleted: row.get::<i64, _>("is_deleted") != 0,
         deleted_at: row.get("deleted_at"),
         imported_at: row.get("imported_at"),
