@@ -309,17 +309,17 @@ CREATE TABLE events (
 );
 ```
 
-| Column       | Type    | Description                                            |
-| ------------ | ------- | ------------------------------------------------------ |
-| `id`         | INTEGER | Primary key                                            |
-| `level`      | TEXT    | `info`, `warn`, or `error`                             |
-| `source`     | TEXT    | `daemon`, `runtime`, `rotation`, `health`, or `test`   |
+| Column       | Type    | Description                                              |
+| ------------ | ------- | -------------------------------------------------------- |
+| `id`         | INTEGER | Primary key                                              |
+| `level`      | TEXT    | `info`, `warn`, or `error`                               |
+| `source`     | TEXT    | `daemon`, `runtime`, `rotation`, `health`, or `test`     |
 | `kind`       | TEXT    | Event kind (e.g. `proxy_rotated`, `connect`, `test_run`) |
-| `config_id`  | INTEGER | Related config, if any                                 |
-| `session_id` | INTEGER | Related runtime session, if any                        |
-| `message`    | TEXT    | Human-readable summary                                 |
-| `detail`     | TEXT    | Optional JSON detail                                   |
-| `created_at` | TEXT    | Creation timestamp                                     |
+| `config_id`  | INTEGER | Related config, if any                                   |
+| `session_id` | INTEGER | Related runtime session, if any                          |
+| `message`    | TEXT    | Human-readable summary                                   |
+| `detail`     | TEXT    | Optional JSON detail                                     |
+| `created_at` | TEXT    | Creation timestamp                                       |
 
 Rows are inserted fire-and-forget; a failed insert is logged but never breaks
 the operation that produced the event.
@@ -350,7 +350,7 @@ Migrations are run automatically on startup using SQLx.
 | 0014 | `add_runtime_session_cooldown_failure_fields.sql` | Add cooldown and failure tracking                                          |
 | 0015 | `add_config_soft_delete.sql`                      | Add soft-delete fields to configs                                          |
 | 0016 | `drop_config_is_selected.sql`                     | Drop the legacy `is_selected` column from configs                          |
-| 0017 | `add_events.sql`                                  | Add events table for the `xrat logs` event log                            |
+| 0017 | `add_events.sql`                                  | Add events table for the `xrat logs` event log                             |
 
 ### Migration Location
 

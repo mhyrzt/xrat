@@ -153,10 +153,10 @@ xrat delete subscription <id> [--yes]
 
 ### Flags
 
-| Flag     | Description                                                  |
-| -------- | ----------------------------------------------------------- |
-| `--hard` | (config) Permanently delete the config instead of soft      |
-| `--yes`  | (subscription) Skip the confirmation prompt                 |
+| Flag     | Description                                            |
+| -------- | ------------------------------------------------------ |
+| `--hard` | (config) Permanently delete the config instead of soft |
+| `--yes`  | (subscription) Skip the confirmation prompt            |
 
 Soft-deleted configs are hidden from normal lists but can still be viewed with:
 

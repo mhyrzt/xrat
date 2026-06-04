@@ -19,6 +19,10 @@
 XRAT is a Rust CLI and TUI for importing, storing, testing, and running
 Xray-compatible proxy configurations.
 
+<p align="center">
+  <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
+</p>
+
 ## Installation
 
 ```bash

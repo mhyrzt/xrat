@@ -8,6 +8,10 @@
 **sing-box**. Import subscriptions, test latency, scan edge IPs, rotate proxies,
 and run a managed Xray/V2Ray proxy runtime — all from a single Rust binary.
 
+<p align="center">
+  <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
+</p>
+
 ## What you can do
 
 - **Import** proxy configs from subscription URLs, base64 files, or raw

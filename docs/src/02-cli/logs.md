@@ -20,13 +20,13 @@ entries live (press `Ctrl-C` to stop).
 
 ## Flags
 
-| Flag              | Description                                                                 |
-| ----------------- | --------------------------------------------------------------------------- |
-| `-f`, `--follow`  | Stream new entries as they arrive instead of exiting                        |
-| `-n`, `--lines`   | Number of recent entries to show before following (default: 200)            |
-| `--source`        | Which feeds to include: `all`, `app`, `daemon`, `xray`, `singbox` (default: `all`) |
-| `--level`         | Minimum event level: `info`, `warn`, or `error` (applies to app events)     |
-| `--format`        | Event stream format: `table`, `tsv`, or `json` (default: `table`)           |
+| Flag             | Description                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| `-f`, `--follow` | Stream new entries as they arrive instead of exiting                               |
+| `-n`, `--lines`  | Number of recent entries to show before following (default: 200)                   |
+| `--source`       | Which feeds to include: `all`, `app`, `daemon`, `xray`, `singbox` (default: `all`) |
+| `--level`        | Minimum event level: `info`, `warn`, or `error` (applies to app events)            |
+| `--format`       | Event stream format: `table`, `tsv`, or `json` (default: `table`)                  |
 
 Notes:
 
@@ -55,12 +55,12 @@ xrat logs --source app --level error --format json
 
 ## Where logs live
 
-| Source       | Location                                                  |
-| ------------ | -------------------------------------------------------- |
-| App events   | `events` table in the database                          |
-| Daemon       | `<runtime-dir>/daemon.log`                               |
-| xray-core    | `<runtime-dir>/session-<id>.out.log` / `.err.log`       |
-| sing-box     | `<runtime-dir>/session-<id>.singbox.out.log` / `.err.log` |
+| Source     | Location                                                  |
+| ---------- | --------------------------------------------------------- |
+| App events | `events` table in the database                            |
+| Daemon     | `<runtime-dir>/daemon.log`                                |
+| xray-core  | `<runtime-dir>/session-<id>.out.log` / `.err.log`         |
+| sing-box   | `<runtime-dir>/session-<id>.singbox.out.log` / `.err.log` |
 
 The daemon emits its own process output to `daemon.log` (errors and panics);
 normal operational events are captured as structured rows instead.

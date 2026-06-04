@@ -23,13 +23,13 @@ xrat list configs [flags]
 
 ### Flags
 
-| Flag                  | Description                                      |
-| --------------------- | ------------------------------------------------ |
-| `--enabled-only`      | Show only enabled configs                        |
-| `--active-only`       | Show only the active config                      |
-| `--deleted`           | Show only soft-deleted configs                   |
-| `--all`               | Include soft-deleted configs in results          |
-| `--subscription <id>` | Show only configs from the given subscription ID |
+| Flag                  | Description                                              |
+| --------------------- | -------------------------------------------------------- |
+| `--enabled-only`      | Show only enabled configs                                |
+| `--active-only`       | Show only the active config                              |
+| `--deleted`           | Show only soft-deleted configs                           |
+| `--all`               | Include soft-deleted configs in results                  |
+| `--subscription <id>` | Show only configs from the given subscription ID         |
 | `--format <format>`   | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples
@@ -62,9 +62,9 @@ xrat list subscriptions [flags]
 
 ### Flags
 
-| Flag            | Description                                         |
-| --------------- | --------------------------------------------------- |
-| `--kind <kind>` | Filter by source kind: `url`, `file`, or `raw-text` |
+| Flag                | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `--kind <kind>`     | Filter by source kind: `url`, `file`, or `raw-text`      |
 | `--format <format>` | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples

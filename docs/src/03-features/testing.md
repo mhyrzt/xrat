@@ -245,12 +245,12 @@ Testing configs ━━━━━━━━━━━━━━━━━━━━ 45/
 
 ### Output Formats
 
-| Format | Description                                       |
-| ------ | ------------------------------------------------- |
-| `table` | Aligned human-readable table (default)            |
-| `tsv`  | Tab-separated values for scripts                  |
-| `csv`  | Comma-separated values (spreadsheet-friendly)     |
-| `json` | JSON array with full details                      |
+| Format  | Description                                   |
+| ------- | --------------------------------------------- |
+| `table` | Aligned human-readable table (default)        |
+| `tsv`   | Tab-separated values for scripts              |
+| `csv`   | Comma-separated values (spreadsheet-friendly) |
+| `json`  | JSON array with full details                  |
 
 ### Sorting
 
