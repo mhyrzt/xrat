@@ -1,4 +1,5 @@
 mod connection_and_config;
+mod events;
 mod runtime_and_state;
 mod test_history;
 mod test_support;

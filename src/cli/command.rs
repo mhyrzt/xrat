@@ -2,8 +2,9 @@ use clap::Subcommand;
 
 use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs,
-    EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, ManpageArgs, ParseArgs, ProxyArgs,
-    RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs,
+    EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs, ParseArgs,
+    ProxyArgs, PurgeArgs, RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs,
+    TuiArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -16,16 +17,18 @@ pub enum Command {
     Add(AddArgs),
     #[command(about = "List stored configs or subscription sources.")]
     List(ListArgs),
-    #[command(about = "Show details for a config.")]
+    #[command(about = "Show details for a config or subscription.")]
     Show(ShowArgs),
     #[command(about = "Enable a config.")]
     Enable(EnableArgs),
     #[command(about = "Disable a config.")]
     Disable(DisableArgs),
-    #[command(about = "Soft delete a config.")]
+    #[command(about = "Delete a config (soft/hard) or a subscription with its configs.")]
     Delete(DeleteArgs),
     #[command(about = "Restore a soft-deleted config.")]
     Restore(RestoreArgs),
+    #[command(about = "Permanently delete all soft-deleted configs.")]
+    Purge(PurgeArgs),
     #[command(about = "Test connectivity and latency for stored configs.")]
     Test(Box<TestArgs>),
     #[command(about = "Scan candidate IPs for TCP reachability and persist results.")]
@@ -36,6 +39,8 @@ pub enum Command {
     Disconnect(DisconnectArgs),
     #[command(about = "Show the managed proxy runtime status.")]
     Status(StatusArgs),
+    #[command(about = "Show app events plus xray-core / sing-box engine logs.")]
+    Logs(LogsArgs),
     #[command(about = "Run or control the XRAT daemon supervisor process.")]
     Daemon(DaemonArgs),
     #[command(about = "Control auto-rotating proxy scheduling via the daemon.")]

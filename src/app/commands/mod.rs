@@ -9,9 +9,12 @@ mod import;
 mod init;
 mod lifecycle;
 mod list;
+mod logs;
 mod manpage;
+mod output;
 mod parse;
 mod proxy;
+mod purge;
 mod scan;
 mod serve;
 mod status;
@@ -32,11 +35,13 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Disable(args) => lifecycle::disable(context, args).await,
         Command::Delete(args) => lifecycle::delete(context, args).await,
         Command::Restore(args) => lifecycle::restore(context, args).await,
+        Command::Purge(args) => purge::run(context, args).await,
         Command::Test(args) => test::run(args, context).await,
         Command::Scan(args) => scan::run(context, args).await,
         Command::Connect(args) => connect::run(context, args).await,
         Command::Disconnect(args) => disconnect::run(context, args).await,
         Command::Status(args) => status::run(context, args).await,
+        Command::Logs(args) => logs::run(context, args).await,
         Command::Daemon(args) => daemon::run(context, args).await,
         Command::Proxy(args) => proxy::run(context, args).await,
         Command::Serve(args) => serve::run(context, args).await,

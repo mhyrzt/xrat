@@ -4,6 +4,7 @@ pub mod config;
 pub mod context;
 pub mod daemon;
 mod error;
+pub mod events;
 pub mod import;
 pub mod input;
 pub mod paths;

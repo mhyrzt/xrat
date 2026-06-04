@@ -1,4 +1,5 @@
 use crate::app::commands::daemon_install;
+use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::daemon::{ipc, supervisor};
 use crate::cli::{DaemonAction, DaemonArgs};
@@ -11,17 +12,51 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
     match &args.action {
         DaemonAction::Start(_) => {
             if ipc::ping_daemon(&socket_path).await.is_ok() {
-                println!("Daemon already running. Socket: {}", socket_path.display());
+                println!(
+                    "{}",
+                    output::notice("Daemon already running.", output::color_enabled())
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[("socket", socket_path.display().to_string())],
+                        output::color_enabled()
+                    )
+                );
                 return Ok(());
             }
             spawn_detached_daemon(context)?;
             wait_until_daemon_ready(&socket_path).await?;
-            println!("Daemon started. Socket: {}", socket_path.display());
+            println!(
+                "{}",
+                output::success("Daemon started.", output::color_enabled())
+            );
+            println!(
+                "{}",
+                output::format_kv(
+                    None,
+                    &[("socket", socket_path.display().to_string())],
+                    output::color_enabled()
+                )
+            );
         }
         DaemonAction::RunServer(_) => {
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
+
+            crate::app::events::record(
+                &context.db,
+                crate::app::events::LEVEL_INFO,
+                crate::app::events::SOURCE_DAEMON,
+                "daemon_started",
+                "Daemon supervisor started",
+                None,
+                None,
+                None,
+            )
+            .await;
 
             let http_handle = if context.app_config.server.enabled {
                 let server_settings = context.app_config.server.clone();
@@ -62,23 +97,64 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     http_api_addr: None,
                 });
                 println!(
-                    "Daemon status: {} (protocol v{}, ready={}, runtime_owned={}, runtime={}, session={:?}, active_config={:?}, pid_running={}, http_api={}, http_addr={})",
-                    response.message,
-                    response.protocol_version,
-                    payload.daemon_ready,
-                    payload.runtime_owned,
-                    payload.runtime_status,
-                    payload.session_id,
-                    payload.active_config_id,
-                    payload.pid_running,
-                    payload.http_api_enabled,
-                    payload.http_api_addr.as_deref().unwrap_or("disabled"),
+                    "{}",
+                    output::format_kv(
+                        Some("Daemon"),
+                        &[
+                            ("status", response.message),
+                            ("protocol", format!("v{}", response.protocol_version)),
+                            (
+                                "ready",
+                                output::bool_label(payload.daemon_ready).to_string()
+                            ),
+                            (
+                                "runtime owned",
+                                output::bool_label(payload.runtime_owned).to_string(),
+                            ),
+                            ("runtime", payload.runtime_status),
+                            (
+                                "session",
+                                payload
+                                    .session_id
+                                    .map(|value| value.to_string())
+                                    .unwrap_or_else(|| "-".to_string()),
+                            ),
+                            (
+                                "active config",
+                                payload
+                                    .active_config_id
+                                    .map(|value| value.to_string())
+                                    .unwrap_or_else(|| "-".to_string()),
+                            ),
+                            (
+                                "pid running",
+                                output::bool_label(payload.pid_running).to_string(),
+                            ),
+                            (
+                                "http api",
+                                output::bool_label(payload.http_api_enabled).to_string(),
+                            ),
+                            ("http addr", output::dash(payload.http_api_addr.as_deref()),),
+                        ],
+                        output::color_enabled(),
+                    )
                 );
             }
             Err(err) if ipc::daemon_unreachable(&err) => {
                 println!(
-                    "Daemon status: not running (start with `xrat daemon start`). Socket: {}",
-                    socket_path.display()
+                    "{}",
+                    output::warn(
+                        "Daemon is not running. Start with `xrat daemon start`.",
+                        output::color_enabled()
+                    )
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[("socket", socket_path.display().to_string())],
+                        output::color_enabled()
+                    )
                 );
             }
             Err(err) => return Err(err),
@@ -93,17 +169,40 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                     runtime_disconnected: false,
                 });
                 println!(
-                    "Daemon stop: {} (protocol v{}, ready={}, runtime_disconnected={})",
-                    response.message,
-                    response.protocol_version,
-                    payload.daemon_ready,
-                    payload.runtime_disconnected
+                    "{}",
+                    output::success(response.message, output::color_enabled())
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[
+                            ("protocol", format!("v{}", response.protocol_version)),
+                            (
+                                "ready",
+                                output::bool_label(payload.daemon_ready).to_string()
+                            ),
+                            (
+                                "runtime disconnected",
+                                output::bool_label(payload.runtime_disconnected).to_string(),
+                            ),
+                        ],
+                        output::color_enabled(),
+                    )
                 );
             }
             Err(err) if ipc::daemon_unreachable(&err) => {
                 println!(
-                    "Daemon stop: not running. Socket: {}",
-                    socket_path.display()
+                    "{}",
+                    output::notice("Daemon is not running.", output::color_enabled())
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[("socket", socket_path.display().to_string())],
+                        output::color_enabled()
+                    )
                 );
             }
             Err(err) => return Err(err),
@@ -117,6 +216,15 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
 
 fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
     let current_exe = std::env::current_exe()?;
+    let runtime_dir = &context.runtime_paths.runtime_dir;
+    std::fs::create_dir_all(runtime_dir)?;
+    let log_path = runtime_dir.join("daemon.log");
+    let stdout_log = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)?;
+    let stderr_log = stdout_log.try_clone()?;
+
     let mut command = std::process::Command::new(current_exe);
     command
         .arg("--config")
@@ -124,8 +232,8 @@ fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
         .arg("daemon")
         .arg("run-server")
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        .stdout(Stdio::from(stdout_log))
+        .stderr(Stdio::from(stderr_log));
     command.spawn()?;
     Ok(())
 }

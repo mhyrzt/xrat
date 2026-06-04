@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::cli::{Cli, Command, ListTarget};
+use crate::cli::{Cli, Command, ListFormat, ListTarget};
 
 #[test]
 fn parses_import_subcommand_with_global_flags() {
@@ -60,6 +60,8 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Disable(_)
         | Command::Delete(_)
         | Command::Restore(_)
+        | Command::Purge(_)
+        | Command::Logs(_)
         | Command::GeoIp(_)
         | Command::Init(_)
         | Command::Manpage(_)
@@ -67,6 +69,16 @@ fn parses_import_subcommand_with_global_flags() {
             panic!("expected import command")
         }
     }
+}
+
+#[test]
+fn import_without_input_reports_missing_argument() {
+    let error = Cli::try_parse_from(["xrat", "import"]).expect_err("input should be required");
+    let rendered = error.to_string();
+
+    assert!(rendered.contains("required arguments were not provided"));
+    assert!(rendered.contains("<INPUT>"));
+    assert!(rendered.contains("Usage: xrat import <INPUT>"));
 }
 
 #[test]
@@ -92,6 +104,8 @@ fn parses_add_subcommand() {
         | Command::Disable(_)
         | Command::Delete(_)
         | Command::Restore(_)
+        | Command::Purge(_)
+        | Command::Logs(_)
         | Command::GeoIp(_)
         | Command::Init(_)
         | Command::Manpage(_)
@@ -107,7 +121,7 @@ fn parses_list_subscriptions_alias() {
 
     match cli.command {
         Command::List(args) => match args.target {
-            ListTarget::Subscriptions(_) => {}
+            ListTarget::Subscriptions(args) => assert!(matches!(args.format, ListFormat::Table)),
             ListTarget::Configs(_) => panic!("expected subscriptions target"),
         },
         Command::Import(_)
@@ -127,6 +141,8 @@ fn parses_list_subscriptions_alias() {
         | Command::Disable(_)
         | Command::Delete(_)
         | Command::Restore(_)
+        | Command::Purge(_)
+        | Command::Logs(_)
         | Command::GeoIp(_)
         | Command::Init(_)
         | Command::Manpage(_)
@@ -134,6 +150,15 @@ fn parses_list_subscriptions_alias() {
             panic!("expected list command")
         }
     }
+}
+
+#[test]
+fn list_without_target_reports_missing_list_subcommand() {
+    let error = Cli::try_parse_from(["xrat", "list"]).expect_err("list target should be required");
+    let rendered = error.to_string();
+
+    assert!(rendered.contains("Usage: xrat list"));
+    assert!(!rendered.contains("tui"));
 }
 
 #[test]
@@ -152,6 +177,7 @@ fn parses_list_config_filters() {
             ListTarget::Configs(filters) => {
                 assert!(filters.enabled_only);
                 assert_eq!(filters.subscription, Some(7));
+                assert!(matches!(filters.format, ListFormat::Table));
             }
             ListTarget::Subscriptions(_) => panic!("expected configs target"),
         },
@@ -172,11 +198,36 @@ fn parses_list_config_filters() {
         | Command::Disable(_)
         | Command::Delete(_)
         | Command::Restore(_)
+        | Command::Purge(_)
+        | Command::Logs(_)
         | Command::GeoIp(_)
         | Command::Init(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
             panic!("expected list command")
         }
+    }
+}
+
+#[test]
+fn parses_list_output_formats() {
+    let configs = Cli::parse_from(["xrat", "list", "configs", "--format", "json"]);
+    match configs.command {
+        Command::List(args) => match args.target {
+            ListTarget::Configs(filters) => assert!(matches!(filters.format, ListFormat::Json)),
+            ListTarget::Subscriptions(_) => panic!("expected configs target"),
+        },
+        _ => panic!("expected list command"),
+    }
+
+    let subscriptions = Cli::parse_from(["xrat", "list", "subscriptions", "--format", "tsv"]);
+    match subscriptions.command {
+        Command::List(args) => match args.target {
+            ListTarget::Subscriptions(filters) => {
+                assert!(matches!(filters.format, ListFormat::Tsv))
+            }
+            ListTarget::Configs(_) => panic!("expected subscriptions target"),
+        },
+        _ => panic!("expected list command"),
     }
 }

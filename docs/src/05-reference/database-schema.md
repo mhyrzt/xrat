@@ -13,6 +13,7 @@ across both backends.
 | `connection_test_runs` | 0007                                     | Groups test results into runs |
 | `runtime_sessions`     | 0001, 0004, 0005, 0006, 0012, 0013, 0014 | Proxy process lifecycle       |
 | `cf_scan_results`      | 0011                                     | IP scan results               |
+| `events`               | 0017                                     | App/runtime event log         |
 
 ---
 
@@ -290,6 +291,41 @@ CREATE TABLE cf_scan_results (
 
 ---
 
+### events
+
+Structured application/runtime event log surfaced by `xrat logs`.
+
+```sql
+CREATE TABLE events (
+    id INTEGER PRIMARY KEY,
+    level TEXT NOT NULL,
+    source TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    config_id INTEGER,
+    session_id INTEGER,
+    message TEXT NOT NULL,
+    detail TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+| Column       | Type    | Description                                            |
+| ------------ | ------- | ------------------------------------------------------ |
+| `id`         | INTEGER | Primary key                                            |
+| `level`      | TEXT    | `info`, `warn`, or `error`                             |
+| `source`     | TEXT    | `daemon`, `runtime`, `rotation`, `health`, or `test`   |
+| `kind`       | TEXT    | Event kind (e.g. `proxy_rotated`, `connect`, `test_run`) |
+| `config_id`  | INTEGER | Related config, if any                                 |
+| `session_id` | INTEGER | Related runtime session, if any                        |
+| `message`    | TEXT    | Human-readable summary                                 |
+| `detail`     | TEXT    | Optional JSON detail                                   |
+| `created_at` | TEXT    | Creation timestamp                                     |
+
+Rows are inserted fire-and-forget; a failed insert is logged but never breaks
+the operation that produced the event.
+
+---
+
 ## Migrations
 
 Migrations are run automatically on startup using SQLx.
@@ -313,6 +349,8 @@ Migrations are run automatically on startup using SQLx.
 | 0013 | `add_runtime_session_transition_origin.sql`       | Add transition origin tracking                                             |
 | 0014 | `add_runtime_session_cooldown_failure_fields.sql` | Add cooldown and failure tracking                                          |
 | 0015 | `add_config_soft_delete.sql`                      | Add soft-delete fields to configs                                          |
+| 0016 | `drop_config_is_selected.sql`                     | Drop the legacy `is_selected` column from configs                          |
+| 0017 | `add_events.sql`                                  | Add events table for the `xrat logs` event log                            |
 
 ### Migration Location
 

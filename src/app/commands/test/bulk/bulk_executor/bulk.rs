@@ -119,5 +119,26 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
         }
     }
     finish_bulk_progress(progress, completed, failed);
+
+    let level = if failed > 0 && failed == completed {
+        crate::app::events::LEVEL_WARN
+    } else {
+        crate::app::events::LEVEL_INFO
+    };
+    crate::app::events::record(
+        &context.db,
+        level,
+        crate::app::events::SOURCE_TEST,
+        "test_run",
+        format!(
+            "Tested {completed} config(s): {} passed, {failed} failed",
+            completed.saturating_sub(failed)
+        ),
+        None,
+        None,
+        Some(format!("{{\"run_id\":{run_id},\"kind\":\"{run_kind}\"}}")),
+    )
+    .await;
+
     Ok(outputs)
 }

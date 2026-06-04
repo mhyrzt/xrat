@@ -11,6 +11,6 @@ pub use error::{DbError, Result};
 pub use record::{
     CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConfigWithLatestTest,
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
-    ImportSource, ImportSummary, RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus,
-    SourceKind, SubscriptionRecord, node_from_record,
+    EventFilter, EventRecord, ImportSource, ImportSummary, NewEvent, RuntimeSessionInsert,
+    RuntimeSessionRecord, RuntimeSessionStatus, SourceKind, SubscriptionRecord, node_from_record,
 };

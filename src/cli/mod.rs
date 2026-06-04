@@ -9,9 +9,11 @@ mod import;
 mod init;
 mod lifecycle;
 mod list;
+mod logs;
 mod manpage;
 mod parse;
 mod proxy;
+mod purge;
 mod root;
 mod scan;
 mod serve;
@@ -35,13 +37,20 @@ pub use geoip::{
 };
 pub use import::ImportArgs;
 pub use init::InitArgs;
-pub use lifecycle::{DeleteArgs, DisableArgs, EnableArgs, RestoreArgs, ShowArgs};
-pub use list::{ListArgs, ListConfigsArgs, ListSubscriptionsArgs, ListTarget, SubscriptionKind};
+pub use lifecycle::{
+    DeleteArgs, DeleteConfigArgs, DeleteSubscriptionArgs, DeleteTarget, DisableArgs, EnableArgs,
+    RestoreArgs, ShowArgs, ShowConfigArgs, ShowSubscriptionArgs, ShowTarget,
+};
+pub use list::{
+    ListArgs, ListConfigsArgs, ListFormat, ListSubscriptionsArgs, ListTarget, SubscriptionKind,
+};
+pub use logs::{LogLevel, LogSource, LogsArgs};
 pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
     ProxyAction, ProxyArgs, ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
 };
+pub use purge::PurgeArgs;
 pub use root::Cli;
 pub use scan::ScanArgs;
 pub use serve::ServeArgs;
@@ -54,11 +63,8 @@ use clap::Parser;
 pub fn parse() -> Cli {
     Cli::try_parse().unwrap_or_else(|e| {
         use clap::error::ErrorKind;
-        if matches!(
-            e.kind(),
-            ErrorKind::MissingRequiredArgument
-                | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-        ) {
+        if matches!(e.kind(), ErrorKind::MissingRequiredArgument) && std::env::args_os().len() == 1
+        {
             let mut args: Vec<String> = std::env::args().collect();
             args.push("tui".to_string());
             Cli::parse_from(args)

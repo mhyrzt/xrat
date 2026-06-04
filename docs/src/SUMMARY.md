@@ -17,6 +17,7 @@
   - [test](02-cli/test.md)
   - [scan](02-cli/scan.md)
   - [runtime](02-cli/runtime.md)
+  - [logs](02-cli/logs.md)
   - [daemon](02-cli/daemon.md)
   - [proxy](02-cli/proxy.md)
   - [geoip](02-cli/geoip.md)

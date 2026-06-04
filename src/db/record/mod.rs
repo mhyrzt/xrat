@@ -1,6 +1,7 @@
 mod cf_scan_results;
 mod configs;
 mod connection_tests;
+mod events;
 mod import;
 mod runtime_sessions;
 
@@ -9,5 +10,6 @@ pub use configs::{ConfigListFilter, ConfigRecord, ConfigWithLatestTest, node_fro
 pub use connection_tests::{
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
 };
+pub use events::{EventFilter, EventRecord, NewEvent};
 pub use import::{ImportSource, ImportSummary, SourceKind, SubscriptionRecord};
 pub use runtime_sessions::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};

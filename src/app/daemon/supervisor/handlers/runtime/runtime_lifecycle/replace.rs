@@ -57,6 +57,21 @@ pub(super) async fn handle_runtime_replace(
                     Some("daemon"),
                 )
                 .await;
+            crate::app::events::record(
+                &context.db,
+                crate::app::events::LEVEL_INFO,
+                crate::app::events::SOURCE_ROTATION,
+                "proxy_rotated",
+                format!(
+                    "Rotated to config {} ({})",
+                    result.new_config_id,
+                    rotation_trigger_label(trigger)
+                ),
+                Some(result.new_config_id),
+                Some(result.new_session_id),
+                None,
+            )
+            .await;
             let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
                 trigger,
                 replaced: true,
@@ -87,6 +102,20 @@ pub(super) async fn handle_runtime_replace(
                     )
                     .await;
             }
+            crate::app::events::record(
+                &context.db,
+                crate::app::events::LEVEL_WARN,
+                crate::app::events::SOURCE_ROTATION,
+                "rotation_failed",
+                format!(
+                    "Rotation failed ({}): {message}",
+                    rotation_trigger_label(trigger)
+                ),
+                candidate_id,
+                None,
+                None,
+            )
+            .await;
             let _ = respond_to.send(RuntimeReplaceResult::Err { message });
         }
     }

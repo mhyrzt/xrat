@@ -1,6 +1,7 @@
 pub(super) use super::*;
 pub(super) use crate::db::SourceKind;
 
+mod events_cases;
 mod history_cases;
 mod import_cases;
 mod postgres_cases;

@@ -29,6 +29,19 @@ pub(super) async fn handle_runtime_disconnect(
                     )
                     .await;
             }
+            if result.stopped_session {
+                crate::app::events::record(
+                    &context.db,
+                    crate::app::events::LEVEL_INFO,
+                    crate::app::events::SOURCE_RUNTIME,
+                    "disconnect",
+                    "Disconnected managed runtime",
+                    None,
+                    active_session_id,
+                    None,
+                )
+                .await;
+            }
             let _ = respond_to.send(RuntimeDisconnectResult::Ok(RuntimeDisconnectPayload {
                 stopped_session: result.stopped_session,
             }));

@@ -66,6 +66,17 @@ pub(super) async fn handle_daemon_shutdown(
         .await
         .map(|result| result.stopped_session)
         .unwrap_or(false);
+    crate::app::events::record(
+        &context.db,
+        crate::app::events::LEVEL_INFO,
+        crate::app::events::SOURCE_DAEMON,
+        "daemon_stopped",
+        "Daemon supervisor stopped",
+        None,
+        None,
+        None,
+    )
+    .await;
     let _ = respond_to.send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
         daemon_ready: false,
         runtime_disconnected,
@@ -77,6 +88,14 @@ fn rotation_started_reason(trigger: RotationTrigger) -> &'static str {
         RotationTrigger::Manual => "rotation_manual_started",
         RotationTrigger::Timer => "rotation_timer_started",
         RotationTrigger::HealthCheckFailed => "rotation_health_started",
+    }
+}
+
+fn rotation_trigger_label(trigger: RotationTrigger) -> &'static str {
+    match trigger {
+        RotationTrigger::Manual => "manual",
+        RotationTrigger::Timer => "timer",
+        RotationTrigger::HealthCheckFailed => "health check failed",
     }
 }
 

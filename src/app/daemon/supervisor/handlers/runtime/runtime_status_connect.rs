@@ -60,6 +60,17 @@ pub(super) async fn handle_runtime_connect(
                     Some("daemon"),
                 )
                 .await;
+            crate::app::events::record(
+                &context.db,
+                crate::app::events::LEVEL_INFO,
+                crate::app::events::SOURCE_RUNTIME,
+                "connect",
+                format!("Connected config {}", result.config.id),
+                Some(result.config.id),
+                Some(result.session_id),
+                None,
+            )
+            .await;
             let _ = respond_to.send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
                 config_id: result.config.id,
                 session_id: result.session_id,
@@ -67,6 +78,17 @@ pub(super) async fn handle_runtime_connect(
             }));
         }
         Err(err) => {
+            crate::app::events::record(
+                &context.db,
+                crate::app::events::LEVEL_ERROR,
+                crate::app::events::SOURCE_RUNTIME,
+                "connect_failed",
+                format!("Connect failed for config {config_id}: {err}"),
+                Some(config_id),
+                None,
+                None,
+            )
+            .await;
             let _ = respond_to.send(RuntimeConnectResult::Err {
                 message: err.to_string(),
             });

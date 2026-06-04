@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::cli::{Cli, Command};
+use crate::cli::{Cli, Command, ListFormat, LogLevel, LogSource};
 
 #[test]
 fn parses_ping_loop_flags() {
@@ -45,8 +45,54 @@ fn parses_scan_command() {
             assert_eq!(args.ips.len(), 2);
             assert_eq!(args.port, 443);
             assert_eq!(args.timeout_ms, 5000);
+            assert!(matches!(args.format, ListFormat::Table));
         }
         _ => panic!("expected scan command"),
+    }
+}
+
+#[test]
+fn parses_scan_history_format() {
+    let cli = Cli::parse_from(["xrat", "scan", "--history", "10", "--format", "json"]);
+    match cli.command {
+        Command::Scan(args) => {
+            assert_eq!(args.history, Some(10));
+            assert!(matches!(args.format, ListFormat::Json));
+        }
+        _ => panic!("expected scan command"),
+    }
+}
+
+#[test]
+fn parses_logs_defaults() {
+    let cli = Cli::parse_from(["xrat", "logs"]);
+    match cli.command {
+        Command::Logs(args) => {
+            assert!(!args.follow);
+            assert_eq!(args.lines, 200);
+            assert!(matches!(args.source, LogSource::All));
+            assert!(args.level.is_none());
+            assert!(matches!(args.format, ListFormat::Table));
+        }
+        _ => panic!("expected logs command"),
+    }
+}
+
+#[test]
+fn parses_logs_flags() {
+    let cli = Cli::parse_from([
+        "xrat", "logs", "--follow", "--lines", "50", "--source", "xray", "--level", "error",
+        "--format", "json",
+    ]);
+    match cli.command {
+        Command::Logs(args) => {
+            assert!(args.follow);
+            assert_eq!(args.lines, 50);
+            assert!(matches!(args.source, LogSource::Xray));
+            assert!(matches!(args.level, Some(LogLevel::Error)));
+            assert!(matches!(args.format, ListFormat::Json));
+        }
+        _ => panic!("expected logs command"),
     }
 }
 
