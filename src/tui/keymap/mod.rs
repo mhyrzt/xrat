@@ -18,7 +18,6 @@ pub fn action_for_key(
     bulk_confirm_open: bool,
     editing_search: bool,
     confirming: bool,
-    import_modal_open: bool,
     rename_modal_open: bool,
     qr_modal_open: bool,
 ) -> TuiAction {
@@ -31,10 +30,6 @@ pub fn action_for_key(
             return TuiAction::Back;
         }
         return TuiAction::None;
-    }
-
-    if import_modal_open {
-        return action_for_import_modal_key(key);
     }
 
     if rename_modal_open {
@@ -68,16 +63,6 @@ pub fn action_for_key(
     }
 
     view::action_for_view_key(key, active_view)
-}
-
-fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {
-    match key.code {
-        KeyCode::Esc => TuiAction::Back,
-        KeyCode::Enter => TuiAction::ImportSubmit,
-        KeyCode::Backspace => TuiAction::ImportBackspace,
-        KeyCode::Char(ch) => TuiAction::ImportInput(ch),
-        _ => TuiAction::None,
-    }
 }
 
 fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {

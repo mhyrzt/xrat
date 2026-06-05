@@ -11,8 +11,8 @@ mod views;
 
 pub use types::{
     BulkKind, BulkOp, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState,
-    ImportModalState, PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState,
-    TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
+    PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
+    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -58,10 +58,6 @@ impl TuiApp {
                 self.pending_bulk = None;
                 self.status_message = "cancelled".to_string();
             }
-            TuiAction::OpenImportModal => {
-                self.import_modal = Some(crate::tui::app::ImportModalState::default());
-                self.needs_full_clear = true;
-            }
             TuiAction::RenameInput(ch) => {
                 if let Some(modal) = &mut self.rename_modal {
                     modal.input.push(ch);
@@ -73,18 +69,6 @@ impl TuiApp {
                     modal.input.pop();
                 }
             }
-            TuiAction::ImportInput(ch) => {
-                if let Some(modal) = &mut self.import_modal {
-                    modal.input.push(ch);
-                    modal.error = None;
-                }
-            }
-            TuiAction::ImportBackspace => {
-                if let Some(modal) = &mut self.import_modal {
-                    modal.input.pop();
-                }
-            }
-            TuiAction::ImportSubmit => {}
             TuiAction::CancelTestBatch => {
                 if self.task_state.running.is_some() {
                     if self.task_state.cancel() {

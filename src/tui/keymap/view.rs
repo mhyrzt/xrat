@@ -22,7 +22,6 @@ pub fn action_for_view_key(key: KeyEvent, active_view: TuiView) -> TuiAction {
         KeyCode::Char('R') if active_view == TuiView::Configs => TuiAction::RuntimeRestart,
         KeyCode::Char('r') if active_view == TuiView::Sources => TuiAction::RefreshFocusedSource,
         KeyCode::Char('R') if active_view == TuiView::Sources => TuiAction::RefreshAllSources,
-        KeyCode::Char('i') if active_view == TuiView::Sources => TuiAction::OpenImportModal,
         KeyCode::Char('n') if active_view == TuiView::Sources => TuiAction::OpenRenameModal,
         KeyCode::Char('d') if active_view == TuiView::Sources => TuiAction::RequestDeleteSource,
         KeyCode::Char('y') if active_view == TuiView::Sources => TuiAction::OpenQrFocused,

@@ -14,7 +14,6 @@ fn act(
     view: TuiView,
     editing_search: bool,
     confirming: bool,
-    import_modal_open: bool,
     rename_modal_open: bool,
     qr_modal_open: bool,
 ) -> TuiAction {
@@ -25,7 +24,6 @@ fn act(
         false,
         editing_search,
         confirming,
-        import_modal_open,
         rename_modal_open,
         qr_modal_open,
     )
@@ -40,7 +38,6 @@ fn maps_confirm_keys() {
             false,
             true,
             false,
-            false,
             false
         ),
         TuiAction::Confirm
@@ -52,7 +49,6 @@ fn maps_confirm_keys() {
             false,
             true,
             false,
-            false,
             false
         ),
         TuiAction::Confirm
@@ -63,7 +59,6 @@ fn maps_confirm_keys() {
             TuiView::Configs,
             false,
             true,
-            false,
             false,
             false
         ),
@@ -80,7 +75,6 @@ fn maps_search_editing_keys() {
             true,
             false,
             false,
-            false,
             false
         ),
         TuiAction::SearchInput('v')
@@ -90,7 +84,6 @@ fn maps_search_editing_keys() {
             key(KeyCode::Backspace),
             TuiView::Configs,
             true,
-            false,
             false,
             false,
             false
@@ -104,7 +97,6 @@ fn maps_search_editing_keys() {
             true,
             false,
             false,
-            false,
             false
         ),
         TuiAction::ConfirmSearch
@@ -114,7 +106,6 @@ fn maps_search_editing_keys() {
             KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
             TuiView::Configs,
             true,
-            false,
             false,
             false,
             false

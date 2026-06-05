@@ -14,7 +14,6 @@ fn act(
     view: TuiView,
     editing_search: bool,
     confirming: bool,
-    import_modal_open: bool,
     rename_modal_open: bool,
     qr_modal_open: bool,
 ) -> TuiAction {
@@ -25,7 +24,6 @@ fn act(
         false,
         editing_search,
         confirming,
-        import_modal_open,
         rename_modal_open,
         qr_modal_open,
     )
@@ -43,7 +41,6 @@ fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
         false,
         false,
         false,
-        false,
     );
     assert_eq!(armed, TuiAction::None);
     assert!(pending.is_some());
@@ -51,7 +48,6 @@ fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
         key(second),
         view,
         &mut pending,
-        false,
         false,
         false,
         false,
@@ -69,7 +65,6 @@ fn maps_global_quit_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::Quit
@@ -78,7 +73,6 @@ fn maps_global_quit_keys() {
         act(
             KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -97,7 +91,6 @@ fn maps_view_switching_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::PrevTab
@@ -106,7 +99,6 @@ fn maps_view_switching_keys() {
         act(
             key(KeyCode::Char(']')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -125,7 +117,6 @@ fn maps_tab_to_panel_focus() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::FocusNextPanel
@@ -134,7 +125,6 @@ fn maps_tab_to_panel_focus() {
         act(
             key(KeyCode::BackTab),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -153,7 +143,6 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::MoveDown
@@ -162,7 +151,6 @@ fn maps_navigation_and_help_keys() {
         act(
             key(KeyCode::Char('k')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -177,7 +165,6 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::ShowHelp
@@ -186,7 +173,6 @@ fn maps_navigation_and_help_keys() {
         act(
             key(KeyCode::Esc),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -201,7 +187,6 @@ fn maps_navigation_and_help_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::BeginSearch
@@ -210,7 +195,6 @@ fn maps_navigation_and_help_keys() {
         act(
             key(KeyCode::Char('S')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -226,7 +210,6 @@ fn maps_enter_start_in_configs() {
         act(
             key(KeyCode::Enter),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -269,15 +252,7 @@ fn test_chords_resolve_to_scopes() {
 fn bare_freed_keys_are_inert_in_configs() {
     for code in [KeyCode::Char('a'), KeyCode::Char('v'), KeyCode::Char('C')] {
         assert_eq!(
-            act(
-                key(code),
-                TuiView::Configs,
-                false,
-                false,
-                false,
-                false,
-                false
-            ),
+            act(key(code), TuiView::Configs, false, false, false, false),
             TuiAction::None
         );
     }
@@ -328,14 +303,12 @@ fn unknown_chord_second_key_clears() {
         false,
         false,
         false,
-        false,
     );
     assert!(pending.is_some());
     let resolved = action_for_key(
         key(KeyCode::Esc),
         TuiView::Configs,
         &mut pending,
-        false,
         false,
         false,
         false,
@@ -358,7 +331,6 @@ fn chord_leaders_inert_in_sources() {
         false,
         false,
         false,
-        false,
     );
     assert_eq!(action, TuiAction::RefreshFocusedSource);
     assert!(pending.is_none());
@@ -373,7 +345,6 @@ fn maps_config_action_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::EnableFocused
@@ -382,7 +353,6 @@ fn maps_config_action_keys() {
         act(
             key(KeyCode::Char('x')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -397,7 +367,6 @@ fn maps_config_action_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::RuntimeStop
@@ -406,7 +375,6 @@ fn maps_config_action_keys() {
         act(
             key(KeyCode::Char('T')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -425,7 +393,6 @@ fn maps_cycle_filter_key() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::CycleFilter
@@ -441,7 +408,6 @@ fn maps_qr_and_copy_keys() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::OpenQrFocused
@@ -450,7 +416,6 @@ fn maps_qr_and_copy_keys() {
         act(
             key(KeyCode::Char('c')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -469,7 +434,6 @@ fn qr_modal_open_consumes_keys() {
             false,
             false,
             false,
-            false,
             true
         ),
         TuiAction::Back
@@ -481,7 +445,6 @@ fn qr_modal_open_consumes_keys() {
             false,
             false,
             false,
-            false,
             true
         ),
         TuiAction::Back
@@ -490,7 +453,6 @@ fn qr_modal_open_consumes_keys() {
         act(
             key(KeyCode::Char('s')),
             TuiView::Configs,
-            false,
             false,
             false,
             false,
@@ -509,7 +471,6 @@ fn maps_sources_view_actions() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::RefreshFocusedSource
@@ -521,73 +482,8 @@ fn maps_sources_view_actions() {
             false,
             false,
             false,
-            false,
             false
         ),
         TuiAction::RefreshAllSources
-    );
-    assert_eq!(
-        act(
-            key(KeyCode::Char('i')),
-            TuiView::Sources,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::OpenImportModal
-    );
-}
-
-#[test]
-fn maps_import_modal_keys() {
-    assert_eq!(
-        act(
-            key(KeyCode::Char('a')),
-            TuiView::Sources,
-            false,
-            false,
-            true,
-            false,
-            false
-        ),
-        TuiAction::ImportInput('a')
-    );
-    assert_eq!(
-        act(
-            key(KeyCode::Backspace),
-            TuiView::Sources,
-            false,
-            false,
-            true,
-            false,
-            false
-        ),
-        TuiAction::ImportBackspace
-    );
-    assert_eq!(
-        act(
-            key(KeyCode::Enter),
-            TuiView::Sources,
-            false,
-            false,
-            true,
-            false,
-            false
-        ),
-        TuiAction::ImportSubmit
-    );
-    assert_eq!(
-        act(
-            key(KeyCode::Esc),
-            TuiView::Sources,
-            false,
-            false,
-            true,
-            false,
-            false
-        ),
-        TuiAction::Back
     );
 }

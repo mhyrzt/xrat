@@ -78,16 +78,12 @@ pub enum TuiAction {
     RuntimeRestart,
     RefreshFocusedSource,
     RefreshAllSources,
-    OpenImportModal,
     OpenRenameModal,
     RequestDeleteSource,
     OpenQrFocused,
     CopyFocused,
     OpenQrApiUrl,
     CopyApiUrl,
-    ImportInput(char),
-    ImportBackspace,
-    ImportSubmit,
     RenameInput(char),
     RenameBackspace,
     RenameSubmit,
@@ -177,12 +173,6 @@ pub struct ConfirmState {
 }
 
 #[derive(Debug, Default)]
-pub struct ImportModalState {
-    pub input: String,
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Default)]
 pub struct RenameModalState {
     pub source_id: i64,
     pub input: String,
@@ -222,7 +212,6 @@ pub struct TuiApp {
     pub pending_chord: Option<char>,
     /// Bulk operation awaiting inline y/n confirmation in the key bar.
     pub pending_bulk: Option<BulkOp>,
-    pub import_modal: Option<ImportModalState>,
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,

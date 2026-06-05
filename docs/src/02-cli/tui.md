@@ -24,7 +24,7 @@ and the Runtime panel stay visible under both tabs.
 | Tab     | Purpose                                                                         |
 | ------- | ------------------------------------------------------------------------------- |
 | Configs | Browse, filter, start, test, enable, disable, delete, and share configs         |
-| Sources | Inspect subscription sources, refresh/import sources, and share source/API URLs |
+| Sources | Inspect subscription sources, refresh sources, and share source/API URLs        |
 
 Use `[` and `]` to move to the previous / next tab.
 
@@ -150,7 +150,6 @@ to browse the filtered set.
 | --- | ------------------------------------------------------- |
 | `r` | Refresh the focused source                              |
 | `R` | Refresh all sources with stored values                  |
-| `i` | Open the import modal                                   |
 | `n` | Rename the focused source                               |
 | `d` | Delete the focused source and its configs               |
 | `y` | Show a QR code for the focused source URL               |
@@ -161,12 +160,14 @@ to browse the filtered set.
 Source actions apply to the focused subscription row; they are no-ops on the
 `All configs` and `Orphans` rows.
 
-The import modal accepts the same input forms as `xrat import`: subscription
-URL, file path, raw config link, raw link list, base64 subscription text, SIP008
-JSON, or Xray JSON. Press `Enter` to import and `Esc` to cancel.
+The TUI does not import new sources. Add sources from the CLI with
+[`xrat import <input>`](import.md) for subscriptions, files, and link lists, or
+[`xrat add <link>`](import.md#add) for a single config link, then refresh them
+here. This keeps every Sources row a real, refreshable subscription record.
 
-Source refresh and import run as background tasks. When they finish, the TUI
-reloads database-backed data so both tabs reflect the new state.
+Source refresh runs as a background task. When it finishes, the TUI reloads
+database-backed data so both tabs reflect the new state, including any configs
+removed by subscription reconciliation.
 
 ## Testing Strip
 

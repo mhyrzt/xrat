@@ -22,7 +22,6 @@ impl Default for TuiApp {
             confirm: None,
             pending_chord: None,
             pending_bulk: None,
-            import_modal: None,
             rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),

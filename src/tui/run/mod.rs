@@ -51,7 +51,6 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         bulk_confirm_open,
                         app.config_list.editing_search,
                         app.confirm.is_some(),
-                        app.import_modal.is_some(),
                         app.rename_modal.is_some(),
                         app.qr_modal.is_some(),
                     );
@@ -127,14 +126,6 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         } else {
                             None
                         };
-                    let import_input = if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
-                    {
-                        app.import_modal
-                            .as_ref()
-                            .map(|m| m.input.trim().to_string())
-                    } else {
-                        None
-                    };
                     let rename_submit =
                         if matches!(action, crate::tui::app::TuiAction::RenameSubmit) {
                             app.rename_modal
@@ -205,19 +196,6 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             app.config_list.include_deleted,
                             &task_tx,
                         );
-                    }
-                    if let Some(input) = import_input {
-                        if !input.is_empty() {
-                            app.import_modal = None;
-                            tasks::spawn_source_import(
-                                context.clone(),
-                                input,
-                                app.config_list.include_deleted,
-                                &task_tx,
-                            );
-                        } else if let Some(modal) = &mut app.import_modal {
-                            modal.error = Some("input is empty".to_string());
-                        }
                     }
                     if let Some((id, name)) = rename_prefill {
                         app.rename_modal = Some(crate::tui::app::RenameModalState {

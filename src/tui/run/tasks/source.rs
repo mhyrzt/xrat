@@ -80,42 +80,6 @@ pub fn spawn_source_refresh_all(
     });
 }
 
-pub fn spawn_source_import(
-    context: AppContext,
-    input: String,
-    include_deleted: bool,
-    task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
-) {
-    let kind = TuiTaskKind::SourceRefresh;
-    let _ = task_tx.send(TuiTaskEvent::Started { kind });
-    let task_tx = task_tx.clone();
-    tokio::spawn(async move {
-        let event = match import_from(&context, &input).await {
-            Ok(summary) => match TuiData::load(&context, include_deleted).await {
-                Ok(data) => TuiTaskEvent::Completed {
-                    kind,
-                    message: format!(
-                        "imported {} configs (subscription #{})",
-                        summary.imported_configs, summary.subscription_id
-                    ),
-                    data: Some(data),
-                },
-                Err(err) => TuiTaskEvent::Failed {
-                    kind,
-                    error: format!("import done but reload failed: {err}"),
-                    data: None,
-                },
-            },
-            Err(err) => TuiTaskEvent::Failed {
-                kind,
-                error: format!("import failed: {err}"),
-                data: None,
-            },
-        };
-        let _ = task_tx.send(event);
-    });
-}
-
 async fn refresh_one(
     context: &AppContext,
     source_id: i64,

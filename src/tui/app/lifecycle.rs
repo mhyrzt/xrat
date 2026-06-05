@@ -25,10 +25,6 @@ impl TuiApp {
             self.qr_modal = None;
             self.status_message = "ready".to_string();
             self.needs_full_clear = true;
-        } else if self.import_modal.is_some() {
-            self.import_modal = None;
-            self.status_message = "cancelled".to_string();
-            self.needs_full_clear = true;
         } else if self.rename_modal.is_some() {
             self.rename_modal = None;
             self.status_message = "cancelled".to_string();

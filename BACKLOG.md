@@ -9,8 +9,8 @@ session can resume mid-stream.
 | # | Item | Status |
 |---|------|--------|
 | 1 | Reconcile Removed Configs on Subscription Refresh | ✅ done |
-| 2 | Move Import Ingestion Out of the TUI | 🟡 in progress |
-| 3 | Implement Automatic Subscription Refresh | ⬜ not started |
+| 2 | Move Import Ingestion Out of the TUI | ✅ done |
+| 3 | Implement Automatic Subscription Refresh | 🟡 in progress |
 | 4 | Refresh Subscriptions Before Proxy Rotation | ⬜ not started |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done
@@ -118,17 +118,20 @@ copied, or shared like real subscription sources, muddying the Sources model.
 
 **Checklist.**
 
-- [ ] Remove `OpenImportModal` / `ImportInput` / `ImportBackspace` /
+- [x] Remove `OpenImportModal` / `ImportInput` / `ImportBackspace` /
       `ImportSubmit` actions and `ImportModalState` (`src/tui/app/types.rs`,
       `mod.rs`, `defaults.rs`, `lifecycle.rs`).
-- [ ] Remove `render_import_modal` and the `i Import` help line
-      (`src/tui/view/modals.rs`) and the `spawn_source_import` task
-      (`src/tui/run/tasks/source.rs`) once unused.
-- [ ] Unbind the `i` key on the Sources tab in the keymap.
-- [ ] Update empty Configs/Sources states to show `xrat import` / `xrat add`.
-- [ ] Update `docs/src/02-cli/tui.md` to drop in-TUI import.
-- [ ] Update/remove affected TUI tests.
-- [ ] fmt + clippy + test.
+- [x] Remove `render_import_modal`, the `i Import` help line
+      (`src/tui/view/modals.rs`), and the `spawn_source_import` task
+      (`src/tui/run/tasks/source.rs`). Dropped `import_modal_open` from the
+      keymap signature and its threading in `run/mod.rs`.
+- [x] Unbind the `i` key on the Sources tab (`src/tui/keymap/view.rs`).
+- [x] Configs empty state already shows `xrat import` / `xrat add`
+      (`view/configs/detail.rs`). Sources table always renders
+      `All configs`/`Orphans` rows, so it has no empty placeholder to update.
+- [x] Update `docs/src/02-cli/tui.md` to drop in-TUI import.
+- [x] Update/remove affected keymap tests.
+- [x] fmt + clippy + test (411 passed).
 
 ---
 

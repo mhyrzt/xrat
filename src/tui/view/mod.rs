@@ -22,10 +22,6 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
         modals::render_help(frame, area);
     }
 
-    if app.import_modal.is_some() {
-        modals::render_import_modal(frame, modals::centered_rect(72, 40, area), app);
-    }
-
     if app.rename_modal.is_some() {
         modals::render_rename_modal(frame, modals::centered_rect(60, 30, area), app);
     }
