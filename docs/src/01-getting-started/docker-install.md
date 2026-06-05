@@ -27,24 +27,25 @@ The container stores all xrat state under `/data/xrat`.
 docker volume create xrat-data
 ```
 
-Run commands with the volume mounted:
+Define a reusable alias so every xrat command runs with the volume mounted:
 
 ```bash
-docker run --rm -it \
-  -v xrat-data:/data/xrat \
-  ghcr.io/mhyrzt/xrat:latest init
+alias xrat-docker='docker run --rm -it -v xrat-data:/data/xrat ${XRAT_DOCKER_OPTS:-} ghcr.io/mhyrzt/xrat:latest'
+```
+
+Add it to your shell profile if you want it available in new terminals. Then
+initialize the data directory:
+
+```bash
+xrat-docker init
 ```
 
 ## Import and List
 
 ```bash
-docker run --rm -it \
-  -v xrat-data:/data/xrat \
-  ghcr.io/mhyrzt/xrat:latest import "https://example.com/sub.txt"
+xrat-docker import "https://example.com/sub.txt"
 
-docker run --rm -it \
-  -v xrat-data:/data/xrat \
-  ghcr.io/mhyrzt/xrat:latest list
+xrat-docker list
 ```
 
 ## Serve the HTTP API
@@ -52,10 +53,8 @@ docker run --rm -it \
 Bind the API to all container interfaces and publish the port on the host:
 
 ```bash
-docker run --rm -it \
-  -v xrat-data:/data/xrat \
-  -p 8080:8080 \
-  ghcr.io/mhyrzt/xrat:latest serve --host 0.0.0.0 --port 8080
+XRAT_DOCKER_OPTS="-p 8080:8080"
+xrat-docker serve --host 0.0.0.0 --port 8080
 ```
 
 ## Run a Local Proxy
@@ -64,10 +63,8 @@ The image includes Xray-core. Publish the proxy ports you enable in
 `config.toml`.
 
 ```bash
-docker run --rm -it \
-  -v xrat-data:/data/xrat \
-  -p 1080:1080 \
-  ghcr.io/mhyrzt/xrat:latest connect <config-id>
+XRAT_DOCKER_OPTS="-p 1080:1080"
+xrat-docker connect <config-id>
 ```
 
 The default generated config binds the SOCKS proxy to `127.0.0.1` inside the
