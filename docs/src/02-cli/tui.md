@@ -21,10 +21,10 @@ The TUI is a single dashboard. The top-left table has two tabs; switching the
 tab also swaps the detail panel on the right. The Testing strip, the Logs panel,
 and the Runtime panel stay visible under both tabs.
 
-| Tab     | Purpose                                                                         |
-| ------- | ------------------------------------------------------------------------------- |
-| Configs | Browse, filter, start, test, enable, disable, delete, and share configs         |
-| Sources | Inspect subscription sources, refresh sources, and share source/API URLs        |
+| Tab     | Purpose                                                                  |
+| ------- | ------------------------------------------------------------------------ |
+| Configs | Browse, filter, start, test, enable, disable, delete, and share configs  |
+| Sources | Inspect subscription sources, refresh sources, and share source/API URLs |
 
 Use `[` and `]` to move to the previous / next tab.
 

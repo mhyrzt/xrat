@@ -161,8 +161,8 @@ xrat proxy rotate --refresh
 ### Behavior
 
 1. If `--refresh` is provided, re-fetches URL-backed subscriptions (same import
-   + reconciliation path as `xrat import`) before anything else, so the
-   candidate pass sees the freshest configs and skips provider-removed ones
+   - reconciliation path as `xrat import`) before anything else, so the
+     candidate pass sees the freshest configs and skips provider-removed ones
 2. If `--config-id` is provided, rotates to that specific config
 3. Otherwise, selects the best candidate from enabled configs:
    - Tests candidates using `test_stages` from config.toml
@@ -171,10 +171,10 @@ xrat proxy rotate --refresh
    inbound ports
 5. Respects cooldown period (rotation is delayed if cooldown is active)
 
-For automatic (timer/health) rotation, set `[runtime.rotation]
-refresh_subscriptions = true` to perform the same refresh before each
-daemon-triggered rotation. Refresh failures are recorded as separate events and
-never abort rotation or leave the old runtime stopped.
+For automatic (timer/health) rotation, set
+`[runtime.rotation] refresh_subscriptions = true` to perform the same refresh
+before each daemon-triggered rotation. Refresh failures are recorded as separate
+events and never abort rotation or leave the old runtime stopped.
 
 ### Candidate Selection
 
