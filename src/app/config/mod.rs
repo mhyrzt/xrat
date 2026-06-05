@@ -13,6 +13,7 @@ mod proxy;
 mod routing;
 mod secret;
 mod server;
+mod subscriptions;
 mod testing;
 
 pub use database::{
@@ -30,6 +31,7 @@ pub use proxy::{
 pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};
 pub use server::ServerSettings;
+pub use subscriptions::SubscriptionSettings;
 pub use testing::{
     ConnectionTestStage, DownloadTestSettings, GeoIpBackend, GeoIpCacheSettings,
     GeoIpRemoteProvider, GeoIpTestSettings, IcmpTestSettings, RealDelayTestSettings,
@@ -42,6 +44,7 @@ pub struct AppConfig {
     pub paths: PathSettings,
     pub database: DatabaseSettings,
     pub runtime: RuntimeSettings,
+    pub subscriptions: SubscriptionSettings,
     pub routing: RoutingSettings,
     pub geo: GeoSettings,
     pub mmdb: MmdbSettings,

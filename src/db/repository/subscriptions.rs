@@ -2,7 +2,8 @@ use sqlx::{Postgres, QueryBuilder, Sqlite};
 
 use super::row::map_subscription_row;
 use crate::db::connection::DbPool;
-use crate::db::record::{ImportSource, SourceKind, SubscriptionRecord};
+use crate::db::record::{ImportSource, RefreshableSubscription, SourceKind, SubscriptionRecord};
+use crate::support::time::now_epoch_seconds;
 
 pub async fn insert(pool: &DbPool, source: &ImportSource) -> crate::db::Result<i64> {
     match pool {
@@ -145,6 +146,88 @@ pub async fn set_name(pool: &DbPool, id: i64, name: &str) -> crate::db::Result<(
         }
     }
     Ok(())
+}
+
+/// Stamp a subscription as refreshed now. `last_refreshed_at` holds epoch
+/// seconds as text (matching the `cooldown_until` convention) so the scheduler
+/// can compare it without timezone parsing.
+pub async fn mark_refreshed(pool: &DbPool, id: i64) -> crate::db::Result<()> {
+    let now = now_epoch_seconds().to_string();
+    match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query("UPDATE subscriptions SET last_refreshed_at = ? WHERE id = ?")
+                .bind(&now)
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query("UPDATE subscriptions SET last_refreshed_at = $1 WHERE id = $2")
+                .bind(&now)
+                .bind(id)
+                .execute(pool)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+/// URL-backed subscriptions that are due for an automatic refresh: those never
+/// refreshed, or last refreshed at or before `cutoff_epoch_secs` (now minus the
+/// configured interval). Comparing on the persisted timestamp makes the
+/// interval survive daemon restarts.
+pub async fn list_refreshable_due(
+    pool: &DbPool,
+    cutoff_epoch_secs: i64,
+) -> crate::db::Result<Vec<RefreshableSubscription>> {
+    const SQLITE_SQL: &str = r#"
+        SELECT id, source_url
+        FROM subscriptions
+        WHERE source_kind = 'url'
+          AND source_url IS NOT NULL
+          AND source_url <> ''
+          AND (
+              last_refreshed_at IS NULL
+              OR CAST(last_refreshed_at AS INTEGER) <= ?1
+          )
+        ORDER BY id ASC
+        "#;
+    const POSTGRES_SQL: &str = r#"
+        SELECT id, source_url
+        FROM subscriptions
+        WHERE source_kind = 'url'
+          AND source_url IS NOT NULL
+          AND source_url <> ''
+          AND (
+              last_refreshed_at IS NULL
+              OR CAST(last_refreshed_at AS BIGINT) <= $1
+          )
+        ORDER BY id ASC
+        "#;
+
+    let map = |row: (i64, Option<String>)| {
+        row.1.map(|source_url| RefreshableSubscription {
+            id: row.0,
+            source_url,
+        })
+    };
+
+    match pool {
+        DbPool::Sqlite(pool) => Ok(sqlx::query_as::<_, (i64, Option<String>)>(SQLITE_SQL)
+            .bind(cutoff_epoch_secs)
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .filter_map(map)
+            .collect()),
+        DbPool::Postgres(pool) => Ok(sqlx::query_as::<_, (i64, Option<String>)>(POSTGRES_SQL)
+            .bind(cutoff_epoch_secs)
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .filter_map(map)
+            .collect()),
+    }
 }
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {

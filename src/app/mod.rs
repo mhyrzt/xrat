@@ -9,5 +9,6 @@ pub mod import;
 pub mod input;
 pub mod paths;
 pub mod runtime_service;
+pub mod subscription_refresh;
 
 pub use error::{AppError, Result};

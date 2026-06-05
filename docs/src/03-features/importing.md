@@ -163,11 +163,44 @@ Each import creates or updates a `subscriptions` record:
 | ------------- | ----------------------------------------- |
 | `source_url`  | Original URL or file path                 |
 | `source_kind` | `url`, `file`, or `raw_text`              |
-| `name`        | Optional name (from URL or user-provided) |
-| `created_at`  | First import timestamp                    |
-| `updated_at`  | Latest import timestamp                   |
+| `name`              | Optional name (from URL or user-provided) |
+| `created_at`        | First import timestamp                    |
+| `updated_at`        | Latest import timestamp                   |
+| `last_refreshed_at` | Last successful URL refresh (epoch secs)  |
 
 Configs are linked to their subscription via `subscription_id` foreign key.
+
+## Refreshing Subscriptions
+
+Re-importing a URL-backed subscription is a reconciliation, not an additive
+import: configs the provider still returns are upserted, and configs that
+disappeared from the payload are soft-deleted (recoverable; a later re-add
+restores them). An empty payload removes nothing. See
+[Deduplication](deduplication.md) for the dedup key used to match configs.
+
+There are two ways to refresh:
+
+- **Manual** — re-run `xrat import <url>`, or press `r` / `R` on the TUI
+  Sources tab. Available any time, no daemon required.
+- **Automatic** — the daemon periodically re-fetches URL-backed subscriptions
+  on a fixed interval. Configure it under `[subscriptions]`:
+
+  ```toml
+  [subscriptions]
+  auto_refresh = false
+  refresh_interval_hours = 24
+  ```
+
+  When `auto_refresh` is enabled, the daemon refreshes each URL-backed
+  subscription whose `last_refreshed_at` is older than
+  `refresh_interval_hours` (or that was never refreshed). Because the due check
+  reads the persisted `last_refreshed_at`, intervals survive daemon restarts.
+  Non-URL sources (files, raw text) are skipped, and a failed fetch is recorded
+  as an event without stopping the daemon or the rest of the batch. Refresh
+  start, success, and failure are visible in `xrat logs`.
+
+  Automatic refresh requires a running daemon (`xrat daemon install --start`).
+  Manual refresh uses the exact same import + reconciliation path.
 
 ## Metadata Extraction
 

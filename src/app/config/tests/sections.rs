@@ -23,6 +23,37 @@ key = "local-secret"
 }
 
 #[test]
+fn subscription_settings_default_to_disabled_daily() {
+    let config = AppConfig::default();
+    assert!(!config.subscriptions.auto_refresh);
+    assert_eq!(config.subscriptions.refresh_interval_hours, 24);
+    assert_eq!(config.subscriptions.refresh_interval_secs(), 24 * 3600);
+}
+
+#[test]
+fn parses_subscription_settings() {
+    let config: AppConfig = toml::from_str(
+        r#"
+[subscriptions]
+auto_refresh = true
+refresh_interval_hours = 6
+"#,
+    )
+    .expect("config should parse");
+
+    assert!(config.subscriptions.auto_refresh);
+    assert_eq!(config.subscriptions.refresh_interval_hours, 6);
+    assert_eq!(config.subscriptions.refresh_interval_secs(), 6 * 3600);
+}
+
+#[test]
+fn subscription_refresh_interval_is_clamped_to_at_least_one_hour() {
+    let config: AppConfig =
+        toml::from_str("[subscriptions]\nrefresh_interval_hours = 0\n").expect("parse");
+    assert_eq!(config.subscriptions.refresh_interval_secs(), 3600);
+}
+
+#[test]
 fn parses_parser_settings() {
     let config: AppConfig =
         toml::from_str("[parser]\nparse_mode = \"lenient\"\n").expect("config should parse");

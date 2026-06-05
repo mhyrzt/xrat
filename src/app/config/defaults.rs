@@ -7,6 +7,9 @@ pub const DEFAULT_ROTATION_COOLDOWN_SECS: u64 = 300;
 pub const DEFAULT_ROTATION_TEST_CONCURRENCY: i32 = 0;
 pub const DEFAULT_ROTATION_TEST_STAGES: &[&str] = &["real_delay", "download"];
 
+pub const DEFAULT_SUBSCRIPTIONS_AUTO_REFRESH: bool = false;
+pub const DEFAULT_SUBSCRIPTIONS_REFRESH_INTERVAL_HOURS: u64 = 24;
+
 pub const DEFAULT_LOG_ENABLED: bool = true;
 pub const DEFAULT_LOG_MASK: &str = "none";
 pub const DEFAULT_LOG_DIR: &str = "logs";

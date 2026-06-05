@@ -30,6 +30,13 @@ pub struct ImportSummary {
     pub total_configs: i64,
 }
 
+/// A URL-backed subscription eligible for automatic refresh.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RefreshableSubscription {
+    pub id: i64,
+    pub source_url: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SubscriptionRecord {
     pub id: i64,

@@ -10,8 +10,8 @@ session can resume mid-stream.
 |---|------|--------|
 | 1 | Reconcile Removed Configs on Subscription Refresh | ✅ done |
 | 2 | Move Import Ingestion Out of the TUI | ✅ done |
-| 3 | Implement Automatic Subscription Refresh | 🟡 in progress |
-| 4 | Refresh Subscriptions Before Proxy Rotation | ⬜ not started |
+| 3 | Implement Automatic Subscription Refresh | ✅ done |
+| 4 | Refresh Subscriptions Before Proxy Rotation | 🟡 in progress |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done
 
@@ -159,15 +159,27 @@ scheduler, so URL-backed subscriptions drift out of date without user action.
 
 **Checklist.**
 
-- [ ] `SubscriptionSettings` + defaults + seed TOML + config test.
-- [ ] Migration `00NN_add_subscription_last_refreshed_at.sql` (both backends);
-      repository setter + due-query.
-- [ ] Shared refresh service; TUI `source.rs` calls it.
-- [ ] Daemon scheduler tick honoring interval + restart persistence.
-- [ ] Events for start/success/failure; failures never crash the daemon.
-- [ ] Docs: manual vs automatic refresh.
-- [ ] Tests: due-selection, interval respected, failure isolation.
-- [ ] fmt + clippy + test.
+- [x] `SubscriptionSettings` + defaults + seed TOML + config tests
+      (`config/subscriptions.rs`, `config/tests/sections.rs`).
+- [x] Migration `0018_add_subscription_last_refreshed_at.sql` (both backends);
+      `mark_refreshed` + `list_refreshable_due` repository fns, exposed on
+      `Database`. `last_refreshed_at` stamped for URL sources inside
+      `api::configs::import_nodes` (epoch-secs text, like `cooldown_until`).
+- [x] Shared refresh service `src/app/subscription_refresh.rs`
+      (`refresh_due` / `refresh_all`). Manual TUI/CLI import already stamps via
+      `import_nodes`, so they share the same path.
+- [x] Daemon scheduler: 300s detection ticker in the supervisor loop, guarded
+      by an `AtomicBool`, spawns `refresh_due`. Interval honored per-subscription
+      via persisted `last_refreshed_at` → survives restarts.
+- [x] Events `subscription_refresh_started/succeeded/failed`
+      (`SOURCE_SUBSCRIPTION`); per-sub failures swallowed, never crash daemon.
+- [x] Docs: `docs/src/03-features/importing.md` "Refreshing Subscriptions".
+- [x] Tests: due-selection + url-only filter
+      (`import_cases/refresh_due.rs`); config parse/default/clamp tests.
+- [x] fmt + clippy + test (415 passed).
+
+Note: refresh interval is clamped to ≥1h (`refresh_interval_secs`) so a
+misconfigured `0` cannot busy-loop the scheduler.
 
 ---
 

@@ -11,5 +11,7 @@ pub use connection_tests::{
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
 };
 pub use events::{EventFilter, EventRecord, NewEvent};
-pub use import::{ImportSource, ImportSummary, SourceKind, SubscriptionRecord};
+pub use import::{
+    ImportSource, ImportSummary, RefreshableSubscription, SourceKind, SubscriptionRecord,
+};
 pub use runtime_sessions::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};

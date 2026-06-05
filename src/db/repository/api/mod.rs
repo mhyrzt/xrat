@@ -28,5 +28,5 @@ pub use runtime_sessions::{
 };
 pub use subscriptions::{
     delete_subscription_with_configs, get_subscription_by_id, get_subscription_count,
-    list_subscriptions, set_subscription_name,
+    list_refreshable_due_subscriptions, list_subscriptions, set_subscription_name,
 };

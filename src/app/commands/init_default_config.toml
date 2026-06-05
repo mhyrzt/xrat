@@ -99,6 +99,20 @@ level = "warning"
 # test_concurrency = 0
 # # Test stages run to pick the next config.
 # test_stages = ["real_delay", "download"]
+# # Refresh URL-backed subscriptions before picking a rotation candidate.
+# refresh_subscriptions = false
+
+
+# -----------------------------------------------------------------
+# [subscriptions] — automatic refresh of URL-backed subscriptions
+# -----------------------------------------------------------------
+# The daemon periodically re-fetches URL-backed subscriptions, reusing the
+# same import + reconciliation path as a manual TUI refresh. Non-URL sources
+# (files, raw text) are skipped. Requires a running daemon.
+# [subscriptions]
+# auto_refresh = false
+# # How often a subscription becomes due for refresh (hours).
+# refresh_interval_hours = 24
 
 
 # -----------------------------------------------------------------

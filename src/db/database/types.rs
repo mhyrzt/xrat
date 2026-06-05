@@ -9,8 +9,8 @@ pub(super) use crate::db::connection::{self, DatabaseConnectionConfig, DbPool};
 pub(super) use crate::db::record::{
     CfScanResultRecord, CfScanResultUpsert, ConfigListFilter, ConfigRecord, ConfigWithLatestTest,
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
-    EventFilter, EventRecord, ImportSource, ImportSummary, NewEvent, RuntimeSessionInsert,
-    RuntimeSessionRecord, RuntimeSessionStatus, SubscriptionRecord,
+    EventFilter, EventRecord, ImportSource, ImportSummary, NewEvent, RefreshableSubscription,
+    RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus, SubscriptionRecord,
 };
 pub(super) use crate::db::repository;
 

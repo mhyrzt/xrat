@@ -37,6 +37,13 @@ impl Database {
         repository::list_subscriptions(&self.pool).await
     }
 
+    pub async fn list_refreshable_due_subscriptions(
+        &self,
+        cutoff_epoch_secs: i64,
+    ) -> crate::db::Result<Vec<RefreshableSubscription>> {
+        repository::list_refreshable_due_subscriptions(&self.pool, cutoff_epoch_secs).await
+    }
+
     pub async fn get_subscription_by_id(
         &self,
         id: i64,

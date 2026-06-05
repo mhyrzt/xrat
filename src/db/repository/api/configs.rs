@@ -1,6 +1,6 @@
 use crate::db::connection::DbPool;
 use crate::db::record::{
-    ConfigListFilter, ConfigRecord, ConfigWithLatestTest, ImportSource, ImportSummary,
+    ConfigListFilter, ConfigRecord, ConfigWithLatestTest, ImportSource, ImportSummary, SourceKind,
 };
 use crate::db::repository::{configs, subscriptions};
 use crate::model::Node;
@@ -11,7 +11,11 @@ pub async fn import_nodes(
     nodes: &[Node],
 ) -> crate::db::Result<ImportSummary> {
     let subscription_id = subscriptions::find_or_create(pool, source).await?;
-    configs::import_nodes(pool, subscription_id, nodes).await
+    let summary = configs::import_nodes(pool, subscription_id, nodes).await?;
+    if matches!(source.kind, SourceKind::Url) {
+        subscriptions::mark_refreshed(pool, subscription_id).await?;
+    }
+    Ok(summary)
 }
 
 pub async fn get_config_count(pool: &DbPool) -> crate::db::Result<i64> {
