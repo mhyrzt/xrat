@@ -18,27 +18,29 @@ These flags apply to every command:
 
 ## Commands
 
-| Command                                   | Description                                                    |
-| ----------------------------------------- | -------------------------------------------------------------- |
-| [`import`](import.md)                     | Import a subscription URL, file, or raw text into the database |
-| [`add`](config-management.md#add)         | Add a single config URI directly to the database               |
-| [`list`](list.md)                         | List stored configs or subscription sources                    |
-| [`show`](config-management.md#show)       | Show details for a stored config                               |
-| [`enable`](config-management.md#enable)   | Include a config in normal operations                          |
-| [`disable`](config-management.md#disable) | Exclude a config from normal operations                        |
-| [`delete`](config-management.md#delete)   | Soft-delete or permanently delete a config                     |
-| [`restore`](config-management.md#restore) | Restore a soft-deleted config                                  |
-| [`parse`](parse.md)                       | Parse and validate config links without persisting             |
-| [`test`](test.md)                         | Test connectivity and latency for stored configs               |
-| [`scan`](scan.md)                         | Scan candidate IPs for TCP reachability                        |
-| [`connect`](runtime.md#connect)           | Start a managed proxy runtime for a stored config              |
-| [`disconnect`](runtime.md#disconnect)     | Stop the active managed proxy runtime                          |
-| [`status`](runtime.md#status)             | Show the managed proxy runtime status                          |
-| [`daemon`](daemon.md)                     | Run or control the daemon supervisor process                   |
-| [`proxy`](proxy.md)                       | Control auto-rotating proxy scheduling via the daemon          |
-| [`geoip`](geoip.md)                       | Manage GeoLite2 MMDB assets and inspect GeoIP backend config   |
-| [`serve`](serve.md)                       | Start the local HTTP API server                                |
-| [`tui`](tui.md)                           | Start the interactive terminal UI                              |
+| Command                                   | Description                                                     |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| [`import`](import.md)                     | Import a subscription URL, file, or raw text into the database  |
+| [`add`](config-management.md#add)         | Add a single config URI directly to the database                |
+| [`list`](list.md)                         | List stored configs or subscription sources                     |
+| [`show`](config-management.md#show)       | Show details for a stored config                                |
+| [`enable`](config-management.md#enable)   | Include a config in normal operations                           |
+| [`disable`](config-management.md#disable) | Exclude a config from normal operations                         |
+| [`delete`](config-management.md#delete)   | Soft-delete or permanently delete a config                      |
+| [`restore`](config-management.md#restore) | Restore a soft-deleted config                                   |
+| [`parse`](parse.md)                       | Parse and validate config links without persisting              |
+| [`test`](test.md)                         | Test connectivity and latency for stored configs                |
+| [`scan`](scan.md)                         | Scan candidate IPs for TCP reachability                         |
+| [`connect`](runtime.md#connect)           | Start a managed proxy runtime for a stored config               |
+| [`disconnect`](runtime.md#disconnect)     | Stop the active managed proxy runtime                           |
+| [`status`](runtime.md#status)             | Show the managed proxy runtime status                           |
+| [`daemon`](daemon.md)                     | Run or control the daemon supervisor process                    |
+| [`proxy`](proxy.md)                       | Control auto-rotating proxy scheduling via the daemon           |
+| [`geoip`](geoip.md)                       | Manage GeoLite2 MMDB assets and inspect GeoIP backend config    |
+| [`serve`](serve.md)                       | Start the local HTTP API server                                 |
+| [`tui`](tui.md)                           | Start the interactive terminal UI                               |
+| [`upgrade`](upgrade.md)                   | Self-upgrade from the latest release or by building from source |
+| `version`                                 | Print the xrat version                                          |
 
 ## Common State Terms
 

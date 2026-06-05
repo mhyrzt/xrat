@@ -21,6 +21,8 @@ mod status;
 mod test_cmd;
 mod tests;
 mod tui;
+mod upgrade;
+mod version;
 
 pub use add::AddArgs;
 pub use command::Command;
@@ -57,6 +59,8 @@ pub use serve::ServeArgs;
 pub use status::StatusArgs;
 pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
 pub use tui::TuiArgs;
+pub use upgrade::UpgradeArgs;
+pub use version::VersionArgs;
 
 use clap::Parser;
 

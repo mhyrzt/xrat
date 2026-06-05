@@ -25,6 +25,7 @@
   - [tui](02-cli/tui.md)
   - [completions](02-cli/completions.md)
   - [manpage](02-cli/manpage.md)
+  - [upgrade](02-cli/upgrade.md)
 - [Features](03-features/README.md)
   - [Importing](03-features/importing.md)
   - [Testing](03-features/testing.md)
