@@ -13,9 +13,9 @@ graph TB
     classDef sock   fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
 
     CLI["xrat daemon start"]:::cli
-    PARENT["Parent process\nvalidates config, forks child"]:::proc
-    CHILD["Child process\nexecs 'xrat daemon run-server'"]:::proc
-    SOCK["Unix socket\n/path/to/xrat.sock"]:::sock
+    PARENT["Parent process<br/>validates config, forks child"]:::proc
+    CHILD["Child process<br/>execs 'xrat daemon run-server'"]:::proc
+    SOCK["Unix socket<br/>/path/to/xrat.sock"]:::sock
     CLIENT1["xrat status"]:::client
     CLIENT2["xrat connect"]:::client
     CLIENT3["xrat proxy start"]:::client
@@ -161,9 +161,9 @@ flowchart TD
     TR["transport/runtime.rs"]:::trans
 
     REQ --> TYPE
-    TYPE -- "DaemonPing\nDaemonShutdown" --> TS
-    TYPE -- "ProxyStart\nProxyStop\nProxyStatus" --> TP
-    TYPE -- "RuntimeConnect\nRuntimeDisconnect\nRuntimeReplace\nRuntimeStatus" --> TR
+    TYPE -- "DaemonPing<br/>DaemonShutdown" --> TS
+    TYPE -- "ProxyStart<br/>ProxyStop<br/>ProxyStatus" --> TP
+    TYPE -- "RuntimeConnect<br/>RuntimeDisconnect<br/>RuntimeReplace<br/>RuntimeStatus" --> TR
 ```
 
 ## Health Checking
@@ -180,11 +180,11 @@ flowchart TD
     CHECK{"active session?"}:::check
     PROBE["probe inbound SOCKS / HTTP ports"]:::check
     OPEN{"all inbounds reachable?"}:::check
-    RECORD["record success\nreset failure count"]:::ok
+    RECORD["record success<br/>reset failure count"]:::ok
     WAIT["skip"]:::ok
     INCR["increment failure count"]:::warn
     THRESH{"failures > threshold?"}:::warn
-    TRIGGER["trigger rotation\n(HealthCheckFailed)"]:::fail
+    TRIGGER["trigger rotation<br/>(HealthCheckFailed)"]:::fail
     COOLDOWN["enter cooldown period"]:::warn
 
     TICK --> CHECK
@@ -231,13 +231,13 @@ flowchart TD
 
     TRIG{"trigger source"}:::trigger
     NEXT["select next candidate config"]:::step
-    BUILD["handle_runtime_replace\nsupervisor/handlers/runtime/"]:::step
+    BUILD["handle_runtime_replace<br/>supervisor/handlers/runtime/"]:::step
     STOP_OLD["stop old process"]:::step
-    SPAWN["spawn new Xray\n(configured ports)"]:::step
+    SPAWN["spawn new Xray<br/>(configured ports)"]:::step
     WAIT_HEALTH["wait for inbound health"]:::step
     ATOMIC{"healthy?"}
     SWITCH["set active config"]:::ok
-    CLEAN["record failed session\nclear active config"]:::fail
+    CLEAN["record failed session<br/>clear active config"]:::fail
     PERSIST["persist new session record"]:::store
 
     TRIG -- "Timer"         --> NEXT

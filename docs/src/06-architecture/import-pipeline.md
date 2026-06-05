@@ -13,20 +13,20 @@ flowchart TD
     classDef node fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
     classDef db   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    INPUT["Raw Input\n(URL / file / stdin)"]:::io
-    READ["read_input()\napp/input/source.rs"]:::io
-    SRC["ImportSource\n{ kind, value, name }"]:::io
+    INPUT["Raw Input<br/>(URL / file / stdin)"]:::io
+    READ["read_input()<br/>app/input/source.rs"]:::io
+    SRC["ImportSource<br/>{ kind, value, name }"]:::io
     BYTES["raw bytes"]:::io
-    IMPORT["run_import()\napp/import.rs"]:::cfg
-    DETECT["detect format\nconfig/import/detect.rs"]:::cfg
-    MODE["ImportMode\n(Auto | SingleLink | Base64 | Plain | Sip008 | XrayJson)"]:::cfg
-    PARSE["parse_import()\nconfig/import/"]:::cfg
-    RESULT["ImportResult\n{ nodes, errors, metadata }"]:::cfg
+    IMPORT["run_import()<br/>app/import.rs"]:::cfg
+    DETECT["detect format<br/>config/import/detect.rs"]:::cfg
+    MODE["ImportMode<br/>(Auto | SingleLink | Base64 | Plain | Sip008 | XrayJson)"]:::cfg
+    PARSE["parse_import()<br/>config/import/"]:::cfg
+    RESULT["ImportResult<br/>{ nodes, errors, metadata }"]:::cfg
     NODE["model::Node"]:::node
-    NORM["normalize()\nconfig/normalize.rs"]:::node
-    DEDUP["dedup_key()\nmodel::Node"]:::node
-    PERSIST["upsert\ndb/repository/configs/import_ops"]:::db
-    SUB_REC["link subscription\ndb/repository/subscriptions/"]:::db
+    NORM["normalize()<br/>config/normalize.rs"]:::node
+    DEDUP["dedup_key()<br/>model::Node"]:::node
+    PERSIST["upsert<br/>db/repository/configs/import_ops"]:::db
+    SUB_REC["link subscription<br/>db/repository/subscriptions/"]:::db
 
     INPUT --> READ
     READ --> SRC & BYTES
@@ -108,7 +108,7 @@ flowchart TD
     HT["http.rs"]:::parser
     SK["socks5.rs"]:::parser
     HY["hy2.rs"]:::parser
-    ERR["ImportParseError\n::UnsupportedProtocol"]:::err
+    ERR["ImportParseError<br/>::UnsupportedProtocol"]:::err
     NODE["model::Node"]:::node
 
     LINK --> ROUTE

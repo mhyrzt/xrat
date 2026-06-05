@@ -12,18 +12,15 @@ graph TB
     classDef core   fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
     classDef engine fill:#1a3a1a,stroke:#5bdf5b,color:#e6edf3
     classDef store  fill:#1a3a3a,stroke:#5bdfd3,color:#e6edf3
-
     User(("User")):::user
 
-    subgraph interfaces["User Interfaces"]
-        CLI["CLI  (terminal)"]:::iface
-        TUI["TUI  (ratatui)"]:::iface
-        API["HTTP API  (axum)"]:::iface
+    subgraph interfaces[" "]
+        TUI["TUI"]:::iface
+        CLI["CLI"]:::iface
+        API["HTTP API"]:::iface
     end
 
-    subgraph xrat_core["xrat Core"]
-        Daemon["Daemon Supervisor"]:::core
-    end
+    Daemon["xrat Core<br/>Daemon Supervisor"]:::core
 
     subgraph engines["Proxy Engines"]
         Xray["Xray-core"]:::engine
@@ -32,12 +29,12 @@ graph TB
 
     DB[("SQLite / Postgres")]:::store
 
-    User --> CLI
-    User --> TUI
     User -- "HTTP" --> API
+    User --> TUI
+    User --> CLI
 
-    CLI -- "IPC" --> Daemon
     TUI -- "IPC" --> Daemon
+    CLI -- "IPC" --> Daemon
 
     Daemon -- "spawns" --> Xray
     Daemon -- "spawns" --> SingBox

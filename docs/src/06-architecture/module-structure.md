@@ -6,10 +6,10 @@ integration.
 
 ## Component Diagram
 
-Arrows show dependency direction (A → B means A depends on B).
+Arrows show the main dependency direction between layers.
 
 ```mermaid
-graph TB
+flowchart TB
     classDef entry  fill:#1a2744,stroke:#4a9eff,color:#e6edf3
     classDef iface  fill:#1a3a2a,stroke:#5bdf8a,color:#e6edf3
     classDef app    fill:#2a1a3a,stroke:#b070df,color:#e6edf3
@@ -19,57 +19,18 @@ graph TB
     classDef probe  fill:#2a2a1a,stroke:#c0df5b,color:#e6edf3
 
     main["main.rs"]:::entry
+    ui["User Interfaces<br/>cli/ · server/ · tui/"]:::iface
+    app["Application Layer<br/>commands/ · daemon/ · runtime_service/"]:::app
+    data["Data & Probing<br/>db/ · prober/"]:::store
+    engines["Proxy Engines<br/>xray/ · singbox/"]:::engine
+    domain["Domain & Config<br/>config/ · model/ · support/"]:::domain
 
-    subgraph ui["User Interfaces"]
-        cli["cli/"]:::iface
-        server["server/"]:::iface
-        tui["tui/"]:::iface
-    end
-
-    subgraph app_layer["Application Layer"]
-        cmds["commands/"]:::app
-        daemon["daemon/"]:::app
-        rtsvc["runtime_service/"]:::app
-    end
-
-    subgraph domain_layer["Domain & Config"]
-        model["model/"]:::domain
-        config["config/"]:::domain
-        support["support/"]:::domain
-    end
-
-    db["db/"]:::store
-
-    subgraph engine_layer["Proxy Engines"]
-        xray["xray/"]:::engine
-        singbox["singbox/"]:::engine
-    end
-
-    prober["prober/"]:::probe
-
-    main --> cli
-    main --> cmds
-
-    cmds --> rtsvc
-    cmds --> daemon
-    daemon --> rtsvc
-    rtsvc --> xray
-
-    config --> model
-    support --> config
-    support --> db
-
-    db --> xray
-    db --> prober
-
-    prober --> xray
-    prober --> model
-
-    server --> db
-    server --> model
-
-    tui --> cmds
-    tui --> db
+    main --> ui
+    ui --> app
+    app --> data
+    app --> engines
+    data --> domain
+    engines --> domain
 ```
 
 ## Module Responsibilities
@@ -97,7 +58,7 @@ flowchart LR
     classDef cfg  fill:#2e2a1a,stroke:#dfba5b,color:#e6edf3
     classDef db   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
-    SRC["Input\n(URL / File / Stdin)"]:::io
+    SRC["Input<br/>(URL / File / Stdin)"]:::io
     APP_IN["app/input/"]:::io
     DETECT["config/import/detect"]:::cfg
     PARSE_FMT["config/import/parsers/"]:::cfg
@@ -121,19 +82,19 @@ flowchart TD
     classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
     CLI["CLI args"]:::cli
-    SET["resolve settings\napp/commands/test/"]:::app
-    LOAD["load configs\ndb/repository/configs/"]:::store
+    SET["resolve settings<br/>app/commands/test/"]:::app
+    LOAD["load configs<br/>db/repository/configs/"]:::store
     LOOP{"For each config"}
-    GEN["generate probe config\nxray/config/generator/"]:::engine
-    SPAWN["spawn Xray\nxray/process/"]:::engine
+    GEN["generate probe config<br/>xray/config/generator/"]:::engine
+    SPAWN["spawn Xray<br/>xray/process/"]:::engine
     ICMP["prober/icmp/"]:::probe
     TCP["prober/tcp/"]:::probe
     DELAY["prober/real_delay/"]:::probe
     DL["prober/download/"]:::probe
     UL["prober/upload/"]:::probe
-    KILL["kill probe\nxray/process/"]:::engine
-    SAVE["persist results\ndb/repository/connection_tests/"]:::store
-    OUT["format & print\napp/commands/test/output/"]:::app
+    KILL["kill probe<br/>xray/process/"]:::engine
+    SAVE["persist results<br/>db/repository/connection_tests/"]:::store
+    OUT["format & print<br/>app/commands/test/output/"]:::app
 
     CLI --> SET --> LOAD --> LOOP
     LOOP --> GEN --> SPAWN --> ICMP --> TCP --> DELAY --> DL --> UL --> KILL --> LOOP
@@ -150,11 +111,11 @@ flowchart LR
     classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
     CLI["CLI args"]:::cli
-    LOAD["load config\napp/commands/connect/"]:::app
-    RTSVC["start session\napp/runtime_service/connect/"]:::app
-    XGEN["build runtime config\nxray/config/generator/"]:::engine
-    XSPAWN["spawn detached\nxray/process_mgmt/"]:::engine
-    SAVE["persist session\ndb/repository/runtime_sessions/"]:::store
+    LOAD["load config<br/>app/commands/connect/"]:::app
+    RTSVC["start session<br/>app/runtime_service/connect/"]:::app
+    XGEN["build runtime config<br/>xray/config/generator/"]:::engine
+    XSPAWN["spawn detached<br/>xray/process_mgmt/"]:::engine
+    SAVE["persist session<br/>db/repository/runtime_sessions/"]:::store
 
     CLI --> LOAD --> RTSVC --> XGEN --> XSPAWN --> SAVE
 ```
@@ -169,11 +130,11 @@ flowchart TD
 
     START["xrat daemon start"]:::cli
     FORK["fork child process"]:::app
-    SUP["event loop\napp/daemon/supervisor/"]:::app
-    REATTACH["reconcile stale sessions\napp/runtime_service/reattach/"]:::app
+    SUP["event loop<br/>app/daemon/supervisor/"]:::app
+    REATTACH["reconcile stale sessions<br/>app/runtime_service/reattach/"]:::app
     SELECT{"tokio::select!"}:::app
-    HEALTH["health check\n(every 15s)"]:::event
-    IPC["IPC events\n(Unix socket)"]:::event
+    HEALTH["health check<br/>(every 15s)"]:::event
+    IPC["IPC events<br/>(Unix socket)"]:::event
     ROTATE["rotation timer"]:::event
 
     START --> FORK --> SUP --> REATTACH --> SELECT

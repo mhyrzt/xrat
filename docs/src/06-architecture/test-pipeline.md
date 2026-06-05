@@ -15,14 +15,14 @@ flowchart TD
     classDef store  fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
     START["CLI: xrat test"]:::cli
-    RESOLVE["resolve_test_settings()\nsettings/resolve.rs"]:::app
-    LOAD["load target configs\ndb/repository/configs/"]:::store
-    EXEC["run for each config\nbulk/single.rs"]:::app
-    PROBE["generate probe config\nspawn Xray process"]:::engine
-    STAGES["run enabled stages\nsequentially"]:::probe
+    RESOLVE["resolve_test_settings()<br/>settings/resolve.rs"]:::app
+    LOAD["load target configs<br/>db/repository/configs/"]:::store
+    EXEC["run for each config<br/>bulk/single.rs"]:::app
+    PROBE["generate probe config<br/>spawn Xray process"]:::engine
+    STAGES["run enabled stages<br/>sequentially"]:::probe
     KILL["kill probe process"]:::engine
-    SAVE["persist results\ndb/repository/connection_tests/"]:::store
-    OUT["format & print\noutput/print.rs"]:::app
+    SAVE["persist results<br/>db/repository/connection_tests/"]:::store
+    OUT["format & print<br/>output/print.rs"]:::app
 
     START --> RESOLVE --> LOAD --> EXEC --> PROBE --> STAGES --> KILL --> SAVE --> OUT
 ```
@@ -204,10 +204,10 @@ flowchart LR
     FAIL["test failure"]:::input
     CAT{"prober"}
 
-    ICMP["dns · timeout · permission_denied\nunreachable · unknown"]:::icmp
-    TCP["dns · timeout · refused\nunreachable · permission_denied · unknown"]:::tcp
-    RD["process · timeout · tls\nauth · proxy · unknown"]:::http
-    TH["process · timeout · tls\nauth · proxy · unknown"]:::http
+    ICMP["dns · timeout · permission_denied<br/>unreachable · unknown"]:::icmp
+    TCP["dns · timeout · refused<br/>unreachable · permission_denied · unknown"]:::tcp
+    RD["process · timeout · tls<br/>auth · proxy · unknown"]:::http
+    TH["process · timeout · tls<br/>auth · proxy · unknown"]:::http
 
     FAIL --> CAT
     CAT -- "ICMP"            --> ICMP
@@ -230,11 +230,11 @@ flowchart LR
     classDef proxy  fill:#2e1a1a,stroke:#df6060,color:#e6edf3
     classDef opt    fill:#1a2c3a,stroke:#5b8def,color:#e6edf3
 
-    ICMP["ICMP\n(direct)"]:::direct
-    TCP["TCP\n(direct)"]:::direct
-    REAL["Real Delay\n(via Xray)"]:::proxy
-    DL["Download\n(via Xray)"]:::proxy
-    UL["Upload\n(via Xray, optional)"]:::opt
+    ICMP["ICMP<br/>(direct)"]:::direct
+    TCP["TCP<br/>(direct)"]:::direct
+    REAL["Real Delay<br/>(via Xray)"]:::proxy
+    DL["Download<br/>(via Xray)"]:::proxy
+    UL["Upload<br/>(via Xray, optional)"]:::opt
 
     ICMP --> TCP --> REAL --> DL -.-> UL
 ```

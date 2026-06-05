@@ -18,15 +18,15 @@ flowchart LR
     classDef engine fill:#2e1a1a,stroke:#df6060,color:#e6edf3
     classDef out    fill:#1a2e1a,stroke:#5bdf8a,color:#e6edf3
 
-    NODE["model::Node\n(protocol, address, port, ...)"]:::domain
-    ENGINE{{"resolve_engine()\nAuto | Xray | SingBox"}}:::select
-    XGEN["xray/config/generator/\ngenerate_probe_config()\ngenerate_runtime_config()"]:::engine
-    SGEN["singbox/config/\ngenerate_probe_config()\ngenerate_runtime_config()"]:::engine
-    XOUT["Xray JSON config\n(XrayConfig)"]:::out
-    SOUT["sing-box JSON config\n(serde_json::Value)"]:::out
+    NODE["model::Node<br/>(protocol, address, port, ...)"]:::domain
+    ENGINE{{"resolve_engine()<br/>Auto | Xray | SingBox"}}:::select
+    XGEN["xray/config/generator/<br/>generate_probe_config()<br/>generate_runtime_config()"]:::engine
+    SGEN["singbox/config/<br/>generate_probe_config()<br/>generate_runtime_config()"]:::engine
+    XOUT["Xray JSON config<br/>(XrayConfig)"]:::out
+    SOUT["sing-box JSON config<br/>(serde_json::Value)"]:::out
 
     NODE --> ENGINE
-    ENGINE -- "VLESS, VMess, Trojan\nSS, SOCKS5, HTTP" --> XGEN
+    ENGINE -- "VLESS, VMess, Trojan<br/>SS, SOCKS5, HTTP" --> XGEN
     ENGINE -- "Hysteria2" --> SGEN
     XGEN --> XOUT
     SGEN --> SOUT

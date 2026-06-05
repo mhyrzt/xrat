@@ -184,7 +184,7 @@ flowchart TD
     VALIDATE{"exec + cmdline match?"}:::check
     HEALTH{"any inbound reachable?"}:::check
     RECONCILE["keep as Running"]:::ok
-    STALE["mark Failed\n(with reason code)"]:::fail
+    STALE["mark Failed<br/>(with reason code)"]:::fail
 
     START --> LOAD --> FOUND
     FOUND -- "no"  --> NO
