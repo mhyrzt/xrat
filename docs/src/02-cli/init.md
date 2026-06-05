@@ -79,32 +79,38 @@ Would create (if absent):
 
 ## Default config.toml
 
-The generated config enables SOCKS5 on port 1080, sets the Xray engine, and
-provides commented-out HTTP inbound and log settings:
+`xrat init` writes a fully documented config file: common settings are active
+with inline descriptions, and advanced features are present but commented out so
+the file doubles as offline reference. Default local ports use the `1820x` block
+(SOCKS `18200`, HTTP `18201`, Shadowsocks `18202`, API server `18203`).
 
 ```toml
 [runtime]
 engine = "xray"
+replace_active_session = true
 
 [runtime.socks]
 enabled = true
-host = "127.0.0.1"
-port = 1080
+host = "0.0.0.0"
+port = 18200
+udp = true
 
 [runtime.http]
 enabled = false
-host = "127.0.0.1"
-port = 8080
+host = "0.0.0.0"
+port = 18201
 
 [runtime.log]
 enabled = true
 level = "warning"
 
 [testing]
-concurrency = 4
+concurrency = 0
 
-[geo]
-auto_update = false
+[server]
+enabled = false
+host = "127.0.0.1"
+port = 18203
 ```
 
 See [Config File](../05-reference/config-file.md) for full reference.

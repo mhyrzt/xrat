@@ -1,25 +1,276 @@
 # XRAT configuration
-# See https://mhyrzt.github.io/xrat/reference/config-file.html for full reference.
+# =================================================================
+# Full reference: https://mhyrzt.github.io/xrat/reference/config-file.html
+#
+# Every option is documented inline so this file works as offline docs.
+#   * Uncommented settings below are the active defaults.
+#   * Commented (#) blocks are advanced/optional features — uncomment to use.
+#   * Any omitted field falls back to its built-in default.
+#
+# Default local ports use the 1820x block (R=18, A=1, T=20 -> "RAT"):
+#   SOCKS 18200 · HTTP 18201 · Shadowsocks 18202 · API server 18203
+# =================================================================
 
+
+# -----------------------------------------------------------------
+# [runtime] — proxy engine and local inbound proxies
+# -----------------------------------------------------------------
 [runtime]
+# Proxy engine that powers the active session: "xray" or "sing-box".
 engine = "xray"
+# Replace an already-running session when you connect to a new config.
+# Set false to refuse connecting while another session is active.
+replace_active_session = true
 
 [runtime.socks]
+# Local SOCKS5 inbound. The primary proxy most clients use.
 enabled = true
-host = "127.0.0.1"
-port = 1080
+# Listen address. "0.0.0.0" exposes it on every interface (LAN included);
+# use "127.0.0.1" to keep it reachable only from this machine.
+host = "0.0.0.0"
+port = 18200
+# Forward UDP traffic (needed for QUIC, some games, and DNS over the proxy).
+udp = true
+
+# Optional username/password auth for the SOCKS inbound.
+# [runtime.socks.auth]
+# enabled = false
+# username = "user"
+# password = "pass"
 
 [runtime.http]
+# Local HTTP(S) CONNECT inbound. Disabled by default; enable for apps that
+# only speak HTTP proxy.
 enabled = false
-host = "127.0.0.1"
-port = 8080
+host = "0.0.0.0"
+port = 18201
 
 [runtime.log]
+# Engine logging for the active session.
 enabled = true
+# Verbosity: "debug", "info", "warning", "error", or "none".
 level = "warning"
+# --- advanced log options ---
+# Mask sensitive values (e.g. addresses) in log output. Default "none".
+# mask = "none"
+# Directory for engine log files, relative to the xrat root.
+# dir = "logs"
+# Log DNS queries made by the engine.
+# dns_log = false
+# Keep log files across restarts instead of truncating them.
+# keep = true
 
+# Connection sniffing: inspect the first packets to recover the real
+# destination domain so routing rules can match on it.
+# [runtime.sniffing]
+# enabled = true
+# # Protocols to sniff and override the destination for.
+# dest_override = ["http", "tls", "quic"]
+# # Use the sniffed domain only for routing, not for the actual dial target.
+# route_only = true
+# # Stop after reading metadata (do not buffer the full payload).
+# metadata_only = false
+# # Domains/IPs that should never be sniffed.
+# domains_excluded = []
+# ips_excluded = []
+
+# Shadowsocks inbound. Lets other devices share this proxy as an SS server.
+# [runtime.shadowsocks]
+# enabled = false
+# host = "0.0.0.0"
+# port = 18202
+# # Cipher: "aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", or a
+# # "2022-blake3-*" method.
+# method = "aes-128-gcm"
+# password = "change-me"
+# # Transport: "tcp", "udp", or "tcp,udp".
+# network = "tcp,udp"
+
+# Automatic config rotation: periodically switch to a healthy config.
+# [runtime.rotation]
+# enabled = false
+# # Switch on a fixed interval (seconds).
+# interval_secs = 1800
+# # Also switch immediately when the active config becomes unhealthy.
+# health_trigger_enabled = true
+# # Minimum seconds between health-triggered switches.
+# cooldown_secs = 300
+# # Concurrency for the pre-rotation test pass (0 = auto).
+# test_concurrency = 0
+# # Test stages run to pick the next config.
+# test_stages = ["real_delay", "download"]
+
+
+# -----------------------------------------------------------------
+# [testing] — connection test pipeline (xrat test / scan)
+# -----------------------------------------------------------------
 [testing]
-concurrency = 4
+# Parallel tests to run at once. 0 = auto (based on CPU count).
+concurrency = 0
+# --- advanced testing options ---
+# Stage order for the full test pipeline.
+# order = ["icmp", "real_delay", "download"]
+# On a stage failure: "continue", "skip_remaining", or "mark_failed".
+# failure_policy = "continue"
 
-[geo]
-auto_update = false
+# Real-delay test: measure latency through the proxy to a known URL.
+# [testing.real_delay]
+# enabled = true
+# url = "https://www.gstatic.com/generate_204"
+# timeout = 10000          # milliseconds
+
+# ICMP ping test (may require elevated privileges).
+# [testing.icmp]
+# enabled = true
+# attempts = 3
+# timeout = 3000           # milliseconds
+
+# TCP connect test: confirm the endpoint accepts a connection.
+# [testing.tcp]
+# enabled = true
+# timeout = 5000           # milliseconds
+
+# Download speed test. Off by default (consumes bandwidth).
+# [testing.download]
+# enabled = false
+# url = "https://cachefly.cachefly.net/50mb.test"
+# timeout = 30000          # milliseconds
+
+# GeoIP lookup for the proxy exit IP (country/city/ASN).
+# [testing.geoip]
+# enabled = false
+# # Lookup backend: "mmdb", "ipwhois", "ipapi", "chain", or "none".
+# backend = "mmdb"
+# # Backend used if the primary one fails.
+# fallback = "none"
+# country_path = "mmdb/GeoLite2-Country.mmdb"
+# city_path = "mmdb/GeoLite2-City.mmdb"
+# asn_path = "mmdb/GeoLite2-ASN.mmdb"
+# [testing.geoip.remote]
+# # Remote provider: "ipwhois" or "ipapi".
+# provider = "ipwhois"
+# endpoint = ""
+# timeout_ms = 5000
+# api_key = ""
+# rate_limit_per_minute = 30
+# [testing.geoip.cache]
+# enabled = true
+# ttl_secs = 86400
+# max_entries = 10000
+
+
+# -----------------------------------------------------------------
+# [server] — read-only HTTP API for serving the config subscription
+# -----------------------------------------------------------------
+[server]
+# Disabled by default. Enable to expose /b64, /json, /configs, /health.
+enabled = false
+# Bind address. Keep "127.0.0.1" unless you intend remote access.
+host = "127.0.0.1"
+port = 18203
+# API key required on requests. Use "env:VAR_NAME" to read from the
+# environment instead of storing the secret in plaintext.
+# key = "env:XRAT_API_KEY"
+
+
+# -----------------------------------------------------------------
+# [parser] — subscription / link import behaviour
+# -----------------------------------------------------------------
+# [parser]
+# # "strict" rejects unknown fields; "lenient" (alias "loose") allows them;
+# # "auto" is currently lenient.
+# parse_mode = "strict"
+
+
+# -----------------------------------------------------------------
+# [database] — storage backend (SQLite by default, no setup needed)
+# -----------------------------------------------------------------
+# [database]
+# # "sqlite" or "postgres".
+# backend = "sqlite"
+# [database.sqlite]
+# # Override the SQLite file location (defaults to the xrat root).
+# path = "xrat.db"
+# [database.postgres]
+# user = "env:XRAT_PG_USER"
+# password = "env:XRAT_PG_PASSWORD"
+# host = "localhost"
+# port = 5432
+# db_name = "xrat"
+# max_connections = 10
+# min_connections = 1
+# connect_timeout_secs = 10
+
+
+# -----------------------------------------------------------------
+# [paths] — override locations of binaries and the database
+# -----------------------------------------------------------------
+# [paths]
+# database = "/path/to/xrat.db"
+# xray = "/usr/local/bin/xray"
+# v2ray = "/usr/local/bin/v2ray"
+# sing_box = "/usr/local/bin/sing-box"
+
+
+# -----------------------------------------------------------------
+# [routing] — split routing rules applied to the generated config
+# -----------------------------------------------------------------
+# [routing]
+# # Xray domain strategy: "AsIs", "IPIfNonMatch", or "IPOnDemand".
+# domain_strategy = "IPIfNonMatch"
+# # Send matching traffic directly (bypass the proxy).
+# [routing.direct]
+# domain = ["geosite:private"]
+# ip = ["geoip:private"]
+# geosite = []
+# geoip = []
+# # Block matching traffic entirely.
+# [routing.block]
+# domain = ["geosite:category-ads-all"]
+# ip = []
+# geosite = []
+# geoip = []
+
+
+# -----------------------------------------------------------------
+# [dns] — DNS resolution for the active session
+# -----------------------------------------------------------------
+# [dns]
+# # Xray query strategy: "UseSystem", "UseIP", "UseIPv4", or "UseIPv6".
+# query_strategy = "UseSystem"
+# # Upstream DNS servers (e.g. "1.1.1.1", "https://dns.google/dns-query").
+# servers = []
+# # Use the system hosts file.
+# use_system_hosts = true
+# disable_cache = false
+# disable_fallback = false
+# enable_parallel_query = true
+# # Static host overrides.
+# [dns.hosts]
+# "domain:example.test" = "127.0.0.1"
+
+
+# -----------------------------------------------------------------
+# [geo] — geosite/geoip rule asset management
+# -----------------------------------------------------------------
+# [geo]
+# auto_update = false
+# update_interval_hours = 168
+# # save_dir = "geo"
+# # Named geosite/geoip asset pairs to download.
+# # [[geo.profiles]]
+# # name = "loyalsoldier"
+# # geosite = "https://example.com/geosite.dat"
+# # geoip = "https://example.com/geoip.dat"
+
+
+# -----------------------------------------------------------------
+# [mmdb] — MaxMind GeoLite2 databases used by GeoIP tests
+# -----------------------------------------------------------------
+# [mmdb]
+# dir = "mmdb"
+# download_url = "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb"
+# timeout_secs = 60
+# default_editions = ["country", "city", "asn"]
+# auto_update = false
+# update_interval_hours = 168

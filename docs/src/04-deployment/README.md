@@ -74,8 +74,8 @@ chmod 600 ~/.config/xrat/db.sqlite
 
 By default, xrat binds to:
 
-- **SOCKS5**: `0.0.0.0:1080` (all interfaces)
-- **HTTP API**: `127.0.0.1:8080` (localhost only)
+- **SOCKS5**: `0.0.0.0:18200` (all interfaces)
+- **HTTP API**: `127.0.0.1:18203` (localhost only)
 
 To restrict SOCKS5 to localhost:
 
@@ -89,7 +89,7 @@ To expose HTTP API externally (with authentication):
 ```toml
 [server]
 host = "0.0.0.0"
-port = 8080
+port = 18203
 key = { env = "XRAT_API_KEY" }
 ```
 

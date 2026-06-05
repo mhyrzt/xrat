@@ -38,7 +38,7 @@ API alongside IPC:
 [server]
 enabled = true
 host = "127.0.0.1"
-port = 8080
+port = 18203
 ```
 
 ## Configuration
@@ -47,7 +47,7 @@ port = 8080
 [server]
 enabled = false
 host = "127.0.0.1"
-port = 8080
+port = 18203
 key = { env = "XRAT_API_KEY" }
 ```
 
@@ -55,7 +55,7 @@ key = { env = "XRAT_API_KEY" }
 | --------- | ----------------------------------- | ----------- |
 | `enabled` | Enable daemon-hosted API            | `false`     |
 | `host`    | Bind host                           | `127.0.0.1` |
-| `port`    | Bind port                           | `8080`      |
+| `port`    | Bind port                           | `18203`     |
 | `key`     | Optional API key for authentication | -           |
 
 ## Routes

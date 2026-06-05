@@ -35,7 +35,7 @@ The HTTP API server is configured in `config.toml`:
 [server]
 enabled = false
 host = "127.0.0.1"
-port = 8080
+port = 18203
 key = { env = "XRAT_API_KEY" }
 ```
 
@@ -43,7 +43,7 @@ key = { env = "XRAT_API_KEY" }
 | --------- | ------------------------------------ |
 | `enabled` | Enable daemon-hosted API (see below) |
 | `host`    | Bind host (default: `127.0.0.1`)     |
-| `port`    | Bind port (default: `8080`)          |
+| `port`    | Bind port (default: `18203`)         |
 | `key`     | Optional API key for authentication  |
 
 ## Operating Modes

@@ -114,3 +114,20 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::DEFAULT_CONFIG_TEMPLATE;
+    use crate::app::config::AppConfig;
+
+    #[test]
+    fn default_template_parses_with_expected_ports() {
+        let config: AppConfig = toml::from_str(DEFAULT_CONFIG_TEMPLATE)
+            .expect("default config template should be valid TOML");
+        assert_eq!(config.runtime.socks.port, 18200);
+        assert_eq!(config.runtime.http.port, 18201);
+        assert_eq!(config.server.port, 18203);
+        assert!(config.runtime.socks.enabled);
+        assert_eq!(config.runtime.engine, "xray");
+    }
+}

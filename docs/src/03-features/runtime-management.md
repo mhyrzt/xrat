@@ -33,14 +33,14 @@ Example generated config:
   "inbounds": [
     {
       "tag": "socks-in",
-      "port": 1080,
+      "port": 18200,
       "listen": "0.0.0.0",
       "protocol": "socks",
       "settings": { "udp": true }
     },
     {
       "tag": "http-in",
-      "port": 8080,
+      "port": 18201,
       "listen": "0.0.0.0",
       "protocol": "http"
     }
@@ -228,7 +228,7 @@ Configure local inbounds in `config.toml`:
 [runtime.socks]
 enabled = true
 host = "0.0.0.0"
-port = 1080
+port = 18200
 udp = true
 auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 ```
@@ -247,7 +247,7 @@ auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSW
 [runtime.http]
 enabled = false
 host = "0.0.0.0"
-port = 8080
+port = 18201
 ```
 
 ### Shadowsocks
@@ -256,7 +256,7 @@ port = 8080
 [runtime.shadowsocks]
 enabled = false
 host = "0.0.0.0"
-port = 1081
+port = 18202
 method = "aes-128-gcm"
 password = { env = "XRAT_SHADOWSOCKS_PASSWORD" }
 network = "tcp,udp"

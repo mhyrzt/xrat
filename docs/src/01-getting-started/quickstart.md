@@ -95,8 +95,8 @@ xrat connect 1
 The command sends a daemon IPC request. The daemon starts the Xray (or V2Ray)
 process with a generated runtime config. By default, it exposes:
 
-- **SOCKS5** on `0.0.0.0:1080`
-- **HTTP** on `0.0.0.0:8080` (if enabled in config.toml)
+- **SOCKS5** on `0.0.0.0:18200`
+- **HTTP** on `0.0.0.0:18201` (if enabled in config.toml)
 
 ## 5. Check Status
 

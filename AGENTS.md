@@ -9,6 +9,8 @@
 - `src/app/` contains app runtime bootstrap and command handlers. Keep command
   logic under `src/app/commands/` and keep lifecycle concerns in
   `src/app/daemon/`, `src/app/runtime_service/`, and `src/xray/process_mgmt/`.
+- `src/app/events.rs` records structured operational events. Event recording is
+  best-effort and must not make the primary operation fail.
 - `src/app/context/`, `src/app/config/`, and `src/app/paths/` contain
   application bootstrap, path resolution, and command-specific runtime settings.
 - `src/config/` contains import, parsing, normalization, and protocol link
@@ -20,6 +22,7 @@
   upload, and real-delay flows.
 - `src/db/` contains database wiring, schema helpers, records, and repositories,
   split across `src/db/database/`, `src/db/record/`, and `src/db/repository/`.
+  Keep event persistence in the existing `events` database/repository modules.
 - `src/model/` contains shared domain types.
 - `src/server/` contains HTTP API routes, auth, response, and server state.
 - `src/tui/` contains terminal UI state, views, keymaps, and data adapters.
@@ -33,8 +36,9 @@
 - `install.sh` installs release archives from GitHub and runs optional first-run
   setup.
 - `.github/workflows/` contains CI and release automation, including musl
-  release builds, generated man pages/completions, GitHub releases, and
-  crates.io publishing.
+  release builds, generated man pages/completions, GitHub releases, Docker image
+  publishing, and crates.io publishing.
+- `Dockerfile` builds the container image published to GitHub Container Registry.
 - `testdata/` holds local fixtures such as GeoIP data.
 
 ## Build, Test, and Development Commands
@@ -46,18 +50,27 @@
 - `cargo test -q --locked` — run the test suite quietly with the locked
   dependency graph.
 - `cargo run -- <command>` — run the CLI locally, for example:
+  - `cargo run --` (defaults to the TUI)
   - `cargo run -- init`
   - `cargo run -- import <input>`
   - `cargo run -- list`
+  - `cargo run -- show config <config-id>`
+  - `cargo run -- show subscription <subscription-id>`
   - `cargo run -- parse <config-id>`
   - `cargo run -- test <config-id>`
   - `cargo run -- scan`
   - `cargo run -- connect <config-id>`
   - `cargo run -- disconnect`
+  - `cargo run -- logs`
   - `cargo run -- serve`
   - `cargo run -- tui`
   - `cargo run -- status`
+  - `cargo run -- delete config <config-id>`
+  - `cargo run -- delete subscription <subscription-id>`
+  - `cargo run -- purge`
   - `cargo run -- daemon install --start`
+  - `cargo run -- upgrade`
+  - `cargo run -- version`
   - `cargo run -- geoip status`
   - `cargo run -- manpage --output <dir>`
   - `cargo run -- completions <shell>`
@@ -76,8 +89,8 @@ Naming:
 - files/modules: `snake_case`
 - functions: `snake_case`
 - structs/enums: `PascalCase`
-- CLI flags: long, explicit names such as `--database`, `--selected-only`, and
-  `--include-geoip`
+- CLI flags: long, explicit names such as `--database`, `--include-geoip`, and
+  `--format`
 
 Avoid one-letter variable names. Avoid inline comments unless they explain
 non-obvious intent or constraints.
@@ -122,20 +135,31 @@ For new CLI behavior, usually add:
 - documentation under `docs/src/02-cli/` or the relevant feature page when user
   behavior changes
 - packaging or installer updates when behavior changes generated service
-  templates, desktop assets, release extras, or first-run installation flow
+  templates, Docker images, desktop assets, release extras, self-upgrade, or
+  first-run installation flow
 
 Design constraints from current implementation direction:
 
 - Do not persist full root-level Xray JSON in the database; generate runtime
   config on demand from stored normalized data.
+- Do not reintroduce config selection state. The old `configs.is_selected`
+  column and `select` command were removed; use enabled/deleted config state and
+  persisted runtime session state instead.
 - Keep managed runtime lifecycle behavior explicit and observable (start/status/
   stop flow, persisted runtime session state).
+- Record daemon, runtime, rotation, health, and test events through
+  `src/app/events.rs` when behavior should appear in `xrat logs`. These events
+  are diagnostic records, so failures to write them should be logged and
+  swallowed.
 - Keep parser and runtime-generation concerns decoupled so parse/test/scan flows
   can evolve without rewriting CLI glue.
 - Keep CLI parsing, command orchestration, persistence, and external process
   control in separate layers. Avoid command handlers that directly parse raw
   subscription formats or manually assemble database rows when reusable services
   already exist.
+- Reuse shared CLI output helpers in `src/app/commands/output.rs` and existing
+  `--format` conventions (`table`, `tsv`, `json`, plus `csv` where already used)
+  instead of adding ad hoc terminal formatting.
 - Prefer typed domain records and repository methods over passing raw JSON or
   loosely structured maps between layers.
 

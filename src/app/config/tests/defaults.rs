@@ -10,7 +10,7 @@ fn parses_minimal_config_with_defaults() {
     assert_eq!(config.runtime.rotation.interval_secs, 1800);
     assert!(config.runtime.rotation.health_trigger_enabled);
     assert_eq!(config.runtime.rotation.cooldown_secs, 300);
-    assert_eq!(config.runtime.socks.port, 1080);
+    assert_eq!(config.runtime.socks.port, 18200);
     assert_eq!(config.testing.concurrency, 0);
     assert_eq!(
         config.testing.order,
@@ -71,6 +71,6 @@ fn parses_minimal_config_with_defaults() {
     );
     assert!(!config.server.enabled);
     assert_eq!(config.server.host, "127.0.0.1");
-    assert_eq!(config.server.port, 8080);
+    assert_eq!(config.server.port, 18203);
     assert_eq!(config.server.key, None);
 }

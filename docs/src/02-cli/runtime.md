@@ -55,9 +55,9 @@ xrat daemon start
 
 | Protocol    | Host      | Port   | Notes                              |
 | ----------- | --------- | ------ | ---------------------------------- |
-| SOCKS5      | `0.0.0.0` | `1080` | UDP support enabled by default     |
-| HTTP        | `0.0.0.0` | `8080` | Disabled by default in config.toml |
-| Shadowsocks | `0.0.0.0` | `1081` | Disabled by default, aes-128-gcm   |
+| SOCKS5      | `0.0.0.0` | `18200` | UDP support enabled by default     |
+| HTTP        | `0.0.0.0` | `18201` | Disabled by default in config.toml |
+| Shadowsocks | `0.0.0.0` | `18202` | Disabled by default, aes-128-gcm   |
 
 Configure inbounds in `config.toml` under `[runtime.socks]`, `[runtime.http]`,
 and `[runtime.shadowsocks]`.
@@ -155,9 +155,9 @@ If no daemon is reachable, the command exits with a hint to run
   "port": 443,
   "pid": 12345,
   "pid_alive": true,
-  "socks_port": 1080,
+  "socks_port": 18200,
   "socks_reachable": true,
-  "http_port": 8080,
+  "http_port": 18201,
   "http_reachable": false,
   "started_at": "2026-05-28T10:30:00Z"
 }

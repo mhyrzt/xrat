@@ -47,7 +47,7 @@ connect_timeout_secs = 10
 [server]
 enabled = false
 host = "127.0.0.1"
-port = 8080
+port = 18203
 key = { env = "XRAT_API_KEY" }
 
 [runtime]
@@ -73,19 +73,19 @@ keep = true
 [runtime.socks]
 enabled = true
 host = "0.0.0.0"
-port = 1080
+port = 18200
 udp = true
 auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 
 [runtime.http]
 enabled = false
 host = "0.0.0.0"
-port = 8080
+port = 18201
 
 [runtime.shadowsocks]
 enabled = false
 host = "0.0.0.0"
-port = 1081
+port = 18202
 method = "aes-128-gcm"
 password = { env = "XRAT_SHADOWSOCKS_PASSWORD" }
 network = "tcp,udp"

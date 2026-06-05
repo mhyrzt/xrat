@@ -98,7 +98,7 @@ HTTP API server configuration.
 [server]
 enabled = false
 host = "127.0.0.1"
-port = 8080
+port = 18203
 key = { env = "XRAT_API_KEY" }
 ```
 
@@ -106,7 +106,7 @@ key = { env = "XRAT_API_KEY" }
 | --------- | ---------- | ----------- | -------------------------- |
 | `enabled` | boolean    | `false`     | Enable daemon-hosted API   |
 | `host`    | string     | `127.0.0.1` | Bind host                  |
-| `port`    | integer    | `8080`      | Bind port                  |
+| `port`    | integer    | `18203`     | Bind port                  |
 | `key`     | string/env | -           | API key for authentication |
 
 ---
@@ -186,7 +186,7 @@ SOCKS5 inbound configuration.
 [runtime.socks]
 enabled = true
 host = "0.0.0.0"
-port = 1080
+port = 18200
 udp = true
 auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSWORD" } }
 ```
@@ -195,7 +195,7 @@ auth = { enabled = true, username = "xrat", password = { env = "XRAT_SOCKS_PASSW
 | --------------- | ---------- | --------- | --------------------- |
 | `enabled`       | boolean    | `true`    | Enable SOCKS inbound  |
 | `host`          | string     | `0.0.0.0` | Bind address          |
-| `port`          | integer    | `1080`    | Bind port             |
+| `port`          | integer    | `18200`   | Bind port             |
 | `udp`           | boolean    | `true`    | Enable UDP support    |
 | `auth.enabled`  | boolean    | `false`   | Enable authentication |
 | `auth.username` | string     | `xrat`    | SOCKS username        |
@@ -211,14 +211,14 @@ HTTP proxy inbound configuration.
 [runtime.http]
 enabled = false
 host = "0.0.0.0"
-port = 8080
+port = 18201
 ```
 
 | Field     | Type    | Default   | Description         |
 | --------- | ------- | --------- | ------------------- |
 | `enabled` | boolean | `false`   | Enable HTTP inbound |
 | `host`    | string  | `0.0.0.0` | Bind address        |
-| `port`    | integer | `8080`    | Bind port           |
+| `port`    | integer | `18201`   | Bind port           |
 
 ---
 
@@ -230,7 +230,7 @@ Shadowsocks inbound configuration.
 [runtime.shadowsocks]
 enabled = false
 host = "0.0.0.0"
-port = 1081
+port = 18202
 method = "aes-128-gcm"
 password = { env = "XRAT_SHADOWSOCKS_PASSWORD" }
 network = "tcp,udp"
@@ -240,7 +240,7 @@ network = "tcp,udp"
 | ---------- | ---------- | ------------- | -------------------------- |
 | `enabled`  | boolean    | `false`       | Enable Shadowsocks inbound |
 | `host`     | string     | `0.0.0.0`     | Bind address               |
-| `port`     | integer    | `1081`        | Bind port                  |
+| `port`     | integer    | `18202`       | Bind port                  |
 | `method`   | string     | `aes-128-gcm` | Encryption method          |
 | `password` | string/env | -             | Shadowsocks password       |
 | `network`  | string     | `tcp,udp`     | Network type               |
