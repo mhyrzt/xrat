@@ -4431,7 +4431,7 @@ checksum = "ea6fc2961e4ef194dcbfe56bb845534d0dc8098940c7e5c012a258bfec6701bd"
 
 [[package]]
 name = "xrat"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "arboard",
  "async-trait",
