@@ -2,7 +2,6 @@ use super::*;
 use crate::app::daemon::ipc::RotationTrigger;
 
 mod candidate;
-mod ports;
 mod stage;
 
 impl<'a> RuntimeService<'a> {
@@ -47,38 +46,19 @@ impl<'a> RuntimeService<'a> {
             )
             .await?;
 
+        stop_session(self.context, &active).await?;
+        self.context.db.clear_active_config().await?;
+
         let staged = self.stage_replacement_runtime(next_config_id).await;
         let (next_config_id, session_id, new_pid) = match staged {
             Ok(value) => value,
             Err(err) => {
-                self.context
-                    .db
-                    .update_runtime_session_transition_metadata(
-                        active.id,
-                        None,
-                        None,
-                        Some("replace_validation_failed"),
-                        Some(&err.to_string()),
-                        Some("daemon"),
-                    )
-                    .await?;
-                self.context
-                    .db
-                    .update_runtime_session_transition_metadata(
-                        active.id,
-                        None,
-                        None,
-                        Some("replace_rollback_keep_old"),
-                        Some("replacement candidate rejected before handoff"),
-                        Some("daemon"),
-                    )
-                    .await?;
+                self.context.db.clear_active_config().await?;
                 return Err(err);
             }
         };
 
         self.context.db.set_active_config(next_config_id).await?;
-        stop_session(self.context, &active).await?;
         self.context
             .db
             .update_runtime_session_transition_metadata(

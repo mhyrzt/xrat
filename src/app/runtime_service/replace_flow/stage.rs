@@ -1,4 +1,3 @@
-use super::ports::assign_ephemeral_inbound_ports;
 use super::*;
 
 impl<'a> RuntimeService<'a> {
@@ -19,8 +18,7 @@ impl<'a> RuntimeService<'a> {
             )));
         }
 
-        let mut launch = self.resolve_launch(&next_config)?;
-        assign_ephemeral_inbound_ports(&mut launch)?;
+        let launch = self.resolve_launch(&next_config)?;
         let session_id = self
             .context
             .db

@@ -2,7 +2,7 @@ use super::support::*;
 use super::*;
 
 #[tokio::test]
-async fn replace_spawn_failure_keeps_old_runtime_active() {
+async fn replace_spawn_failure_stops_old_runtime_and_clears_active_config() {
     let mut context = test_context().await;
     let config = import_single_config(&context).await;
 
@@ -19,9 +19,6 @@ async fn replace_spawn_failure_keeps_old_runtime_active() {
         })
         .await;
 
-    let _ = child.kill();
-    let _ = child.wait();
-
     assert!(
         result.is_err(),
         "replace should fail when candidate spawn fails"
@@ -30,11 +27,15 @@ async fn replace_spawn_failure_keeps_old_runtime_active() {
         .db
         .get_running_runtime_session()
         .await
-        .expect("running should load")
-        .expect("old runtime should still be running");
-    assert_eq!(running.id, old_session_id);
-    assert_eq!(running.status, RuntimeSessionStatus::Running);
-    assert_eq!(running.process_id, Some(pid));
+        .expect("running should load");
+    assert!(running.is_none(), "no runtime should remain running");
+
+    let active_config = context
+        .db
+        .get_active_config()
+        .await
+        .expect("active config should load");
+    assert!(active_config.is_none(), "active config should be cleared");
 
     let latest = context
         .db
@@ -49,6 +50,18 @@ async fn replace_spawn_failure_keeps_old_runtime_active() {
         Some("replace_validation_failed")
     );
     assert!(latest.last_failed_at.is_some());
+    assert_eq!(
+        context
+            .db
+            .get_runtime_session_count()
+            .await
+            .expect("session count should load"),
+        2
+    );
+    assert_ne!(latest.id, old_session_id);
+
+    let _ = child.kill();
+    let _ = child.wait();
 }
 
 #[tokio::test]

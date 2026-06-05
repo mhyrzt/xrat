@@ -232,18 +232,18 @@ flowchart TD
     TRIG{"trigger source"}:::trigger
     NEXT["select next candidate config"]:::step
     BUILD["handle_runtime_replace\nsupervisor/handlers/runtime/"]:::step
-    SPAWN["spawn new Xray\n(ephemeral ports)"]:::step
+    STOP_OLD["stop old process"]:::step
+    SPAWN["spawn new Xray\n(configured ports)"]:::step
     WAIT_HEALTH["wait for inbound health"]:::step
     ATOMIC{"healthy?"}
-    SWITCH["atomically swap active config"]:::ok
-    CLEAN["kill new process\nkeep old session"]:::fail
-    STOP_OLD["stop old process"]:::ok
+    SWITCH["set active config"]:::ok
+    CLEAN["record failed session\nclear active config"]:::fail
     PERSIST["persist new session record"]:::store
 
     TRIG -- "Timer"         --> NEXT
     TRIG -- "HealthCheckFailed" --> NEXT
     TRIG -- "Manual IPC"   --> NEXT
-    NEXT --> BUILD --> SPAWN --> WAIT_HEALTH --> ATOMIC
-    ATOMIC -- "yes" --> SWITCH --> STOP_OLD --> PERSIST
+    NEXT --> BUILD --> STOP_OLD --> SPAWN --> WAIT_HEALTH --> ATOMIC
+    ATOMIC -- "yes" --> SWITCH --> PERSIST
     ATOMIC -- "no"  --> CLEAN
 ```

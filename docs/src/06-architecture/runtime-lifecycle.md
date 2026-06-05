@@ -127,11 +127,11 @@ sequenceDiagram
     D-->>CLI: daemon response
 ```
 
-## Replace Flow (Hot-Swap Rotation)
+## Replace Flow (Rotation)
 
-The replace flow is staged: the new process is launched and observed healthy
-_before_ the old one is killed, so a bad candidate never leaves the user without
-connectivity.
+The replace flow preserves the configured local inbound ports. The old process
+is stopped before the replacement is launched so clients can keep using the same
+SOCKS, HTTP, or Shadowsocks address after rotation.
 
 ```mermaid
 sequenceDiagram
@@ -144,34 +144,20 @@ sequenceDiagram
     CLI->>D: RuntimeReplace(trigger, candidate_id)
     D->>RS: replace(trigger, candidate_id)
     RS->>RS: pick candidate (or use candidate_id)
-    RS->>RS: stage_replacement_runtime(next_id)
-    RS->>DB: insert new RuntimeSession (Starting)
-    RS->>XM: spawn_detached(new config, ephemeral ports)
-    XM-->>RS: new process (ready)
-    RS->>DB: update new session (Running, pid)
     RS->>XM: terminate old process
     XM-->>RS: old stopped
     RS->>DB: update old session (Stopped)
+    RS->>RS: stage_replacement_runtime(next_id)
+    RS->>DB: insert new RuntimeSession (Starting)
+    RS->>XM: spawn_detached(new config, configured ports)
+    XM-->>RS: new process (ready)
+    RS->>DB: update new session (Running, pid)
     RS-->>D: ReplaceResult { old_session_id, new_config_id, new_session_id, new_pid }
     D-->>CLI: daemon response
 ```
 
-### Ephemeral Port Allocation
-
-The replace flow does **not** keep a fixed port range.
-`assign_ephemeral_inbound_ports` asks the kernel for a free TCP port for each
-inbound (socks / http / shadowsocks) by binding `TcpListener::bind((host, 0))`,
-then drops the listener and uses the port the kernel assigned. The old process
-keeps its ports until it is stopped.
-
-```rust
-fn allocate_port(host: &str) -> Result<u16> {
-    let listener = TcpListener::bind((connect_host_for_bind_host(host).as_str(), 0))?;
-    let port = listener.local_addr()?.port();
-    drop(listener);
-    Ok(port)
-}
-```
+If the replacement fails to start after the old runtime has stopped, the active
+config is cleared and the failed replacement session records the startup error.
 
 This eliminates the per-replace port rotation bookkeeping the previous design
 required.
