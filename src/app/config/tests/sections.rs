@@ -23,6 +23,15 @@ key = "local-secret"
 }
 
 #[test]
+fn rotation_refresh_subscriptions_defaults_off_and_parses() {
+    assert!(!AppConfig::default().runtime.rotation.refresh_subscriptions);
+
+    let config: AppConfig =
+        toml::from_str("[runtime.rotation]\nrefresh_subscriptions = true\n").expect("parse");
+    assert!(config.runtime.rotation.refresh_subscriptions);
+}
+
+#[test]
 fn subscription_settings_default_to_disabled_daily() {
     let config = AppConfig::default();
     assert!(!config.subscriptions.auto_refresh);

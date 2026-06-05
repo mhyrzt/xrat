@@ -124,6 +124,22 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
         }
         ProxyAction::Rotate(rotate_args) => {
+            if rotate_args.refresh {
+                let outcome = crate::app::subscription_refresh::refresh_all(context).await;
+                println!(
+                    "{}",
+                    output::format_kv(
+                        Some("Refreshed subscriptions"),
+                        &[
+                            ("attempted", outcome.attempted.to_string()),
+                            ("succeeded", outcome.succeeded.to_string()),
+                            ("failed", outcome.failed.to_string()),
+                            ("removed configs", outcome.removed_configs.to_string()),
+                        ],
+                        output::color_enabled(),
+                    )
+                );
+            }
             let response = ipc::runtime_replace_daemon(
                 &socket_path,
                 ipc::RotationTrigger::Manual,

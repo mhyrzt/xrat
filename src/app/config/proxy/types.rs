@@ -26,6 +26,7 @@ pub struct RotationSettings {
     pub cooldown_secs: u64,
     pub test_concurrency: i32,
     pub test_stages: Vec<String>,
+    pub refresh_subscriptions: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]

@@ -24,16 +24,33 @@ health_trigger_enabled = true
 cooldown_secs = 300
 test_concurrency = 0
 test_stages = ["real_delay", "download"]
+refresh_subscriptions = false
 ```
 
-| Field                    | Description                                | Default                      |
-| ------------------------ | ------------------------------------------ | ---------------------------- |
-| `enabled`                | Enable scheduled rotation                  | `false`                      |
-| `interval_secs`          | Rotation interval in seconds               | `1800` (30 minutes)          |
-| `health_trigger_enabled` | Trigger rotation on health check failure   | `true`                       |
-| `cooldown_secs`          | Minimum time between rotations             | `300` (5 minutes)            |
-| `test_concurrency`       | Concurrent test workers (`0` = auto)       | `0`                          |
-| `test_stages`            | Test stages to run for candidate selection | `["real_delay", "download"]` |
+| Field                    | Description                                       | Default                      |
+| ------------------------ | ------------------------------------------------- | ---------------------------- |
+| `enabled`                | Enable scheduled rotation                         | `false`                      |
+| `interval_secs`          | Rotation interval in seconds                      | `1800` (30 minutes)          |
+| `health_trigger_enabled` | Trigger rotation on health check failure          | `true`                       |
+| `cooldown_secs`          | Minimum time between rotations                    | `300` (5 minutes)            |
+| `test_concurrency`       | Concurrent test workers (`0` = auto)              | `0`                          |
+| `test_stages`            | Test stages to run for candidate selection        | `["real_delay", "download"]` |
+| `refresh_subscriptions`  | Refresh URL subscriptions before candidate select | `false`                      |
+
+### Refresh Before Rotation
+
+With `refresh_subscriptions = true`, automatic (timer/health) rotation first
+re-fetches every URL-backed subscription using the same import +
+reconciliation path as a manual refresh: still-present configs are updated, and
+provider-removed configs are soft-deleted so they are excluded from candidate
+selection. Non-URL sources are skipped. Refresh failures are recorded as
+separate `subscription`/`rotation` events and never abort rotation — selection
+proceeds with whatever configs are present, so the old runtime is not left
+stopped because a provider was unreachable.
+
+This applies to timer- and health-triggered rotation. For a one-off manual
+rotation, use `xrat proxy rotate --refresh` instead (see
+[`proxy rotate`](../02-cli/proxy.md#proxy-rotate)).
 
 ## Rotation Triggers
 

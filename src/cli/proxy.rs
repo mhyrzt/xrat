@@ -40,6 +40,11 @@ pub struct ProxyRotateArgs {
         help = "Force rotation to a specific enabled config ID."
     )]
     pub config_id: Option<i64>,
+    #[arg(
+        long = "refresh",
+        help = "Refresh URL-backed subscriptions before selecting a candidate."
+    )]
+    pub refresh: bool,
 }
 
 /// No additional arguments.

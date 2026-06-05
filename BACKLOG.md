@@ -11,7 +11,7 @@ session can resume mid-stream.
 | 1 | Reconcile Removed Configs on Subscription Refresh | ✅ done |
 | 2 | Move Import Ingestion Out of the TUI | ✅ done |
 | 3 | Implement Automatic Subscription Refresh | ✅ done |
-| 4 | Refresh Subscriptions Before Proxy Rotation | 🟡 in progress |
+| 4 | Refresh Subscriptions Before Proxy Rotation | ✅ done |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done
 
@@ -203,16 +203,24 @@ the same local inbound ports.
 - Manual `xrat proxy rotate`: add `--refresh` flag.
 - Report refresh failures separately from candidate test failures.
 
-**Open question.** Should manual rotation without `--config-id` run the same
-fresh candidate test pass as automatic rotation instead of relying on persisted
-results? (Defer; revisit during implementation.)
+**Open question (still open / deferred).** Should manual rotation without
+`--config-id` run the same fresh candidate test pass as automatic rotation
+instead of relying on persisted results? Left as-is: manual rotation keeps its
+existing behavior, and `xrat proxy rotate --refresh` covers the "refresh first"
+need. Revisit if users want manual rotate to always re-test fresh.
 
 **Checklist.**
 
-- [ ] `refresh_subscriptions` setting + default + seed TOML.
-- [ ] Refresh hook in non-manual candidate selection; re-list after reconcile.
-- [ ] `--refresh` flag on `xrat proxy rotate`.
-- [ ] Separate refresh-failure events; old runtime not left stopped on failure.
-- [ ] Docs: full rotation flow + manual/automatic differences.
-- [ ] Tests.
-- [ ] fmt + clippy + test.
+- [x] `refresh_subscriptions` setting + default + seed TOML + config test.
+- [x] Refresh hook in non-manual candidate selection (`refresh_all` before
+      listing configs in `replace_flow/candidate.rs`); reconcile + re-list
+      happen because the config list is read after the refresh.
+- [x] `--refresh` flag on `xrat proxy rotate` (refreshes client-side before the
+      rotate IPC, since CLI and daemon share the DB).
+- [x] Refresh failures recorded as separate `subscription_refresh_failed` +
+      `rotation_subscription_refresh` events; `refresh_all` never returns an
+      error, so rotation proceeds and the old runtime is not left stopped.
+- [x] Docs: `docs/src/02-cli/proxy.md` (`--refresh`) +
+      `docs/src/03-features/auto-rotation.md` ("Refresh Before Rotation").
+- [x] Config parse/default test.
+- [x] fmt + clippy + test (416 passed).

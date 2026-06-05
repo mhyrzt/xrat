@@ -1,5 +1,6 @@
 use super::*;
 use crate::app::commands::test::run_rotation_bulk_tests;
+use crate::app::{events, subscription_refresh};
 use crate::support::time::now_epoch_seconds;
 
 impl<'a> RuntimeService<'a> {
@@ -30,6 +31,42 @@ impl<'a> RuntimeService<'a> {
                 )));
             }
             return Ok(candidate_id);
+        }
+
+        // Before automatic candidate selection, optionally refresh URL-backed
+        // subscriptions so the test pass sees the freshest provider configs and
+        // skips provider-removed ones (reconciled by import). Refresh never
+        // aborts rotation: per-subscription failures are recorded as their own
+        // events and selection proceeds with whatever configs are present.
+        if !matches!(request.trigger, RotationTrigger::Manual)
+            && self
+                .context
+                .app_config
+                .runtime
+                .rotation
+                .refresh_subscriptions
+        {
+            let outcome = subscription_refresh::refresh_all(self.context).await;
+            if outcome.attempted > 0 {
+                events::record(
+                    &self.context.db,
+                    if outcome.failed > 0 {
+                        events::LEVEL_WARN
+                    } else {
+                        events::LEVEL_INFO
+                    },
+                    events::SOURCE_ROTATION,
+                    "rotation_subscription_refresh",
+                    format!(
+                        "pre-rotation refresh: {} attempted, {} ok, {} failed",
+                        outcome.attempted, outcome.succeeded, outcome.failed
+                    ),
+                    None,
+                    None,
+                    None,
+                )
+                .await;
+            }
         }
 
         let active_config_id = active.config_id.ok_or_else(|| {

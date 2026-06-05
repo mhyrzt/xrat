@@ -34,6 +34,7 @@ impl Default for RotationSettings {
                 .iter()
                 .map(|value| value.to_string())
                 .collect(),
+            refresh_subscriptions: defaults::DEFAULT_ROTATION_REFRESH_SUBSCRIPTIONS,
         }
     }
 }

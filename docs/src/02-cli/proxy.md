@@ -133,9 +133,10 @@ xrat proxy rotate [flags]
 
 ### Flags
 
-| Flag               | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `--config-id <id>` | Force rotation to a specific enabled config ID |
+| Flag               | Description                                                   |
+| ------------------ | ------------------------------------------------------------- |
+| `--config-id <id>` | Force rotation to a specific enabled config ID                |
+| `--refresh`        | Refresh URL-backed subscriptions before selecting a candidate |
 
 ### Examples
 
@@ -151,15 +152,29 @@ Rotate to a specific config:
 xrat proxy rotate --config-id 99
 ```
 
+Refresh subscriptions first, then rotate to the best fresh candidate:
+
+```bash
+xrat proxy rotate --refresh
+```
+
 ### Behavior
 
-1. If `--config-id` is provided, rotates to that specific config
-2. Otherwise, selects the best candidate from enabled configs:
+1. If `--refresh` is provided, re-fetches URL-backed subscriptions (same import
+   + reconciliation path as `xrat import`) before anything else, so the
+   candidate pass sees the freshest configs and skips provider-removed ones
+2. If `--config-id` is provided, rotates to that specific config
+3. Otherwise, selects the best candidate from enabled configs:
    - Tests candidates using `test_stages` from config.toml
    - Picks the config with the lowest real-delay latency
-3. Stops the old session and starts the replacement on the same configured local
+4. Stops the old session and starts the replacement on the same configured local
    inbound ports
-4. Respects cooldown period (rotation is delayed if cooldown is active)
+5. Respects cooldown period (rotation is delayed if cooldown is active)
+
+For automatic (timer/health) rotation, set `[runtime.rotation]
+refresh_subscriptions = true` to perform the same refresh before each
+daemon-triggered rotation. Refresh failures are recorded as separate events and
+never abort rotation or leave the old runtime stopped.
 
 ### Candidate Selection
 
