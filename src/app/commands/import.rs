@@ -23,6 +23,7 @@ pub async fn run(context: &AppContext, input: &str) -> crate::app::Result<()> {
                     context.runtime_paths.config_path.display().to_string()
                 ),
                 ("subscription", format!("#{}", summary.subscription_id)),
+                ("removed configs", summary.removed_configs.to_string()),
                 ("total configs", summary.total_configs.to_string()),
             ],
             output::color_enabled(),

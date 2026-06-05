@@ -70,3 +70,57 @@ pub(super) async fn verify_import_and_config_state(db: &Database) -> (i64, i64) 
 
     (first_id, second_id)
 }
+
+pub(super) async fn verify_reconcile_state(db: &Database) {
+    let source = ImportSource {
+        kind: SourceKind::Url,
+        value: "https://example.com/reconcile".to_string(),
+        name: None,
+    };
+    let mut first = test_node("recon-a");
+    first.address = "recon-a.example.com".to_string();
+    first.uuid = Some("uuid-recon-a".to_string());
+    first.raw_config =
+        "vless://uuid-recon-a@recon-a.example.com:443?type=ws&security=tls#a".to_string();
+    let mut second = test_node("recon-b");
+    second.address = "recon-b.example.com".to_string();
+    second.uuid = Some("uuid-recon-b".to_string());
+    second.raw_config =
+        "vless://uuid-recon-b@recon-b.example.com:443?type=ws&security=tls#b".to_string();
+
+    let initial = db
+        .import_nodes(&source, &[first.clone(), second])
+        .await
+        .expect("reconcile import should succeed");
+    assert_eq!(initial.removed_configs, 0);
+    let subscription_id = initial.subscription_id;
+    let active_filter = ConfigListFilter {
+        subscription_id: Some(subscription_id),
+        ..ConfigListFilter::default()
+    };
+    assert_eq!(
+        db.list_configs(&active_filter).await.expect("list").len(),
+        2
+    );
+
+    let refreshed = db
+        .import_nodes(&source, &[first])
+        .await
+        .expect("reconcile refresh should succeed");
+    assert_eq!(refreshed.removed_configs, 1);
+    assert_eq!(
+        db.list_configs(&active_filter).await.expect("list").len(),
+        1
+    );
+
+    let all_filter = ConfigListFilter {
+        subscription_id: Some(subscription_id),
+        include_deleted: true,
+        ..ConfigListFilter::default()
+    };
+    assert_eq!(
+        db.list_configs(&all_filter).await.expect("list all").len(),
+        2,
+        "removed config is soft-deleted, not purged"
+    );
+}

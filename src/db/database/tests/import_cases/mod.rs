@@ -4,6 +4,7 @@ use crate::model::{Node, Protocol};
 
 mod config_state;
 mod import_subscription;
+mod reconcile;
 mod upsert;
 
 pub(super) fn test_node(name: &str) -> Node {

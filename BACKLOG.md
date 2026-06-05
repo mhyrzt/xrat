@@ -8,8 +8,8 @@ session can resume mid-stream.
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Reconcile Removed Configs on Subscription Refresh | 🟡 in progress |
-| 2 | Move Import Ingestion Out of the TUI | ⬜ not started |
+| 1 | Reconcile Removed Configs on Subscription Refresh | ✅ done |
+| 2 | Move Import Ingestion Out of the TUI | 🟡 in progress |
 | 3 | Implement Automatic Subscription Refresh | ⬜ not started |
 | 4 | Refresh Subscriptions Before Proxy Rotation | ⬜ not started |
 
@@ -82,18 +82,22 @@ configs accumulate as stale entries attached to the source.
 
 **Checklist.**
 
-- [ ] Add `removed_configs: usize` to `ImportSummary` (`src/db/record/import.rs`).
-- [ ] In `configs::import_nodes`, after the upsert, soft-delete configs where
+- [x] Add `removed_configs: u64` to `ImportSummary` (`src/db/record/import.rs`).
+- [x] In `configs::import_nodes`, after the upsert, soft-delete configs where
       `subscription_id = ? AND is_deleted = 0 AND dedup_key NOT IN (<new keys>)`;
       return the affected row count. Sqlite + Postgres branches.
-- [ ] Skip the soft-delete step when `nodes.is_empty()`.
-- [ ] Surface counts: `xrat import` / `xrat add` output and TUI refresh status
-      report imported/updated **and** removed.
-- [ ] Test (sqlite): import 2 nodes, re-import 1 (same URL) → `removed_configs`
+      (`reconcile_removed` in `import_ops/import.rs`.)
+- [x] Skip the soft-delete step when `nodes.is_empty()`.
+- [x] Surface counts: `xrat import` output kv + TUI refresh status report removed.
+- [x] Test (sqlite): import 2 nodes, re-import 1 (same URL) → `removed_configs`
       = 1, count drops, the absent config is soft-deleted, the present one stays.
-- [ ] Test: empty re-import removes nothing.
-- [ ] Postgres test where helpers make it practical.
-- [ ] `cargo fmt && cargo clippy --all-targets -- -D warnings && cargo test`.
+      (`import_cases/reconcile.rs`.)
+- [x] Test: empty re-import removes nothing; returning config is restored.
+- [x] Postgres test (`postgres_cases::config_cases::verify_reconcile_state`,
+      runs under `XRAT_POSTGRES_TEST_URL`).
+- [x] `cargo fmt && cargo clippy --all-targets -- -D warnings && cargo test`
+      (412 passed).
+- [x] Docs: `docs/src/02-cli/import.md` Behavior step describes reconciliation.
 
 ---
 

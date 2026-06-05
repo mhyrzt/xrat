@@ -11,6 +11,7 @@ pub async fn import_nodes(
     subscription_id: i64,
     nodes: &[Node],
 ) -> crate::db::Result<ImportSummary> {
+    let mut removed_configs = 0u64;
     if !nodes.is_empty() {
         match pool {
             DbPool::Sqlite(pool) => {
@@ -30,6 +31,8 @@ pub async fn import_nodes(
                 builder.build().execute(pool).await?;
             }
         }
+
+        removed_configs = reconcile_removed(pool, subscription_id, nodes).await?;
     }
 
     let total_configs = get_count(pool).await?;
@@ -37,8 +40,57 @@ pub async fn import_nodes(
     Ok(ImportSummary {
         subscription_id,
         imported_configs: nodes.len(),
+        removed_configs,
         total_configs,
     })
+}
+
+/// Soft-delete configs attached to this subscription whose dedup keys are absent
+/// from the freshly imported payload. This makes subscription refresh a
+/// reconciliation: configs the provider dropped disappear from the active set
+/// while staying recoverable, and a later provider re-add is undone by the
+/// upsert clause (which clears `is_deleted`). Only called with a non-empty
+/// payload, so a provider blip returning zero nodes cannot wipe a source.
+async fn reconcile_removed(
+    pool: &DbPool,
+    subscription_id: i64,
+    nodes: &[Node],
+) -> crate::db::Result<u64> {
+    match pool {
+        DbPool::Sqlite(pool) => {
+            let mut builder = QueryBuilder::<Sqlite>::new(
+                "UPDATE configs SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP WHERE is_deleted = 0 AND subscription_id = ",
+            );
+            push_reconcile_predicate(&mut builder, subscription_id, nodes);
+            Ok(builder.build().execute(pool).await?.rows_affected())
+        }
+        DbPool::Postgres(pool) => {
+            let mut builder = QueryBuilder::<Postgres>::new(
+                "UPDATE configs SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP::TEXT WHERE is_deleted = FALSE AND subscription_id = ",
+            );
+            push_reconcile_predicate(&mut builder, subscription_id, nodes);
+            Ok(builder.build().execute(pool).await?.rows_affected())
+        }
+    }
+}
+
+fn push_reconcile_predicate<'args, DB>(
+    builder: &mut QueryBuilder<'args, DB>,
+    subscription_id: i64,
+    nodes: &'args [Node],
+) where
+    DB: sqlx::Database,
+    i64: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
+    String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
+{
+    builder
+        .push_bind(subscription_id)
+        .push(" AND dedup_key NOT IN (");
+    let mut separated = builder.separated(", ");
+    for node in nodes {
+        separated.push_bind(node.dedup_key_string());
+    }
+    separated.push_unseparated(")");
 }
 
 fn push_node_values<'args, DB>(

@@ -26,6 +26,7 @@ pub struct ImportSource {
 pub struct ImportSummary {
     pub subscription_id: i64,
     pub imported_configs: usize,
+    pub removed_configs: u64,
     pub total_configs: i64,
 }
 

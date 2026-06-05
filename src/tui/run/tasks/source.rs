@@ -33,6 +33,7 @@ pub fn spawn_source_refresh_all(
     tokio::spawn(async move {
         let total = sources.len();
         let mut ok = 0usize;
+        let mut removed_total = 0u64;
         let mut errors: Vec<String> = Vec::new();
         for (id, value) in &sources {
             match import_from(&context, value).await {
@@ -40,8 +41,10 @@ pub fn spawn_source_refresh_all(
                     tracing::debug!(
                         source_id = id,
                         imported = summary.imported_configs,
+                        removed = summary.removed_configs,
                         "source refreshed"
                     );
+                    removed_total += summary.removed_configs;
                     ok += 1;
                 }
                 Err(err) => {
@@ -53,7 +56,7 @@ pub fn spawn_source_refresh_all(
             match TuiData::load(&context, include_deleted).await {
                 Ok(data) => TuiTaskEvent::Completed {
                     kind,
-                    message: format!("refreshed {ok}/{total} sources"),
+                    message: format!("refreshed {ok}/{total} sources ({removed_total} removed)"),
                     data: Some(data),
                 },
                 Err(err) => TuiTaskEvent::Failed {
@@ -125,8 +128,8 @@ async fn refresh_one(
             Ok(data) => TuiTaskEvent::Completed {
                 kind,
                 message: format!(
-                    "refreshed source #{source_id}: {} configs imported",
-                    summary.imported_configs
+                    "refreshed source #{source_id}: {} imported, {} removed",
+                    summary.imported_configs, summary.removed_configs
                 ),
                 data: Some(data),
             },
