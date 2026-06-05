@@ -76,21 +76,18 @@ fn progress_labels(app: &TuiApp) -> (f64, Span<'static>, Option<Line<'static>>) 
         );
     }
 
+    // Idle (no live batch): leave the gauge empty; the result label still
+    // reports the last persisted run's health.
     let tests = &app.data.tests;
-    let ratio = if tests.total_results == 0 {
-        0.0
-    } else {
-        tests.success_results as f64 / tests.total_results as f64
-    };
     if tests.latest_run_id.is_none() {
         return (
-            ratio,
+            0.0,
             Span::styled(tests.progress_label(), theme::muted_style()),
             None,
         );
     }
 
-    (ratio, Span::raw(""), Some(result_label(tests)))
+    (0.0, Span::raw(""), Some(result_label(tests)))
 }
 
 fn result_label(tests: &crate::tui::data::TuiTestStatus) -> Line<'static> {

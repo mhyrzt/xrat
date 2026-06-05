@@ -13,12 +13,6 @@ const RIGHT_PAD: u16 = crate::tui::theme::DETAIL_RIGHT_PAD;
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let rt = &app.data.runtime;
 
-    let proxy = match (&rt.socks, &rt.http) {
-        (Some(s), _) => s.clone(),
-        (_, Some(h)) => h.clone(),
-        _ => "-".to_string(),
-    };
-
     let active = rt.active_config.as_deref().unwrap_or("-");
     let task = app.task_state.label();
     let data = &app.data;
@@ -33,7 +27,22 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     ];
     push_detail(&mut lines, "Active", active, LABEL_WIDTH, content_width);
     push_detail(&mut lines, "Task", &task, LABEL_WIDTH, content_width);
-    push_detail(&mut lines, "Proxy", &proxy, LABEL_WIDTH, content_width);
+
+    let inbounds = [
+        ("SOCKS", &rt.socks),
+        ("HTTP", &rt.http),
+        ("Shadowsocks", &rt.shadowsocks),
+    ];
+    let any_inbound = inbounds.iter().any(|(_, value)| value.is_some());
+    if any_inbound {
+        for (label, value) in inbounds {
+            if let Some(endpoint) = value {
+                push_detail(&mut lines, label, endpoint, LABEL_WIDTH, content_width);
+            }
+        }
+    } else {
+        push_detail(&mut lines, "Proxy", "-", LABEL_WIDTH, content_width);
+    }
 
     let engines = if app.engines.is_empty() {
         "-".to_string()

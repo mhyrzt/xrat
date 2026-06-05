@@ -1,4 +1,6 @@
-use crate::app::runtime_service::{RuntimeEndpointHealth, RuntimeStatusSnapshot};
+use crate::app::runtime_service::{
+    RuntimeEndpointHealth, RuntimeEndpointState, RuntimeStatusSnapshot,
+};
 use crate::db::ConfigRecord;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,17 +66,17 @@ impl From<RuntimeStatusSnapshot> for TuiRuntimeStatus {
                 .inbound_health
                 .socks
                 .as_ref()
-                .map(endpoint_health_label),
+                .map(|health| endpoint_health_label("socks5", health)),
             http: value
                 .inbound_health
                 .http
                 .as_ref()
-                .map(endpoint_health_label),
+                .map(|health| endpoint_health_label("http", health)),
             shadowsocks: value
                 .inbound_health
                 .shadowsocks
                 .as_ref()
-                .map(endpoint_health_label),
+                .map(|health| endpoint_health_label("ss", health)),
             started_at: session
                 .as_ref()
                 .and_then(|session| session.started_at.clone()),
@@ -103,11 +105,17 @@ fn config_label(config: &ConfigRecord) -> String {
     format!("#{} {name}", config.id)
 }
 
-fn endpoint_health_label(health: &RuntimeEndpointHealth) -> String {
-    format!(
-        "{}:{} ({})",
-        health.endpoint.host,
-        health.endpoint.port,
-        health.state.as_str()
-    )
+fn endpoint_health_label(scheme: &str, health: &RuntimeEndpointHealth) -> String {
+    let host = match health.endpoint.host.as_str() {
+        "0.0.0.0" | "::" => crate::support::net::primary_local_ip().unwrap_or_else(|| {
+            crate::support::net::connect_host_for_bind_host(&health.endpoint.host)
+        }),
+        _ => health.endpoint.host.clone(),
+    };
+    let state = match health.state {
+        RuntimeEndpointState::Reachable => "✓",
+        RuntimeEndpointState::Unreachable => "✗",
+        RuntimeEndpointState::NotChecked => "○",
+    };
+    format!("{scheme}://{host}:{} {state}", health.endpoint.port)
 }
