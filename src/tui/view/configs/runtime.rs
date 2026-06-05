@@ -76,13 +76,26 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         );
     }
 
+    let config_stats = [
+        (data.total_configs, "total"),
+        (data.enabled_configs, "enabled"),
+        (data.deleted_configs, "deleted"),
+        (data.failed_configs, "failed"),
+    ]
+    .into_iter()
+    .filter(|(count, _)| *count > 0)
+    .map(|(count, label)| format!("{count} {label}"))
+    .collect::<Vec<_>>()
+    .join(" · ");
+    let config_stats = if config_stats.is_empty() {
+        "-".to_string()
+    } else {
+        config_stats
+    };
     push_detail(
         &mut lines,
         "Configs",
-        format!(
-            "{} total · {} enabled · {} deleted · {} failed",
-            data.total_configs, data.enabled_configs, data.deleted_configs, data.failed_configs,
-        ),
+        &config_stats,
         LABEL_WIDTH,
         content_width,
     );
