@@ -1,121 +1,199 @@
 # Backlog
 
-## Move Import Ingestion Out of the TUI
+Planned work, with live progress. Each item lists motivation, a proposed
+direction, and a verifiable checklist. Check boxes as work lands so a future
+session can resume mid-stream.
 
-The TUI currently exposes an import modal from the Sources tab. Technically it
-can import raw config links, but that creates `raw_text` source rows that cannot
-be refreshed, copied, or shared like real subscription sources. This makes the
-Sources tab model less clear.
+## Progress
 
-Proposed direction:
+| # | Item | Status |
+|---|------|--------|
+| 1 | Reconcile Removed Configs on Subscription Refresh | 🟡 in progress |
+| 2 | Move Import Ingestion Out of the TUI | ⬜ not started |
+| 3 | Implement Automatic Subscription Refresh | ⬜ not started |
+| 4 | Refresh Subscriptions Before Proxy Rotation | ⬜ not started |
+
+Legend: ⬜ not started · 🟡 in progress · ✅ done
+
+## Themes
+
+- **Ingestion ownership** — Move all new-source ingestion to the CLI and keep
+  the TUI focused on operating already-stored sources.
+- **Subscription freshness** — Make URL-backed subscriptions self-maintaining:
+  reconcile on refresh, refresh on a schedule, and refresh before rotation.
+
+## Dependency Order
+
+1. Reconcile Removed Configs on Subscription Refresh — foundation; defines the
+   reconciliation primitive (upsert present, soft-delete absent) reused by the
+   rest.
+2. Implement Automatic Subscription Refresh — depends on (1); schedules the same
+   refresh + reconcile path.
+3. Refresh Subscriptions Before Proxy Rotation — depends on (1) and reuses the
+   refresh path from (2).
+
+"Move Import Ingestion Out of the TUI" is independent of the freshness chain.
+
+## Implementation Notes (discovered while mapping the code)
+
+- Import flows converge on `Database::import_nodes(source, nodes)` →
+  `repository::api::configs::import_nodes` → `subscriptions::find_or_create`
+  (dedups only URL sources) + `configs::import_nodes` (the bulk upsert in
+  `src/db/repository/configs/import_ops/import.rs`). Reconciliation belongs in
+  that bulk upsert, keyed by `subscription_id`.
+- `xrat import` and `xrat add` already exist (`src/cli/import.rs`,
+  `src/cli/add.rs`, handlers in `src/app/commands/`). Item 2 is TUI removal +
+  docs only; the CLI side is done.
+- TUI source refresh currently lives in `src/tui/run/tasks/source.rs` via a
+  private `import_from`. Item 3's scheduler should reuse a shared service, and
+  the TUI should call it too.
+- `subscriptions` table (migrations `0001_init.sql`, sqlite + postgres) has
+  `source_url`, `source_kind`, `name`, `created_at`, `updated_at`. Item 3 needs
+  a new `last_refreshed_at` column to make intervals survive daemon restarts.
+- Rotation candidate selection: `resolve_replace_candidate_id` in
+  `src/app/runtime_service/replace_flow/candidate.rs`. Non-manual triggers run
+  `run_rotation_bulk_tests`. Refresh-before-rotation hooks in here.
+- Config: `AppConfig` (`src/app/config/mod.rs`), runtime/rotation settings in
+  `src/app/config/proxy/types.rs` + defaults in `proxy/default_values.rs`,
+  defaults constants in `src/app/config/defaults.rs`, seed TOML in
+  `src/app/commands/init_default_config.toml`.
+- Events: `src/app/events.rs::record(...)`, sources include `SOURCE_ROTATION`.
+  Add a subscription/refresh source + event kinds.
+
+---
+
+## 1. Reconcile Removed Configs on Subscription Refresh
+
+**Problem.** Refreshing a subscription upserts the configs the provider returns
+but preserves old configs that no longer appear in the payload. Provider-removed
+configs accumulate as stale entries attached to the source.
+
+**Decisions.**
+
+- Reconcile by **soft-delete** (set `is_deleted`/`deleted_at`), not hard delete:
+  reversible, avoids FK churn with `connection_tests`/`runtime_sessions`, and a
+  later provider re-add is undone by the existing upsert (`is_deleted = FALSE`).
+- Reconcile **unconditionally by `subscription_id`**. New subscriptions (file /
+  raw_text get a fresh id each import) have no prior rows, so nothing is removed.
+  This also answers the open question: manual `xrat import <url>` mapping to an
+  existing subscription reconciles too, since it is semantically a refresh.
+- **Skip reconcile when the parsed payload is empty** — defensive guard so a
+  provider blip returning zero nodes cannot wipe an entire source.
+
+**Checklist.**
+
+- [ ] Add `removed_configs: usize` to `ImportSummary` (`src/db/record/import.rs`).
+- [ ] In `configs::import_nodes`, after the upsert, soft-delete configs where
+      `subscription_id = ? AND is_deleted = 0 AND dedup_key NOT IN (<new keys>)`;
+      return the affected row count. Sqlite + Postgres branches.
+- [ ] Skip the soft-delete step when `nodes.is_empty()`.
+- [ ] Surface counts: `xrat import` / `xrat add` output and TUI refresh status
+      report imported/updated **and** removed.
+- [ ] Test (sqlite): import 2 nodes, re-import 1 (same URL) → `removed_configs`
+      = 1, count drops, the absent config is soft-deleted, the present one stays.
+- [ ] Test: empty re-import removes nothing.
+- [ ] Postgres test where helpers make it practical.
+- [ ] `cargo fmt && cargo clippy --all-targets -- -D warnings && cargo test`.
+
+---
+
+## 2. Move Import Ingestion Out of the TUI
+
+**Problem.** The Sources tab exposes an import modal. It can import raw config
+links, but doing so creates `raw_text` source rows that cannot be refreshed,
+copied, or shared like real subscription sources, muddying the Sources model.
+
+**Proposed direction.**
 
 - Remove the TUI import modal and the `i` import key from the Sources tab.
-- Keep source refresh actions in the TUI for already-known, refreshable sources.
-- Handle all new ingestion explicitly through CLI commands:
-  - `xrat import <input>` for subscriptions, files, raw link lists, and other
-    supported import inputs.
-  - `xrat add <link>` for adding exactly one config link.
-- Update TUI empty states, help text, and docs to point users to the CLI import
-  commands instead of offering in-app import.
-- Ensure the Sources tab only presents operations that make sense for stored
-  sources: inspect, rename, refresh, delete, copy/QR when a source URL exists.
+- Keep source refresh actions in the TUI for already-known refreshable sources.
+- Route all new ingestion through the existing CLI commands: `xrat import
+  <input>` and `xrat add <link>`.
+- Update TUI empty states, help text, and docs to point at the CLI commands.
+- Restrict the Sources tab to inspect, rename, refresh, delete, copy/QR.
 
-Success criteria:
+**Checklist.**
 
-- No TUI action opens an import modal.
-- TUI docs and help no longer advertise import from the TUI.
-- Empty Configs/Sources states show the relevant CLI command.
-- Refresh/copy/QR behavior remains available for existing URL-backed sources.
+- [ ] Remove `OpenImportModal` / `ImportInput` / `ImportBackspace` /
+      `ImportSubmit` actions and `ImportModalState` (`src/tui/app/types.rs`,
+      `mod.rs`, `defaults.rs`, `lifecycle.rs`).
+- [ ] Remove `render_import_modal` and the `i Import` help line
+      (`src/tui/view/modals.rs`) and the `spawn_source_import` task
+      (`src/tui/run/tasks/source.rs`) once unused.
+- [ ] Unbind the `i` key on the Sources tab in the keymap.
+- [ ] Update empty Configs/Sources states to show `xrat import` / `xrat add`.
+- [ ] Update `docs/src/02-cli/tui.md` to drop in-TUI import.
+- [ ] Update/remove affected TUI tests.
+- [ ] fmt + clippy + test.
 
-## Reconcile Removed Configs on Subscription Refresh
+---
 
-Refreshing a subscription currently upserts configs returned by the provider but
-preserves old configs that no longer appear in the refreshed subscription. That
-leaves stale provider-removed configs attached to the source.
+## 3. Implement Automatic Subscription Refresh
 
-Proposed direction:
+**Problem.** Subscriptions refresh only on manual TUI `r`/`R`. There is no
+scheduler, so URL-backed subscriptions drift out of date without user action.
 
-- Treat subscription refresh as source reconciliation, not additive import.
-- After parsing the refreshed subscription, purge configs currently attached to
-  that subscription whose dedup keys are absent from the new provider payload.
-- Keep upsert behavior for configs that are still present.
-- Keep explicit source deletion behavior unchanged: deleting a source still
-  deletes the source and all of its configs.
-- Decide whether manual `xrat import <url>` should use the same reconciliation
-  behavior when the URL maps to an existing subscription.
+**Depends on:** item 1.
 
-Success criteria:
+**Proposed direction.**
 
-- Refreshing a URL-backed subscription removes configs that disappeared from the
-  provider payload.
-- Existing configs still present in the provider payload are updated normally.
-- Tests cover SQLite and Postgres paths where practical.
-- TUI refresh status reports both imported/updated and purged counts.
+- New config section, e.g. `[subscriptions] auto_refresh = false`,
+  `refresh_interval_hours = 24`. Add `SubscriptionSettings` to `AppConfig`,
+  defaults, and seed TOML.
+- Migration: add `subscriptions.last_refreshed_at TEXT` (sqlite + postgres) so
+  intervals survive daemon restarts (scheduler picks rows whose
+  `last_refreshed_at` is null or older than the interval).
+- Shared refresh service in `src/app/` reused by the daemon scheduler and the
+  TUI: list URL subscriptions, fetch + `import_nodes` (reconciles), stamp
+  `last_refreshed_at`, record events.
+- Daemon supervisor: refresh tick that runs due URL subscriptions when
+  `auto_refresh` is enabled; skip non-URL sources.
+- Record refresh start/success/failure via `events.rs`.
 
-## Implement Automatic Subscription Refresh
+**Checklist.**
 
-Subscriptions can be refreshed manually from the TUI, but there is no automatic
-subscription refresh/update scheduler yet. Users should be able to opt in to
-periodic refresh so URL-backed subscriptions stay current without manual `r` /
-`R` actions.
+- [ ] `SubscriptionSettings` + defaults + seed TOML + config test.
+- [ ] Migration `00NN_add_subscription_last_refreshed_at.sql` (both backends);
+      repository setter + due-query.
+- [ ] Shared refresh service; TUI `source.rs` calls it.
+- [ ] Daemon scheduler tick honoring interval + restart persistence.
+- [ ] Events for start/success/failure; failures never crash the daemon.
+- [ ] Docs: manual vs automatic refresh.
+- [ ] Tests: due-selection, interval respected, failure isolation.
+- [ ] fmt + clippy + test.
 
-Proposed direction:
+---
 
-- Add config for subscription auto-refresh, for example:
-  - `[subscriptions].auto_refresh = false`
-  - `[subscriptions].refresh_interval_hours = 24`
-- Add a daemon-managed scheduler that refreshes URL-backed subscriptions when
-  auto-refresh is enabled.
-- Reuse the same refresh/import path as manual TUI refresh, including provider
-  removal reconciliation once that backlog task is implemented.
-- Skip non-refreshable sources such as raw-text/manual imports and sources with
-  no URL.
-- Record refresh start/success/failure through app events so `xrat logs` and
-  the TUI can report what happened.
+## 4. Refresh Subscriptions Before Proxy Rotation
 
-Success criteria:
+**Problem.** Rotation selects a replacement from stored configs without first
+refreshing URL-backed subscriptions, so it can pick stale or provider-removed
+candidates.
 
-- URL-backed subscriptions refresh automatically when enabled.
-- Refresh intervals are respected across daemon restarts.
-- Failed subscription refreshes are logged and do not crash the daemon.
-- Manual TUI refresh remains available and uses the same reconciliation logic.
-- Docs explain the difference between manual refresh and automatic refresh.
+**Depends on:** item 1; reuses the refresh service from item 3.
 
-## Refresh Subscriptions Before Proxy Rotation
+**Desired flow.** trigger → refresh URL subscriptions → reconcile → test
+eligible enabled configs → pick lowest real-delay passing config → replace on
+the same local inbound ports.
 
-Proxy rotation is implemented and can run automatically through the daemon, but
-it does not refresh URL-backed subscriptions before choosing a replacement
-candidate. The intended rotation flow should use the freshest available provider
-configs before testing and reconnecting.
+**Proposed direction.**
 
-Desired flow:
+- Add `[runtime.rotation] refresh_subscriptions = true`.
+- Refresh URL subscriptions before automatic timer/health candidate selection in
+  `resolve_replace_candidate_id`; keep non-URL sources out.
+- Manual `xrat proxy rotate`: add `--refresh` flag.
+- Report refresh failures separately from candidate test failures.
 
-1. Current runtime config becomes unhealthy, timer rotation fires, or user
-   triggers rotation.
-2. Refresh URL-backed subscriptions.
-3. Reconcile provider-removed configs according to the subscription refresh
-   behavior.
-4. Test eligible enabled configs.
-5. Pick the passing config with the lowest real-delay latency.
-6. Replace the runtime with the selected config on the same local inbound ports.
+**Open question.** Should manual rotation without `--config-id` run the same
+fresh candidate test pass as automatic rotation instead of relying on persisted
+results? (Defer; revisit during implementation.)
 
-Proposed direction:
+**Checklist.**
 
-- Add a setting such as `[runtime.rotation].refresh_subscriptions = true`.
-- Before automatic timer/health rotation, refresh all URL-backed subscriptions.
-- Decide whether manual `xrat proxy rotate` should refresh by default or expose
-  an explicit flag such as `--refresh`.
-- Keep non-refreshable sources out of this path.
-- Ensure rotation status/events report refresh failures separately from candidate
-  test failures.
-- Consider changing manual rotation without `--config-id` to run the same fresh
-  candidate test pass as automatic rotation, instead of relying primarily on
-  latest persisted test results.
-
-Success criteria:
-
-- Rotation can refresh subscriptions before candidate selection.
-- Refreshed configs are included in the rotation test pass.
-- Removed provider configs are not selected after refresh reconciliation.
-- Failures are logged without leaving the old runtime stopped unnecessarily.
-- Docs describe the full rotation flow and the manual/automatic differences.
+- [ ] `refresh_subscriptions` setting + default + seed TOML.
+- [ ] Refresh hook in non-manual candidate selection; re-list after reconcile.
+- [ ] `--refresh` flag on `xrat proxy rotate`.
+- [ ] Separate refresh-failure events; old runtime not left stopped on failure.
+- [ ] Docs: full rotation flow + manual/automatic differences.
+- [ ] Tests.
+- [ ] fmt + clippy + test.
