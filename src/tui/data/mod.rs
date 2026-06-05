@@ -140,19 +140,29 @@ impl TuiData {
 /// Probe the proxy engines once (engines don't change during a session). Runs
 /// `<bin> version` for each and records availability plus parsed version.
 pub async fn probe_engines(context: &crate::app::context::AppContext) -> Vec<EngineInfo> {
-    vec![
-        probe_engine("xray", &context.runtime_paths.xray_path).await,
-        probe_engine("sing-box", &context.runtime_paths.sing_box_path).await,
-    ]
+    let (xray, sing_box) = tokio::join!(
+        probe_engine("xray", &context.runtime_paths.xray_path),
+        probe_engine("sing-box", &context.runtime_paths.sing_box_path),
+    );
+    vec![xray, sing_box]
 }
 
+/// Upper bound on how long a `<engine> version` probe may block startup. A hung
+/// or missing binary must not freeze the TUI before its event loop starts.
+const ENGINE_PROBE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+
 async fn probe_engine(name: &'static str, path: &std::path::Path) -> EngineInfo {
-    match tokio::process::Command::new(path)
+    let unavailable = EngineInfo {
+        name,
+        available: false,
+        version: None,
+    };
+    let command = tokio::process::Command::new(path)
         .arg("version")
-        .output()
-        .await
-    {
-        Ok(output) if output.status.success() => {
+        .kill_on_drop(true)
+        .output();
+    match tokio::time::timeout(ENGINE_PROBE_TIMEOUT, command).await {
+        Ok(Ok(output)) if output.status.success() => {
             let text = String::from_utf8_lossy(&output.stdout);
             EngineInfo {
                 name,
@@ -160,11 +170,7 @@ async fn probe_engine(name: &'static str, path: &std::path::Path) -> EngineInfo 
                 version: parse_engine_version(&text),
             }
         }
-        _ => EngineInfo {
-            name,
-            available: false,
-            version: None,
-        },
+        _ => unavailable,
     }
 }
 
@@ -178,10 +184,19 @@ fn parse_engine_version(text: &str) -> Option<String> {
         .map(str::to_string)
 }
 
+/// Upper bound on the daemon status IPC during a TUI data load. A daemon that
+/// accepts the connection but never replies must not freeze startup.
+const DAEMON_STATUS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
+
 async fn load_daemon_info(context: &crate::app::context::AppContext) -> TuiDaemonInfo {
     let socket = crate::app::daemon::ipc::default_socket_path(&context.runtime_paths.runtime_dir);
-    match crate::app::daemon::ipc::proxy_status_daemon(&socket).await {
-        Ok(response) => {
+    let status = tokio::time::timeout(
+        DAEMON_STATUS_TIMEOUT,
+        crate::app::daemon::ipc::proxy_status_daemon(&socket),
+    )
+    .await;
+    match status {
+        Ok(Ok(response)) => {
             let payload = response.payload;
             TuiDaemonInfo {
                 running: payload.as_ref().map(|p| p.daemon_ready).unwrap_or(false),
@@ -192,7 +207,8 @@ async fn load_daemon_info(context: &crate::app::context::AppContext) -> TuiDaemo
                 interval_secs: payload.as_ref().map(|p| p.interval_secs).unwrap_or(0),
             }
         }
-        Err(_) => TuiDaemonInfo::default(),
+        // IPC error or timeout: treat the daemon as unavailable.
+        _ => TuiDaemonInfo::default(),
     }
 }
 
