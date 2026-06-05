@@ -7,60 +7,145 @@ use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
-    let column_one = vec![
-        Line::styled("Navigation", theme::muted_style()),
-        help_line("[", "Previous tab"),
-        help_line("]", "Next tab"),
-        help_line("Tab", "Focus next card"),
-        help_line("S-Tab", "Focus prev card"),
-        help_line("j, ↓", "Move row / scroll down"),
-        help_line("k, ↑", "Move row / scroll up"),
-        help_line("Esc", "Close modal / back"),
-        help_line("q, Ctrl+C", "Quit"),
-        Line::raw(""),
-        Line::styled("Search and Filters", theme::muted_style()),
-        help_line("/", "Search configs"),
-        help_line("Ctrl+U", "Clear search"),
-        help_line("T", "Toggle deleted"),
-        help_line("F", "Cycle filter"),
-        help_line("P", "Cycle protocol"),
-        help_line("S", "Cycle sort"),
+    // Sections arranged in a 4-row x 3-column grid. Each row is padded so the
+    // section headers line up horizontally across all three columns.
+    let section = |title: &'static str, mut rows: Vec<Line<'static>>| -> Vec<Line<'static>> {
+        let mut lines = vec![Line::styled(title, theme::muted_style())];
+        lines.append(&mut rows);
+        lines
+    };
+
+    let grid: [[Vec<Line>; 3]; 4] = [
+        [
+            section(
+                "Navigation",
+                vec![
+                    help_line("[", "Previous tab"),
+                    help_line("]", "Next tab"),
+                    help_line("⇥", "Focus next card"),
+                    help_line("⇤", "Focus prev card"),
+                    help_line("j, ↓", "Move row / scroll down"),
+                    help_line("k, ↑", "Move row / scroll up"),
+                    help_line("Esc", "Close modal / back"),
+                    help_line("q", "Quit"),
+                ],
+            ),
+            section(
+                "Configs",
+                vec![
+                    help_line("↵", "Start focused"),
+                    help_line("e", "Enable focused"),
+                    help_line("x", "Disable focused"),
+                    help_line("y", "Show QR"),
+                    help_line("c", "Copy link"),
+                ],
+            ),
+            section(
+                "Tests",
+                vec![
+                    help_line("t t", "Focused"),
+                    help_line("t a", "All enabled"),
+                    help_line("t v", "Visible"),
+                    help_line("t r", "Failed"),
+                    help_line("t s", "Stale"),
+                    help_line("t c", "Cancel batch"),
+                ],
+            ),
+        ],
+        [
+            section(
+                "Search",
+                vec![
+                    help_line("/", "Search configs"),
+                    help_line("⌃U", "Clear search"),
+                ],
+            ),
+            section(
+                "Runtime",
+                vec![help_line("K", "Kill"), help_line("R", "Restart")],
+            ),
+            section(
+                "Soft Delete",
+                vec![
+                    help_line("d d", "Focused"),
+                    help_line("d f", "All failed"),
+                    help_line("d v", "All filtered"),
+                    help_line("d x", "All disabled"),
+                ],
+            ),
+        ],
+        [
+            section(
+                "Filters",
+                vec![
+                    help_line("T", "Toggle deleted"),
+                    help_line("F", "Cycle filter"),
+                    help_line("P", "Cycle protocol"),
+                    help_line("S", "Cycle sort"),
+                ],
+            ),
+            section(
+                "Sources",
+                vec![
+                    help_line("r", "Refresh focused"),
+                    help_line("R", "Refresh all"),
+                    help_line("i", "Import"),
+                    help_line("n", "Rename"),
+                    help_line("d", "Delete"),
+                    help_line("y", "Show QR"),
+                    help_line("c", "Copy link"),
+                ],
+            ),
+            section(
+                "Purge",
+                vec![
+                    help_line("D D", "Focused"),
+                    help_line("D f", "All failed"),
+                    help_line("D v", "Filtered trash"),
+                    help_line("D a", "Empty trash"),
+                ],
+            ),
+        ],
+        [
+            section(
+                "API",
+                vec![
+                    help_line("u", "Show API QR"),
+                    help_line("U", "Copy API link"),
+                ],
+            ),
+            Vec::new(),
+            section(
+                "Restore",
+                vec![
+                    help_line("r r", "Focused"),
+                    help_line("r v", "Filtered trash"),
+                    help_line("r a", "All trash"),
+                ],
+            ),
+        ],
     ];
 
-    let column_two = vec![
-        Line::styled("Configs", theme::muted_style()),
-        help_line("Enter", "Start focused"),
-        help_line("e", "Enable focused"),
-        help_line("x", "Disable focused"),
-        help_line("d", "Soft delete"),
-        help_line("D", "Purge (hard)"),
-        help_line("r", "Restore"),
-        help_line("y", "Show QR"),
-        help_line("c", "Copy link"),
-        Line::raw(""),
-        Line::styled("Runtime", theme::muted_style()),
-        help_line("K", "Kill runtime"),
-        help_line("R", "Restart runtime"),
-    ];
+    let row_count = grid.len();
+    let row_heights: Vec<usize> = grid
+        .iter()
+        .map(|row| row.iter().map(Vec::len).max().unwrap_or(0))
+        .collect();
 
-    let column_three = vec![
-        Line::styled("Tests", theme::muted_style()),
-        help_line("t", "Test current scope"),
-        help_line("a", "Test all enabled"),
-        help_line("v", "Test visible"),
-        help_line("C", "Cancel batch"),
-        Line::raw(""),
-        Line::styled("Sources", theme::muted_style()),
-        help_line("r", "Refresh focused"),
-        help_line("R", "Refresh all"),
-        help_line("i", "Import source"),
-        help_line("n", "Rename source"),
-        help_line("d", "Delete source"),
-        help_line("y", "Show QR"),
-        help_line("c", "Copy link"),
-        help_line("u", "Show API QR"),
-        help_line("U", "Copy API link"),
-    ];
+    let mut cols: [Vec<Line>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+    for (row_index, row) in grid.into_iter().enumerate() {
+        let target = row_heights[row_index];
+        for (col_index, mut sect) in row.into_iter().enumerate() {
+            while sect.len() < target {
+                sect.push(Line::raw(""));
+            }
+            cols[col_index].append(&mut sect);
+            if row_index + 1 < row_count {
+                cols[col_index].push(Line::raw(""));
+            }
+        }
+    }
+    let [column_one, column_two, column_three] = cols;
 
     const GAP: u16 = 3;
     let column_width = |column: &[Line<'_>]| {

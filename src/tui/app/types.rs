@@ -69,10 +69,11 @@ pub enum TuiAction {
     RestoreFocused,
     RequestDeleteFocused,
     RequestPurgeFocused,
-    StartTestBatch,
-    StartTestAllEnabled,
-    StartTestFiltered,
+    StartTest(TestScope),
     CancelTestBatch,
+    RequestBulk(BulkOp),
+    ConfirmBulk,
+    CancelBulk,
     RuntimeStop,
     RuntimeRestart,
     RefreshFocusedSource,
@@ -111,6 +112,61 @@ pub enum ConfirmKind {
     SoftDeleteConfig(i64),
     PurgeConfig(i64),
     DeleteSource(i64),
+}
+
+/// Destructive multi-config operations triggered through the chord keymap.
+/// Each variant resolves to a set of config ids and a backing repository bulk
+/// call. They are gated by an inline (no-modal) y/n confirm in the key bar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BulkOp {
+    DeleteFailed,
+    DeleteFiltered,
+    DeleteDisabled,
+    PurgeFailed,
+    PurgeFilteredDeleted,
+    PurgeAllDeleted,
+    RestoreFilteredDeleted,
+    RestoreAllDeleted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BulkKind {
+    SoftDelete,
+    Purge,
+    Restore,
+}
+
+impl BulkOp {
+    pub fn kind(self) -> BulkKind {
+        match self {
+            BulkOp::DeleteFailed | BulkOp::DeleteFiltered | BulkOp::DeleteDisabled => {
+                BulkKind::SoftDelete
+            }
+            BulkOp::PurgeFailed | BulkOp::PurgeFilteredDeleted | BulkOp::PurgeAllDeleted => {
+                BulkKind::Purge
+            }
+            BulkOp::RestoreFilteredDeleted | BulkOp::RestoreAllDeleted => BulkKind::Restore,
+        }
+    }
+
+    pub fn verb(self) -> &'static str {
+        match self.kind() {
+            BulkKind::SoftDelete => "soft-delete",
+            BulkKind::Purge => "purge",
+            BulkKind::Restore => "restore",
+        }
+    }
+
+    /// Noun describing the targeted set, used in the confirm prompt and status.
+    pub fn target(self) -> &'static str {
+        match self {
+            BulkOp::DeleteFailed | BulkOp::PurgeFailed => "failed",
+            BulkOp::DeleteFiltered => "filtered",
+            BulkOp::DeleteDisabled => "disabled",
+            BulkOp::PurgeFilteredDeleted | BulkOp::RestoreFilteredDeleted => "filtered deleted",
+            BulkOp::PurgeAllDeleted | BulkOp::RestoreAllDeleted => "deleted",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -162,6 +218,10 @@ pub struct TuiApp {
     pub test_state: TestViewState,
     pub task_state: crate::tui::task::TuiTaskState,
     pub confirm: Option<ConfirmState>,
+    /// Armed chord leader (`t`/`d`/`D`/`r`) waiting for its second key.
+    pub pending_chord: Option<char>,
+    /// Bulk operation awaiting inline y/n confirmation in the key bar.
+    pub pending_bulk: Option<BulkOp>,
     pub import_modal: Option<ImportModalState>,
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,

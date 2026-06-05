@@ -8,10 +8,11 @@ mod subscriptions;
 pub use cf_scan::{list_cf_scan_history, list_cf_scan_results, upsert_cf_scan_results};
 pub use configs::{
     clear_active_config, count_deleted_configs, count_filtered_configs, delete_config,
-    get_active_config, get_config_by_id, get_config_count, get_config_with_latest_test,
-    hard_delete_config, import_nodes, list_configs, list_configs_paginated_with_latest_tests,
-    list_configs_with_latest_tests, list_top_configs_by_real_delay, purge_deleted_configs,
-    restore_config, set_active_config, set_config_enabled,
+    delete_configs, get_active_config, get_config_by_id, get_config_count,
+    get_config_with_latest_test, hard_delete_config, hard_delete_configs, import_nodes,
+    list_configs, list_configs_paginated_with_latest_tests, list_configs_with_latest_tests,
+    list_top_configs_by_real_delay, purge_deleted_configs, restore_config, restore_configs,
+    set_active_config, set_config_enabled,
 };
 pub use connection_tests::{
     get_connection_test_count, get_latest_connection_test, get_latest_connection_test_run,

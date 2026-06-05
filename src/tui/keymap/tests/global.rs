@@ -7,10 +7,63 @@ fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::empty())
 }
 
+/// Wrapper preserving the pre-chord call shape: no armed chord, no bulk confirm.
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
+fn act(
+    key: KeyEvent,
+    view: TuiView,
+    editing_search: bool,
+    confirming: bool,
+    import_modal_open: bool,
+    rename_modal_open: bool,
+    qr_modal_open: bool,
+) -> TuiAction {
+    action_for_key(
+        key,
+        view,
+        &mut None,
+        false,
+        editing_search,
+        confirming,
+        import_modal_open,
+        rename_modal_open,
+        qr_modal_open,
+    )
+}
+
+/// Drive a two-key chord: arm `leader`, then resolve with `second`.
+fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
+    let mut pending = None;
+    let armed = action_for_key(
+        key(leader),
+        view,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    );
+    assert_eq!(armed, TuiAction::None);
+    assert!(pending.is_some());
+    action_for_key(
+        key(second),
+        view,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    )
+}
+
 #[test]
 fn maps_global_quit_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('q')),
             TuiView::Configs,
             false,
@@ -22,7 +75,7 @@ fn maps_global_quit_keys() {
         TuiAction::Quit
     );
     assert_eq!(
-        action_for_key(
+        act(
             KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
             TuiView::Configs,
             false,
@@ -38,7 +91,7 @@ fn maps_global_quit_keys() {
 #[test]
 fn maps_view_switching_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('[')),
             TuiView::Configs,
             false,
@@ -50,7 +103,7 @@ fn maps_view_switching_keys() {
         TuiAction::PrevTab
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char(']')),
             TuiView::Configs,
             false,
@@ -66,7 +119,7 @@ fn maps_view_switching_keys() {
 #[test]
 fn maps_tab_to_panel_focus() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Tab),
             TuiView::Configs,
             false,
@@ -78,7 +131,7 @@ fn maps_tab_to_panel_focus() {
         TuiAction::FocusNextPanel
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::BackTab),
             TuiView::Configs,
             false,
@@ -94,7 +147,7 @@ fn maps_tab_to_panel_focus() {
 #[test]
 fn maps_navigation_and_help_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Down),
             TuiView::Configs,
             false,
@@ -106,7 +159,7 @@ fn maps_navigation_and_help_keys() {
         TuiAction::MoveDown
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('k')),
             TuiView::Configs,
             false,
@@ -118,7 +171,7 @@ fn maps_navigation_and_help_keys() {
         TuiAction::MoveUp
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('?')),
             TuiView::Configs,
             false,
@@ -130,7 +183,7 @@ fn maps_navigation_and_help_keys() {
         TuiAction::ShowHelp
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Esc),
             TuiView::Configs,
             false,
@@ -142,7 +195,7 @@ fn maps_navigation_and_help_keys() {
         TuiAction::Back
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('/')),
             TuiView::Configs,
             false,
@@ -154,7 +207,7 @@ fn maps_navigation_and_help_keys() {
         TuiAction::BeginSearch
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('S')),
             TuiView::Configs,
             false,
@@ -170,7 +223,7 @@ fn maps_navigation_and_help_keys() {
 #[test]
 fn maps_enter_start_in_configs() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Enter),
             TuiView::Configs,
             false,
@@ -184,37 +237,137 @@ fn maps_enter_start_in_configs() {
 }
 
 #[test]
-fn maps_config_test_scope_shortcuts() {
+fn test_chords_resolve_to_scopes() {
+    use crate::tui::app::TestScope;
     assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('a')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::StartTestAllEnabled
+        chord(KeyCode::Char('t'), KeyCode::Char('t'), TuiView::Configs),
+        TuiAction::StartTest(TestScope::Focused)
     );
     assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('v')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::StartTestFiltered
+        chord(KeyCode::Char('t'), KeyCode::Char('a'), TuiView::Configs),
+        TuiAction::StartTest(TestScope::AllEnabled)
     );
+    assert_eq!(
+        chord(KeyCode::Char('t'), KeyCode::Char('v'), TuiView::Configs),
+        TuiAction::StartTest(TestScope::Filtered)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('t'), KeyCode::Char('r'), TuiView::Configs),
+        TuiAction::StartTest(TestScope::Failed)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('t'), KeyCode::Char('s'), TuiView::Configs),
+        TuiAction::StartTest(TestScope::Stale)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('t'), KeyCode::Char('c'), TuiView::Configs),
+        TuiAction::CancelTestBatch
+    );
+}
+
+#[test]
+fn bare_freed_keys_are_inert_in_configs() {
+    for code in [KeyCode::Char('a'), KeyCode::Char('v'), KeyCode::Char('C')] {
+        assert_eq!(
+            act(
+                key(code),
+                TuiView::Configs,
+                false,
+                false,
+                false,
+                false,
+                false
+            ),
+            TuiAction::None
+        );
+    }
+}
+
+#[test]
+fn delete_purge_restore_chords_resolve() {
+    use crate::tui::app::BulkOp;
+    assert_eq!(
+        chord(KeyCode::Char('d'), KeyCode::Char('d'), TuiView::Configs),
+        TuiAction::RequestDeleteFocused
+    );
+    assert_eq!(
+        chord(KeyCode::Char('d'), KeyCode::Char('f'), TuiView::Configs),
+        TuiAction::RequestBulk(BulkOp::DeleteFailed)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('d'), KeyCode::Char('x'), TuiView::Configs),
+        TuiAction::RequestBulk(BulkOp::DeleteDisabled)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('D'), KeyCode::Char('D'), TuiView::Configs),
+        TuiAction::RequestPurgeFocused
+    );
+    assert_eq!(
+        chord(KeyCode::Char('D'), KeyCode::Char('a'), TuiView::Configs),
+        TuiAction::RequestBulk(BulkOp::PurgeAllDeleted)
+    );
+    assert_eq!(
+        chord(KeyCode::Char('r'), KeyCode::Char('r'), TuiView::Configs),
+        TuiAction::RestoreFocused
+    );
+    assert_eq!(
+        chord(KeyCode::Char('r'), KeyCode::Char('a'), TuiView::Configs),
+        TuiAction::RequestBulk(BulkOp::RestoreAllDeleted)
+    );
+}
+
+#[test]
+fn unknown_chord_second_key_clears() {
+    let mut pending = None;
+    action_for_key(
+        key(KeyCode::Char('t')),
+        TuiView::Configs,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    );
+    assert!(pending.is_some());
+    let resolved = action_for_key(
+        key(KeyCode::Esc),
+        TuiView::Configs,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    );
+    assert_eq!(resolved, TuiAction::None);
+    assert!(pending.is_none());
+}
+
+#[test]
+fn chord_leaders_inert_in_sources() {
+    let mut pending = None;
+    let action = action_for_key(
+        key(KeyCode::Char('r')),
+        TuiView::Sources,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    );
+    assert_eq!(action, TuiAction::RefreshFocusedSource);
+    assert!(pending.is_none());
 }
 
 #[test]
 fn maps_config_action_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('e')),
             TuiView::Configs,
             false,
@@ -226,7 +379,7 @@ fn maps_config_action_keys() {
         TuiAction::EnableFocused
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('x')),
             TuiView::Configs,
             false,
@@ -238,7 +391,7 @@ fn maps_config_action_keys() {
         TuiAction::DisableFocused
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('K')),
             TuiView::Configs,
             false,
@@ -250,43 +403,7 @@ fn maps_config_action_keys() {
         TuiAction::RuntimeStop
     );
     assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('d')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::RequestDeleteFocused
-    );
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('D')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::RequestPurgeFocused
-    );
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('r')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::RestoreFocused
-    );
-    assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('T')),
             TuiView::Configs,
             false,
@@ -302,7 +419,7 @@ fn maps_config_action_keys() {
 #[test]
 fn maps_cycle_filter_key() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('F')),
             TuiView::Configs,
             false,
@@ -318,7 +435,7 @@ fn maps_cycle_filter_key() {
 #[test]
 fn maps_qr_and_copy_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('y')),
             TuiView::Configs,
             false,
@@ -330,7 +447,7 @@ fn maps_qr_and_copy_keys() {
         TuiAction::OpenQrFocused
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('c')),
             TuiView::Configs,
             false,
@@ -346,7 +463,7 @@ fn maps_qr_and_copy_keys() {
 #[test]
 fn qr_modal_open_consumes_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Esc),
             TuiView::Configs,
             false,
@@ -358,7 +475,7 @@ fn qr_modal_open_consumes_keys() {
         TuiAction::Back
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('q')),
             TuiView::Configs,
             false,
@@ -370,7 +487,7 @@ fn qr_modal_open_consumes_keys() {
         TuiAction::Back
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('s')),
             TuiView::Configs,
             false,
@@ -386,7 +503,7 @@ fn qr_modal_open_consumes_keys() {
 #[test]
 fn maps_sources_view_actions() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('r')),
             TuiView::Sources,
             false,
@@ -398,7 +515,7 @@ fn maps_sources_view_actions() {
         TuiAction::RefreshFocusedSource
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('R')),
             TuiView::Sources,
             false,
@@ -410,7 +527,7 @@ fn maps_sources_view_actions() {
         TuiAction::RefreshAllSources
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('i')),
             TuiView::Sources,
             false,
@@ -426,7 +543,7 @@ fn maps_sources_view_actions() {
 #[test]
 fn maps_import_modal_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('a')),
             TuiView::Sources,
             false,
@@ -438,7 +555,7 @@ fn maps_import_modal_keys() {
         TuiAction::ImportInput('a')
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Backspace),
             TuiView::Sources,
             false,
@@ -450,7 +567,7 @@ fn maps_import_modal_keys() {
         TuiAction::ImportBackspace
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Enter),
             TuiView::Sources,
             false,
@@ -462,7 +579,7 @@ fn maps_import_modal_keys() {
         TuiAction::ImportSubmit
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Esc),
             TuiView::Sources,
             false,

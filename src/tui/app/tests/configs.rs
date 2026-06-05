@@ -92,11 +92,52 @@ fn test_scope_shortcuts_update_scope() {
     let mut app = TuiApp::with_data(data);
 
     app.test_state.scope = TestScope::Focused;
-    app.apply(TuiAction::StartTestAllEnabled);
+    app.apply(TuiAction::StartTest(TestScope::AllEnabled));
     assert_eq!(app.test_state.scope, TestScope::AllEnabled);
 
-    app.apply(TuiAction::StartTestFiltered);
+    app.apply(TuiAction::StartTest(TestScope::Filtered));
     assert_eq!(app.test_state.scope, TestScope::Filtered);
+}
+
+#[test]
+fn collects_config_ids_for_bulk_scopes() {
+    use crate::tui::app::BulkOp;
+
+    let mut failed = row(2);
+    failed.failure_reason = Some("timeout".to_string());
+    let mut disabled = row(3);
+    disabled.is_enabled = false;
+    let mut deleted = row(4);
+    deleted.is_deleted = true;
+
+    let data = TuiData::from_configs(vec![row(1), failed, disabled, deleted]);
+    let app = TuiApp::with_data(data);
+
+    assert_eq!(app.bulk_config_ids(BulkOp::DeleteFailed), vec![2]);
+    assert_eq!(app.bulk_config_ids(BulkOp::PurgeFailed), vec![2]);
+    assert_eq!(app.bulk_config_ids(BulkOp::DeleteDisabled), vec![3]);
+    assert_eq!(app.bulk_config_ids(BulkOp::PurgeAllDeleted), vec![4]);
+    assert_eq!(app.bulk_config_ids(BulkOp::RestoreAllDeleted), vec![4]);
+}
+
+#[test]
+fn request_bulk_arms_confirm_or_reports_empty() {
+    use crate::tui::app::BulkOp;
+
+    let mut deleted = row(2);
+    deleted.is_deleted = true;
+    let data = TuiData::from_configs(vec![row(1), deleted]);
+    let mut app = TuiApp::with_data(data);
+
+    app.apply(TuiAction::RequestBulk(BulkOp::PurgeAllDeleted));
+    assert_eq!(app.pending_bulk, Some(BulkOp::PurgeAllDeleted));
+
+    app.apply(TuiAction::ConfirmBulk);
+    assert!(app.pending_bulk.is_none());
+
+    app.apply(TuiAction::RequestBulk(BulkOp::DeleteFailed));
+    assert!(app.pending_bulk.is_none());
+    assert_eq!(app.status_message, "no failed configs");
 }
 
 #[test]

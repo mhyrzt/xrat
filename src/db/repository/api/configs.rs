@@ -45,6 +45,18 @@ pub async fn hard_delete_config(pool: &DbPool, id: i64) -> crate::db::Result<()>
     configs::hard_delete(pool, id).await
 }
 
+pub async fn delete_configs(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    configs::soft_delete_many(pool, ids).await
+}
+
+pub async fn restore_configs(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    configs::restore_many(pool, ids).await
+}
+
+pub async fn hard_delete_configs(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    configs::hard_delete_many(pool, ids).await
+}
+
 pub async fn count_deleted_configs(pool: &DbPool) -> crate::db::Result<i64> {
     configs::count_deleted(pool).await
 }

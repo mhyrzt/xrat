@@ -20,6 +20,8 @@ impl Default for TuiApp {
             test_state: TestViewState::default(),
             task_state: TuiTaskState::default(),
             confirm: None,
+            pending_chord: None,
+            pending_bulk: None,
             import_modal: None,
             rename_modal: None,
             qr_modal: None,

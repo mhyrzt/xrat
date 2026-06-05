@@ -1,3 +1,5 @@
+use sqlx::{Postgres, QueryBuilder, Sqlite};
+
 use crate::db::connection::DbPool;
 
 pub async fn clear_all_active(pool: &DbPool) -> crate::db::Result<()> {
@@ -151,6 +153,125 @@ pub async fn purge_deleted(pool: &DbPool) -> crate::db::Result<u64> {
         }
     };
     Ok(rows_affected)
+}
+
+pub async fn soft_delete_many(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let rows_affected = match pool {
+        DbPool::Sqlite(pool) => {
+            let mut builder = QueryBuilder::<Sqlite>::new(
+                "UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP, is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id IN (",
+            );
+            push_id_list(&mut builder, ids);
+            builder.push(")");
+            builder.build().execute(pool).await?.rows_affected()
+        }
+        DbPool::Postgres(pool) => {
+            let mut builder = QueryBuilder::<Postgres>::new(
+                "UPDATE configs SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP::TEXT, is_active = 0, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id IN (",
+            );
+            push_id_list(&mut builder, ids);
+            builder.push(")");
+            builder.build().execute(pool).await?.rows_affected()
+        }
+    };
+    Ok(rows_affected)
+}
+
+pub async fn restore_many(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let rows_affected = match pool {
+        DbPool::Sqlite(pool) => {
+            let mut builder = QueryBuilder::<Sqlite>::new(
+                "UPDATE configs SET is_deleted = 0, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id IN (",
+            );
+            push_id_list(&mut builder, ids);
+            builder.push(")");
+            builder.build().execute(pool).await?.rows_affected()
+        }
+        DbPool::Postgres(pool) => {
+            let mut builder = QueryBuilder::<Postgres>::new(
+                "UPDATE configs SET is_deleted = 0, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP::TEXT WHERE id IN (",
+            );
+            push_id_list(&mut builder, ids);
+            builder.push(")");
+            builder.build().execute(pool).await?.rows_affected()
+        }
+    };
+    Ok(rows_affected)
+}
+
+pub async fn hard_delete_many(pool: &DbPool, ids: &[i64]) -> crate::db::Result<u64> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let rows_affected = match pool {
+        DbPool::Sqlite(pool) => {
+            let mut tx = pool.begin().await?;
+            build_in_delete::<Sqlite>("connection_tests", "config_id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            build_in_delete::<Sqlite>("runtime_sessions", "config_id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            let result = build_in_delete::<Sqlite>("configs", "id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            result.rows_affected()
+        }
+        DbPool::Postgres(pool) => {
+            let mut tx = pool.begin().await?;
+            build_in_delete::<Postgres>("connection_tests", "config_id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            build_in_delete::<Postgres>("runtime_sessions", "config_id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            let result = build_in_delete::<Postgres>("configs", "id", ids)
+                .build()
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            result.rows_affected()
+        }
+    };
+    Ok(rows_affected)
+}
+
+fn build_in_delete<'args, DB>(
+    table: &str,
+    column: &str,
+    ids: &'args [i64],
+) -> QueryBuilder<'args, DB>
+where
+    DB: sqlx::Database,
+    i64: sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+{
+    let mut builder = QueryBuilder::<DB>::new(format!("DELETE FROM {table} WHERE {column} IN ("));
+    push_id_list(&mut builder, ids);
+    builder.push(")");
+    builder
+}
+
+fn push_id_list<'args, DB>(builder: &mut QueryBuilder<'args, DB>, ids: &'args [i64])
+where
+    DB: sqlx::Database,
+    i64: sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+{
+    let mut separated = builder.separated(", ");
+    for id in ids {
+        separated.push_bind(*id);
+    }
 }
 
 async fn execute_no_bind(pool: &DbPool, sql: &str) -> crate::db::Result<()> {

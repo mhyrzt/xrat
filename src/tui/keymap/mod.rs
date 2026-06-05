@@ -1,3 +1,5 @@
+mod chord;
+pub use chord::chord_hint;
 mod confirm;
 mod search;
 #[cfg(test)]
@@ -8,9 +10,12 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::tui::app::{TuiAction, TuiView};
 
+#[allow(clippy::too_many_arguments)]
 pub fn action_for_key(
     key: KeyEvent,
     active_view: TuiView,
+    pending_chord: &mut Option<char>,
+    bulk_confirm_open: bool,
     editing_search: bool,
     confirming: bool,
     import_modal_open: bool,
@@ -36,12 +41,30 @@ pub fn action_for_key(
         return action_for_rename_modal_key(key);
     }
 
+    if bulk_confirm_open {
+        return match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => TuiAction::ConfirmBulk,
+            _ => TuiAction::CancelBulk,
+        };
+    }
+
     if confirming {
         return confirm::action_for_confirm_key(key);
     }
 
     if editing_search {
         return search::action_for_search_key(key);
+    }
+
+    if let Some(leader) = pending_chord.take() {
+        return chord::resolve_chord(leader, key.code);
+    }
+
+    if active_view == TuiView::Configs
+        && let Some(leader) = chord::leader_char(key.code)
+    {
+        *pending_chord = Some(leader);
+        return TuiAction::None;
     }
 
     view::action_for_view_key(key, active_view)

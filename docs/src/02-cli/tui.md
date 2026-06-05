@@ -61,27 +61,47 @@ state. The status marker column uses `●` for active, `✕` for soft-deleted, `
 for disabled, and `!` for failed configs. Long names are truncated in the table.
 It supports focused actions, test batches, and managed runtime controls.
 
-| Key      | Action                                            |
-| -------- | ------------------------------------------------- |
-| `/`      | Edit config search                                |
-| `Ctrl+U` | Clear search while editing                        |
-| `S`      | Cycle sort field                                  |
-| `F`      | Cycle filter: all, enabled, failed, has-delay     |
-| `P`      | Cycle protocol filter                             |
-| `T`      | Show or hide soft-deleted configs                 |
-| `Enter`  | Start the focused config                          |
-| `e`, `x` | Enable or disable the focused config              |
-| `d`      | Soft-delete the focused config after confirmation |
-| `D`      | Purge the focused config after confirmation       |
-| `r`      | Restore the focused soft-deleted config           |
-| `t`      | Start a test batch for the current Configs scope  |
-| `a`      | Test all enabled, non-deleted configs             |
-| `v`      | Test visible configs matching current filters     |
-| `C`      | Cancel the running test batch                     |
-| `K`      | Stop/disconnect the managed runtime               |
-| `R`      | Restart the managed runtime                       |
-| `y`      | Show a QR code for the focused config URI         |
-| `c`      | Copy the focused config URI                       |
+| Key      | Action                                        |
+| -------- | --------------------------------------------- |
+| `/`      | Edit config search                            |
+| `Ctrl+U` | Clear search while editing                    |
+| `S`      | Cycle sort field                              |
+| `F`      | Cycle filter: all, enabled, failed, has-delay |
+| `P`      | Cycle protocol filter                         |
+| `T`      | Show or hide soft-deleted configs             |
+| `Enter`  | Start the focused config                      |
+| `e`, `x` | Enable or disable the focused config          |
+| `d` …    | Soft-delete chord (see below)                 |
+| `D` …    | Purge chord (see below)                       |
+| `r` …    | Restore chord (see below)                     |
+| `t` …    | Test chord (see Testing Strip)                |
+| `K`      | Stop/disconnect the managed runtime           |
+| `R`      | Restart the managed runtime                   |
+| `y`      | Show a QR code for the focused config URI     |
+| `c`      | Copy the focused config URI                   |
+
+### Chord keys
+
+On the Configs tab, `t`, `d`, `D`, and `r` are chord leaders: press the leader,
+then a second key to pick the scope. The key bar shows the available second keys
+while a chord is armed; `Esc` (or any unbound key) cancels it. Single-row chords
+(`d d`, `D D`, `r r`) reuse the existing confirmation modal. Multi-config chords
+(everything else) ask for an inline `y/n` confirmation in the key bar and run as
+a single bulk database operation.
+
+| Chord | Action                                              |
+| ----- | --------------------------------------------------- |
+| `d d` | Soft-delete the focused config (confirm)            |
+| `d f` | Soft-delete all failed configs                      |
+| `d v` | Soft-delete all visible (filtered) configs          |
+| `d x` | Soft-delete all disabled configs                    |
+| `D D` | Purge the focused config (confirm)                  |
+| `D f` | Purge all failed configs                            |
+| `D v` | Purge visible configs that are already soft-deleted |
+| `D a` | Empty trash — purge every soft-deleted config       |
+| `r r` | Restore the focused soft-deleted config             |
+| `r v` | Restore visible configs that are soft-deleted       |
+| `r a` | Restore every soft-deleted config                   |
 
 Search matches the displayed config fields. Sorting can cycle through latency,
 ID, name, protocol, source, last-tested time, and imported time. Deleted configs
@@ -156,8 +176,9 @@ shows a live progress gauge while a batch is running, then summarizes nonzero
 completed result counts as done, ok, and failed.
 
 Test batches run TCP and real-delay tests with concurrency `4` and skip
-download, upload, and ICMP stages. Start a batch with `t` (current scope), `a`
-(all enabled), or `v` (visible), and cancel a running batch with `C`.
+download, upload, and ICMP stages. Tests use the `t` chord leader: `t t`
+(focused), `t a` (all enabled), `t v` (visible), `t r` (failed), `t s` (stale),
+and `t c` cancels a running batch.
 
 While a batch is running, the gauge updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports

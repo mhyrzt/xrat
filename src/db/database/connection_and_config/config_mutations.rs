@@ -22,6 +22,18 @@ impl Database {
         repository::purge_deleted_configs(&self.pool).await
     }
 
+    pub async fn delete_configs(&self, ids: &[i64]) -> crate::db::Result<u64> {
+        repository::delete_configs(&self.pool, ids).await
+    }
+
+    pub async fn restore_configs(&self, ids: &[i64]) -> crate::db::Result<u64> {
+        repository::restore_configs(&self.pool, ids).await
+    }
+
+    pub async fn hard_delete_configs(&self, ids: &[i64]) -> crate::db::Result<u64> {
+        repository::hard_delete_configs(&self.pool, ids).await
+    }
+
     pub async fn set_active_config(&self, id: i64) -> crate::db::Result<()> {
         repository::set_active_config(&self.pool, id).await
     }

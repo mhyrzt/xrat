@@ -43,15 +43,23 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     app.needs_full_clear = true;
                 }
                 Event::Key(key) => {
+                    let bulk_confirm_open = app.pending_bulk.is_some();
                     let action = crate::tui::keymap::action_for_key(
                         key,
                         app.active_view,
+                        &mut app.pending_chord,
+                        bulk_confirm_open,
                         app.config_list.editing_search,
                         app.confirm.is_some(),
                         app.import_modal.is_some(),
                         app.rename_modal.is_some(),
                         app.qr_modal.is_some(),
                     );
+                    let bulk_to_run = if matches!(action, crate::tui::app::TuiAction::ConfirmBulk) {
+                        app.pending_bulk
+                    } else {
+                        None
+                    };
                     let confirmed_command = if matches!(action, crate::tui::app::TuiAction::Confirm)
                     {
                         app.pending_confirm_command()
@@ -169,13 +177,11 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             &task_tx,
                         );
                     }
-                    if matches!(
-                        action,
-                        crate::tui::app::TuiAction::StartTestBatch
-                            | crate::tui::app::TuiAction::StartTestAllEnabled
-                            | crate::tui::app::TuiAction::StartTestFiltered
-                    ) {
+                    if matches!(action, crate::tui::app::TuiAction::StartTest(_)) {
                         tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
+                    }
+                    if let Some(op) = bulk_to_run {
+                        tasks::run_bulk_op(context, &mut app, op).await;
                     }
                     if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
                         tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);

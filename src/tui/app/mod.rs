@@ -10,9 +10,9 @@ mod types;
 mod views;
 
 pub use types::{
-    ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState, ImportModalState,
-    PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
-    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
+    BulkKind, BulkOp, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState,
+    ImportModalState, PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState,
+    TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -39,8 +39,7 @@ impl TuiApp {
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
             TuiAction::RequestDeleteSource => self.request_delete_source(),
-            TuiAction::StartTestBatch
-            | TuiAction::RuntimeStop
+            TuiAction::RuntimeStop
             | TuiAction::RuntimeRestart
             | TuiAction::RefreshFocusedSource
             | TuiAction::RefreshAllSources
@@ -50,11 +49,14 @@ impl TuiApp {
             | TuiAction::CopyApiUrl
             | TuiAction::OpenRenameModal
             | TuiAction::RenameSubmit => {}
-            TuiAction::StartTestAllEnabled => {
-                self.test_state.scope = TestScope::AllEnabled;
+            TuiAction::StartTest(scope) => {
+                self.test_state.scope = scope;
             }
-            TuiAction::StartTestFiltered => {
-                self.test_state.scope = TestScope::Filtered;
+            TuiAction::RequestBulk(op) => self.request_bulk(op),
+            TuiAction::ConfirmBulk => self.pending_bulk = None,
+            TuiAction::CancelBulk => {
+                self.pending_bulk = None;
+                self.status_message = "cancelled".to_string();
             }
             TuiAction::OpenImportModal => {
                 self.import_modal = Some(crate::tui::app::ImportModalState::default());

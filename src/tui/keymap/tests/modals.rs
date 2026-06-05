@@ -7,10 +7,34 @@ fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::empty())
 }
 
+/// Wrapper preserving the pre-chord call shape: no armed chord, no bulk confirm.
+#[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
+fn act(
+    key: KeyEvent,
+    view: TuiView,
+    editing_search: bool,
+    confirming: bool,
+    import_modal_open: bool,
+    rename_modal_open: bool,
+    qr_modal_open: bool,
+) -> TuiAction {
+    action_for_key(
+        key,
+        view,
+        &mut None,
+        false,
+        editing_search,
+        confirming,
+        import_modal_open,
+        rename_modal_open,
+        qr_modal_open,
+    )
+}
+
 #[test]
 fn maps_confirm_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Enter),
             TuiView::Configs,
             false,
@@ -22,7 +46,7 @@ fn maps_confirm_keys() {
         TuiAction::Confirm
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('y')),
             TuiView::Configs,
             false,
@@ -34,7 +58,7 @@ fn maps_confirm_keys() {
         TuiAction::Confirm
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('n')),
             TuiView::Configs,
             false,
@@ -50,7 +74,7 @@ fn maps_confirm_keys() {
 #[test]
 fn maps_search_editing_keys() {
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Char('v')),
             TuiView::Configs,
             true,
@@ -62,7 +86,7 @@ fn maps_search_editing_keys() {
         TuiAction::SearchInput('v')
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Backspace),
             TuiView::Configs,
             true,
@@ -74,7 +98,7 @@ fn maps_search_editing_keys() {
         TuiAction::SearchBackspace
     );
     assert_eq!(
-        action_for_key(
+        act(
             key(KeyCode::Enter),
             TuiView::Configs,
             true,
@@ -86,7 +110,7 @@ fn maps_search_editing_keys() {
         TuiAction::ConfirmSearch
     );
     assert_eq!(
-        action_for_key(
+        act(
             KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
             TuiView::Configs,
             true,
@@ -96,33 +120,5 @@ fn maps_search_editing_keys() {
             false
         ),
         TuiAction::ClearSearch
-    );
-}
-
-#[test]
-fn maps_config_test_batch_actions() {
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('t')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::StartTestBatch
-    );
-    assert_eq!(
-        action_for_key(
-            key(KeyCode::Char('C')),
-            TuiView::Configs,
-            false,
-            false,
-            false,
-            false,
-            false
-        ),
-        TuiAction::CancelTestBatch
     );
 }
