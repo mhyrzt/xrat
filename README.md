@@ -5,7 +5,7 @@
 <h1 align="center">XRAT</h1>
 
 <p align="center">
-  <em>A fast, polished CLI and TUI proxy manager for Xray-core and sing-box</em>
+  <em>A fast, polished CLI and TUI proxy manager for <a href="https://github.com/xtls/xray-core">XTLS/Xray-core</a> and <a href="https://github.com/sagernet/sing-box">SagerNet/sing-box</a></em>
 </p>
 
 <p align="center">
@@ -17,7 +17,8 @@
 </p>
 
 XRAT is a Rust CLI and TUI for importing, storing, testing, and running
-Xray-compatible proxy configurations.
+[XTLS/Xray-core](https://github.com/xtls/xray-core)-compatible proxy
+configurations.
 
 <p align="center">
   <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
@@ -38,7 +39,8 @@ download, Docker, build from source, shell completions, man pages) see the
 - Import subscription/config lines into SQLite or PostgreSQL.
 - List stored configs and subscriptions.
 - Test configs for connectivity, latency, and optional download speed.
-- Run one stored config as a managed local Xray runtime.
+- Run one stored config as a managed local
+  [XTLS/Xray-core](https://github.com/xtls/xray-core) runtime.
 - Show runtime status and stop the active runtime session.
 - Parse and validate links without importing, with optional JSON output.
 
