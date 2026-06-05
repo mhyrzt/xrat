@@ -4,7 +4,7 @@ use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs,
     EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs, ParseArgs,
     ProxyArgs, PurgeArgs, RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs,
-    TuiArgs, UpgradeArgs, VersionArgs,
+    TuiArgs, UpgradeArgs, ValidateArgs, VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -51,6 +51,8 @@ pub enum Command {
     Tui(TuiArgs),
     #[command(about = "Parse and validate config links without persisting.")]
     Parse(ParseArgs),
+    #[command(about = "Validate an XRAT config.toml file.")]
+    Validate(ValidateArgs),
     #[command(about = "Self-upgrade xrat from the latest release or by building from source.")]
     Upgrade(UpgradeArgs),
     #[command(about = "Print the xrat version.")]

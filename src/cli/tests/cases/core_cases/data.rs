@@ -54,6 +54,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Serve(_)
         | Command::Tui(_)
         | Command::Parse(_)
+        | Command::Validate(_)
         | Command::Upgrade(_)
         | Command::Version(_)
         | Command::Scan(_)
@@ -100,6 +101,7 @@ fn parses_add_subcommand() {
         | Command::Serve(_)
         | Command::Tui(_)
         | Command::Parse(_)
+        | Command::Validate(_)
         | Command::Upgrade(_)
         | Command::Version(_)
         | Command::Scan(_)
@@ -116,6 +118,18 @@ fn parses_add_subcommand() {
         | Command::Completions(_) => {
             panic!("expected add command")
         }
+    }
+}
+
+#[test]
+fn parses_validate_subcommand() {
+    let cli = Cli::parse_from(["xrat", "validate", "/tmp/config.toml"]);
+
+    match cli.command {
+        Command::Validate(args) => {
+            assert_eq!(args.path, std::path::Path::new("/tmp/config.toml"));
+        }
+        _ => panic!("expected validate command"),
     }
 }
 
@@ -139,6 +153,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Serve(_)
         | Command::Tui(_)
         | Command::Parse(_)
+        | Command::Validate(_)
         | Command::Upgrade(_)
         | Command::Version(_)
         | Command::Scan(_)
@@ -198,6 +213,7 @@ fn parses_list_config_filters() {
         | Command::Serve(_)
         | Command::Tui(_)
         | Command::Parse(_)
+        | Command::Validate(_)
         | Command::Upgrade(_)
         | Command::Version(_)
         | Command::Scan(_)

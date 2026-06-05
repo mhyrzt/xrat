@@ -13,6 +13,10 @@ async fn main() {
 }
 
 async fn run(args: &cli::Cli) -> xrat::app::Result<()> {
+    if let cli::Command::Validate(validate_args) = &args.command {
+        return xrat::app::commands::validate::run(validate_args);
+    }
+
     let context = AppContext::build(args).await?;
     commands::run(&context, &args.command).await?;
 

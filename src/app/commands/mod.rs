@@ -21,6 +21,7 @@ mod status;
 pub(crate) mod test;
 mod tui;
 mod upgrade;
+pub mod validate;
 mod version;
 
 use crate::app::context::AppContext;
@@ -49,6 +50,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Serve(args) => serve::run(context, args).await,
         Command::Tui(args) => tui::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
+        Command::Validate(args) => validate::run(args),
         Command::Upgrade(args) => upgrade::run(context, args).await,
         Command::Version(args) => version::run(context, args),
         Command::GeoIp(args) => geoip::run(context, args).await,
