@@ -3,7 +3,18 @@ use crate::app::config::AppConfig;
 use crate::app::context::RuntimePaths;
 use crate::db::{Database, DatabaseConnectionConfig, ImportSource, SourceKind};
 use crate::model::{Node, Protocol};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+/// Hands each test_context its own inbound port block so replace tests that
+/// launch the fake runtime can run in parallel without colliding on the fixed
+/// default ports. Base 40000 keeps this range disjoint from the supervisor
+/// test helper's range.
+fn unique_port_base() -> u16 {
+    static COUNTER: AtomicU16 = AtomicU16::new(0);
+    let slot = COUNTER.fetch_add(1, Ordering::Relaxed) % 4000;
+    40000 + slot * 4
+}
 
 pub(super) async fn test_context() -> AppContext {
     let root = std::env::temp_dir().join(format!(
@@ -21,9 +32,15 @@ pub(super) async fn test_context() -> AppContext {
         .await
         .expect("database should connect");
 
+    let mut app_config = AppConfig::default();
+    let port_base = unique_port_base();
+    app_config.runtime.socks.port = port_base;
+    app_config.runtime.http.port = port_base + 1;
+    app_config.runtime.shadowsocks.port = port_base + 2;
+
     AppContext {
         db,
-        app_config: AppConfig::default(),
+        app_config,
         runtime_paths: RuntimePaths {
             root_dir: root.clone(),
             database_config,

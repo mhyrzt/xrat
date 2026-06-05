@@ -49,7 +49,10 @@ async fn replace_success_stages_new_then_stops_old_runtime() {
     assert_eq!(running.id, result.new_session_id);
     assert_eq!(running.status, RuntimeSessionStatus::Running);
     assert_eq!(running.config_id, Some(config.id));
-    assert_eq!(running.socks_port, Some(18200));
+    assert_eq!(
+        running.socks_port,
+        Some(i64::from(context.app_config.runtime.socks.port))
+    );
     assert_eq!(
         running.last_transition_reason_code.as_deref(),
         Some("replace_commit_success")
