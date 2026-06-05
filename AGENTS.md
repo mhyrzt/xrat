@@ -38,7 +38,8 @@
 - `.github/workflows/` contains CI and release automation, including musl
   release builds, generated man pages/completions, GitHub releases, Docker image
   publishing, and crates.io publishing.
-- `Dockerfile` builds the container image published to GitHub Container Registry.
+- `Dockerfile` builds the container image published to GitHub Container
+  Registry.
 - `testdata/` holds local fixtures such as GeoIP data.
 
 ## Build, Test, and Development Commands

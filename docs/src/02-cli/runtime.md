@@ -53,8 +53,8 @@ xrat daemon start
 
 ### Default Inbounds
 
-| Protocol    | Host      | Port   | Notes                              |
-| ----------- | --------- | ------ | ---------------------------------- |
+| Protocol    | Host      | Port    | Notes                              |
+| ----------- | --------- | ------- | ---------------------------------- |
 | SOCKS5      | `0.0.0.0` | `18200` | UDP support enabled by default     |
 | HTTP        | `0.0.0.0` | `18201` | Disabled by default in config.toml |
 | Shadowsocks | `0.0.0.0` | `18202` | Disabled by default, aes-128-gcm   |

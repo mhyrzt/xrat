@@ -100,10 +100,10 @@ current task, proxy endpoint, available proxy engines (xray / sing-box), daemon
 status and rotation schedule, config counts, and failure message when present.
 The API subscription URL is shown only when the HTTP API is enabled; when the
 API binds to `0.0.0.0`/`::` the panel shows the host's LAN IP instead of the
-wildcard address. Runtime actions use the same runtime service as `xrat connect`,
-`xrat disconnect`, and `xrat status`. The same runtime prerequisites apply: the
-configured Xray/V2Ray binary must be available, runtime paths must be writable,
-and daemon/runtime configuration must be valid.
+wildcard address. Runtime actions use the same runtime service as
+`xrat connect`, `xrat disconnect`, and `xrat status`. The same runtime
+prerequisites apply: the configured Xray/V2Ray binary must be available, runtime
+paths must be writable, and daemon/runtime configuration must be valid.
 
 Focus a config on the Configs tab and press `Enter` to start or switch the
 runtime. Runtime operations run in the background and reload TUI data after
