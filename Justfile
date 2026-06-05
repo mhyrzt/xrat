@@ -49,6 +49,18 @@ install-manpages:
 test:
     cargo test -q --locked
 
+# Generate a terminal coverage summary
+coverage:
+    cargo llvm-cov --locked
+
+# Generate an HTML coverage report
+coverage-html:
+    cargo llvm-cov --locked --html --open
+
+# Generate lcov output for CI/services
+coverage-lcov:
+    cargo llvm-cov --locked --lcov --output-path lcov.info
+
 # Start the local PostgreSQL verification database
 postgres-up:
     docker compose up -d postgres

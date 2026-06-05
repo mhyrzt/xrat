@@ -44,13 +44,42 @@ pub fn resolve_chord(leader: char, code: KeyCode) -> TuiAction {
     }
 }
 
-/// Second-key hint shown in the key bar while a chord is armed.
-pub fn chord_hint(leader: char) -> &'static str {
+/// Human label for an armed chord leader, shown before its second-key hints.
+pub fn chord_title(leader: char) -> &'static str {
     match leader {
-        't' => "t:focused a:all v:filtered r:failed s:stale c:cancel",
-        'd' => "d:focused f:failed v:filtered x:disabled",
-        'D' => "D:focused f:failed v:filtered a:all-trash",
-        'r' => "r:focused v:filtered a:all-trash",
+        't' => "TEST",
+        'd' => "DELETE",
+        'D' => "PURGE",
+        'r' => "RESTORE",
         _ => "",
+    }
+}
+
+/// Second-key options for an armed chord: `(key, label)` pairs rendered in the
+/// key bar so each key can be styled independently from its description.
+pub fn chord_entries(leader: char) -> &'static [(&'static str, &'static str)] {
+    match leader {
+        't' => &[
+            ("t", "focused"),
+            ("a", "all"),
+            ("v", "filtered"),
+            ("r", "failed"),
+            ("s", "stale"),
+            ("c", "cancel"),
+        ],
+        'd' => &[
+            ("d", "focused"),
+            ("f", "failed"),
+            ("v", "filtered"),
+            ("x", "disabled"),
+        ],
+        'D' => &[
+            ("D", "focused"),
+            ("f", "failed"),
+            ("v", "filtered"),
+            ("a", "trash"),
+        ],
+        'r' => &[("r", "focused"), ("v", "filtered"), ("a", "trash")],
+        _ => &[],
     }
 }

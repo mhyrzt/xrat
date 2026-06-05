@@ -172,8 +172,8 @@ impl BulkOp {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfirmState {
     pub kind: ConfirmKind,
-    pub title: String,
-    pub message: String,
+    /// Short prompt rendered inline in the key bar (no modal).
+    pub prompt: String,
 }
 
 #[derive(Debug, Default)]

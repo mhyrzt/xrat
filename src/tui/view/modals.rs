@@ -231,31 +231,6 @@ fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
     ])
 }
 
-pub fn render_confirm(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    let Some(confirm) = &app.confirm else {
-        return;
-    };
-
-    frame.render_widget(Clear, area);
-    let text = vec![
-        Line::styled(&confirm.message, theme::chrome_style()),
-        Line::raw(""),
-        Line::styled("Enter/y confirm   Esc/n cancel", theme::muted_style()),
-    ];
-    frame.render_widget(
-        Paragraph::new(text)
-            .block(
-                Block::default()
-                    .title(confirm.title.as_str())
-                    .borders(Borders::ALL),
-            )
-            .alignment(Alignment::Left)
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: true }),
-        area,
-    );
-}
-
 pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let Some(modal) = &app.import_modal else {
         return;

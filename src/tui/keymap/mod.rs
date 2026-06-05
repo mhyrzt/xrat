@@ -1,5 +1,5 @@
 mod chord;
-pub use chord::chord_hint;
+pub use chord::{chord_entries, chord_title};
 mod confirm;
 mod search;
 #[cfg(test)]

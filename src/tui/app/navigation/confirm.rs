@@ -13,13 +13,9 @@ impl TuiApp {
         let name = source.display_name().to_string();
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::DeleteSource(id),
-            title: " Delete source ".to_string(),
-            message: format!(
-                "Delete source #{id} \"{name}\" and all its configs? Cannot be undone."
-            ),
+            prompt: format!("delete source #{id} \"{name}\" + its configs?"),
         });
         self.status_message = "confirm delete source".to_string();
-        self.needs_full_clear = true;
     }
 }
 
@@ -42,15 +38,9 @@ impl TuiApp {
 
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::SoftDeleteConfig(config.id),
-            title: " Soft delete config ".to_string(),
-            message: format!(
-                "Soft delete #{} {}? The row will be hidden unless deleted configs are shown.",
-                config.id,
-                config.display_name()
-            ),
+            prompt: format!("soft-delete #{} {}?", config.id, config.display_name()),
         });
         self.status_message = "confirm soft delete".to_string();
-        self.needs_full_clear = true;
     }
 
     pub(crate) fn request_purge_focused(&mut self) {
@@ -66,14 +56,12 @@ impl TuiApp {
         };
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::PurgeConfig(config.id),
-            title: " Purge config ".to_string(),
-            message: format!(
-                "Permanently delete #{} {}? This cannot be undone.",
+            prompt: format!(
+                "purge #{} {} (cannot undo)?",
                 config.id,
                 config.display_name()
             ),
         });
         self.status_message = "confirm purge".to_string();
-        self.needs_full_clear = true;
     }
 }

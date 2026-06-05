@@ -84,10 +84,10 @@ It supports focused actions, test batches, and managed runtime controls.
 
 On the Configs tab, `t`, `d`, `D`, and `r` are chord leaders: press the leader,
 then a second key to pick the scope. The key bar shows the available second keys
-while a chord is armed; `Esc` (or any unbound key) cancels it. Single-row chords
-(`d d`, `D D`, `r r`) reuse the existing confirmation modal. Multi-config chords
-(everything else) ask for an inline `y/n` confirmation in the key bar and run as
-a single bulk database operation.
+while a chord is armed; `Esc` (or any unbound key) cancels it. Every destructive
+action — single-row (`d d`, `D D`, `r r`) and multi-config alike — asks for an
+inline `y/n` confirmation in the key bar; there are no confirmation modals.
+Multi-config chords run as a single bulk database operation.
 
 | Chord | Action                                              |
 | ----- | --------------------------------------------------- |

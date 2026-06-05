@@ -1,6 +1,5 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 
@@ -23,8 +22,8 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     let actions = [Span::styled("[?]Help", theme::chrome_style())];
 
-    let (center_text, center_style) = center_segment(app);
-    let center_width = center_text.chars().count();
+    let center = center_spans(app);
+    let center_width: usize = center.iter().map(Span::width).sum();
 
     let total = area.width as usize;
     let brand_width: usize = brand.iter().map(Span::width).sum();
@@ -37,30 +36,67 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     let mut spans = brand;
     spans.push(Span::raw(" ".repeat(left_gap)));
-    if center_width > 0 {
-        spans.push(Span::styled(center_text, center_style));
-    }
+    spans.extend(center);
     spans.push(Span::raw(" ".repeat(right_gap)));
     spans.extend(actions);
 
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
-/// Center segment of the key bar: an inline bulk confirm prompt takes priority,
-/// then an armed chord hint, otherwise the latest status message.
-fn center_segment(app: &TuiApp) -> (String, Style) {
+/// Center segment of the key bar. Priority: an inline destructive confirm
+/// (single-row or bulk — there are no confirm modals), then an armed chord
+/// hint, otherwise the latest status message.
+fn center_spans(app: &TuiApp) -> Vec<Span<'static>> {
+    if let Some(confirm) = &app.confirm {
+        return confirm_prompt(confirm.prompt.clone());
+    }
     if let Some(op) = app.pending_bulk {
         let count = app.bulk_config_ids(op).len();
-        return (
-            format!("{} {count} {} configs? y/n", op.verb(), op.target()),
-            theme::failure_style().bold(),
-        );
+        return confirm_prompt(format!("{} {count} {} configs?", op.verb(), op.target()));
     }
     if let Some(leader) = app.pending_chord {
-        return (
-            format!("[{leader}-] {}", keymap::chord_hint(leader)),
-            theme::accent_style(),
-        );
+        return chord_hint(leader);
     }
-    (String::new(), theme::muted_style())
+    if app.status_message.is_empty() {
+        Vec::new()
+    } else {
+        vec![Span::styled(
+            app.status_message.clone(),
+            theme::muted_style(),
+        )]
+    }
+}
+
+/// `<prompt>  y / n` with the prompt in danger red and the keys colour-coded.
+fn confirm_prompt(text: String) -> Vec<Span<'static>> {
+    vec![
+        Span::styled(text, theme::failure_style().bold()),
+        Span::raw("  "),
+        Span::styled("y", theme::success_style().bold()),
+        Span::styled(" / ", theme::muted_style()),
+        Span::styled("n", theme::failure_style().bold()),
+    ]
+}
+
+/// `LEADER  key label · key label · …  esc cancel`, keys highlighted.
+fn chord_hint(leader: char) -> Vec<Span<'static>> {
+    let mut spans = vec![
+        Span::styled(
+            keymap::chord_title(leader).to_string(),
+            theme::accent_style().bold(),
+        ),
+        Span::raw("  "),
+    ];
+    for (index, (key, label)) in keymap::chord_entries(leader).iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::styled(" · ", theme::muted_style()));
+        }
+        spans.push(Span::styled(
+            (*key).to_string(),
+            theme::accent_style().bold(),
+        ));
+        spans.push(Span::styled(format!(" {label}"), theme::chrome_style()));
+    }
+    spans.push(Span::styled("   esc cancel", theme::muted_style()));
+    spans
 }
