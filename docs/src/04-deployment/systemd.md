@@ -1,7 +1,8 @@
 # systemd Services
 
 Run xrat as a systemd user service for persistent operation and automatic
-startup on login.
+startup on login. To start at boot before login, enable systemd user lingering
+as shown below.
 
 systemd user services run under your user account (not root) and are managed
 with `systemctl --user`.
@@ -81,11 +82,18 @@ journalctl --user -u xrat-daemon -n 100
 
 ## Lingering
 
-By default, user services stop when you log out. To keep the daemon running
-without an active login session (useful on servers):
+By default, user services start with your login session and stop when you log
+out. To let the user service manager start at boot before login, and to keep the
+daemon running without an active login session:
 
 ```bash
 loginctl enable-linger $USER
+```
+
+To undo this:
+
+```bash
+loginctl disable-linger $USER
 ```
 
 ## Environment Variables

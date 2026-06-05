@@ -12,6 +12,18 @@ All `proxy` actions require a running daemon:
 xrat daemon start
 ```
 
+For startup on login, install the systemd user service:
+
+```bash
+xrat daemon install --start
+```
+
+For startup at boot before login, also enable user lingering:
+
+```bash
+loginctl enable-linger $USER
+```
+
 ## Actions
 
 | Action   | Description                                         |
@@ -145,7 +157,8 @@ xrat proxy rotate --config-id 99
 2. Otherwise, selects the best candidate from enabled configs:
    - Tests candidates using `test_stages` from config.toml
    - Picks the config with the lowest real-delay latency
-3. Atomically disconnects the old session and connects the new one
+3. Stops the old session and starts the replacement on the same configured local
+   inbound ports
 4. Respects cooldown period (rotation is delayed if cooldown is active)
 
 ### Candidate Selection

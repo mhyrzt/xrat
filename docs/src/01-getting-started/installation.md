@@ -53,7 +53,8 @@ The installer will:
 4. Verify the archive against `SHASUMS256.txt`.
 5. Install `xrat` to `~/.local/bin/xrat`.
 6. Offer to run `xrat init`.
-7. Offer to install and start the systemd user daemon.
+7. Offer to install and start the systemd user daemon by default.
+8. Offer to enable systemd user lingering for boot startup before login.
 
 To install to a different directory:
 

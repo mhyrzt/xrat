@@ -30,10 +30,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
-                    return Err(crate::app::AppError::InvalidArgument(format!(
-                        "daemon is not running. Start it with `xrat daemon start` (socket: {})",
-                        socket_path.display()
-                    )));
+                    return Err(crate::app::AppError::InvalidArgument(
+                        daemon_unreachable_message(&socket_path),
+                    ));
                 }
                 Err(err) => return Err(err),
             }
@@ -117,10 +116,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     }
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
-                    return Err(crate::app::AppError::InvalidArgument(format!(
-                        "daemon is not running. Start it with `xrat daemon start` (socket: {})",
-                        socket_path.display()
-                    )));
+                    return Err(crate::app::AppError::InvalidArgument(
+                        daemon_unreachable_message(&socket_path),
+                    ));
                 }
                 Err(err) => return Err(err),
             }
@@ -135,7 +133,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             match response {
                 Ok(response) => {
                     if !response.ok {
-                        return Err(crate::app::AppError::InvalidArgument(response.message));
+                        return Err(crate::app::AppError::InvalidArgument(rotate_error_message(
+                            response.message,
+                        )));
                     }
                     let payload = response.payload.ok_or_else(|| {
                         crate::app::AppError::InvalidArgument(
@@ -162,10 +162,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
-                    return Err(crate::app::AppError::InvalidArgument(format!(
-                        "daemon is not running. Start it with `xrat daemon start` (socket: {})",
-                        socket_path.display()
-                    )));
+                    return Err(crate::app::AppError::InvalidArgument(
+                        daemon_unreachable_message(&socket_path),
+                    ));
                 }
                 Err(err) => return Err(err),
             }
@@ -193,10 +192,9 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                     );
                 }
                 Err(err) if ipc::daemon_unreachable(&err) => {
-                    return Err(crate::app::AppError::InvalidArgument(format!(
-                        "daemon is not running. Start it with `xrat daemon start` (socket: {})",
-                        socket_path.display()
-                    )));
+                    return Err(crate::app::AppError::InvalidArgument(
+                        daemon_unreachable_message(&socket_path),
+                    ));
                 }
                 Err(err) => return Err(err),
             }
@@ -204,4 +202,37 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
     }
 
     Ok(())
+}
+
+fn daemon_unreachable_message(socket_path: &std::path::Path) -> String {
+    format!(
+        "daemon is not running. Start it now with `xrat daemon start`, or install it for login startup with `xrat daemon install --start` (socket: {})",
+        socket_path.display()
+    )
+}
+
+fn rotate_error_message(message: String) -> String {
+    if message.contains("no running runtime session to replace") {
+        return format!("{message}. Start a runtime first with `xrat connect <id>`");
+    }
+    message
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn daemon_unreachable_message_mentions_persistent_install() {
+        let message = daemon_unreachable_message(std::path::Path::new("/tmp/xrat.sock"));
+        assert!(message.contains("xrat daemon start"));
+        assert!(message.contains("xrat daemon install --start"));
+        assert!(message.contains("/tmp/xrat.sock"));
+    }
+
+    #[test]
+    fn rotate_error_message_mentions_connect_when_no_runtime_is_running() {
+        let message = rotate_error_message("no running runtime session to replace".to_string());
+        assert!(message.contains("xrat connect <id>"));
+    }
 }

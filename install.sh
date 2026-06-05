@@ -192,6 +192,24 @@ run_daemon_install() {
     info "Daemon installed and started."
 }
 
+run_linger_enable() {
+    local user_name="${USER:-$(id -un)}"
+    if ! check_cmd loginctl; then
+        warn "loginctl not found; cannot enable boot startup before login automatically."
+        echo
+        echo "  The daemon will still auto-start when your user session starts."
+        echo
+        return 0
+    fi
+
+    step "Enabling systemd user lingering for ${user_name}..."
+    loginctl enable-linger "$user_name"
+    info "User lingering enabled. xrat-daemon can start at boot before login."
+    echo
+    echo "  To disable later:"
+    echo -e "  ${DIM}loginctl disable-linger \"${user_name}\"${NC}"
+}
+
 show_guide() {
     echo
     echo -e "${GRN}Quick start:${NC}"
@@ -207,6 +225,10 @@ show_guide() {
     echo
     echo "  Connect:"
     echo -e "    ${DIM}xrat connect <id>${NC}"
+    echo
+    echo "  Rotate proxy:"
+    echo -e "    ${DIM}xrat proxy rotate${NC}"
+    echo -e "    ${DIM}# requires xrat-daemon; install.sh can install it as a systemd user service${NC}"
     echo
     echo "  Launch TUI:"
     echo -e "    ${DIM}xrat tui${NC}"
@@ -263,10 +285,22 @@ main() {
         echo
         run_init
         echo
-        ask "Install xrat-daemon as a systemd user service? [y/N]"
+        ask "Install and start xrat-daemon as a systemd user service? [Y/n]"
         read -r do_daemon </dev/tty || do_daemon=""
-        if [[ "${do_daemon,,}" == "y" ]]; then
+        if [[ "${do_daemon,,}" != "n" ]]; then
             run_daemon_install
+            echo
+            ask "Start xrat-daemon at boot before login / keep it after logout? [y/N]"
+            read -r do_linger </dev/tty || do_linger=""
+            if [[ "${do_linger,,}" == "y" ]]; then
+                run_linger_enable
+            else
+                user_name="${USER:-$(id -un)}"
+                echo
+                echo "  The daemon will auto-start when your user session starts."
+                echo "  For boot startup before login, run:"
+                echo -e "  ${DIM}loginctl enable-linger \"${user_name}\"${NC}"
+            fi
         fi
     fi
 
