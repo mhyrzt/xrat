@@ -1,5 +1,5 @@
 use super::helpers::{row, source};
-use crate::tui::app::{TuiAction, TuiApp, TuiConfigCommand, TuiView};
+use crate::tui::app::{TuiAction, TuiApp, TuiConfigCommand};
 use crate::tui::data::TuiData;
 
 #[test]
@@ -103,7 +103,7 @@ fn test_scope_shortcuts_update_scope() {
 fn refresh_focused_source_action_targets_correct_source() {
     let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
     let mut app = TuiApp::with_data(data);
-    app.apply(TuiAction::SwitchView(TuiView::Sources));
+    app.apply(TuiAction::NextTab);
 
     // indices 0 and 1 are "All" and "Orphans"; move twice to the first source.
     app.apply(TuiAction::MoveDown);
@@ -128,7 +128,7 @@ fn refresh_focused_source_action_targets_correct_source() {
 fn focused_source_returns_current_source() {
     let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
     let mut app = TuiApp::with_data(data);
-    app.apply(TuiAction::SwitchView(TuiView::Sources));
+    app.apply(TuiAction::NextTab);
 
     // indices 0 and 1 are the synthetic "All" and "Orphans" rows.
     assert_eq!(app.focused_source().map(|s| s.id), None);

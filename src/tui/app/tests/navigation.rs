@@ -1,5 +1,5 @@
 use super::helpers::{row, source};
-use crate::tui::app::{TuiAction, TuiApp, TuiView};
+use crate::tui::app::{TuiAction, TuiApp};
 use crate::tui::data::TuiData;
 
 #[test]
@@ -20,7 +20,7 @@ fn moves_config_focus_within_bounds() {
 fn moves_source_focus_within_bounds() {
     let data = TuiData::from_configs_and_sources(vec![], vec![source(1), source(2)]);
     let mut app = TuiApp::with_data(data);
-    app.apply(TuiAction::SwitchView(TuiView::Sources));
+    app.apply(TuiAction::NextTab);
 
     // indices 0 and 1 are the "All" and "Orphans" rows; sources start at 2.
     app.apply(TuiAction::MoveDown);

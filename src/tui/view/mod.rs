@@ -16,7 +16,7 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
         .split(area);
 
     render_body(frame, shell[0], app);
-    chrome::render_key_bar(frame, shell[1]);
+    chrome::render_key_bar(frame, shell[1], app);
 
     if app.show_help {
         modals::render_help(frame, area);

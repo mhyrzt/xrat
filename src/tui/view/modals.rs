@@ -9,8 +9,8 @@ use crate::tui::theme;
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
     let column_one = vec![
         Line::styled("Navigation", theme::muted_style()),
-        help_line("1", "Configs tab"),
-        help_line("2", "Sources tab"),
+        help_line("[", "Previous tab"),
+        help_line("]", "Next tab"),
         help_line("Tab", "Focus next card"),
         help_line("S-Tab", "Focus prev card"),
         help_line("j, ↓", "Move row / scroll down"),

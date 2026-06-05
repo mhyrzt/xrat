@@ -6,6 +6,25 @@ pub enum TuiView {
     Sources,
 }
 
+impl TuiView {
+    /// Cycle to the next tab. New tabs added here automatically join the
+    /// `[`/`]` rotation.
+    pub fn next(self) -> Self {
+        match self {
+            TuiView::Configs => TuiView::Sources,
+            TuiView::Sources => TuiView::Configs,
+        }
+    }
+
+    /// Cycle to the previous tab.
+    pub fn prev(self) -> Self {
+        match self {
+            TuiView::Configs => TuiView::Sources,
+            TuiView::Sources => TuiView::Configs,
+        }
+    }
+}
+
 /// The four dashboard cards. `Tab`/`Shift+Tab` cycle focus between them; the
 /// focused card scrolls (or, for `Table`, moves the row selection).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -73,7 +92,8 @@ pub enum TuiAction {
     RenameSubmit,
     Confirm,
     Cancel,
-    SwitchView(TuiView),
+    NextTab,
+    PrevTab,
     None,
 }
 
@@ -149,6 +169,10 @@ pub struct TuiApp {
     pub needs_full_clear: bool,
     pub testing_config_ids: Vec<i64>,
     pub spinner_tick: usize,
+    /// Newer release tag discovered by the startup version check, if any.
+    pub latest_version: Option<String>,
+    /// Proxy engines probed once at startup (availability + version).
+    pub engines: Vec<crate::tui::data::EngineInfo>,
 }
 
 #[derive(Debug, Default)]

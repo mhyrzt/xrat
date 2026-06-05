@@ -17,10 +17,16 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let mut terminal = TerminalSession::enter()?;
     let data = TuiData::load(context, false).await?;
     let mut app = TuiApp::with_data(data);
+    app.engines = crate::tui::data::probe_engines(context).await;
     let (task_tx, mut task_rx) = mpsc::unbounded_channel();
+    let (version_tx, mut version_rx) = mpsc::unbounded_channel();
+    tasks::spawn_version_check(version_tx);
 
     loop {
         drain_task_events(&mut app, &mut task_rx);
+        while let Ok(tag) = version_rx.try_recv() {
+            app.latest_version = Some(tag);
+        }
         app.tick();
         if app.take_needs_full_clear() {
             terminal.clear()?;

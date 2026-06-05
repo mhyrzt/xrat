@@ -4,6 +4,7 @@ mod runtime;
 mod share;
 mod source;
 mod test_batch;
+mod version_check;
 
 pub use commands::run_config_command;
 pub use data::spawn_reload_data;
@@ -17,3 +18,4 @@ pub use source::{
     spawn_source_refresh_all,
 };
 pub use test_batch::spawn_test_batch;
+pub use version_check::spawn_version_check;

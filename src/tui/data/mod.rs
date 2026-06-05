@@ -11,6 +11,22 @@ pub use tests_view::TuiTestStatus;
 use crate::app::runtime_service::RuntimeService;
 use crate::db::ConfigListFilter;
 
+#[derive(Debug, Clone)]
+pub struct EngineInfo {
+    pub name: &'static str,
+    pub available: bool,
+    pub version: Option<String>,
+}
+
+/// Minimal daemon view for the runtime card. Only carries facts not already
+/// shown elsewhere (process liveness and rotation scheduling).
+#[derive(Debug, Clone, Default)]
+pub struct TuiDaemonInfo {
+    pub running: bool,
+    pub rotation_enabled: bool,
+    pub interval_secs: u64,
+}
+
 #[derive(Debug, Default)]
 pub struct TuiData {
     pub configs: Vec<TuiConfigRow>,
@@ -25,6 +41,7 @@ pub struct TuiData {
     pub config_path: String,
     pub api_b64_url: String,
     pub server_enabled: bool,
+    pub daemon: TuiDaemonInfo,
 }
 
 impl TuiData {
@@ -59,8 +76,14 @@ impl TuiData {
         data.db_label = context.runtime_paths.database_label.clone();
         data.config_path = context.runtime_paths.config_path.display().to_string();
         let server = &context.app_config.server;
-        data.api_b64_url = format!("http://{}:{}/b64", server.host, server.port);
+        let api_host = match server.host.as_str() {
+            "0.0.0.0" | "::" => crate::support::net::primary_local_ip()
+                .unwrap_or_else(|| crate::support::net::connect_host_for_bind_host(&server.host)),
+            _ => server.host.clone(),
+        };
+        data.api_b64_url = format!("http://{}:{}/b64", api_host, server.port);
         data.server_enabled = server.enabled;
+        data.daemon = load_daemon_info(context).await;
         Ok(data)
     }
 
@@ -109,7 +132,67 @@ impl TuiData {
             config_path: String::new(),
             api_b64_url: String::new(),
             server_enabled: false,
+            daemon: TuiDaemonInfo::default(),
         }
+    }
+}
+
+/// Probe the proxy engines once (engines don't change during a session). Runs
+/// `<bin> version` for each and records availability plus parsed version.
+pub async fn probe_engines(context: &crate::app::context::AppContext) -> Vec<EngineInfo> {
+    vec![
+        probe_engine("xray", &context.runtime_paths.xray_path).await,
+        probe_engine("sing-box", &context.runtime_paths.sing_box_path).await,
+    ]
+}
+
+async fn probe_engine(name: &'static str, path: &std::path::Path) -> EngineInfo {
+    match tokio::process::Command::new(path)
+        .arg("version")
+        .output()
+        .await
+    {
+        Ok(output) if output.status.success() => {
+            let text = String::from_utf8_lossy(&output.stdout);
+            EngineInfo {
+                name,
+                available: true,
+                version: parse_engine_version(&text),
+            }
+        }
+        _ => EngineInfo {
+            name,
+            available: false,
+            version: None,
+        },
+    }
+}
+
+/// Pull the first `MAJOR.MINOR...` token out of an engine's version banner.
+fn parse_engine_version(text: &str) -> Option<String> {
+    text.split_whitespace()
+        .map(|token| token.trim_start_matches('v'))
+        .find(|token| {
+            token.contains('.') && token.chars().next().is_some_and(|c| c.is_ascii_digit())
+        })
+        .map(str::to_string)
+}
+
+async fn load_daemon_info(context: &crate::app::context::AppContext) -> TuiDaemonInfo {
+    let socket = crate::app::daemon::ipc::default_socket_path(&context.runtime_paths.runtime_dir);
+    match crate::app::daemon::ipc::proxy_status_daemon(&socket).await {
+        Ok(response) => {
+            let payload = response.payload;
+            TuiDaemonInfo {
+                running: payload.as_ref().map(|p| p.daemon_ready).unwrap_or(false),
+                rotation_enabled: payload
+                    .as_ref()
+                    .map(|p| p.rotation_enabled)
+                    .unwrap_or(false),
+                interval_secs: payload.as_ref().map(|p| p.interval_secs).unwrap_or(0),
+            }
+        }
+        Err(_) => TuiDaemonInfo::default(),
     }
 }
 

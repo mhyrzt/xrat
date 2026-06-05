@@ -27,6 +27,8 @@ impl Default for TuiApp {
             needs_full_clear: true,
             testing_config_ids: Vec::new(),
             spinner_tick: 0,
+            latest_version: None,
+            engines: Vec::new(),
         }
     }
 }

@@ -34,6 +34,48 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     push_detail(&mut lines, "Active", active, LABEL_WIDTH, content_width);
     push_detail(&mut lines, "Task", &task, LABEL_WIDTH, content_width);
     push_detail(&mut lines, "Proxy", &proxy, LABEL_WIDTH, content_width);
+
+    let engines = if app.engines.is_empty() {
+        "-".to_string()
+    } else {
+        app.engines
+            .iter()
+            .map(|engine| match (engine.available, &engine.version) {
+                (true, Some(version)) => format!("{} {} ✓", engine.name, version),
+                (true, None) => format!("{} ✓", engine.name),
+                (false, _) => format!("{} ✗", engine.name),
+            })
+            .collect::<Vec<_>>()
+            .join(" · ")
+    };
+    push_detail(&mut lines, "Engines", &engines, LABEL_WIDTH, content_width);
+
+    push_detail(
+        &mut lines,
+        "Daemon",
+        if data.daemon.running {
+            "running"
+        } else {
+            "stopped"
+        },
+        LABEL_WIDTH,
+        content_width,
+    );
+    if data.daemon.running {
+        let rotation = if data.daemon.rotation_enabled {
+            format!("on · every {}s", data.daemon.interval_secs)
+        } else {
+            "off".to_string()
+        };
+        push_detail(
+            &mut lines,
+            "Rotation",
+            &rotation,
+            LABEL_WIDTH,
+            content_width,
+        );
+    }
+
     push_detail(
         &mut lines,
         "Configs",
@@ -65,20 +107,15 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         LABEL_WIDTH,
         content_width,
     );
-    push_detail(
-        &mut lines,
-        "API sub URL",
-        data.api_b64_url.as_str(),
-        LABEL_WIDTH,
-        content_width,
-    );
-    push_detail(
-        &mut lines,
-        "Log entries",
-        app.event_log.len().to_string(),
-        LABEL_WIDTH,
-        content_width,
-    );
+    if data.server_enabled {
+        push_detail(
+            &mut lines,
+            "API sub URL",
+            data.api_b64_url.as_str(),
+            LABEL_WIDTH,
+            content_width,
+        );
+    }
 
     if let Some(reason) = rt.failure_reason.as_deref() {
         push_detail(&mut lines, "Failure", reason, LABEL_WIDTH, content_width);

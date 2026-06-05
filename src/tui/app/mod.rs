@@ -104,7 +104,8 @@ impl TuiApp {
             | TuiAction::EnableFocused
             | TuiAction::DisableFocused
             | TuiAction::RestoreFocused => {}
-            TuiAction::SwitchView(view) => self.switch_view(view),
+            TuiAction::NextTab => self.switch_view(self.active_view.next()),
+            TuiAction::PrevTab => self.switch_view(self.active_view.prev()),
             TuiAction::None => {}
         }
     }

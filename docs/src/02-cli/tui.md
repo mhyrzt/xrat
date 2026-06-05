@@ -21,13 +21,15 @@ The TUI is a single dashboard. The top-left table has two tabs; switching the
 tab also swaps the detail panel on the right. The Testing strip, the Logs panel,
 and the Runtime panel stay visible under both tabs.
 
-| Key | Tab     | Purpose                                                                         |
-| --- | ------- | ------------------------------------------------------------------------------- |
-| `1` | Configs | Browse, filter, start, test, enable, disable, delete, and share configs         |
-| `2` | Sources | Inspect subscription sources, refresh/import sources, and share source/API URLs |
+| Tab     | Purpose                                                                         |
+| ------- | ------------------------------------------------------------------------------- |
+| Configs | Browse, filter, start, test, enable, disable, delete, and share configs         |
+| Sources | Inspect subscription sources, refresh/import sources, and share source/API URLs |
 
-The TUI opens on the Configs tab. The bottom bar shows tab shortcuts, help and
-quit actions, active filters, task state, and the latest status message. Test
+Use `[` and `]` to move to the previous / next tab.
+
+The TUI opens on the Configs tab. The bottom bar shows the version (with an
+upgrade hint when a newer release is available) and a help shortcut. Test
 batches are started and monitored from the Configs tab itself; there is no
 separate Tests view.
 
@@ -35,7 +37,7 @@ separate Tests view.
 
 | Key           | Action                                            |
 | ------------- | ------------------------------------------------- |
-| `1`-`2`       | Switch table tab                                  |
+| `[`, `]`      | Switch to previous / next table tab               |
 | `Tab`         | Cycle card focus (Table → Detail → Log → Runtime) |
 | `Shift+Tab`   | Cycle card focus in reverse                       |
 | `j`, `k`      | Move row / scroll the focused card down/up        |
@@ -94,8 +96,11 @@ Soft delete hides a config from normal views and workflows. Purge permanently
 deletes it. Both destructive actions require confirmation.
 
 The Runtime panel shows the current managed runtime state, active config,
-current task, proxy endpoint, config counts, and failure message when present.
-Runtime actions use the same runtime service as `xrat connect`,
+current task, proxy endpoint, available proxy engines (xray / sing-box), daemon
+status and rotation schedule, config counts, and failure message when present.
+The API subscription URL is shown only when the HTTP API is enabled; when the
+API binds to `0.0.0.0`/`::` the panel shows the host's LAN IP instead of the
+wildcard address. Runtime actions use the same runtime service as `xrat connect`,
 `xrat disconnect`, and `xrat status`. The same runtime prerequisites apply: the
 configured Xray/V2Ray binary must be available, runtime paths must be writable,
 and daemon/runtime configuration must be valid.

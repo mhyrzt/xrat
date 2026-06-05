@@ -39,7 +39,7 @@ fn maps_global_quit_keys() {
 fn maps_view_switching_keys() {
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('1')),
+            key(KeyCode::Char('[')),
             TuiView::Configs,
             false,
             false,
@@ -47,11 +47,11 @@ fn maps_view_switching_keys() {
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Configs)
+        TuiAction::PrevTab
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('2')),
+            key(KeyCode::Char(']')),
             TuiView::Configs,
             false,
             false,
@@ -59,7 +59,7 @@ fn maps_view_switching_keys() {
             false,
             false
         ),
-        TuiAction::SwitchView(TuiView::Sources)
+        TuiAction::NextTab
     );
 }
 

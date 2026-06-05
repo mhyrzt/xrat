@@ -4,7 +4,7 @@ use crate::tui::app::{TuiAction, TuiApp, TuiView};
 fn switches_active_view() {
     let mut app = TuiApp::default();
 
-    app.apply(TuiAction::SwitchView(TuiView::Sources));
+    app.apply(TuiAction::NextTab);
 
     assert_eq!(app.active_view, TuiView::Sources);
     assert_eq!(app.status_message, "");
