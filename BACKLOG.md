@@ -139,7 +139,11 @@ not look centered/aligned in the viewport.
 
 ### Status
 
-Planned
+Done. `xrat daemon restart` reuses `ipc::daemon_shutdown_daemon` and the
+existing detached-start flow: it stops a running daemon (waiting for the socket
+to close), then spawns a fresh process that re-reads `config.toml` and
+reattaches the runtime session. If no daemon is running it starts fresh. Parse
+coverage added; docs updated.
 
 ### Goal
 

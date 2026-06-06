@@ -13,6 +13,7 @@ xrat daemon <action>
 | `start`     | Start the long-lived daemon process                   |
 | `status`    | Show daemon IPC reachability and protocol information |
 | `stop`      | Request daemon shutdown via local IPC                 |
+| `restart`   | Restart the daemon, reloading config and runtime      |
 | `install`   | Install xrat-daemon.service as a systemd user service |
 | `uninstall` | Remove the installed systemd user service             |
 
@@ -102,6 +103,32 @@ No command-specific flags.
    - Stops the active proxy session (if running)
    - Closes the IPC socket
    - Exits cleanly
+
+---
+
+## daemon restart
+
+Restart the daemon after editing `config.toml`.
+
+```bash
+xrat daemon restart
+```
+
+### Flags
+
+No command-specific flags.
+
+### Behavior
+
+1. If the daemon is running, requests shutdown via IPC and waits for the socket
+   to close
+2. Spawns a fresh daemon process, which re-reads `config.toml` and reattaches
+   the persisted runtime session
+3. If the daemon was not running, simply starts it
+
+Restart always uses the app IPC/start flow, even when a systemd user service is
+installed, so behavior stays consistent across manual and service-managed
+daemons.
 
 ---
 

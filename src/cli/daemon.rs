@@ -17,6 +17,8 @@ pub enum DaemonAction {
     Status(DaemonStatusArgs),
     #[command(about = "Request daemon shutdown via local IPC.")]
     Stop(DaemonStopArgs),
+    #[command(about = "Restart the daemon, reloading config.toml and the runtime session.")]
+    Restart(DaemonRestartArgs),
     #[command(about = "Install xrat-daemon.service as a systemd user service.")]
     Install(DaemonInstallArgs),
     #[command(about = "Remove the installed xrat-daemon.service systemd user service.")]
@@ -34,6 +36,9 @@ pub struct DaemonStatusArgs {}
 
 #[derive(Debug, Args, Default)]
 pub struct DaemonStopArgs {}
+
+#[derive(Debug, Args, Default)]
+pub struct DaemonRestartArgs {}
 
 #[derive(Debug, Args)]
 pub struct DaemonInstallArgs {

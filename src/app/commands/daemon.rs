@@ -41,6 +41,33 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
                 )
             );
         }
+        DaemonAction::Restart(_) => {
+            let was_running = ipc::ping_daemon(&socket_path).await.is_ok();
+            if was_running {
+                match ipc::daemon_shutdown_daemon(&socket_path).await {
+                    Ok(_) => {}
+                    Err(err) if ipc::daemon_unreachable(&err) => {}
+                    Err(err) => return Err(err),
+                }
+                wait_until_daemon_stopped(&socket_path).await?;
+            }
+            spawn_detached_daemon(context)?;
+            wait_until_daemon_ready(&socket_path).await?;
+            let message = if was_running {
+                "Daemon restarted."
+            } else {
+                "Daemon was not running; started fresh."
+            };
+            println!("{}", output::success(message, output::color_enabled()));
+            println!(
+                "{}",
+                output::format_kv(
+                    None,
+                    &[("socket", socket_path.display().to_string())],
+                    output::color_enabled()
+                )
+            );
+        }
         DaemonAction::RunServer(_) => {
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
@@ -247,5 +274,17 @@ async fn wait_until_daemon_ready(socket_path: &std::path::Path) -> crate::app::R
     }
     Err(crate::app::AppError::InvalidArgument(
         "daemon start failed: socket did not become reachable".to_string(),
+    ))
+}
+
+async fn wait_until_daemon_stopped(socket_path: &std::path::Path) -> crate::app::Result<()> {
+    for _ in 0..50 {
+        if ipc::ping_daemon(socket_path).await.is_err() {
+            return Ok(());
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+    Err(crate::app::AppError::InvalidArgument(
+        "daemon restart failed: previous daemon did not stop in time".to_string(),
     ))
 }

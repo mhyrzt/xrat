@@ -30,8 +30,8 @@ pub use command::Command;
 pub use completions::CompletionsArgs;
 pub use connect::ConnectArgs;
 pub use daemon::{
-    DaemonAction, DaemonArgs, DaemonInstallArgs, DaemonServeArgs, DaemonStartArgs,
-    DaemonStatusArgs, DaemonStopArgs, DaemonUninstallArgs,
+    DaemonAction, DaemonArgs, DaemonInstallArgs, DaemonRestartArgs, DaemonServeArgs,
+    DaemonStartArgs, DaemonStatusArgs, DaemonStopArgs, DaemonUninstallArgs,
 };
 pub use disconnect::DisconnectArgs;
 pub use geoip::{

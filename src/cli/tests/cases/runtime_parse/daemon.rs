@@ -21,6 +21,12 @@ fn parses_daemon_subcommands() {
         Command::Daemon(args) => assert!(matches!(args.action, DaemonAction::Stop(_))),
         _ => panic!("expected daemon command"),
     }
+
+    let restart = Cli::parse_from(["xrat", "daemon", "restart"]);
+    match restart.command {
+        Command::Daemon(args) => assert!(matches!(args.action, DaemonAction::Restart(_))),
+        _ => panic!("expected daemon command"),
+    }
 }
 
 #[test]
