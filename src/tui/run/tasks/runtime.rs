@@ -11,7 +11,6 @@ fn begin_runtime_op(
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
 ) -> Option<(TuiTaskKind, bool, mpsc::UnboundedSender<TuiTaskEvent>)> {
     if app.task_state.running.is_some() {
-        app.set_status("another operation is already running");
         return None;
     }
     let kind = TuiTaskKind::RuntimeOp;
@@ -121,10 +120,7 @@ pub fn spawn_runtime_restart(
 ) {
     let config_id = match app.data.runtime.active_config_id {
         Some(id) => id,
-        None => {
-            app.set_status("no active config to restart with");
-            return;
-        }
+        None => return,
     };
     let Some((kind, include_deleted, task_tx)) = begin_runtime_op(app, task_tx) else {
         return;

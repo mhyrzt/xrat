@@ -52,12 +52,10 @@ impl TuiApp {
             TuiAction::NextLogTab => {
                 self.active_log_tab = self.active_log_tab.next();
                 self.panel_scroll.log.set(0);
-                self.status_message = self.active_log_tab.title().to_string();
             }
             TuiAction::PrevLogTab => {
                 self.active_log_tab = self.active_log_tab.prev();
                 self.panel_scroll.log.set(0);
-                self.status_message = self.active_log_tab.title().to_string();
             }
             TuiAction::StartTest(scope) => {
                 self.test_state.scope = scope;
@@ -66,7 +64,6 @@ impl TuiApp {
             TuiAction::ConfirmBulk => self.pending_bulk = None,
             TuiAction::CancelBulk => {
                 self.pending_bulk = None;
-                self.status_message = "cancelled".to_string();
             }
             TuiAction::RenameInput(ch) => {
                 if let Some(modal) = &mut self.rename_modal {
@@ -81,19 +78,12 @@ impl TuiApp {
             }
             TuiAction::CancelTestBatch => {
                 if self.task_state.running.is_some() {
-                    if self.task_state.cancel() {
-                        self.status_message = "cancelling test batch".to_string();
-                    } else {
-                        self.status_message = "no cancellable task is running".to_string();
-                    }
-                } else {
-                    self.status_message = "no test batch is running".to_string();
+                    self.task_state.cancel();
                 }
             }
             TuiAction::Confirm => self.confirm = None,
             TuiAction::Cancel => {
                 self.confirm = None;
-                self.status_message = "cancelled".to_string();
                 self.needs_full_clear = true;
             }
             TuiAction::StartFocused
@@ -104,10 +94,6 @@ impl TuiApp {
             TuiAction::PrevTab => self.switch_view(self.active_view.prev()),
             TuiAction::None => {}
         }
-    }
-
-    pub fn set_status(&mut self, message: impl Into<String>) {
-        self.status_message = message.into();
     }
 
     pub fn reload_logs(&mut self, logs: crate::tui::data::TuiLogs) {

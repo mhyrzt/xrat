@@ -16,7 +16,10 @@ fn completed_event_clears_cancellation_token() {
 
     assert!(app.task_state.cancellation.is_none());
     assert_eq!(app.task_state.running, None);
-    assert_eq!(app.status_message, "tested 3 configs");
+    assert_eq!(
+        app.event_log.last().map(String::as_str),
+        Some("OK  tested 3 configs")
+    );
 }
 
 #[test]
@@ -30,7 +33,10 @@ fn cancelled_event_clears_cancellation_token() {
 
     assert!(app.task_state.cancellation.is_none());
     assert_eq!(app.task_state.running, None);
-    assert_eq!(app.status_message, "TestBatch cancelled");
+    assert_eq!(
+        app.event_log.last().map(String::as_str),
+        Some("OK  TestBatch cancelled")
+    );
 }
 
 #[test]
@@ -93,6 +99,9 @@ fn applies_task_completion_and_reloads_data() {
     });
 
     assert_eq!(app.task_state.running, None);
-    assert_eq!(app.status_message, "reloaded");
+    assert_eq!(
+        app.event_log.last().map(String::as_str),
+        Some("OK  reloaded")
+    );
     assert_eq!(app.data.total_configs, 2);
 }

@@ -124,7 +124,6 @@ impl TuiApp {
         let count = self.bulk_config_ids(op).len();
         if count == 0 {
             self.pending_bulk = None;
-            self.status_message = format!("no {} configs", op.target());
             return;
         }
         self.pending_bulk = Some(op);

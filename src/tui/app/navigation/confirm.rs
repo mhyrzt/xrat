@@ -18,7 +18,6 @@ impl TuiApp {
                 source.display_ref()
             ),
         });
-        self.status_message = "confirm delete source".to_string();
     }
 }
 
@@ -35,7 +34,6 @@ impl TuiApp {
             return;
         };
         if config.is_deleted {
-            self.status_message = "config is already deleted".to_string();
             return;
         }
 
@@ -47,7 +45,6 @@ impl TuiApp {
                 config.display_name()
             ),
         });
-        self.status_message = "confirm soft delete".to_string();
     }
 
     pub(crate) fn request_purge_focused(&mut self) {
@@ -69,6 +66,5 @@ impl TuiApp {
                 config.display_name()
             ),
         });
-        self.status_message = "confirm purge".to_string();
     }
 }

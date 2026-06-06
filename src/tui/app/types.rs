@@ -57,13 +57,6 @@ impl TuiLogTab {
             Self::ProxyEngine => Self::XratEvents,
         }
     }
-
-    pub fn title(self) -> &'static str {
-        match self {
-            Self::XratEvents => "xrat events",
-            Self::ProxyEngine => "proxy engine",
-        }
-    }
 }
 
 /// Vertical scroll offsets for the scrollable cards. Wrapped in `Cell` so the
@@ -252,7 +245,6 @@ pub struct TuiApp {
     pub panel_scroll: PanelScroll,
     pub show_help: bool,
     pub should_quit: bool,
-    pub status_message: String,
     pub data: TuiData,
     pub config_list: ConfigListState,
     pub source_list: SourceListState,

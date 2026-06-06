@@ -71,16 +71,5 @@ impl TuiApp {
         self.source_list.focused = next;
         self.panel_scroll.detail.set(0);
         self.sync_source_filter();
-
-        self.status_message = match self.config_list.source_filter {
-            SourceFilter::All => "all configs".to_string(),
-            SourceFilter::Orphans => "orphan configs (no source)".to_string(),
-            SourceFilter::Source(_) => match self.focused_source() {
-                Some(source) => {
-                    format!("source {} {}", source.display_ref(), source.display_name())
-                }
-                None => "all configs".to_string(),
-            },
-        };
     }
 }

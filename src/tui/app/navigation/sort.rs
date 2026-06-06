@@ -5,7 +5,6 @@ impl TuiApp {
     pub(crate) fn clear_search(&mut self) {
         self.config_list.search_query.clear();
         self.config_list.focused = 0;
-        self.status_message = "search cleared".to_string();
     }
 
     pub(crate) fn cycle_config_sort(&mut self) {
@@ -15,7 +14,6 @@ impl TuiApp {
 
         self.config_list.sort = self.config_list.sort.next();
         self.config_list.focused = 0;
-        self.status_message = format!("sort: {}", self.config_list.sort.label());
     }
 
     pub(crate) fn cycle_config_filter(&mut self) {
@@ -25,7 +23,6 @@ impl TuiApp {
 
         self.config_list.filter = self.config_list.filter.next();
         self.config_list.focused = 0;
-        self.status_message = format!("filter: {}", self.config_list.filter.label());
     }
 
     pub(crate) fn cycle_protocol_filter(&mut self) {
@@ -57,10 +54,6 @@ impl TuiApp {
 
         self.config_list.protocol_filter = next;
         self.config_list.focused = 0;
-        self.status_message = match &self.config_list.protocol_filter {
-            Some(p) => format!("protocol: {p}"),
-            None => "protocol: all".to_string(),
-        };
     }
 
     pub(crate) fn toggle_deleted_filter(&mut self) {
@@ -70,11 +63,6 @@ impl TuiApp {
 
         self.config_list.include_deleted = !self.config_list.include_deleted;
         self.config_list.focused = 0;
-        self.status_message = if self.config_list.include_deleted {
-            "showing deleted configs".to_string()
-        } else {
-            "hiding deleted configs".to_string()
-        };
     }
 
     pub(crate) fn visible_config_indices(&self) -> Vec<usize> {

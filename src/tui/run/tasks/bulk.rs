@@ -4,7 +4,6 @@ use crate::tui::app::{BulkKind, BulkOp, TuiApp};
 pub async fn run_bulk_op(context: &AppContext, app: &mut TuiApp, op: BulkOp) {
     let ids = app.bulk_config_ids(op);
     if ids.is_empty() {
-        app.set_status(format!("no {} configs", op.target()));
         return;
     }
 
@@ -19,12 +18,10 @@ pub async fn run_bulk_op(context: &AppContext, app: &mut TuiApp, op: BulkOp) {
             super::data::reload_data(context, app).await;
             let message = format!("{} {affected} {} configs", op.verb(), op.target());
             app.push_log(format!("OK  {message}"));
-            app.set_status(message);
         }
         Err(error) => {
             let msg = format!("operation failed: {error}");
             app.push_log(format!("ERR {msg}"));
-            app.set_status(msg);
         }
     }
 }

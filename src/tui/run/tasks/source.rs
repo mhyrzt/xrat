@@ -119,10 +119,10 @@ pub async fn run_source_delete(
     match context.db.delete_subscription_with_configs(source_id).await {
         Ok(_) => {
             super::data::reload_data(context, app).await;
-            app.set_status(format!("deleted source #{source_id} and its configs"));
+            app.push_log(format!("OK  deleted source #{source_id} and its configs"));
         }
         Err(err) => {
-            app.set_status(format!("delete failed: {err}"));
+            app.push_log(format!("ERR delete failed: {err}"));
         }
     }
 }
@@ -136,10 +136,10 @@ pub async fn run_source_rename(
     match context.db.set_subscription_name(source_id, &name).await {
         Ok(_) => {
             super::data::reload_data(context, app).await;
-            app.set_status(format!("renamed source #{source_id}"));
+            app.push_log(format!("OK  renamed source #{source_id}"));
         }
         Err(err) => {
-            app.set_status(format!("rename failed: {err}"));
+            app.push_log(format!("ERR rename failed: {err}"));
         }
     }
 }

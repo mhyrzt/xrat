@@ -34,12 +34,10 @@ pub async fn run_config_command(context: &AppContext, app: &mut TuiApp, command:
         Ok(message) => {
             super::data::reload_data(context, app).await;
             app.push_log(format!("OK  {message}"));
-            app.set_status(message);
         }
         Err(error) => {
             let msg = format!("operation failed: {error}");
             app.push_log(format!("ERR {msg}"));
-            app.set_status(msg);
         }
     }
 }

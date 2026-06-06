@@ -13,7 +13,6 @@ impl Default for TuiApp {
             panel_scroll: PanelScroll::default(),
             show_help: false,
             should_quit: false,
-            status_message: "ready".to_string(),
             data: TuiData::default(),
             config_list: ConfigListState::default(),
             source_list: SourceListState::default(),
@@ -38,7 +37,6 @@ impl Default for TuiApp {
 impl TuiApp {
     pub fn with_data(data: TuiData) -> Self {
         Self {
-            status_message: "ready".to_string(),
             data,
             ..Self::default()
         }

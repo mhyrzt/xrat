@@ -38,7 +38,7 @@ fn opens_and_cancels_delete_confirmation() {
     app.apply(TuiAction::Cancel);
 
     assert!(app.confirm.is_none());
-    assert_eq!(app.status_message, "cancelled");
+    assert!(app.needs_full_clear);
 }
 
 #[test]
@@ -137,7 +137,6 @@ fn request_bulk_arms_confirm_or_reports_empty() {
 
     app.apply(TuiAction::RequestBulk(BulkOp::DeleteFailed));
     assert!(app.pending_bulk.is_none());
-    assert_eq!(app.status_message, "no failed configs");
 }
 
 #[test]

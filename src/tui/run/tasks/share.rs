@@ -16,8 +16,8 @@ pub async fn open_qr_for_config(
             ));
             app.needs_full_clear = true;
         }
-        Ok(None) => app.set_status(format!("config {config_id} not found")),
-        Err(err) => app.set_status(format!("failed to load config URI: {err}")),
+        Ok(None) => app.push_log(format!("ERR config {config_id} not found")),
+        Err(err) => app.push_log(format!("ERR failed to load config URI: {err}")),
     }
 }
 
@@ -26,8 +26,8 @@ pub async fn copy_config_uri(context: &AppContext, app: &mut TuiApp, config_id: 
         Ok(Some(record)) => {
             set_clipboard(app, record.raw_config);
         }
-        Ok(None) => app.set_status(format!("config {config_id} not found")),
-        Err(err) => app.set_status(format!("failed to load config URI: {err}")),
+        Ok(None) => app.push_log(format!("ERR config {config_id} not found")),
+        Err(err) => app.push_log(format!("ERR failed to load config URI: {err}")),
     }
 }
 
@@ -43,7 +43,7 @@ pub fn copy_source_uri(app: &mut TuiApp, source_url: String) {
 pub fn open_qr_for_api_url(app: &mut TuiApp) {
     let url = app.data.api_b64_url.clone();
     if url.is_empty() {
-        app.set_status("API subscription URL not available");
+        app.push_log("ERR API subscription URL not available");
         return;
     }
     app.qr_modal = Some(QrModalState::new(QrKind::Api, "API /b64 subscription", url));
@@ -53,7 +53,7 @@ pub fn open_qr_for_api_url(app: &mut TuiApp) {
 pub fn copy_api_url(app: &mut TuiApp) {
     let url = app.data.api_b64_url.clone();
     if url.is_empty() {
-        app.set_status("API subscription URL not available");
+        app.push_log("ERR API subscription URL not available");
         return;
     }
     set_clipboard(app, url);
@@ -68,10 +68,10 @@ fn set_clipboard(app: &mut TuiApp, text: String) {
                 } else {
                     text.clone()
                 };
-                app.set_status(format!("copied: {preview}"));
+                app.push_log(format!("OK  copied: {preview}"));
             }
-            Err(err) => app.set_status(format!("clipboard write failed: {err}")),
+            Err(err) => app.push_log(format!("ERR clipboard write failed: {err}")),
         },
-        Err(err) => app.set_status(format!("clipboard unavailable: {err}")),
+        Err(err) => app.push_log(format!("ERR clipboard unavailable: {err}")),
     }
 }

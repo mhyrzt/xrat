@@ -11,7 +11,6 @@ fn cancel_test_batch_signals_running_token() {
     app.apply(TuiAction::CancelTestBatch);
 
     assert!(token.is_cancelled());
-    assert_eq!(app.status_message, "cancelling test batch");
 }
 
 #[test]
@@ -20,6 +19,5 @@ fn cancel_test_batch_without_running_task_is_a_noop() {
 
     app.apply(TuiAction::CancelTestBatch);
 
-    assert_eq!(app.status_message, "no test batch is running");
     assert!(app.task_state.cancellation.is_none());
 }

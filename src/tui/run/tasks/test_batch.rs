@@ -11,13 +11,11 @@ pub fn spawn_test_batch(
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
 ) {
     if app.task_state.running.is_some() {
-        app.set_status("another operation is already running");
         return;
     }
 
     let config_ids = app.test_config_ids();
     if config_ids.is_empty() {
-        app.set_status("no configs match the current test scope");
         return;
     }
     app.testing_config_ids = config_ids.clone();

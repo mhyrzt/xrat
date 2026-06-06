@@ -45,7 +45,7 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
 /// Center segment of the key bar. Priority: an inline destructive confirm
 /// (single-row or bulk — there are no confirm modals), then an armed chord
-/// hint, otherwise the latest status message.
+/// hint.
 fn center_spans(app: &TuiApp) -> Vec<Span<'static>> {
     if let Some(confirm) = &app.confirm {
         return confirm_prompt(confirm.prompt.clone());
@@ -57,14 +57,7 @@ fn center_spans(app: &TuiApp) -> Vec<Span<'static>> {
     if let Some(leader) = app.pending_chord {
         return chord_hint(leader);
     }
-    if app.status_message.is_empty() {
-        Vec::new()
-    } else {
-        vec![Span::styled(
-            app.status_message.clone(),
-            theme::muted_style(),
-        )]
-    }
+    Vec::new()
 }
 
 /// `<prompt>  y / n` with the prompt in danger red and the keys colour-coded.

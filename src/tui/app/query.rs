@@ -1,6 +1,6 @@
 use crate::tui::data::{TuiConfigRow, TuiSourceRow};
 
-use super::{ConfigFilter, TestScope, TuiApp};
+use super::{TestScope, TuiApp};
 
 impl TuiApp {
     pub fn focused_config(&self) -> Option<&TuiConfigRow> {
@@ -23,31 +23,6 @@ impl TuiApp {
             .focused
             .checked_sub(2)
             .and_then(|idx| self.data.sources.get(idx))
-    }
-
-    pub fn config_filter_summary(&self) -> String {
-        let search = if self.config_list.search_query.is_empty() {
-            "search:-".to_string()
-        } else {
-            format!("search:{}", self.config_list.search_query)
-        };
-        let deleted = if self.config_list.include_deleted {
-            "deleted:on"
-        } else {
-            "deleted:off"
-        };
-        let filter_part = match self.config_list.filter {
-            ConfigFilter::None => String::new(),
-            f => format!(" - filter:{}", f.label()),
-        };
-        let proto_part = match &self.config_list.protocol_filter {
-            None => String::new(),
-            Some(p) => format!(" - proto:{p}"),
-        };
-        format!(
-            "{search} - sort:{}{filter_part}{proto_part} - {deleted}",
-            self.config_list.sort.label()
-        )
     }
 
     pub fn test_scope_count(&self) -> usize {

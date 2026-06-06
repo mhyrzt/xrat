@@ -31,7 +31,6 @@ impl TuiApp {
                     self.testing_config_ids.clear();
                 }
                 self.push_log(format!("OK  {message}"));
-                self.status_message = message;
             }
             crate::tui::task::TuiTaskEvent::Failed { kind, error, data } => {
                 self.task_state
@@ -47,7 +46,6 @@ impl TuiApp {
                     self.testing_config_ids.clear();
                 }
                 self.push_log(format!("ERR {error}"));
-                self.status_message = format!("operation failed: {error}");
             }
             crate::tui::task::TuiTaskEvent::Cancelled { kind } => {
                 self.task_state
@@ -56,11 +54,9 @@ impl TuiApp {
                     self.testing_config_ids.clear();
                 }
                 self.push_log(format!("OK  {:?} cancelled", kind));
-                self.status_message = self.task_state.label();
             }
             event => {
                 self.task_state.apply(&event);
-                self.status_message = self.task_state.label();
             }
         }
     }

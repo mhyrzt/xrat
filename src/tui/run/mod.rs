@@ -31,7 +31,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
             log_refresh_pending = false;
             match result {
                 Ok(logs) => app.reload_logs(logs),
-                Err(error) => app.set_status(format!("log refresh failed: {error}")),
+                Err(error) => app.push_log(format!("ERR log refresh failed: {error}")),
             }
         }
         if !log_refresh_pending && last_log_refresh.elapsed() >= Duration::from_secs(1) {

@@ -34,7 +34,7 @@ pub fn spawn_reload_data(
 pub async fn reload_data(context: &AppContext, app: &mut TuiApp) {
     match TuiData::load(context, app.config_list.include_deleted).await {
         Ok(data) => app.reload_data(data),
-        Err(error) => app.set_status(format!("reload failed: {error}")),
+        Err(error) => app.push_log(format!("ERR reload failed: {error}")),
     }
 }
 
