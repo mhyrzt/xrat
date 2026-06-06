@@ -1,11 +1,13 @@
 mod configs;
 mod logs;
+mod proxy_log;
 mod runtime;
 mod sources;
 mod tests_view;
 
 pub use configs::TuiConfigRow;
 pub use logs::TuiLogs;
+pub use proxy_log::ProxyStream;
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
 pub use tests_view::TuiTestStatus;

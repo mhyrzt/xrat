@@ -4,6 +4,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::app::context::AppContext;
 use crate::db::{EventFilter, EventRecord};
+use crate::tui::data::proxy_log::{ProxyStream, TuiProxyLogRow};
 
 const EVENT_LIMIT: i64 = 200;
 const PROXY_LOG_LIMIT: usize = 200;
@@ -47,12 +48,6 @@ impl From<EventRecord> for TuiEventLogRow {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TuiProxyLogRow {
-    pub feed: String,
-    pub line: String,
-}
-
 async fn load_events(context: &AppContext) -> crate::app::Result<Vec<TuiEventLogRow>> {
     let filter = EventFilter {
         limit: EVENT_LIMIT,
@@ -77,32 +72,37 @@ async fn load_proxy_logs(context: &AppContext) -> crate::app::Result<Vec<TuiProx
     let id = session.id;
     push_existing(
         &mut files,
-        "xray out",
+        "xray",
+        ProxyStream::Stdout,
         runtime_dir.join(format!("session-{id}.out.log")),
     );
     push_existing(
         &mut files,
-        "xray err",
+        "xray",
+        ProxyStream::Stderr,
         runtime_dir.join(format!("session-{id}.err.log")),
     );
     push_existing(
         &mut files,
-        "singbox out",
+        "sing-box",
+        ProxyStream::Stdout,
         runtime_dir.join(format!("session-{id}.singbox.out.log")),
     );
     push_existing(
         &mut files,
-        "singbox err",
+        "sing-box",
+        ProxyStream::Stderr,
         runtime_dir.join(format!("session-{id}.singbox.err.log")),
     );
 
     let mut rows = Vec::new();
     for file in files {
         let lines = tail_lines(&file.path, PROXY_LOG_LIMIT).await?;
-        rows.extend(lines.into_iter().map(|line| TuiProxyLogRow {
-            feed: file.label.clone(),
-            line,
-        }));
+        rows.extend(
+            lines
+                .into_iter()
+                .map(|line| TuiProxyLogRow::parse(&file.engine, file.stream, &line)),
+        );
     }
 
     if rows.len() > PROXY_LOG_LIMIT {
@@ -113,14 +113,16 @@ async fn load_proxy_logs(context: &AppContext) -> crate::app::Result<Vec<TuiProx
 }
 
 struct LogFile {
-    label: String,
+    engine: String,
+    stream: ProxyStream,
     path: PathBuf,
 }
 
-fn push_existing(files: &mut Vec<LogFile>, label: &str, path: PathBuf) {
+fn push_existing(files: &mut Vec<LogFile>, engine: &str, stream: ProxyStream, path: PathBuf) {
     if path.exists() {
         files.push(LogFile {
-            label: label.to_string(),
+            engine: engine.to_string(),
+            stream,
             path,
         });
     }

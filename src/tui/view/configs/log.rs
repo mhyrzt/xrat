@@ -61,6 +61,8 @@ fn event_lines(app: &TuiApp) -> Vec<Line<'_>> {
 }
 
 fn proxy_lines(app: &TuiApp) -> Vec<Line<'_>> {
+    use crate::tui::data::ProxyStream;
+
     if app.data.logs.proxy.is_empty() {
         return vec![Line::styled(
             "No proxy engine logs found for the latest runtime session.",
@@ -69,22 +71,49 @@ fn proxy_lines(app: &TuiApp) -> Vec<Line<'_>> {
     }
 
     let mut lines = vec![Line::styled(
-        format!("{:<12}  {}", "FEED", "MESSAGE"),
+        format!(
+            "{:<19}  {:<7}  {:<8}  {:<10}  {}",
+            "TIME", "LEVEL", "FEED", "SOURCE", "MESSAGE"
+        ),
         theme::muted_style(),
     )];
     lines.extend(app.data.logs.proxy.iter().rev().map(|row| {
-        let feed_style = if row.feed.ends_with("err") {
+        let feed_style = if row.stream == ProxyStream::Stderr {
             theme::warning_style()
         } else {
             theme::muted_style()
         };
         Line::from(vec![
-            Span::styled(format!("{:<12}", row.feed), feed_style),
+            Span::styled(
+                format!("{:<19}", row.time.as_deref().unwrap_or("")),
+                theme::muted_style(),
+            ),
             Span::raw("  "),
-            Span::styled(row.line.as_str(), theme::chrome_style()),
+            Span::styled(
+                format!("{:<7}", row.level.as_deref().unwrap_or("")),
+                proxy_level_style(row.level.as_deref()),
+            ),
+            Span::raw("  "),
+            Span::styled(format!("{:<8}", row.engine), feed_style),
+            Span::raw("  "),
+            Span::styled(
+                format!("{:<10}", row.component.as_deref().unwrap_or("")),
+                theme::muted_style(),
+            ),
+            Span::raw("  "),
+            Span::styled(row.message.as_str(), theme::chrome_style()),
         ])
     }));
     lines
+}
+
+fn proxy_level_style(level: Option<&str>) -> ratatui::style::Style {
+    match level.map(str::to_ascii_lowercase).as_deref() {
+        Some("error") => theme::failure_style(),
+        Some("warning") | Some("warn") => theme::warning_style(),
+        Some(_) => theme::accent_style(),
+        None => theme::muted_style(),
+    }
 }
 
 fn log_title(tab: TuiLogTab) -> &'static str {

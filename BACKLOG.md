@@ -155,7 +155,14 @@ Desired behavior:
   level/kind coloring through the theme.
 - Add reset/clear shortcuts per tab where useful:
   - clear visible log buffer
-  - reset stat counters, if supported
+  - clear visible stats buffer/counters in the TUI only
+  - clear persisted logs/stats from the database after an explicit confirm step
+  - expose equivalent clear behavior for `xrat logs` where it owns persisted
+    event/log records
+  - keep view-only clears separate from database clears in shortcut labels, help
+    text, and command output
+  - record database clear actions as best-effort events when possible without
+    failing the primary clear operation
 - Wire shortcuts through `src/tui/keymap/` and `chord.rs`.
 - Show shortcuts in the existing help/chrome UI.
 
@@ -169,6 +176,9 @@ Desired behavior:
   polling.
 - `src/tui/keymap/` and `chord.rs`: add tab-switch keys, reset/clear shortcuts,
   and help entries.
+- `src/app/commands/logs.rs` and related CLI parsing: add clear/reset support
+  for persisted `xrat logs` data, using explicit command naming and confirmation
+  consistent with destructive operations elsewhere in the CLI.
 - `src/xray/process_mgmt/` and sing-box runtime code: expose proxy log stream or
   log path and stats API clients if missing.
 - Proxy log rendering: normalize engine feed labels and parse xray log lines
@@ -180,6 +190,8 @@ Desired behavior:
 
 - State tests for tab switching.
 - Keymap tests for tab and reset/clear bindings.
+- TUI state tests proving view-only clear does not delete persisted records.
+- CLI tests for `xrat logs` clear/reset parsing and confirmation behavior.
 - Parser tests for representative xray log lines.
 - Stats buffer rollover tests.
 - Manual TUI verification with active runtime, proxy logs, active API server,
@@ -190,3 +202,35 @@ Desired behavior:
 - Use one engine-neutral stats trait for now.
 - Reset stats per runtime session.
 - Use live tail for proxy logs.
+
+## 03. Medium, P2: Progress indicators for blocking CLI commands
+
+### Status
+
+Planned
+
+### Goal
+
+Add consistent "working/trying" feedback for CLI commands that can block for a
+noticeable amount of time, such as `connect`, long-running probes, scans, import
+work, runtime startup/shutdown, and upgrade flows.
+
+### Changes required
+
+- Audit command handlers under `src/app/commands/` for operations that wait on
+  network, process startup, external command execution, database work over many
+  rows, or runtime health checks.
+- Reuse any existing progress/spinner/glyph output already present in the CLI
+  before adding a new helper.
+- Add a small shared helper if needed so blocking commands show consistent
+  status messages, glyphs, and completion/failure output.
+- Keep machine-readable output formats (`json`, `tsv`, `csv`) free of spinner
+  glyphs and terminal-only progress text.
+- Ensure progress output is disabled or degraded cleanly when stdout/stderr is
+  not a terminal.
+
+### Verification
+
+- CLI output tests or focused unit tests for commands that can be checked
+  without starting external services.
+- Manual checks for representative blocking commands, especially `connect`.

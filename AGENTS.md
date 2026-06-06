@@ -44,6 +44,8 @@
 
 ## Build, Test, and Development Commands
 
+- Prefer common commands from `Justfile` over manually spelling out equivalent
+  `cargo`, formatting, test, Docker, docs, or packaging commands.
 - `cargo build` — compile the project.
 - `cargo fmt` — format Rust code.
 - `cargo clippy --all-targets -- -D warnings` — run the same lint gate used by
@@ -76,8 +78,7 @@
   - `cargo run -- manpage --output <dir>`
   - `cargo run -- completions <shell>`
 
-Run `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, and
-`cargo test -q --locked` before committing.
+Run `just fmt ci` before committing.
 
 ## Coding Style & Naming Conventions
 
@@ -93,8 +94,10 @@ Naming:
 - CLI flags: long, explicit names such as `--database`, `--include-geoip`, and
   `--format`
 
-Avoid one-letter variable names. Avoid inline comments unless they explain
-non-obvious intent or constraints.
+Avoid one-letter variable names. Do not add code comments unless they are truly
+necessary to explain non-obvious intent or constraints. A short top-of-file
+comment in `mod.rs` is acceptable when it clarifies what the module is
+responsible for.
 
 ## Testing Guidelines
 
@@ -123,6 +126,35 @@ Follow conventional commit style seen in history:
 Keep commits focused and descriptive. PRs should summarize behavior changes,
 mention schema or CLI changes, and include example commands/output when
 relevant.
+
+Commit frequently with proper conventional commit messages. If a task creates
+too many changes for one readable commit, split the work into several focused
+commits.
+
+## Release Guidelines
+
+Releases are driven by `.github/workflows/release.yml` and run on pushed tags
+matching `v*`.
+
+- Before preparing a release commit, run `just fmt ci`.
+- Update the package version in `Cargo.toml`; the release workflow rejects tags
+  whose version does not match the tag without the leading `v`.
+- Use an annotated or signed version tag such as `v0.3.0`, matching `Cargo.toml`
+  version `0.3.0`.
+- Do not edit released migrations. Add a new ordered migration for database
+  changes that ship after a release.
+- Confirm release-facing assets still work when touched: `install.sh`,
+  `Dockerfile`, `.github/workflows/release.yml`, packaging files, generated man
+  pages, completions, and user docs.
+- The release workflow builds Linux musl archives, bundles man pages,
+  completions, and desktop assets, creates `SHASUMS256.txt`, publishes the
+  GitHub release, publishes Docker images to GHCR, and publishes the crate to
+  crates.io.
+- Prepare or inspect release notes with `gh` when publishing or validating a
+  release, keeping notes focused on user-visible changes, fixes, packaging
+  changes, and upgrade notes.
+- If release automation changes, update docs under `docs/src/` and prefer a
+  focused commit separate from feature work.
 
 ## Architecture Notes
 

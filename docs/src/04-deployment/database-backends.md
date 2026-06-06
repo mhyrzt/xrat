@@ -301,16 +301,17 @@ of edit:
 
 This is enforced at two layers:
 
-- **Runtime**: on startup, xrat records each applied migration's *normalized*
+- **Runtime**: on startup, xrat records each applied migration's _normalized_
   checksum (comments stripped, whitespace collapsed) in `_xrat_migration_norms`.
   If a migration's stored checksum no longer matches the file but the normalized
   SQL is unchanged, it heals the stored checksum automatically. If the
-  normalized SQL changed, startup fails with an actionable error — the meaning of
-  an applied migration was altered.
+  normalized SQL changed, startup fails with an actionable error — the meaning
+  of an applied migration was altered.
 - **CI**: a committed manifest (`migrations/checksums.json`) pins each
   migration's normalized checksum. The test
-  `migration_files_match_committed_checksum_manifest` passes through reformatting
-  and only fails when a migration changes meaning or a new migration is added.
+  `migration_files_match_committed_checksum_manifest` passes through
+  reformatting and only fails when a migration changes meaning or a new
+  migration is added.
 
 When you add a new migration (or deliberately change one that no database has
 applied), regenerate the manifest:
@@ -323,7 +324,7 @@ UPDATE_MIGRATION_MANIFEST=1 cargo test \
 ### Recovering from a Checksum Mismatch
 
 Reformatting recovers automatically — no action needed. A startup failure means
-a migration's *meaning* changed after it was applied; recovery depends on
+a migration's _meaning_ changed after it was applied; recovery depends on
 whether it shipped.
 
 **Local development database** (the migration is not yet released):
