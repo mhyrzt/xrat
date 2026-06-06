@@ -188,9 +188,31 @@ cancelled once the shared test executor observes the cancellation request.
 ## Runtime, Logs, and Help
 
 The merged runtime panel summarizes runtime, database, source, API, and
-config-count state alongside the active config. The adjacent Logs panel lists
-per-config failures and recent TUI task messages. Both panels stay visible under
-both tabs.
+config-count state alongside the active config. Both the runtime and logs cards
+stay visible under both tabs.
+
+The Logs card is tabbed. Focus it with `Tab`/`Shift+Tab`, then switch tabs:
+
+| Key         | Action                                        |
+| ----------- | --------------------------------------------- |
+| `[` / `]`   | Cycle to the previous / next log tab          |
+| `1` `2` `3` | Jump directly to xrat events / engine / stats |
+| `C p`       | Clear all persisted events from the database  |
+
+| Tab          | Shows                                                         |
+| ------------ | ------------------------------------------------------------- |
+| xrat events  | Structured app/runtime events (same data as `xrat logs`)      |
+| proxy engine | Parsed xray / sing-box engine logs for the latest session     |
+| stats        | Live traffic stats (placeholder until the stats poller lands) |
+
+The engine tab parses recognized xray log lines into time, level, feed (engine
+name), source/component, and message columns; stderr is feed-styled as a
+warning, and unrecognized lines are kept as raw messages.
+
+The `C p` clear chord is a database clear — it removes the persisted `events`
+rows, the same data cleared by
+[`xrat logs clear`](logs.md#clearing-persisted-events). Engine log files are not
+touched.
 
 Press `?` from either tab to open the help modal. Press `Esc` to close it.
 

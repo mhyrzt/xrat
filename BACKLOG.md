@@ -95,7 +95,17 @@ In progress
 ### Progress
 
 - Implemented `xrat events` and `proxy engine` tabs in the TUI logs card.
-- Left the `stats` tab and stats API/poller work for a later focused change.
+- Parsed xray engine log lines into structured time/level/feed/source/message
+  columns and normalized feed labels to the engine name; unparseable lines stay
+  raw.
+- Added direct number-key log tab selection (`1`/`2`/`3`) alongside the existing
+  `[`/`]` cycle, plus a placeholder `stats` tab.
+- Added persisted-event clearing: `xrat logs clear [--yes]` (CLI) and the TUI
+  `C p` clear chord, both deleting `events` rows after a confirm. Labeled
+  "events (db)" to keep it distinct from the planned view-only buffer clears.
+- Remaining: stats API/poller + ring buffer + sparkline, the `API` tab, and
+  view-only buffer clears (`C l` log view, `C s` stats view) once live buffers
+  exist.
 
 ### Goal
 

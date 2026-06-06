@@ -53,6 +53,26 @@ xrat logs --source xray -n 50
 xrat logs --source app --level error --format json
 ```
 
+## Clearing persisted events
+
+```bash
+xrat logs clear [--yes]
+```
+
+`xrat logs clear` permanently deletes every row from the `events` table. It
+prompts for confirmation first; pass `--yes` to skip the prompt (useful in
+scripts). This only clears the structured **app events** in the database —
+engine and daemon log files are left untouched, since they rotate with their
+runtime sessions.
+
+The TUI exposes the same database clear from the logs card via the `C p` clear
+chord, kept distinct from any view-only buffer clears.
+
+```bash
+# Wipe all recorded app events without a prompt
+xrat logs clear --yes
+```
+
 ## Where logs live
 
 | Source     | Location                                                  |
