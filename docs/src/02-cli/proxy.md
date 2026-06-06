@@ -1,211 +1,46 @@
 # proxy
 
-Control auto-rotating proxy scheduling via the daemon.
+Local proxy endpoints and host/session integration helpers.
 
 ```bash
 xrat proxy <action> [flags]
 ```
 
-All `proxy` actions require a running daemon:
-
-```bash
-xrat daemon start
-```
-
-For startup on login, install the systemd user service:
-
-```bash
-xrat daemon install --start
-```
-
-For startup at boot before login, also enable user lingering:
-
-```bash
-loginctl enable-linger $USER
-```
+> Automatic rotation scheduling moved to the [`rotate`](rotate.md) command. The
+> old `xrat proxy start|status|stop` rotation commands have been removed.
 
 ## Actions
 
-| Action   | Description                                         |
-| -------- | --------------------------------------------------- |
-| `start`  | Enable automatic proxy rotation on a fixed schedule |
-| `status` | Show the current proxy rotation status              |
-| `rotate` | Trigger an immediate manual rotation                |
-| `stop`   | Disable automatic proxy rotation                    |
+| Action      | Description                                              |
+| ----------- | ------------------------------------------------------- |
+| `endpoints` | Show active local proxy endpoints                       |
+| `pac`       | Print or locate the Proxy Auto-Config (PAC) file        |
+| `shell`     | Proxy the current terminal session via env vars         |
+| `desktop`   | Manage Linux desktop environment proxy settings         |
 
 ---
 
-## proxy start
+## proxy endpoints
 
-Enable automatic proxy rotation on a fixed schedule.
+Show active local proxy endpoints for quick copy/paste.
 
 ```bash
-xrat proxy start
+xrat proxy endpoints [--json]
 ```
+
+Lists the active runtime inbounds (HTTP, SOCKS5, Shadowsocks) plus the PAC URL
+when the API server is enabled. If an inbound binds `0.0.0.0`, the machine LAN IP
+is shown for easy local-network use; otherwise the configured bind host is shown.
+
+Shadowsocks credentials are not persisted in runtime status, so the Shadowsocks
+line shows only the endpoint with a `(credentials not shown)` note rather than a
+leaky partial `ss://` URI.
 
 ### Flags
 
-No command-specific flags.
-
-### Behavior
-
-1. Sends a request to the daemon via IPC
-2. Daemon enables the rotation scheduler with settings from `config.toml`:
-
-```toml
-[runtime.rotation]
-enabled = true
-interval_secs = 1800
-health_trigger_enabled = true
-cooldown_secs = 300
-test_concurrency = 0
-test_stages = ["real_delay", "download"]
-```
-
-3. Daemon begins periodic rotation according to the interval
-
-### Rotation Triggers
-
-| Trigger          | Description                                                           |
-| ---------------- | --------------------------------------------------------------------- |
-| **Timer**        | Scheduled rotation every `interval_secs`                              |
-| **Health check** | Triggered when proxy health check fails (if `health_trigger_enabled`) |
-| **Manual**       | Triggered by `xrat proxy rotate`                                      |
-
-### Cooldown
-
-After a rotation, the daemon waits `cooldown_secs` before allowing another
-rotation. This prevents rapid switching when multiple triggers fire.
-
----
-
-## proxy status
-
-Show the current proxy rotation status.
-
-```bash
-xrat proxy status [flags]
-```
-
-### Flags
-
-| Flag     | Description                   |
-| -------- | ----------------------------- |
-| `--json` | Print rotation status as JSON |
-
-### Output
-
-```
-Proxy Rotation Status
-─────────────────────────────────
-Enabled:        yes
-Interval:       1800s
-Last rotation:  2026-05-28 10:30:00 (manual)
-Next rotation:  2026-05-28 11:00:00
-Cooldown:       300s (inactive)
-Active config:  42 (vless://example.com:443)
-```
-
-### JSON Output
-
-```json
-{
-  "enabled": true,
-  "interval_secs": 1800,
-  "last_trigger": "manual",
-  "last_rotation_at": "2026-05-28T10:30:00Z",
-  "next_rotation_at": "2026-05-28T11:00:00Z",
-  "cooldown_secs": 300,
-  "cooldown_active": false,
-  "active_config_id": 42
-}
-```
-
----
-
-## proxy rotate
-
-Trigger an immediate manual rotation.
-
-```bash
-xrat proxy rotate [flags]
-```
-
-### Flags
-
-| Flag               | Description                                                   |
-| ------------------ | ------------------------------------------------------------- |
-| `--config-id <id>` | Force rotation to a specific enabled config ID                |
-| `--refresh`        | Refresh URL-backed subscriptions before selecting a candidate |
-
-### Examples
-
-Rotate to the best candidate automatically:
-
-```bash
-xrat proxy rotate
-```
-
-Rotate to a specific config:
-
-```bash
-xrat proxy rotate --config-id 99
-```
-
-Refresh subscriptions first, then rotate to the best fresh candidate:
-
-```bash
-xrat proxy rotate --refresh
-```
-
-### Behavior
-
-1. If `--refresh` is provided, re-fetches URL-backed subscriptions (same import
-   - reconciliation path as `xrat import`) before anything else, so the
-     candidate pass sees the freshest configs and skips provider-removed ones
-2. If `--config-id` is provided, rotates to that specific config
-3. Otherwise, selects the best candidate from enabled configs:
-   - Tests candidates using `test_stages` from config.toml
-   - Picks the config with the lowest real-delay latency
-4. Stops the old session and starts the replacement on the same configured local
-   inbound ports
-5. Respects cooldown period (rotation is delayed if cooldown is active)
-
-For automatic (timer/health) rotation, set
-`[runtime.rotation] refresh_subscriptions = true` to perform the same refresh
-before each daemon-triggered rotation. Refresh failures are recorded as separate
-events and never abort rotation or leave the old runtime stopped.
-
-### Candidate Selection
-
-When rotating without `--config-id`:
-
-1. Loads all enabled configs from the database
-2. Excludes the currently active config
-3. Tests candidates concurrently (up to `test_concurrency` workers)
-4. Filters out configs that fail any test stage
-5. Sorts by real-delay latency (lowest first)
-6. Selects the top candidate
-
----
-
-## proxy stop
-
-Disable automatic proxy rotation.
-
-```bash
-xrat proxy stop
-```
-
-### Flags
-
-No command-specific flags.
-
-### Behavior
-
-1. Sends a request to the daemon via IPC
-2. Daemon disables the rotation scheduler
-3. Active proxy session continues running (not disconnected)
+| Flag     | Description              |
+| -------- | ------------------------ |
+| `--json` | Print endpoints as JSON  |
 
 ---
 
@@ -250,9 +85,84 @@ send auth headers, and the file exposes only non-secret local endpoint data
 (Shadowsocks credentials are never included). Prefer a loopback server bind for
 PAC use.
 
+---
+
+## proxy shell
+
+Proxy only the current terminal session and its child processes, without
+changing desktop or system proxy settings. xrat **prints** shell commands; it
+never edits `.bashrc`, `.zshrc`, or fish config.
+
+```bash
+xrat proxy shell enable [--shell bash|zsh|fish]
+xrat proxy shell disable [--shell bash|zsh|fish]
+xrat proxy shell status
+```
+
+`enable` sets `http_proxy`/`https_proxy` (prefer the HTTP inbound, falling back
+to SOCKS) and `all_proxy` (prefer SOCKS, falling back to HTTP), plus their
+uppercase variants. It errors if no usable inbound is active. `disable` unsets
+those variables. `status` inspects the environment inherited by `xrat` and
+reports whether the current shell points at active xrat endpoints.
+
+### Usage
+
+bash/zsh — a child process cannot mutate its parent shell's environment, so eval
+the output:
+
+```sh
+eval "$(xrat proxy shell enable)"
+eval "$(xrat proxy shell disable)"
+```
+
+fish — source from a pipe:
+
+```fish
+xrat proxy shell enable | source
+xrat proxy shell disable | source
+```
+
+Optional convenience aliases (xrat does not create these for you):
+
+```sh
+alias xrat-proxy-on='eval "$(xrat proxy shell enable)"'
+alias xrat-proxy-off='eval "$(xrat proxy shell disable)"'
+```
+
+### Shell detection
+
+The shell is detected from `$SHELL`, then the parent process name via
+`/proc/$PPID/comm`, defaulting to bash. Override with `--shell bash|zsh|fish`.
+
+---
+
+## proxy desktop
+
+Linux-only desktop proxy integration. This changes desktop environment proxy
+settings, not every process on the system.
+
+```bash
+xrat proxy desktop enable [--desktop gnome|kde|xfce] [--pac]
+xrat proxy desktop disable [--desktop gnome|kde|xfce]
+xrat proxy desktop status [--desktop gnome|kde|xfce]
+```
+
+The desktop is auto-detected from `$XDG_CURRENT_DESKTOP` / `$DESKTOP_SESSION`;
+override with `--desktop`. **GNOME** is supported first through `gsettings`:
+
+- `enable` sets manual HTTP/HTTPS/SOCKS proxies from the active runtime, or with
+  `--pac` switches to automatic mode using the PAC URL.
+- `disable` resets the proxy mode to `none`.
+- `status` prints the current proxy mode.
+
+KDE and XFCE are not supported yet and return a clear error suggesting
+`xrat proxy shell enable` for terminal-only proxying. On non-Linux platforms the
+command errors. `desktop` is used rather than `system` because Linux has no
+single universal system proxy authority.
+
 ## Related
 
-- [`daemon`](daemon.md) — daemon must be running for proxy commands to work
+- [`rotate`](rotate.md) — automatic rotation scheduling
+- [`daemon`](daemon.md) — daemon must be running for runtime operations
 - [`connect`](runtime.md#connect) — start one proxy session through the daemon
-- [`test`](test.md) — test configs before enabling rotation
 - [`serve`](serve.md) — run the API server that hosts `/proxy.pac`

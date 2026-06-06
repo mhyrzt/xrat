@@ -16,6 +16,7 @@ mod parse;
 mod proxy;
 mod purge;
 mod root;
+mod rotate;
 mod scan;
 mod serve;
 mod status;
@@ -53,11 +54,17 @@ pub use logs::{LogLevel, LogSource, LogsArgs};
 pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
-    ProxyAction, ProxyArgs, ProxyPacAction, ProxyPacArgs, ProxyPacPrintArgs, ProxyPacUrlArgs,
-    ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
+    ProxyAction, ProxyArgs, ProxyDesktopAction, ProxyDesktopArgs, ProxyDesktopDisableArgs,
+    ProxyDesktopEnableArgs, ProxyDesktopKind, ProxyDesktopStatusArgs, ProxyEndpointsArgs,
+    ProxyPacAction, ProxyPacArgs, ProxyPacPrintArgs, ProxyPacUrlArgs, ProxyShellAction,
+    ProxyShellArgs, ProxyShellDisableArgs, ProxyShellEnableArgs, ProxyShellKind,
+    ProxyShellStatusArgs,
 };
 pub use purge::PurgeArgs;
 pub use root::Cli;
+pub use rotate::{
+    RotateAction, RotateArgs, RotateNowArgs, RotateStartArgs, RotateStatusArgs, RotateStopArgs,
+};
 pub use scan::ScanArgs;
 pub use serve::ServeArgs;
 pub use status::StatusArgs;

@@ -19,7 +19,7 @@ to multi-user server deployments with PostgreSQL.
 5. **Import subscriptions**: `xrat import https://example.com/sub.txt`
 6. **Test configs**: `xrat test --enabled-only`
 7. **Start daemon**: `xrat daemon start` or use systemd
-8. **Enable rotation** (optional): `xrat proxy start`
+8. **Enable rotation** (optional): `xrat rotate start`
 9. **Start HTTP API** (optional): `xrat serve` or enable in daemon
 
 ## Environment Variables

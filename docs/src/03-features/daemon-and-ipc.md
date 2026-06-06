@@ -91,7 +91,7 @@ Default: `~/.config/xrat/runtime/daemon.sock`
 | `ProxyStatus`       | Get rotation status           | None                        |
 | `ProxyStop`         | Disable auto-rotation         | None                        |
 
-Manual `xrat proxy rotate` calls `RuntimeReplace` with `trigger = manual` and an
+Manual `xrat rotate now` calls `RuntimeReplace` with `trigger = manual` and an
 optional `candidate_id`. There is no separate `ProxyRotate` request type.
 
 ### Response Codes
@@ -261,10 +261,10 @@ When the daemon is running, these commands route through IPC:
 | `xrat connect <id>` | `RuntimeConnect`    |
 | `xrat disconnect`   | `RuntimeDisconnect` |
 | `xrat status`       | `RuntimeStatus`     |
-| `xrat proxy start`  | `ProxyStart`        |
-| `xrat proxy status` | `ProxyStatus`       |
-| `xrat proxy rotate` | `RuntimeReplace`    |
-| `xrat proxy stop`   | `ProxyStop`         |
+| `xrat rotate start`  | `ProxyStart`        |
+| `xrat rotate status` | `ProxyStatus`       |
+| `xrat rotate now` | `RuntimeReplace`    |
+| `xrat rotate stop`   | `ProxyStop`         |
 
 ### Daemon Required
 

@@ -28,7 +28,7 @@ These commands operate on config IDs from `xrat list configs`.
 | `deleted`  | Soft-deleted and hidden unless `--deleted` or `--all` used. |
 
 Use `xrat connect <id>` when you want to start a proxy runtime. Use
-`xrat proxy start` when you want the daemon to manage automatic rotation.
+`xrat rotate start` when you want the daemon to manage automatic rotation.
 
 ---
 

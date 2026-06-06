@@ -4,5 +4,6 @@ mod db;
 mod manpage;
 mod parse;
 mod proxy;
+mod rotate;
 mod runtime;
 mod validate;

@@ -21,6 +21,7 @@
   - [logs](02-cli/logs.md)
   - [daemon](02-cli/daemon.md)
   - [db](02-cli/db.md)
+  - [rotate](02-cli/rotate.md)
   - [proxy](02-cli/proxy.md)
   - [geoip](02-cli/geoip.md)
   - [serve](02-cli/serve.md)

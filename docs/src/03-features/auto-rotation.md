@@ -49,8 +49,8 @@ proceeds with whatever configs are present, so the old runtime is not left
 stopped because a provider was unreachable.
 
 This applies to timer- and health-triggered rotation. For a one-off manual
-rotation, use `xrat proxy rotate --refresh` instead (see
-[`proxy rotate`](../02-cli/proxy.md#proxy-rotate)).
+rotation, use `xrat rotate now --refresh` instead (see
+[`rotate now`](../02-cli/rotate.md#rotate-now)).
 
 ## Rotation Triggers
 
@@ -81,7 +81,7 @@ The daemon monitors proxy health every 15 seconds. If the health check fails
 Triggered by the user via CLI:
 
 ```bash
-xrat proxy rotate
+xrat rotate now
 ```
 
 Manual rotation bypasses the timer but respects cooldown.
@@ -91,7 +91,7 @@ Manual rotation bypasses the timer but respects cooldown.
 Rotate to a specific config:
 
 ```bash
-xrat proxy rotate --config-id 99
+xrat rotate now --config-id 99
 ```
 
 Skips candidate selection and rotates to the specified config.
@@ -222,7 +222,7 @@ continuous connectivity.
 Check rotation status:
 
 ```bash
-xrat proxy status
+xrat rotate status
 ```
 
 Output:
@@ -241,7 +241,7 @@ Active config:  42 (vless://example.com:443)
 ### JSON Output
 
 ```bash
-xrat proxy status --json
+xrat rotate status --json
 ```
 
 ```json
@@ -262,7 +262,7 @@ xrat proxy status --json
 ### Start Rotation
 
 ```bash
-xrat proxy start
+xrat rotate start
 ```
 
 Sends a `ProxyStart` request to the daemon, which enables the rotation
@@ -271,7 +271,7 @@ scheduler.
 ### Stop Rotation
 
 ```bash
-xrat proxy stop
+xrat rotate stop
 ```
 
 Sends a `ProxyStop` request to the daemon, which disables the rotation
@@ -329,7 +329,7 @@ Best for: stable connections with automatic failover
 Rotation state is tracked in memory (not persisted to database). On daemon
 restart:
 
-- Rotation is disabled (must be re-enabled with `xrat proxy start`)
+- Rotation is disabled (must be re-enabled with `xrat rotate start`)
 - Cooldown is reset
 - Timer is reset
 
@@ -343,7 +343,7 @@ The active session is persisted and reattached on daemon restart.
 
 **Check**:
 
-- Is cooldown active? `xrat proxy status`
+- Is cooldown active? `xrat rotate status`
 - Are there enabled configs? `xrat list configs --enabled-only`
 - Do candidates pass testing? `xrat test --enabled-only`
 

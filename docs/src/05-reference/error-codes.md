@@ -14,7 +14,7 @@ classifications.
 | `XraySpawn`                   | Failed to spawn Xray process             | Xray binary not found or invalid           |
 | `XrayExited`                  | Xray process exited unexpectedly         | Process crashed during startup             |
 | `XrayStartupTimeout`          | Xray port not ready within timeout       | Slow startup or port conflict              |
-| `DaemonNotRunning`            | Daemon IPC socket not reachable          | `xrat proxy start` without daemon          |
+| `DaemonNotRunning`            | Daemon IPC socket not reachable          | `xrat rotate start` without daemon          |
 | `DaemonConnect`               | Failed to connect to daemon socket       | Permission denied or socket missing        |
 | `Database`                    | Database query or connection error       | Connection failure or constraint violation |
 | `Io`                          | Filesystem I/O error                     | Permission denied or disk full             |

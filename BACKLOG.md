@@ -539,7 +539,30 @@ Resolution behavior:
 
 ### Status
 
-Planned
+Done. Rotation scheduling moved to a new top-level `rotate` command
+(`start`/`stop`/`status [--json]`/`now [--config-id] [--refresh]`); the old
+`proxy start|status|stop` rotation commands were removed (no aliases) and manual
+immediate rotation became `rotate now` (per decision). The `proxy` namespace was
+restructured into `src/app/commands/proxy/` with:
+
+- `endpoints [--json]`: active HTTP/SOCKS5/Shadowsocks endpoints (reusing
+  `format_inbound_endpoint` for `0.0.0.0` LAN-IP display) plus the PAC URL;
+  Shadowsocks shows endpoint + `(credentials not shown)` rather than a partial
+  `ss://`.
+- `pac url` / `pac print` (from item 10).
+- `shell enable|disable|status [--shell bash|zsh|fish]`: prints (never edits)
+  shell proxy env commands — HTTP preferred for `http_proxy`/`https_proxy`,
+  SOCKS for `all_proxy`, with fallback and an error when no inbound is active;
+  status inspects inherited env. Shell detection via `$SHELL` →
+  `/proc/$PPID/comm` → bash.
+- `desktop enable|disable|status [--desktop gnome|kde|xfce] [--pac]`: Linux-only
+  GNOME `gsettings` backend (manual proxies or `--pac` auto mode); KDE/XFCE and
+  non-Linux return clear errors suggesting `proxy shell enable`.
+
+Pure helpers (URL selection, enable/disable scripts, shell/desktop detection,
+GNOME command planning) are unit-tested; CLI parse tests cover the new commands
+and assert the old ones are gone. Docs: new `rotate.md`, rewritten `proxy.md`,
+SUMMARY entry, and cross-reference updates across the docs tree.
 
 ### Goal
 

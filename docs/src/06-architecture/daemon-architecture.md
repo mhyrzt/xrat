@@ -18,7 +18,7 @@ graph TB
     SOCK["Unix socket<br/>/path/to/xrat.sock"]:::sock
     CLIENT1["xrat status"]:::client
     CLIENT2["xrat connect"]:::client
-    CLIENT3["xrat proxy start"]:::client
+    CLIENT3["xrat rotate start"]:::client
 
     CLI --> PARENT
     PARENT -- "std::process::Command" --> CHILD

@@ -1,36 +1,17 @@
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 
-use crate::cli::{Cli, Command, ProxyAction, ProxyPacAction};
+use crate::cli::{
+    Cli, Command, ProxyAction, ProxyDesktopAction, ProxyPacAction, ProxyShellAction, ProxyShellKind,
+};
 
 #[test]
-fn parses_proxy_subcommands() {
-    let start = Cli::parse_from(["xrat", "proxy", "start"]);
-    match start.command {
-        Command::Proxy(args) => assert!(matches!(args.action, ProxyAction::Start(_))),
-        _ => panic!("expected proxy command"),
-    }
-
-    let status = Cli::parse_from(["xrat", "proxy", "status", "--json"]);
-    match status.command {
+fn parses_proxy_endpoints() {
+    let cli = Cli::parse_from(["xrat", "proxy", "endpoints", "--json"]);
+    match cli.command {
         Command::Proxy(args) => match args.action {
-            ProxyAction::Status(status_args) => assert!(status_args.json),
-            _ => panic!("expected status subcommand"),
+            ProxyAction::Endpoints(endpoints) => assert!(endpoints.json),
+            _ => panic!("expected endpoints subcommand"),
         },
-        _ => panic!("expected proxy command"),
-    }
-
-    let rotate = Cli::parse_from(["xrat", "proxy", "rotate", "--config-id", "42"]);
-    match rotate.command {
-        Command::Proxy(args) => match args.action {
-            ProxyAction::Rotate(rotate_args) => assert_eq!(rotate_args.config_id, Some(42)),
-            _ => panic!("expected rotate subcommand"),
-        },
-        _ => panic!("expected proxy command"),
-    }
-
-    let stop = Cli::parse_from(["xrat", "proxy", "stop"]);
-    match stop.command {
-        Command::Proxy(args) => assert!(matches!(args.action, ProxyAction::Stop(_))),
         _ => panic!("expected proxy command"),
     }
 }
@@ -57,31 +38,47 @@ fn parses_proxy_pac_subcommands() {
 }
 
 #[test]
-fn proxy_rotate_help_mentions_config_flag() {
-    let mut cmd = Cli::command();
-    let proxy_cmd = cmd
-        .find_subcommand_mut("proxy")
-        .expect("proxy subcommand should exist");
-    let rotate_cmd = proxy_cmd
-        .find_subcommand_mut("rotate")
-        .expect("proxy rotate subcommand should exist");
-    let has_config = rotate_cmd
-        .get_arguments()
-        .any(|arg| arg.get_long() == Some("config-id"));
-    assert!(has_config, "proxy rotate should expose --config-id");
+fn parses_proxy_shell_with_override() {
+    let cli = Cli::parse_from(["xrat", "proxy", "shell", "enable", "--shell", "fish"]);
+    match cli.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Shell(shell) => match shell.action {
+                ProxyShellAction::Enable(enable) => {
+                    assert_eq!(enable.shell, Some(ProxyShellKind::Fish));
+                }
+                _ => panic!("expected shell enable"),
+            },
+            _ => panic!("expected shell subcommand"),
+        },
+        _ => panic!("expected proxy command"),
+    }
 }
 
 #[test]
-fn proxy_status_help_mentions_json_flag() {
-    let mut cmd = Cli::command();
-    let proxy_cmd = cmd
-        .find_subcommand_mut("proxy")
-        .expect("proxy subcommand should exist");
-    let status_cmd = proxy_cmd
-        .find_subcommand_mut("status")
-        .expect("proxy status subcommand should exist");
-    let has_json = status_cmd
-        .get_arguments()
-        .any(|arg| arg.get_long() == Some("json"));
-    assert!(has_json, "proxy status should expose --json");
+fn parses_proxy_desktop_enable_pac() {
+    let cli = Cli::parse_from(["xrat", "proxy", "desktop", "enable", "--pac"]);
+    match cli.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Desktop(desktop) => match desktop.action {
+                ProxyDesktopAction::Enable(enable) => assert!(enable.pac),
+                _ => panic!("expected desktop enable"),
+            },
+            _ => panic!("expected desktop subcommand"),
+        },
+        _ => panic!("expected proxy command"),
+    }
+}
+
+#[test]
+fn old_proxy_rotation_commands_are_removed() {
+    for removed in [
+        ["xrat", "proxy", "start"],
+        ["xrat", "proxy", "stop"],
+        ["xrat", "proxy", "status"],
+    ] {
+        assert!(
+            Cli::try_parse_from(removed).is_err(),
+            "{removed:?} should no longer parse"
+        );
+    }
 }

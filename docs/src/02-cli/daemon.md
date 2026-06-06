@@ -247,7 +247,8 @@ candidate config ID. There is no separate `ProxyRotate` IPC request type.
 
 ## Related
 
-- [`proxy`](proxy.md) — control auto-rotation scheduling
+- [`rotate`](rotate.md) — control auto-rotation scheduling
+- [`proxy`](proxy.md) — local proxy endpoints, shell, desktop, and PAC helpers
 - [`connect`](runtime.md#connect) — start a proxy via daemon IPC
 - [`status`](runtime.md#status) — check proxy status via daemon IPC
 - [`init`](init.md) — initialize config directory before first use
