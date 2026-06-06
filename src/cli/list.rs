@@ -29,9 +29,9 @@ pub struct ListConfigsArgs {
     pub include_deleted: bool,
     #[arg(
         long = "subscription",
-        help = "Show only configs from the given subscription ID."
+        help = "Show only configs from the given subscription ID or ref prefix."
     )]
-    pub subscription: Option<i64>,
+    pub subscription: Option<String>,
     #[arg(
         long = "format",
         value_enum,

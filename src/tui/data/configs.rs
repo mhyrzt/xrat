@@ -1,8 +1,10 @@
 use crate::db::ConfigWithLatestTest;
+use crate::support::refs::short_ref;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TuiConfigRow {
     pub id: i64,
+    pub r#ref: String,
     pub name: String,
     pub protocol: String,
     pub address: String,
@@ -29,6 +31,10 @@ impl TuiConfigRow {
         }
     }
 
+    pub fn display_ref(&self) -> &str {
+        short_ref(&self.r#ref)
+    }
+
     pub fn endpoint(&self) -> String {
         format!("{}:{}", self.address, self.port)
     }
@@ -52,6 +58,7 @@ impl TuiConfigRow {
 
     pub fn matches_search(&self, query: &str) -> bool {
         self.display_name().to_lowercase().contains(query)
+            || self.r#ref.to_lowercase().contains(query)
             || self.protocol.to_lowercase().contains(query)
             || self.address.to_lowercase().contains(query)
             || self.network.to_lowercase().contains(query)
@@ -67,6 +74,7 @@ impl From<ConfigWithLatestTest> for TuiConfigRow {
         let config = value.config;
         Self {
             id: config.id,
+            r#ref: config.r#ref,
             name: config.name.unwrap_or_default(),
             protocol: config.protocol,
             address: config.address,

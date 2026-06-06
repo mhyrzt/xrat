@@ -22,6 +22,7 @@ These flags apply to every command:
 | ----------------------------------------- | --------------------------------------------------------------- |
 | [`import`](import.md)                     | Import a subscription URL, file, or raw text into the database  |
 | [`add`](config-management.md#add)         | Add a single config URI directly to the database                |
+| [`stable refs`](refs.md)                  | Use short stable refs instead of numeric database IDs           |
 | [`list`](list.md)                         | List stored configs or subscription sources                     |
 | [`show`](config-management.md#show)       | Show details for a stored config                                |
 | [`enable`](config-management.md#enable)   | Include a config in normal operations                           |

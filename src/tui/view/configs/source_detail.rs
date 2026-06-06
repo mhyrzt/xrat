@@ -37,11 +37,19 @@ fn source_detail_lines<'a>(
         Some(source) => {
             let mut lines = vec![
                 Line::styled(
-                    format!("#{} {}", source.id, source.display_name()),
+                    format!("{} {}", source.display_ref(), source.display_name()),
                     theme::accent_style().add_modifier(Modifier::BOLD),
                 ),
                 Line::raw(""),
             ];
+            push_detail(
+                &mut lines,
+                "ID",
+                source.id.to_string(),
+                LABEL_WIDTH,
+                content_width,
+            );
+            push_detail(&mut lines, "Ref", &source.r#ref, LABEL_WIDTH, content_width);
             push_detail(&mut lines, "Kind", &source.kind, LABEL_WIDTH, content_width);
             push_detail(
                 &mut lines,

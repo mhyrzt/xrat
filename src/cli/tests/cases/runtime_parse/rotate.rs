@@ -32,9 +32,21 @@ fn parses_rotate_now_flags() {
     match cli.command {
         Command::Rotate(args) => match args.action {
             RotateAction::Now(now) => {
-                assert_eq!(now.config_id, Some(42));
+                assert_eq!(now.config_id.as_deref(), Some("42"));
                 assert!(now.refresh);
             }
+            _ => panic!("expected now subcommand"),
+        },
+        _ => panic!("expected rotate command"),
+    }
+}
+
+#[test]
+fn parses_rotate_now_config_ref_prefix() {
+    let cli = Cli::parse_from(["xrat", "rotate", "now", "--config-id", "a1b2"]);
+    match cli.command {
+        Command::Rotate(args) => match args.action {
+            RotateAction::Now(now) => assert_eq!(now.config_id.as_deref(), Some("a1b2")),
             _ => panic!("expected now subcommand"),
         },
         _ => panic!("expected rotate command"),

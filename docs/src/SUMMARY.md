@@ -12,6 +12,7 @@
   - [init](02-cli/init.md)
   - [import](02-cli/import.md)
   - [config management](02-cli/config-management.md)
+  - [stable refs](02-cli/refs.md)
   - [validate](02-cli/validate.md)
   - [list](02-cli/list.md)
   - [parse](02-cli/parse.md)

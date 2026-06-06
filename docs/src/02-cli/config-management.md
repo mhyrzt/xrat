@@ -2,7 +2,8 @@
 
 Manage individual stored configs after import.
 
-These commands operate on config IDs from `xrat list configs`.
+These commands operate on config refs from `xrat list configs`. Numeric IDs are
+still accepted for compatibility.
 
 ## When to Use These Commands
 
@@ -27,7 +28,7 @@ These commands operate on config IDs from `xrat list configs`.
 | `disabled` | Stored but skipped by enabled-only workflows.               |
 | `deleted`  | Soft-deleted and hidden unless `--deleted` or `--all` used. |
 
-Use `xrat connect <id>` when you want to start a proxy runtime. Use
+Use `xrat connect <ref>` when you want to start a proxy runtime. Use
 `xrat rotate start` when you want the daemon to manage automatic rotation.
 
 ---
@@ -63,15 +64,15 @@ Show details for one stored config or subscription. The target is a required
 subcommand (`config` or `subscription`).
 
 ```bash
-xrat show config <id> [--json]
-xrat show subscription <id> [--json]
+xrat show config <id-or-ref> [--json]
+xrat show subscription <id-or-ref> [--json]
 ```
 
 ### Arguments
 
-| Argument | Description                       |
-| -------- | --------------------------------- |
-| `id`     | Config or subscription ID to show |
+| Argument    | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `id-or-ref` | Config or subscription numeric ID or ref prefix |
 
 ### Flags
 
@@ -82,9 +83,9 @@ xrat show subscription <id> [--json]
 ### Examples
 
 ```bash
-xrat show config 42
-xrat show config 42 --json
-xrat show subscription 3
+xrat show config a1b2
+xrat show config a1b2c3d4 --json
+xrat show subscription f00d
 ```
 
 ---
@@ -94,14 +95,14 @@ xrat show subscription 3
 Enable a config.
 
 ```bash
-xrat enable <id>
+xrat enable <id-or-ref>
 ```
 
 ### Arguments
 
-| Argument | Description         |
-| -------- | ------------------- |
-| `id`     | Config ID to enable |
+| Argument    | Description                             |
+| ----------- | --------------------------------------- |
+| `id-or-ref` | Config numeric ID or ref prefix to use |
 
 Enabled configs are included in normal enabled-only workflows, such as:
 
@@ -121,14 +122,14 @@ changing state.
 Disable a config.
 
 ```bash
-xrat disable <id>
+xrat disable <id-or-ref>
 ```
 
 ### Arguments
 
-| Argument | Description          |
-| -------- | -------------------- |
-| `id`     | Config ID to disable |
+| Argument    | Description                             |
+| ----------- | --------------------------------------- |
+| `id-or-ref` | Config numeric ID or ref prefix to use |
 
 Disabled configs remain in the database but are excluded from enabled-only
 queries, tests, and rotation candidate selection.
@@ -141,15 +142,15 @@ Delete a config (soft by default) or a whole subscription. The target is a
 required subcommand (`config` or `subscription`).
 
 ```bash
-xrat delete config <id> [--hard]
-xrat delete subscription <id> [--yes]
+xrat delete config <id-or-ref> [--hard]
+xrat delete subscription <id-or-ref> [--yes]
 ```
 
 ### Arguments
 
-| Argument | Description                         |
-| -------- | ----------------------------------- |
-| `id`     | Config or subscription ID to delete |
+| Argument    | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `id-or-ref` | Config or subscription numeric ID or ref prefix |
 
 ### Flags
 
@@ -177,14 +178,14 @@ confirmation unless `--yes` is given.
 Restore a soft-deleted config.
 
 ```bash
-xrat restore <id>
+xrat restore <id-or-ref>
 ```
 
 ### Arguments
 
-| Argument | Description          |
-| -------- | -------------------- |
-| `id`     | Config ID to restore |
+| Argument    | Description                             |
+| ----------- | --------------------------------------- |
+| `id-or-ref` | Config numeric ID or ref prefix to use |
 
 `restore` only applies to soft-deleted configs. It does not recreate a config
 that was removed with `delete config --hard`.
@@ -217,6 +218,7 @@ xrat purge --yes    # no prompt
 
 ## Related
 
-- [`list`](list.md) — find config IDs and filter by state
+- [`stable refs`](refs.md) — use short refs in place of numeric IDs
+- [`list`](list.md) — find config refs and filter by state
 - [`runtime`](runtime.md) — connect, disconnect, and inspect active sessions
 - [`tui`](tui.md) — manage configs interactively

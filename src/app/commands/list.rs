@@ -1,7 +1,9 @@
 use crate::app::commands::output::{self, Align, Cell, Column, Style};
+use crate::app::commands::resolve::resolve_subscription_id;
 use crate::app::context::AppContext;
 use crate::cli::{ListArgs, ListConfigsArgs, ListFormat, ListSubscriptionsArgs, ListTarget};
 use crate::db::{ConfigListFilter, ConfigRecord, SubscriptionRecord};
+use crate::support::refs::short_ref;
 
 pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result<()> {
     match &command.target {
@@ -13,7 +15,7 @@ pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result
 }
 
 async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate::app::Result<()> {
-    let filter = build_config_list_filter(filters);
+    let filter = build_config_list_filter(context, filters).await?;
     let configs = context.db.list_configs(&filter).await?;
 
     if configs.is_empty() {
@@ -58,12 +60,12 @@ fn format_configs(configs: &[ConfigRecord], format: ListFormat) -> crate::app::R
 fn format_config_table(configs: &[ConfigRecord]) -> String {
     let columns = [
         Column {
-            header: "ID",
-            align: Align::Right,
+            header: "REF",
+            align: Align::Left,
         },
         Column {
             header: "SUB",
-            align: Align::Right,
+            align: Align::Left,
         },
         Column {
             header: "STATUS",
@@ -86,7 +88,7 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
         .iter()
         .map(|config| {
             vec![
-                Cell::plain(config.id.to_string()),
+                Cell::plain(short_ref(&config.r#ref).to_string()),
                 Cell::plain(
                     config
                         .subscription_id
@@ -111,10 +113,11 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
 
 fn format_config_tsv(configs: &[ConfigRecord]) -> String {
     let mut lines = Vec::with_capacity(configs.len() + 1);
-    lines.push("id\tsubscription_id\tstatus\tprotocol\taddress\tport\tname".to_string());
+    lines.push("ref\tid\tsubscription_id\tstatus\tprotocol\taddress\tport\tname".to_string());
     for config in configs {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            config.r#ref,
             config.id,
             config
                 .subscription_id
@@ -148,8 +151,8 @@ fn format_subscriptions(
 fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
     let columns = [
         Column {
-            header: "ID",
-            align: Align::Right,
+            header: "REF",
+            align: Align::Left,
         },
         Column {
             header: "KIND",
@@ -172,7 +175,7 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
         .iter()
         .map(|subscription| {
             vec![
-                Cell::plain(subscription.id.to_string()),
+                Cell::plain(short_ref(&subscription.r#ref).to_string()),
                 Cell::plain(subscription.source_kind.clone()),
                 Cell::plain(subscription.config_count.to_string()),
                 Cell::plain(output::truncate(
@@ -192,10 +195,11 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
 
 fn format_subscription_tsv(subscriptions: &[SubscriptionRecord]) -> String {
     let mut lines = Vec::with_capacity(subscriptions.len() + 1);
-    lines.push("id\tkind\tconfig_count\tname\tsource".to_string());
+    lines.push("ref\tid\tkind\tconfig_count\tname\tsource".to_string());
     for subscription in subscriptions {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            subscription.r#ref,
             subscription.id,
             subscription.source_kind,
             subscription.config_count,
@@ -239,6 +243,7 @@ fn config_style(config: &ConfigRecord) -> Style {
 fn config_json(config: &ConfigRecord) -> serde_json::Value {
     serde_json::json!({
         "id": config.id,
+        "ref": &config.r#ref,
         "subscription_id": config.subscription_id,
         "protocol": config.protocol,
         "address": config.address,
@@ -259,6 +264,7 @@ fn config_json(config: &ConfigRecord) -> serde_json::Value {
 pub(crate) fn subscription_json(subscription: &SubscriptionRecord) -> serde_json::Value {
     serde_json::json!({
         "id": subscription.id,
+        "ref": &subscription.r#ref,
         "source_kind": subscription.source_kind,
         "source_url": subscription.source_url,
         "name": subscription.name,
@@ -272,13 +278,93 @@ fn tsv_cell(value: Option<&str>) -> String {
     value.unwrap_or_default().replace(['\t', '\r', '\n'], " ")
 }
 
-fn build_config_list_filter(args: &ListConfigsArgs) -> ConfigListFilter {
-    ConfigListFilter {
+async fn build_config_list_filter(
+    context: &AppContext,
+    args: &ListConfigsArgs,
+) -> crate::app::Result<ConfigListFilter> {
+    let subscription_id = match &args.subscription {
+        Some(raw) => Some(resolve_subscription_id(context, raw).await?),
+        None => None,
+    };
+
+    Ok(ConfigListFilter {
         only_enabled: args.enabled_only,
         only_active: args.active_only,
         only_deleted: args.deleted_only,
         include_deleted: args.include_deleted,
-        subscription_id: args.subscription,
+        subscription_id,
         protocol: None,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_outputs_include_refs() {
+        let config = config_record("abcdef123456");
+
+        let table = format_config_table(std::slice::from_ref(&config));
+        let tsv = format_config_tsv(std::slice::from_ref(&config));
+        let json = config_json(&config);
+
+        assert!(table.contains("REF"));
+        assert!(table.contains("abcdef12"));
+        assert!(tsv.starts_with("ref\tid\t"));
+        assert_eq!(json["ref"], "abcdef123456");
+    }
+
+    #[test]
+    fn subscription_outputs_include_refs() {
+        let subscription = SubscriptionRecord {
+            id: 2,
+            r#ref: "123456abcdef".to_string(),
+            source_kind: "url".to_string(),
+            source_url: Some("https://example.com/sub".to_string()),
+            name: Some("main".to_string()),
+            created_at: "created".to_string(),
+            updated_at: "updated".to_string(),
+            config_count: 3,
+        };
+
+        let table = format_subscription_table(std::slice::from_ref(&subscription));
+        let tsv = format_subscription_tsv(std::slice::from_ref(&subscription));
+        let json = subscription_json(&subscription);
+
+        assert!(table.contains("REF"));
+        assert!(table.contains("123456ab"));
+        assert!(tsv.starts_with("ref\tid\t"));
+        assert_eq!(json["ref"], "123456abcdef");
+    }
+
+    fn config_record(value_ref: &str) -> ConfigRecord {
+        ConfigRecord {
+            id: 1,
+            r#ref: value_ref.to_string(),
+            subscription_id: Some(2),
+            dedup_key: "key".to_string(),
+            protocol: "vless".to_string(),
+            address: "example.com".to_string(),
+            port: 443,
+            username: None,
+            uuid: Some("uuid".to_string()),
+            password: None,
+            method: None,
+            network: "tcp".to_string(),
+            tls: Some("tls".to_string()),
+            sni: None,
+            host: None,
+            path: None,
+            name: Some("main".to_string()),
+            raw_config: "vless://uuid@example.com:443#main".to_string(),
+            is_active: true,
+            is_enabled: true,
+            is_deleted: false,
+            deleted_at: None,
+            imported_at: "imported".to_string(),
+            created_at: "created".to_string(),
+            updated_at: "updated".to_string(),
+        }
     }
 }

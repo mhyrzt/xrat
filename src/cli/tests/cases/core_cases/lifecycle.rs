@@ -7,7 +7,17 @@ fn parses_enable_subcommand() {
     let cli = Cli::parse_from(["xrat", "enable", "7"]);
 
     match cli.command {
-        Command::Enable(args) => assert_eq!(args.id, 7),
+        Command::Enable(args) => assert_eq!(args.id, "7"),
+        _ => panic!("expected enable command"),
+    }
+}
+
+#[test]
+fn parses_enable_ref_prefix() {
+    let cli = Cli::parse_from(["xrat", "enable", "a1b2c3d4"]);
+
+    match cli.command {
+        Command::Enable(args) => assert_eq!(args.id, "a1b2c3d4"),
         _ => panic!("expected enable command"),
     }
 }
@@ -17,7 +27,7 @@ fn parses_disable_subcommand() {
     let cli = Cli::parse_from(["xrat", "disable", "7"]);
 
     match cli.command {
-        Command::Disable(args) => assert_eq!(args.id, 7),
+        Command::Disable(args) => assert_eq!(args.id, "7"),
         _ => panic!("expected disable command"),
     }
 }
@@ -29,7 +39,7 @@ fn parses_delete_config_subcommand() {
     match cli.command {
         Command::Delete(args) => match args.target {
             DeleteTarget::Config(config) => {
-                assert_eq!(config.id, 7);
+                assert_eq!(config.id, "7");
                 assert!(!config.hard);
             }
             DeleteTarget::Subscription(_) => panic!("expected config target"),
@@ -45,7 +55,7 @@ fn parses_delete_config_hard_subcommand() {
     match cli.command {
         Command::Delete(args) => match args.target {
             DeleteTarget::Config(config) => {
-                assert_eq!(config.id, 7);
+                assert_eq!(config.id, "7");
                 assert!(config.hard);
             }
             DeleteTarget::Subscription(_) => panic!("expected config target"),
@@ -61,7 +71,23 @@ fn parses_delete_subscription_subcommand() {
     match cli.command {
         Command::Delete(args) => match args.target {
             DeleteTarget::Subscription(subscription) => {
-                assert_eq!(subscription.id, 3);
+                assert_eq!(subscription.id, "3");
+                assert!(subscription.yes);
+            }
+            DeleteTarget::Config(_) => panic!("expected subscription target"),
+        },
+        _ => panic!("expected delete command"),
+    }
+}
+
+#[test]
+fn parses_delete_subscription_ref_prefix() {
+    let cli = Cli::parse_from(["xrat", "delete", "subscription", "--yes", "f00d"]);
+
+    match cli.command {
+        Command::Delete(args) => match args.target {
+            DeleteTarget::Subscription(subscription) => {
+                assert_eq!(subscription.id, "f00d");
                 assert!(subscription.yes);
             }
             DeleteTarget::Config(_) => panic!("expected subscription target"),
@@ -81,7 +107,7 @@ fn parses_restore_subcommand() {
     let cli = Cli::parse_from(["xrat", "restore", "7"]);
 
     match cli.command {
-        Command::Restore(args) => assert_eq!(args.id, 7),
+        Command::Restore(args) => assert_eq!(args.id, "7"),
         _ => panic!("expected restore command"),
     }
 }

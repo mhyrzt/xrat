@@ -32,7 +32,7 @@ fn parses_show_config_subcommand() {
     match cli.command {
         Command::Show(args) => match args.target {
             ShowTarget::Config(config) => {
-                assert_eq!(config.id, 7);
+                assert_eq!(config.id, "7");
                 assert!(!config.json);
             }
             ShowTarget::Subscription(_) => panic!("expected config target"),
@@ -48,7 +48,7 @@ fn parses_show_config_json_subcommand() {
     match cli.command {
         Command::Show(args) => match args.target {
             ShowTarget::Config(config) => {
-                assert_eq!(config.id, 7);
+                assert_eq!(config.id, "7");
                 assert!(config.json);
             }
             ShowTarget::Subscription(_) => panic!("expected config target"),
@@ -64,7 +64,7 @@ fn parses_show_subscription_json_subcommand() {
     match cli.command {
         Command::Show(args) => match args.target {
             ShowTarget::Subscription(subscription) => {
-                assert_eq!(subscription.id, 4);
+                assert_eq!(subscription.id, "4");
                 assert!(subscription.json);
             }
             ShowTarget::Config(_) => panic!("expected subscription target"),

@@ -73,14 +73,14 @@ xrat rotate status [--json]
 Trigger an immediate manual rotation.
 
 ```bash
-xrat rotate now [--config-id <id>] [--refresh]
+xrat rotate now [--config-id <id-or-ref>] [--refresh]
 ```
 
 ### Flags
 
 | Flag          | Description                                                |
 | ------------- | ---------------------------------------------------------- |
-| `--config-id` | Force rotation to a specific enabled config ID            |
+| `--config-id` | Force rotation to a specific enabled config ID or ref prefix |
 | `--refresh`   | Refresh URL-backed subscriptions before selecting a candidate |
 
 ### Behavior

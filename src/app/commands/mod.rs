@@ -16,6 +16,7 @@ mod output;
 mod parse;
 mod proxy;
 mod purge;
+mod resolve;
 mod rotate;
 mod runtime_output;
 mod scan;

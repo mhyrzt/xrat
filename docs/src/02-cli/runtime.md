@@ -10,14 +10,14 @@ check status.
 Start a managed proxy runtime for a stored config.
 
 ```bash
-xrat connect <id> [flags]
+xrat connect <id-or-ref> [flags]
 ```
 
 ### Arguments
 
-| Argument | Description                                          |
-| -------- | ---------------------------------------------------- |
-| `id`     | Config ID to start as the active local proxy session |
+| Argument    | Description                                                       |
+| ----------- | ----------------------------------------------------------------- |
+| `id-or-ref` | Config numeric ID or ref prefix to start as the active session |
 
 ### Flags
 
@@ -28,11 +28,11 @@ xrat connect <id> [flags]
 ### Examples
 
 ```bash
-xrat connect 42
+xrat connect a1b2
 ```
 
 ```bash
-xrat connect 42 --json
+xrat connect a1b2c3d4 --json
 ```
 
 ### Behavior

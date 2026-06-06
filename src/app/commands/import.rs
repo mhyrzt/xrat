@@ -4,6 +4,13 @@ use crate::app::{context::AppContext, import};
 pub async fn run(context: &AppContext, input: &str) -> crate::app::Result<()> {
     let (source, nodes) = import::load_nodes_async(input).await?;
     let summary = context.db.import_nodes(&source, &nodes).await?;
+    let subscription = context
+        .db
+        .get_subscription_by_id(summary.subscription_id)
+        .await?;
+    let subscription_label = subscription
+        .map(|subscription| format!("{} (id {})", subscription.r#ref, subscription.id))
+        .unwrap_or_else(|| format!("#{}", summary.subscription_id));
 
     println!(
         "{}",
@@ -22,7 +29,7 @@ pub async fn run(context: &AppContext, input: &str) -> crate::app::Result<()> {
                     "config",
                     context.runtime_paths.config_path.display().to_string()
                 ),
-                ("subscription", format!("#{}", summary.subscription_id)),
+                ("subscription", subscription_label),
                 ("removed configs", summary.removed_configs.to_string()),
                 ("total configs", summary.total_configs.to_string()),
             ],

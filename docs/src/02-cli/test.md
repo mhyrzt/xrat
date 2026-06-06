@@ -3,14 +3,14 @@
 Test connectivity and latency for stored configs.
 
 ```bash
-xrat test [id] [flags]
+xrat test [id-or-ref] [flags]
 ```
 
 ## Arguments
 
-| Argument | Description                                           |
-| -------- | ----------------------------------------------------- |
-| `id`     | Config ID to test. Omit to bulk-test matching configs |
+| Argument    | Description                                                        |
+| ----------- | ------------------------------------------------------------------ |
+| `id-or-ref` | Config numeric ID or ref prefix. Omit to bulk-test matching configs |
 
 ## Filter Flags
 
@@ -20,7 +20,7 @@ When testing multiple configs (no `id` specified):
 | --------------------- | --------------------------------------------------- |
 | `--enabled-only`      | Filter: only enabled configs                        |
 | `--active-only`       | Filter: only the active config                      |
-| `--subscription <id>` | Filter: only configs from the given subscription ID |
+| `--subscription <id-or-ref>` | Filter: only configs from the given subscription ID or ref prefix |
 
 ## Stage Skip Flags
 

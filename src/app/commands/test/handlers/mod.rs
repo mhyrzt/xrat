@@ -10,8 +10,9 @@ pub(super) async fn run_ping_loop(
     args: &TestArgs,
     context: &AppContext,
     settings: ResolvedTestSettings,
+    config_id: i64,
 ) -> crate::app::Result<()> {
-    ping::run_ping_loop(args, context, settings).await
+    ping::run_ping_loop(args, context, settings, config_id).await
 }
 
 pub(super) async fn print_latest_run_summary(

@@ -2,10 +2,11 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use serde::Deserialize;
 
-use crate::db::ConfigListFilter;
+use crate::db::{ConfigListFilter, RefMatch};
 use crate::server::auth::require_api_key;
 use crate::server::response::{ApiConfigDetail, PaginatedResponse, detail_from_joined};
 use crate::server::{ServerError, ServerResult, ServerState};
+use crate::support::refs::is_ref_prefix;
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigsQuery {
@@ -62,10 +63,11 @@ pub async fn list_configs(
 
 pub async fn get_config(
     State(state): State<ServerState>,
-    Path(id): Path<i64>,
+    Path(id): Path<String>,
     Query(query): Query<ConfigsQuery>,
 ) -> ServerResult<Json<ApiConfigDetail>> {
     require_api_key(&state, query.key.as_deref())?;
+    let id = resolve_config_identifier(&state, &id).await?;
     let row = state
         .db
         .get_config_with_latest_test(id)
@@ -73,4 +75,29 @@ pub async fn get_config(
         .ok_or(ServerError::NotFound)?;
 
     Ok(Json(detail_from_joined(row)))
+}
+
+async fn resolve_config_identifier(state: &ServerState, raw: &str) -> ServerResult<i64> {
+    if let Some(id) = existing_numeric_config_id(state, raw).await? {
+        return Ok(id);
+    }
+
+    if is_ref_prefix(raw) {
+        return match state.db.resolve_config_ref_prefix(raw).await? {
+            RefMatch::Unique(id) => Ok(id),
+            RefMatch::Ambiguous => Err(ServerError::InvalidQuery(format!(
+                "config ref prefix '{raw}' is ambiguous; provide more characters"
+            ))),
+            RefMatch::None => Err(ServerError::NotFound),
+        };
+    }
+
+    Err(ServerError::NotFound)
+}
+
+async fn existing_numeric_config_id(state: &ServerState, raw: &str) -> ServerResult<Option<i64>> {
+    let Ok(id) = raw.parse::<i64>() else {
+        return Ok(None);
+    };
+    Ok(state.db.get_config_by_id(id).await?.is_some().then_some(id))
 }

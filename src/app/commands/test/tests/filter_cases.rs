@@ -5,6 +5,7 @@ use super::super::*;
 fn formats_csv_results_with_download_speed() {
     let output = TestOutputRow {
         id: 7,
+        r#ref: "abcdef123456".to_string(),
         name: Some("node, one".to_string()),
         protocol: "vless".to_string(),
         address: "example.com".to_string(),
@@ -34,8 +35,10 @@ fn formats_csv_results_with_download_speed() {
 
     let csv = format_csv(&[output]);
 
-    assert!(csv.starts_with("id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error\n"));
-    assert!(csv.contains("7,\"node, one\",vless,example.com,443,12,123,45.68,12.35,ok,"));
+    assert!(csv.starts_with("ref,id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error\n"));
+    assert!(
+        csv.contains("abcdef123456,7,\"node, one\",vless,example.com,443,12,123,45.68,12.35,ok,")
+    );
 }
 
 #[test]

@@ -18,7 +18,7 @@ pub(crate) fn test_runtime_paths() -> crate::app::context::RuntimePaths {
 
 pub(crate) fn test_args(id: Option<i64>) -> TestArgs {
     TestArgs {
-        id,
+        id: id.map(|value| value.to_string()),
         enabled_only: false,
         active_only: false,
         subscription: None,

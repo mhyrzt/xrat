@@ -4,12 +4,8 @@ pub(super) async fn run_ping_loop(
     args: &TestArgs,
     context: &AppContext,
     settings: ResolvedTestSettings,
+    config_id: i64,
 ) -> crate::app::Result<()> {
-    let config_id = args.id.ok_or_else(|| {
-        AppError::InvalidArgument(
-            "`test --ping` requires config id: `xrat test <id> --ping`".into(),
-        )
-    })?;
     let config = context
         .db
         .get_config_by_id(config_id)

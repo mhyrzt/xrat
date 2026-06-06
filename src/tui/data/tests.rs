@@ -5,6 +5,7 @@ use super::{TuiConfigRow, TuiData, TuiRuntimeStatus, TuiSourceRow, TuiTestStatus
 fn row(id: i64, delay: Option<i64>) -> TuiConfigRow {
     TuiConfigRow {
         id,
+        r#ref: format!("ref{id:09}"),
         name: format!("config-{id}"),
         protocol: "vless".to_string(),
         address: "example.com".to_string(),
@@ -51,6 +52,7 @@ fn matches_searchable_config_fields() {
     let row = row(4, Some(88));
 
     assert!(row.matches_search("config-4"));
+    assert!(row.matches_search("ref000000004"));
     assert!(row.matches_search("vless"));
     assert!(row.matches_search("example"));
     assert!(!row.matches_search("missing"));
@@ -70,6 +72,7 @@ fn maps_subscription_record_to_source_row() {
     });
 
     assert_eq!(row.id, 7);
+    assert_eq!(row.display_ref(), "ref00000");
     assert_eq!(row.display_name(), "main");
     assert_eq!(row.value_label(), "https://example.com/sub");
     assert_eq!(row.config_count, 42);

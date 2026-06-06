@@ -1,5 +1,6 @@
 use crate::app::commands::list::subscription_json;
 use crate::app::commands::output;
+use crate::app::commands::resolve::{resolve_config_id, resolve_subscription_id};
 use crate::app::context::AppContext;
 use crate::cli::{
     DeleteArgs, DeleteConfigArgs, DeleteSubscriptionArgs, DeleteTarget, DisableArgs, EnableArgs,
@@ -7,7 +8,8 @@ use crate::cli::{
 };
 
 pub async fn enable(context: &AppContext, args: &EnableArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
+    let id = resolve_config_id(context, &args.id).await?;
+    let config = context.db.get_config_by_id(id).await?.ok_or_else(|| {
         crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
     })?;
 
@@ -33,11 +35,11 @@ pub async fn enable(context: &AppContext, args: &EnableArgs) -> crate::app::Resu
         return Ok(());
     }
 
-    context.db.set_config_enabled(args.id, true).await?;
+    context.db.set_config_enabled(id, true).await?;
     println!(
         "{}",
         output::success(
-            format!("Enabled config {}", args.id),
+            format!("Enabled config {}", config.r#ref),
             output::color_enabled()
         )
     );
@@ -45,7 +47,8 @@ pub async fn enable(context: &AppContext, args: &EnableArgs) -> crate::app::Resu
 }
 
 pub async fn disable(context: &AppContext, args: &DisableArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
+    let id = resolve_config_id(context, &args.id).await?;
+    let config = context.db.get_config_by_id(id).await?.ok_or_else(|| {
         crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
     })?;
 
@@ -71,11 +74,11 @@ pub async fn disable(context: &AppContext, args: &DisableArgs) -> crate::app::Re
         return Ok(());
     }
 
-    context.db.set_config_enabled(args.id, false).await?;
+    context.db.set_config_enabled(id, false).await?;
     println!(
         "{}",
         output::success(
-            format!("Disabled config {}", args.id),
+            format!("Disabled config {}", config.r#ref),
             output::color_enabled()
         )
     );
@@ -92,16 +95,17 @@ pub async fn delete(context: &AppContext, args: &DeleteArgs) -> crate::app::Resu
 }
 
 async fn delete_config(context: &AppContext, args: &DeleteConfigArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
+    let id = resolve_config_id(context, &args.id).await?;
+    let config = context.db.get_config_by_id(id).await?.ok_or_else(|| {
         crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
     })?;
 
     if args.hard {
-        context.db.hard_delete_config(args.id).await?;
+        context.db.hard_delete_config(id).await?;
         println!(
             "{}",
             output::success(
-                format!("Permanently deleted config {}", args.id),
+                format!("Permanently deleted config {}", config.r#ref),
                 output::color_enabled()
             )
         );
@@ -116,11 +120,11 @@ async fn delete_config(context: &AppContext, args: &DeleteConfigArgs) -> crate::
             );
             return Ok(());
         }
-        context.db.delete_config(args.id).await?;
+        context.db.delete_config(id).await?;
         println!(
             "{}",
             output::success(
-                format!("Soft deleted config {}", args.id),
+                format!("Soft deleted config {}", config.r#ref),
                 output::color_enabled()
             )
         );
@@ -132,9 +136,10 @@ async fn delete_subscription(
     context: &AppContext,
     args: &DeleteSubscriptionArgs,
 ) -> crate::app::Result<()> {
+    let id = resolve_subscription_id(context, &args.id).await?;
     let subscription = context
         .db
-        .get_subscription_by_id(args.id)
+        .get_subscription_by_id(id)
         .await?
         .ok_or_else(|| {
             crate::app::AppError::InvalidArgument(format!("subscription {} not found", args.id))
@@ -143,20 +148,20 @@ async fn delete_subscription(
     if !args.yes
         && !output::confirm(format!(
             "Delete subscription {} and its {} config(s)?",
-            args.id, subscription.config_count
+            subscription.r#ref, subscription.config_count
         ))?
     {
         println!("{}", output::notice("Aborted.", output::color_enabled()));
         return Ok(());
     }
 
-    context.db.delete_subscription_with_configs(args.id).await?;
+    context.db.delete_subscription_with_configs(id).await?;
     println!(
         "{}",
         output::success(
             format!(
                 "Deleted subscription {} and {} config(s)",
-                args.id, subscription.config_count
+                subscription.r#ref, subscription.config_count
             ),
             output::color_enabled()
         )
@@ -165,7 +170,8 @@ async fn delete_subscription(
 }
 
 pub async fn restore(context: &AppContext, args: &RestoreArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
+    let id = resolve_config_id(context, &args.id).await?;
+    let config = context.db.get_config_by_id(id).await?.ok_or_else(|| {
         crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
     })?;
 
@@ -180,11 +186,11 @@ pub async fn restore(context: &AppContext, args: &RestoreArgs) -> crate::app::Re
         return Ok(());
     }
 
-    context.db.restore_config(args.id).await?;
+    context.db.restore_config(id).await?;
     println!(
         "{}",
         output::success(
-            format!("Restored config {}", args.id),
+            format!("Restored config {}", config.r#ref),
             output::color_enabled()
         )
     );
@@ -201,7 +207,8 @@ pub async fn show(context: &AppContext, args: &ShowArgs) -> crate::app::Result<(
 }
 
 async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app::Result<()> {
-    let config = context.db.get_config_by_id(args.id).await?.ok_or_else(|| {
+    let id = resolve_config_id(context, &args.id).await?;
+    let config = context.db.get_config_by_id(id).await?.ok_or_else(|| {
         crate::app::AppError::InvalidArgument(format!("config {} not found", args.id))
     })?;
 
@@ -210,6 +217,7 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "id": config.id,
+                "ref": config.r#ref,
                 "subscription_id": config.subscription_id,
                 "protocol": config.protocol,
                 "address": config.address,
@@ -242,6 +250,7 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
             Some("Config"),
             &[
                 ("id", config.id.to_string()),
+                ("ref", config.r#ref),
                 ("name", output::dash(config.name.as_deref())),
                 ("protocol", config.protocol),
                 ("address", format!("{}:{}", config.address, config.port)),
@@ -268,9 +277,10 @@ async fn show_subscription(
     context: &AppContext,
     args: &ShowSubscriptionArgs,
 ) -> crate::app::Result<()> {
+    let id = resolve_subscription_id(context, &args.id).await?;
     let subscription = context
         .db
-        .get_subscription_by_id(args.id)
+        .get_subscription_by_id(id)
         .await?
         .ok_or_else(|| {
             crate::app::AppError::InvalidArgument(format!("subscription {} not found", args.id))
@@ -290,6 +300,7 @@ async fn show_subscription(
             Some("Subscription"),
             &[
                 ("id", subscription.id.to_string()),
+                ("ref", subscription.r#ref),
                 ("name", output::dash(subscription.name.as_deref())),
                 ("kind", subscription.source_kind),
                 ("source", output::dash(subscription.source_url.as_deref())),
@@ -318,7 +329,9 @@ mod tests {
         let id = seed_config(&context).await;
         context.db.delete_config(id).await.expect("soft delete");
 
-        enable(&context, &EnableArgs { id }).await.expect("noop ok");
+        enable(&context, &EnableArgs { id: id.to_string() })
+            .await
+            .expect("noop ok");
 
         let config = fetch(&context, id).await;
         assert!(config.is_deleted);
@@ -330,7 +343,9 @@ mod tests {
         let id = seed_config(&context).await;
         assert!(fetch(&context, id).await.is_enabled);
 
-        enable(&context, &EnableArgs { id }).await.expect("noop ok");
+        enable(&context, &EnableArgs { id: id.to_string() })
+            .await
+            .expect("noop ok");
         assert!(fetch(&context, id).await.is_enabled);
     }
 
@@ -339,12 +354,12 @@ mod tests {
         let context = test_context("enable-roundtrip").await;
         let id = seed_config(&context).await;
 
-        disable(&context, &DisableArgs { id })
+        disable(&context, &DisableArgs { id: id.to_string() })
             .await
             .expect("disable ok");
         assert!(!fetch(&context, id).await.is_enabled);
 
-        enable(&context, &EnableArgs { id })
+        enable(&context, &EnableArgs { id: id.to_string() })
             .await
             .expect("enable ok");
         assert!(fetch(&context, id).await.is_enabled);
@@ -354,11 +369,11 @@ mod tests {
     async fn disable_already_disabled_is_noop_ok() {
         let context = test_context("disable-already").await;
         let id = seed_config(&context).await;
-        disable(&context, &DisableArgs { id })
+        disable(&context, &DisableArgs { id: id.to_string() })
             .await
             .expect("disable ok");
 
-        disable(&context, &DisableArgs { id })
+        disable(&context, &DisableArgs { id: id.to_string() })
             .await
             .expect("second disable noop ok");
         assert!(!fetch(&context, id).await.is_enabled);

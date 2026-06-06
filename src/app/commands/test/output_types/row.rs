@@ -23,6 +23,7 @@ impl TestOutputRow {
 
         Self {
             id: config.id,
+            r#ref: config.r#ref.clone(),
             name: config.name.clone(),
             protocol: config.protocol.clone(),
             address: config.address.clone(),

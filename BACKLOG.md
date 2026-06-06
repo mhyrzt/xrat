@@ -448,24 +448,16 @@ data or a partially applied/dirty migration row.
 
 ### Status
 
-In progress. Data layer landed:
-
-- `src/support/refs.rs`: 12-char hex generation, 8-char short display,
-  ref-prefix detection (unit tested).
-- Migrations `0019_add_config_subscription_refs.sql` (sqlite + postgres): add
-  nullable `ref`, backfill existing rows (`hex(randomblob(6))` /
-  `md5(random())`), and create unique indexes. (NOT NULL is enforced at the app
-  layer since SQLite cannot add NOT NULL UNIQUE via ALTER.)
-- `ref` added to `ConfigRecord`/`SubscriptionRecord`, all SELECT column lists,
-  row mappers, and both insert paths (generated on insert; upsert leaves
-  existing refs stable across subscription refresh).
-- Repository + `Database` resolve helpers `resolve_config_ref_prefix` /
-  `resolve_subscription_ref_prefix` returning `RefMatch::{None,Unique,Ambiguous}`,
-  with DB tests for unique/not-found/ambiguous and subscription resolution.
-
-Remaining: CLI acceptance of ref prefixes wherever ids are taken
-(connect/show/parse/test/delete/restore), `output.rs` + TUI + server display of
-short refs, and docs under `docs/src/02-cli/`.
+Done. Stable refs are now generated for configs and subscriptions, backfilled by
+migration 0019, preserved across subscription refresh, and resolvable by unique
+prefix through repository/database helpers. CLI handlers accept numeric IDs or
+ref prefixes for user-supplied config/subscription identifiers (`connect`,
+`show`, `enable`, `disable`, `restore`, `delete`, `test`, `list configs
+--subscription`, and `rotate now --config-id`) while keeping numeric primary keys
+internal. Human list/test/TUI views show short refs; TSV/CSV/JSON/API outputs
+include refs alongside numeric IDs. `/configs/{id}` accepts numeric IDs or config
+ref prefixes. Docs now cover stable refs, command usage, and schema migration
+0019.
 
 ### Goal
 

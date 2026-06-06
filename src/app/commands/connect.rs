@@ -1,11 +1,13 @@
 use crate::app::commands::output;
+use crate::app::commands::resolve::resolve_config_id;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::ConnectArgs;
 
 pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result<()> {
+    let config_id = resolve_config_id(context, &args.id).await?;
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
-    match ipc::runtime_connect_daemon(&socket_path, args.id).await {
+    match ipc::runtime_connect_daemon(&socket_path, config_id).await {
         Ok(response) => {
             if !response.ok {
                 return Err(crate::app::AppError::InvalidArgument(response.message));
@@ -69,9 +71,16 @@ mod tests {
     #[tokio::test]
     async fn connect_returns_daemon_unreachable_hint() {
         let context = test_context("connect-daemon-hint").await;
-        let err = run(&context, &ConnectArgs { id: 7, json: false })
-            .await
-            .expect_err("connect should require daemon reachability");
+        seed_config(&context).await;
+        let err = run(
+            &context,
+            &ConnectArgs {
+                id: "1".to_string(),
+                json: false,
+            },
+        )
+        .await
+        .expect_err("connect should require daemon reachability");
         match err {
             AppError::InvalidArgument(message) => {
                 assert!(message.contains("xrat daemon start"));
@@ -79,6 +88,38 @@ mod tests {
             }
             other => panic!("unexpected error: {other:?}"),
         }
+    }
+
+    async fn seed_config(context: &AppContext) {
+        let source = crate::db::ImportSource {
+            kind: crate::db::SourceKind::File,
+            value: "seed.txt".to_string(),
+            name: None,
+        };
+        context
+            .db
+            .import_nodes(
+                &source,
+                &[crate::model::Node {
+                    protocol: crate::model::Protocol::Vless,
+                    address: "example.com".to_string(),
+                    port: 443,
+                    username: None,
+                    uuid: Some("uuid-123".to_string()),
+                    password: None,
+                    method: None,
+                    network: "ws".to_string(),
+                    tls: Some("tls".to_string()),
+                    sni: Some("cdn.example.com".to_string()),
+                    host: Some("cdn.example.com".to_string()),
+                    path: Some("/socket".to_string()),
+                    name: Some("seed".to_string()),
+                    extensions: None,
+                    raw_config: "vless://uuid-123@example.com:443?type=ws#seed".to_string(),
+                }],
+            )
+            .await
+            .expect("import should succeed");
     }
 
     async fn test_context(prefix: &str) -> AppContext {

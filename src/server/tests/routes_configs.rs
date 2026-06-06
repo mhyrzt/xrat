@@ -24,6 +24,7 @@ async fn configs_routes_return_list_and_detail() {
     .await
     .expect("list route should succeed");
     assert_eq!(list.total, 1);
+    assert!(!list.items[0].r#ref.is_empty());
     assert_eq!(
         list.items[0].latest_test.as_ref().unwrap().real_delay_ms,
         Some(123)
@@ -31,7 +32,7 @@ async fn configs_routes_return_list_and_detail() {
 
     let Json(detail) = configs::get_config(
         State(state),
-        Path(list.items[0].id),
+        Path(list.items[0].id.to_string()),
         Query(ConfigsQuery {
             key: None,
             page: None,
@@ -43,7 +44,39 @@ async fn configs_routes_return_list_and_detail() {
     .await
     .expect("detail route should succeed");
     assert_eq!(detail.protocol, "vless");
+    assert_eq!(detail.r#ref, list.items[0].r#ref);
     assert_eq!(detail.latest_test.unwrap().tcp_ms, Some(45));
+}
+
+#[tokio::test]
+async fn config_detail_accepts_ref_prefix() {
+    let state = populated_state(None).await;
+    let config = state
+        .db
+        .list_configs(&Default::default())
+        .await
+        .expect("configs should load")
+        .into_iter()
+        .next()
+        .expect("config should exist");
+    let prefix = config.r#ref[..8].to_string();
+
+    let Json(detail) = configs::get_config(
+        State(state),
+        Path(prefix),
+        Query(ConfigsQuery {
+            key: None,
+            page: None,
+            per_page: None,
+            enabled: None,
+            protocol: None,
+        }),
+    )
+    .await
+    .expect("detail route should resolve ref prefix");
+
+    assert_eq!(detail.id, config.id);
+    assert_eq!(detail.r#ref, config.r#ref);
 }
 
 #[tokio::test]
@@ -52,7 +85,7 @@ async fn config_detail_returns_not_found_for_missing_id() {
 
     let result = configs::get_config(
         State(state),
-        Path(-1),
+        Path("-1".to_string()),
         Query(ConfigsQuery {
             key: None,
             page: None,
@@ -171,7 +204,7 @@ async fn config_detail_returns_null_latest_test_when_no_test_exists() {
 
     let Json(detail) = configs::get_config(
         State(state),
-        Path(config.id),
+        Path(config.id.to_string()),
         Query(ConfigsQuery {
             key: None,
             page: None,
@@ -184,4 +217,5 @@ async fn config_detail_returns_null_latest_test_when_no_test_exists() {
     .expect("detail should succeed");
 
     assert!(detail.latest_test.is_none());
+    assert_eq!(detail.r#ref, config.r#ref);
 }

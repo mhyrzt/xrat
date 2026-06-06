@@ -3,22 +3,22 @@ use clap::{Args, Subcommand};
 #[derive(Debug, Args)]
 #[command(about = "Enable a config.")]
 pub struct EnableArgs {
-    #[arg(help = "Config ID to enable.")]
-    pub id: i64,
+    #[arg(help = "Config ID or ref prefix to enable.")]
+    pub id: String,
 }
 
 #[derive(Debug, Args)]
 #[command(about = "Disable a config.")]
 pub struct DisableArgs {
-    #[arg(help = "Config ID to disable.")]
-    pub id: i64,
+    #[arg(help = "Config ID or ref prefix to disable.")]
+    pub id: String,
 }
 
 #[derive(Debug, Args)]
 #[command(about = "Restore a soft-deleted config.")]
 pub struct RestoreArgs {
-    #[arg(help = "Config ID to restore.")]
-    pub id: i64,
+    #[arg(help = "Config ID or ref prefix to restore.")]
+    pub id: String,
 }
 
 #[derive(Debug, Args)]
@@ -38,16 +38,16 @@ pub enum DeleteTarget {
 
 #[derive(Debug, Args)]
 pub struct DeleteConfigArgs {
-    #[arg(help = "Config ID to delete.")]
-    pub id: i64,
+    #[arg(help = "Config ID or ref prefix to delete.")]
+    pub id: String,
     #[arg(long = "hard", help = "Permanently delete the config.")]
     pub hard: bool,
 }
 
 #[derive(Debug, Args)]
 pub struct DeleteSubscriptionArgs {
-    #[arg(help = "Subscription ID to delete.")]
-    pub id: i64,
+    #[arg(help = "Subscription ID or ref prefix to delete.")]
+    pub id: String,
     #[arg(long = "yes", help = "Skip the confirmation prompt.")]
     pub yes: bool,
 }
@@ -69,16 +69,16 @@ pub enum ShowTarget {
 
 #[derive(Debug, Args)]
 pub struct ShowConfigArgs {
-    #[arg(help = "Config ID to show.")]
-    pub id: i64,
+    #[arg(help = "Config ID or ref prefix to show.")]
+    pub id: String,
     #[arg(long = "json", help = "Print the result as JSON.")]
     pub json: bool,
 }
 
 #[derive(Debug, Args)]
 pub struct ShowSubscriptionArgs {
-    #[arg(help = "Subscription ID to show.")]
-    pub id: i64,
+    #[arg(help = "Subscription ID or ref prefix to show.")]
+    pub id: String,
     #[arg(long = "json", help = "Print the result as JSON.")]
     pub json: bool,
 }

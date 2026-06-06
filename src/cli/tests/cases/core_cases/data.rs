@@ -203,7 +203,7 @@ fn parses_list_config_filters() {
         Command::List(args) => match args.target {
             ListTarget::Configs(filters) => {
                 assert!(filters.enabled_only);
-                assert_eq!(filters.subscription, Some(7));
+                assert_eq!(filters.subscription.as_deref(), Some("7"));
                 assert!(matches!(filters.format, ListFormat::Table));
             }
             ListTarget::Subscriptions(_) => panic!("expected configs target"),

@@ -31,6 +31,7 @@ pub struct ApiLatestTest {
 #[derive(Debug, Serialize)]
 pub struct ApiConfigSummary {
     pub id: i64,
+    pub r#ref: String,
     pub name: Option<String>,
     pub protocol: String,
     pub address: String,
@@ -45,6 +46,7 @@ pub struct ApiConfigSummary {
 #[derive(Debug, Serialize)]
 pub struct ApiConfigDetail {
     pub id: i64,
+    pub r#ref: String,
     pub subscription_id: Option<i64>,
     pub dedup_key: String,
     pub protocol: String,
@@ -77,6 +79,7 @@ pub struct PaginatedResponse<T> {
 pub fn summary_from_joined(row: &ConfigWithLatestTest) -> ApiConfigSummary {
     ApiConfigSummary {
         id: row.config.id,
+        r#ref: row.config.r#ref.clone(),
         name: row.config.name.clone(),
         protocol: row.config.protocol.clone(),
         address: row.config.address.clone(),
@@ -106,6 +109,7 @@ pub fn detail_from_joined(row: ConfigWithLatestTest) -> ApiConfigDetail {
     });
     ApiConfigDetail {
         id: row.config.id,
+        r#ref: row.config.r#ref,
         subscription_id: row.config.subscription_id,
         dedup_key: row.config.dedup_key,
         protocol: row.config.protocol,

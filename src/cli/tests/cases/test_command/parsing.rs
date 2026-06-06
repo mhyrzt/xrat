@@ -27,7 +27,7 @@ fn parses_test_subcommand_flags() {
 
     match cli.command {
         Command::Test(args) => {
-            assert_eq!(args.id, Some(42));
+            assert_eq!(args.id.as_deref(), Some("42"));
             assert!(args.skip_icmp);
             assert!(args.skip_real_delay);
             assert!(args.skip_download);
@@ -71,7 +71,7 @@ fn parses_bulk_test_flags() {
         Command::Test(args) => {
             assert_eq!(args.id, None);
             assert!(args.enabled_only);
-            assert_eq!(args.subscription, Some(9));
+            assert_eq!(args.subscription.as_deref(), Some("9"));
             assert_eq!(args.concurrency, Some(0));
             assert!(matches!(args.format, TestFormat::Csv));
             assert_eq!(
@@ -81,6 +81,19 @@ fn parses_bulk_test_flags() {
             assert!(matches!(args.sort_by, TestSortBy::RealDelay));
             assert!(args.no_progress);
             assert!(!args.latest_run_summary);
+        }
+        _ => panic!("expected test command"),
+    }
+}
+
+#[test]
+fn parses_test_ref_prefixes() {
+    let cli = Cli::parse_from(["xrat", "test", "a1b2", "--subscription", "f00d"]);
+
+    match cli.command {
+        Command::Test(args) => {
+            assert_eq!(args.id.as_deref(), Some("a1b2"));
+            assert_eq!(args.subscription.as_deref(), Some("f00d"));
         }
         _ => panic!("expected test command"),
     }

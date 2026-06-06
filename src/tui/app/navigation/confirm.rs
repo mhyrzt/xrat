@@ -13,7 +13,10 @@ impl TuiApp {
         let name = source.display_name().to_string();
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::DeleteSource(id),
-            prompt: format!("delete source #{id} \"{name}\" + its configs?"),
+            prompt: format!(
+                "delete source {} \"{name}\" + its configs?",
+                source.display_ref()
+            ),
         });
         self.status_message = "confirm delete source".to_string();
     }
@@ -38,7 +41,11 @@ impl TuiApp {
 
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::SoftDeleteConfig(config.id),
-            prompt: format!("soft-delete #{} {}?", config.id, config.display_name()),
+            prompt: format!(
+                "soft-delete {} {}?",
+                config.display_ref(),
+                config.display_name()
+            ),
         });
         self.status_message = "confirm soft delete".to_string();
     }
@@ -57,8 +64,8 @@ impl TuiApp {
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::PurgeConfig(config.id),
             prompt: format!(
-                "purge #{} {} (cannot undo)?",
-                config.id,
+                "purge {} {} (cannot undo)?",
+                config.display_ref(),
                 config.display_name()
             ),
         });

@@ -10,7 +10,7 @@ use crate::tui::theme;
 const MAX_NAME_CHARS: usize = 24;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
-    let header = Row::new(["St", "ID", "Name", "Proto", "Address", "Net", "Delay"])
+    let header = Row::new(["St", "Ref", "Name", "Proto", "Address", "Net", "Delay"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let visible = app.visible_configs();
@@ -36,7 +36,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
 
         Row::new(vec![
             Cell::from(state_marker(config)),
-            Cell::from(config.id.to_string()),
+            Cell::from(config.display_ref().to_string()),
             Cell::from(truncate_name(config.display_name())),
             Cell::from(config.protocol.clone()),
             Cell::from(config.endpoint()),
@@ -50,7 +50,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         rows,
         [
             Constraint::Length(2),
-            Constraint::Length(6),
+            Constraint::Length(8),
             Constraint::Max(MAX_NAME_CHARS as u16),
             Constraint::Length(9),
             Constraint::Percentage(35),
@@ -105,7 +105,7 @@ fn tab_title(app: &TuiApp) -> Line<'static> {
                 .sources
                 .iter()
                 .find(|source| source.id == source_id)
-                .map(|source| source.display_name().to_string())
+                .map(|source| format!("{} {}", source.display_ref(), source.display_name()))
                 .unwrap_or_else(|| format!("#{source_id}")),
         ),
     };

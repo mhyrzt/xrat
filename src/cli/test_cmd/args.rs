@@ -12,8 +12,8 @@ use super::{TestFormat, TestSortBy};
         Results are printed to stdout (or to --output file) in the selected format."
 )]
 pub struct TestArgs {
-    #[arg(help = "Config ID to test. Omit to bulk-test matching configs.")]
-    pub id: Option<i64>,
+    #[arg(help = "Config ID or ref prefix to test. Omit to bulk-test matching configs.")]
+    pub id: Option<String>,
 
     // -- Filter flags --
     #[arg(long = "enabled-only", help = "Filter: only enabled configs.")]
@@ -22,9 +22,9 @@ pub struct TestArgs {
     pub active_only: bool,
     #[arg(
         long = "subscription",
-        help = "Filter: only configs from the given subscription ID."
+        help = "Filter: only configs from the given subscription ID or ref prefix."
     )]
-    pub subscription: Option<i64>,
+    pub subscription: Option<String>,
 
     // -- Skip test stages --
     #[arg(long = "skip-icmp", help = "Skip the ICMP ping stage.")]

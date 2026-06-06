@@ -38,7 +38,7 @@ fn source_label(app: &TuiApp, config: &TuiConfigRow) -> String {
             .sources
             .iter()
             .find(|source| source.id == source_id)
-            .map(|source| format!("#{source_id} {}", source.display_name()))
+            .map(|source| format!("{} {}", source.display_ref(), source.display_name()))
             .unwrap_or_else(|| format!("#{source_id}")),
         None => "none".to_string(),
     }
@@ -54,11 +54,19 @@ fn detail_lines<'a>(
         Some(config) => {
             let mut lines = vec![
                 Line::styled(
-                    format!("#{} {}", config.id, config.display_name()),
+                    format!("{} {}", config.display_ref(), config.display_name()),
                     theme::accent_style().add_modifier(Modifier::BOLD),
                 ),
                 Line::raw(""),
             ];
+            push_detail(
+                &mut lines,
+                "ID",
+                config.id.to_string(),
+                LABEL_WIDTH,
+                content_width,
+            );
+            push_detail(&mut lines, "Ref", &config.r#ref, LABEL_WIDTH, content_width);
             push_detail(
                 &mut lines,
                 "Protocol",

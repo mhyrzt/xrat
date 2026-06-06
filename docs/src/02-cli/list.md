@@ -29,7 +29,7 @@ xrat list configs [flags]
 | `--active-only`       | Show only the active config                              |
 | `--deleted`           | Show only soft-deleted configs                           |
 | `--all`               | Include soft-deleted configs in results                  |
-| `--subscription <id>` | Show only configs from the given subscription ID         |
+| `--subscription <id-or-ref>` | Show only configs from the given subscription ID or ref prefix |
 | `--format <format>`   | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples
@@ -40,10 +40,10 @@ List all configs:
 xrat list configs
 ```
 
-List only enabled configs from subscription 3:
+List only enabled configs from a subscription ref:
 
 ```bash
-xrat list configs --enabled-only --subscription 3
+xrat list configs --enabled-only --subscription f00d
 ```
 
 List soft-deleted configs:
@@ -81,5 +81,6 @@ List only URL-based subscriptions:
 xrat list subscriptions --kind url
 ```
 
-Use `--format tsv` or `--format json` for scripts. The default `table` format is
-optimized for humans and may change as the CLI evolves.
+Human tables show short refs first. Use `--format tsv` or `--format json` for
+scripts; those formats include both refs and numeric IDs. The default `table`
+format is optimized for humans and may change as the CLI evolves.

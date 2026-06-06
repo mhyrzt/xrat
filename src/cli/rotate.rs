@@ -41,9 +41,9 @@ pub struct RotateStatusArgs {
 pub struct RotateNowArgs {
     #[arg(
         long = "config-id",
-        help = "Force rotation to a specific enabled config ID."
+        help = "Force rotation to a specific enabled config ID or ref prefix."
     )]
-    pub config_id: Option<i64>,
+    pub config_id: Option<String>,
     #[arg(
         long = "refresh",
         help = "Refresh URL-backed subscriptions before selecting a candidate."

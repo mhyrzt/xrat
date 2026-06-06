@@ -1,4 +1,5 @@
 use crate::app::commands::output;
+use crate::app::commands::resolve::resolve_config_id;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::{RotateAction, RotateArgs};
@@ -11,7 +12,13 @@ pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<
         RotateAction::Stop(_) => stop(&socket_path).await,
         RotateAction::Status(status_args) => status(&socket_path, status_args.json).await,
         RotateAction::Now(now_args) => {
-            now(context, &socket_path, now_args.config_id, now_args.refresh).await
+            now(
+                context,
+                &socket_path,
+                now_args.config_id.as_deref(),
+                now_args.refresh,
+            )
+            .await
         }
     }
 }
@@ -161,7 +168,7 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
 async fn now(
     context: &AppContext,
     socket_path: &std::path::Path,
-    config_id: Option<i64>,
+    config_id: Option<&str>,
     refresh: bool,
 ) -> crate::app::Result<()> {
     if refresh {
@@ -180,6 +187,11 @@ async fn now(
             )
         );
     }
+
+    let config_id = match config_id {
+        Some(raw) => Some(resolve_config_id(context, raw).await?),
+        None => None,
+    };
 
     match ipc::runtime_replace_daemon(socket_path, ipc::RotationTrigger::Manual, config_id).await {
         Ok(response) => {

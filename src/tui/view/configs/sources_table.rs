@@ -8,7 +8,7 @@ use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
-    let header = Row::new(["ID", "Name", "Kind", "Configs", "Updated"])
+    let header = Row::new(["Ref", "Name", "Kind", "Configs", "Updated"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let focused_row = app.source_list.focused;
@@ -53,7 +53,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         };
 
         Row::new(vec![
-            Cell::from(source.id.to_string()),
+            Cell::from(source.display_ref().to_string()),
             Cell::from(source.display_name().to_string()),
             Cell::from(source.kind.clone()),
             Cell::from(source.config_count.to_string()),
@@ -67,7 +67,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let table = Table::new(
         rows,
         [
-            Constraint::Length(5),
+            Constraint::Length(8),
             Constraint::Percentage(30),
             Constraint::Length(10),
             Constraint::Length(8),

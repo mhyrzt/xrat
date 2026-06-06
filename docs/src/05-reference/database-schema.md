@@ -26,9 +26,11 @@ Tracks import sources (URLs, files, raw text).
 ```sql
 CREATE TABLE subscriptions (
     id INTEGER PRIMARY KEY,
+    ref TEXT UNIQUE,
     source_url TEXT,
     source_kind TEXT NOT NULL CHECK(source_kind IN ('url', 'file', 'raw_text')),
     name TEXT,
+    last_refreshed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -37,9 +39,11 @@ CREATE TABLE subscriptions (
 | Column        | Type      | Description                            |
 | ------------- | --------- | -------------------------------------- |
 | `id`          | INTEGER   | Primary key                            |
+| `ref`         | TEXT      | Stable user-facing ref                 |
 | `source_url`  | TEXT      | Original URL, file path, or "raw_text" |
 | `source_kind` | TEXT      | `url`, `file`, or `raw_text`           |
 | `name`        | TEXT      | Optional subscription name             |
+| `last_refreshed_at` | TIMESTAMP | Latest successful refresh timestamp |
 | `created_at`  | TIMESTAMP | First import timestamp                 |
 | `updated_at`  | TIMESTAMP | Latest import timestamp                |
 
@@ -52,6 +56,7 @@ Stores normalized proxy nodes.
 ```sql
 CREATE TABLE configs (
     id INTEGER PRIMARY KEY,
+    ref TEXT UNIQUE,
     subscription_id INTEGER REFERENCES subscriptions(id),
     dedup_key TEXT NOT NULL UNIQUE,
     protocol TEXT NOT NULL,
@@ -81,6 +86,7 @@ CREATE TABLE configs (
 | Column            | Type      | Description                                               |
 | ----------------- | --------- | --------------------------------------------------------- |
 | `id`              | INTEGER   | Primary key                                               |
+| `ref`             | TEXT      | Stable user-facing ref                                    |
 | `subscription_id` | INTEGER   | FK to subscriptions                                       |
 | `dedup_key`       | TEXT      | Unique deduplication key                                  |
 | `protocol`        | TEXT      | `vless`, `vmess`, `ss`, `trojan`, `http`, `socks5`, `hy2` |
@@ -351,6 +357,8 @@ Migrations are run automatically on startup using SQLx.
 | 0015 | `add_config_soft_delete.sql`                      | Add soft-delete fields to configs                                          |
 | 0016 | `drop_config_is_selected.sql`                     | Drop the legacy `is_selected` column from configs                          |
 | 0017 | `add_events.sql`                                  | Add events table for the `xrat logs` event log                             |
+| 0018 | `add_subscription_last_refreshed_at.sql`          | Add subscription refresh timestamp tracking                                |
+| 0019 | `add_config_subscription_refs.sql`                | Add stable user-facing refs to configs and subscriptions                   |
 
 ### Migration Location
 

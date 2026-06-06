@@ -3,6 +3,7 @@ use super::*;
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct TestOutputRow {
     pub(crate) id: i64,
+    pub(crate) r#ref: String,
     pub(crate) name: Option<String>,
     pub(crate) protocol: String,
     pub(crate) address: String,

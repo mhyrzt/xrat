@@ -23,8 +23,9 @@ pub(super) async fn run_bulk(
     args: &TestArgs,
     context: &AppContext,
     settings: ResolvedTestSettings,
+    subscription_id: Option<i64>,
 ) -> crate::app::Result<()> {
-    bulk_executor::run_bulk(args, context, settings).await
+    bulk_executor::run_bulk(args, context, settings, subscription_id).await
 }
 
 pub(crate) async fn run_bulk_for_configs(

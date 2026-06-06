@@ -8,8 +8,12 @@ pub(super) async fn run_bulk(
     args: &TestArgs,
     context: &AppContext,
     settings: ResolvedTestSettings,
+    subscription_id: Option<i64>,
 ) -> crate::app::Result<()> {
-    let configs = context.db.list_configs(&args.config_filter()).await?;
+    let configs = context
+        .db
+        .list_configs(&args.config_filter(subscription_id))
+        .await?;
     if configs.is_empty() {
         tracing::info!("no configs found for requested test filters");
         write_results(args, &[])?;
