@@ -349,3 +349,55 @@ produce stats.
 
 - Reuse the engine-neutral `StatsSource` trait introduced in item 02; do not
   fork the stats UI per engine.
+
+## 05. Medium, P2: Routing rules in generated PAC file
+
+### Status
+
+Planned
+
+### Goal
+
+Make `GET /proxy.pac` honor routing rules so destinations can be matched to
+`DIRECT` / proxy / block decisions directly inside the PAC `FindProxyForURL`
+conditionals, instead of the current fixed "local + private ranges bypass,
+everything else proxied" logic (`src/server/routes/pac.rs:54`). Putting common
+direct/proxy domain and IP rules into the PAC if-statement makes routing more
+convenient and can speed up resolution (no proxy round-trip for direct hosts).
+
+### Current behavior
+
+`render_pac` emits a static function: plain hostnames, `*.local`, localhost, and
+RFC1918 ranges return `DIRECT`; everything else returns the proxy chain. There is
+no way to add custom direct/proxy/blocked domains or IP ranges.
+
+### Changes required
+
+- Define a routing-rule source for PAC generation. Options to weigh:
+  - reuse the runtime routing rules that item 02 introduces on `XrayConfig`
+    (`src/xray/config/types.rs`) where they map cleanly to host/domain matches;
+  - and/or a dedicated user-editable rule set (direct domains, proxy domains,
+    blocked domains, direct/proxy IP CIDRs) in app config.
+- Translate rules into PAC primitives: `shExpMatch(host, "*.example.com")` for
+  domains, `isInNet(host, ip, mask)` for CIDRs (convert prefix → dotted mask),
+  ordered direct → block (`return "DIRECT"` / a blackhole) → proxy → default
+  chain. Keep the existing local/private bypass as the first rule block.
+- Keep generation deterministic and bounded: large geosite/geoip lists do not
+  belong inline in a PAC; cap or summarize, or restrict PAC rules to curated
+  domain/CIDR lists and leave full geo routing to the engine. Document the limit.
+- Preserve current defaults when no rules are configured (byte-identical output
+  to today for the no-rules case).
+
+### Verification
+
+- `render_pac` unit tests: direct-domain rule emits `shExpMatch` + `DIRECT`;
+  CIDR rule emits `isInNet` with correct mask; blocked-domain rule returns the
+  blackhole; rule ordering is stable; no-rules output matches the current
+  baseline.
+- Manual: load the PAC in a browser/OS proxy setting and confirm a configured
+  direct domain bypasses the proxy while others still route through it.
+
+### Decisions
+
+- PAC carries curated/convenience rules only; full geosite/geoip routing stays
+  in the engine config. Keep no-rules output identical to today.
