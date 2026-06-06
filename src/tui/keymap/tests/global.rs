@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::super::action_for_key;
-use crate::tui::app::{TuiAction, TuiView};
+use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::empty())
@@ -20,6 +20,7 @@ fn act(
     action_for_key(
         key,
         view,
+        TuiPanel::Table,
         &mut None,
         false,
         editing_search,
@@ -35,6 +36,7 @@ fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
     let armed = action_for_key(
         key(leader),
         view,
+        TuiPanel::Table,
         &mut pending,
         false,
         false,
@@ -47,6 +49,7 @@ fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
     action_for_key(
         key(second),
         view,
+        TuiPanel::Table,
         &mut pending,
         false,
         false,
@@ -131,6 +134,52 @@ fn maps_tab_to_panel_focus() {
             false
         ),
         TuiAction::FocusPrevPanel
+    );
+}
+
+#[test]
+fn maps_log_tab_keys_only_when_log_panel_focused() {
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Right),
+            TuiView::Configs,
+            TuiPanel::Log,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::NextLogTab
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Left),
+            TuiView::Configs,
+            TuiPanel::Log,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::PrevLogTab
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Right),
+            TuiView::Configs,
+            TuiPanel::Table,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::None
     );
 }
 
@@ -297,6 +346,7 @@ fn unknown_chord_second_key_clears() {
     action_for_key(
         key(KeyCode::Char('t')),
         TuiView::Configs,
+        TuiPanel::Table,
         &mut pending,
         false,
         false,
@@ -308,6 +358,7 @@ fn unknown_chord_second_key_clears() {
     let resolved = action_for_key(
         key(KeyCode::Esc),
         TuiView::Configs,
+        TuiPanel::Table,
         &mut pending,
         false,
         false,
@@ -325,6 +376,7 @@ fn chord_leaders_inert_in_sources() {
     let action = action_for_key(
         key(KeyCode::Char('r')),
         TuiView::Sources,
+        TuiPanel::Table,
         &mut pending,
         false,
         false,

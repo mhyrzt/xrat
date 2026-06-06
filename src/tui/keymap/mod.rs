@@ -8,12 +8,13 @@ mod view;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::tui::app::{TuiAction, TuiView};
+use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
 #[allow(clippy::too_many_arguments)]
 pub fn action_for_key(
     key: KeyEvent,
     active_view: TuiView,
+    focused_panel: TuiPanel,
     pending_chord: &mut Option<char>,
     bulk_confirm_open: bool,
     editing_search: bool,
@@ -62,7 +63,7 @@ pub fn action_for_key(
         return TuiAction::None;
     }
 
-    view::action_for_view_key(key, active_view)
+    view::action_for_view_key(key, active_view, focused_panel)
 }
 
 fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {

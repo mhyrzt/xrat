@@ -36,6 +36,36 @@ pub enum TuiPanel {
     Runtime,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TuiLogTab {
+    #[default]
+    XratEvents,
+    ProxyEngine,
+}
+
+impl TuiLogTab {
+    pub fn next(self) -> Self {
+        match self {
+            Self::XratEvents => Self::ProxyEngine,
+            Self::ProxyEngine => Self::XratEvents,
+        }
+    }
+
+    pub fn prev(self) -> Self {
+        match self {
+            Self::XratEvents => Self::ProxyEngine,
+            Self::ProxyEngine => Self::XratEvents,
+        }
+    }
+
+    pub fn title(self) -> &'static str {
+        match self {
+            Self::XratEvents => "xrat events",
+            Self::ProxyEngine => "proxy engine",
+        }
+    }
+}
+
 /// Vertical scroll offsets for the scrollable cards. Wrapped in `Cell` so the
 /// render pass can clamp them to the live content/viewport sizes it computes.
 #[derive(Debug, Default)]
@@ -76,6 +106,8 @@ pub enum TuiAction {
     CancelBulk,
     RuntimeStop,
     RuntimeRestart,
+    NextLogTab,
+    PrevLogTab,
     RefreshFocusedSource,
     RefreshAllSources,
     OpenRenameModal,
@@ -231,6 +263,7 @@ pub struct TuiApp {
     pub pending_chord: Option<char>,
     /// Bulk operation awaiting inline y/n confirmation in the key bar.
     pub pending_bulk: Option<BulkOp>,
+    pub active_log_tab: TuiLogTab,
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,

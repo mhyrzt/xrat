@@ -12,7 +12,7 @@ mod views;
 pub use types::{
     BulkKind, BulkOp, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState,
     PanelScroll, QrKind, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
-    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
+    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiLogTab, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -49,6 +49,16 @@ impl TuiApp {
             | TuiAction::CopyApiUrl
             | TuiAction::OpenRenameModal
             | TuiAction::RenameSubmit => {}
+            TuiAction::NextLogTab => {
+                self.active_log_tab = self.active_log_tab.next();
+                self.panel_scroll.log.set(0);
+                self.status_message = self.active_log_tab.title().to_string();
+            }
+            TuiAction::PrevLogTab => {
+                self.active_log_tab = self.active_log_tab.prev();
+                self.panel_scroll.log.set(0);
+                self.status_message = self.active_log_tab.title().to_string();
+            }
             TuiAction::StartTest(scope) => {
                 self.test_state.scope = scope;
             }
@@ -98,6 +108,10 @@ impl TuiApp {
 
     pub fn set_status(&mut self, message: impl Into<String>) {
         self.status_message = message.into();
+    }
+
+    pub fn reload_logs(&mut self, logs: crate::tui::data::TuiLogs) {
+        self.data.logs = logs;
     }
 
     pub fn take_needs_full_clear(&mut self) -> bool {

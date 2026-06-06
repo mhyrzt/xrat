@@ -20,10 +20,25 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     app.engines = crate::tui::data::probe_engines(context).await;
     let (task_tx, mut task_rx) = mpsc::unbounded_channel();
     let (version_tx, mut version_rx) = mpsc::unbounded_channel();
+    let (logs_tx, mut logs_rx) = mpsc::unbounded_channel();
     tasks::spawn_version_check(version_tx);
+    let mut last_log_refresh = std::time::Instant::now();
+    let mut log_refresh_pending = false;
 
     loop {
         drain_task_events(&mut app, &mut task_rx);
+        while let Ok(result) = logs_rx.try_recv() {
+            log_refresh_pending = false;
+            match result {
+                Ok(logs) => app.reload_logs(logs),
+                Err(error) => app.set_status(format!("log refresh failed: {error}")),
+            }
+        }
+        if !log_refresh_pending && last_log_refresh.elapsed() >= Duration::from_secs(1) {
+            tasks::spawn_reload_logs(context.clone(), &logs_tx);
+            log_refresh_pending = true;
+            last_log_refresh = std::time::Instant::now();
+        }
         while let Ok(tag) = version_rx.try_recv() {
             app.latest_version = Some(tag);
         }
@@ -47,6 +62,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     let action = crate::tui::keymap::action_for_key(
                         key,
                         app.active_view,
+                        app.focused_panel,
                         &mut app.pending_chord,
                         bulk_confirm_open,
                         app.config_list.editing_search,

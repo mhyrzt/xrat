@@ -62,7 +62,11 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
             ),
             section(
                 "Runtime",
-                vec![help_line("K", "Kill"), help_line("R", "Restart")],
+                vec![
+                    help_line("K", "Kill"),
+                    help_line("R", "Restart"),
+                    help_line("←, →", "Switch log tab"),
+                ],
             ),
             section(
                 "Soft Delete",

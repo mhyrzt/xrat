@@ -1,8 +1,8 @@
 use crate::tui::data::TuiData;
 
 use super::{
-    ConfigListState, PanelScroll, SourceListState, TestViewState, TuiApp, TuiPanel, TuiTaskState,
-    TuiView,
+    ConfigListState, PanelScroll, SourceListState, TestViewState, TuiApp, TuiLogTab, TuiPanel,
+    TuiTaskState, TuiView,
 };
 
 impl Default for TuiApp {
@@ -22,6 +22,7 @@ impl Default for TuiApp {
             confirm: None,
             pending_chord: None,
             pending_bulk: None,
+            active_log_tab: TuiLogTab::default(),
             rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),

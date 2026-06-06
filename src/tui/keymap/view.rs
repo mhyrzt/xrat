@@ -1,12 +1,22 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::tui::app::{TuiAction, TuiView};
+use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
-pub fn action_for_view_key(key: KeyEvent, active_view: TuiView) -> TuiAction {
+pub fn action_for_view_key(
+    key: KeyEvent,
+    active_view: TuiView,
+    focused_panel: TuiPanel,
+) -> TuiAction {
     match key.code {
         KeyCode::Char('q') => TuiAction::Quit,
         KeyCode::Esc => TuiAction::Back,
         KeyCode::Char('?') => TuiAction::ShowHelp,
+        KeyCode::Left if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
+            TuiAction::PrevLogTab
+        }
+        KeyCode::Right if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
+            TuiAction::NextLogTab
+        }
         KeyCode::Char('[') => TuiAction::PrevTab,
         KeyCode::Char(']') => TuiAction::NextTab,
         KeyCode::Tab => TuiAction::FocusNextPanel,

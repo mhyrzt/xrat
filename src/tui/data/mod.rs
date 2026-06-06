@@ -1,9 +1,11 @@
 mod configs;
+mod logs;
 mod runtime;
 mod sources;
 mod tests_view;
 
 pub use configs::TuiConfigRow;
+pub use logs::TuiLogs;
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
 pub use tests_view::TuiTestStatus;
@@ -42,6 +44,7 @@ pub struct TuiData {
     pub api_b64_url: String,
     pub server_enabled: bool,
     pub daemon: TuiDaemonInfo,
+    pub logs: TuiLogs,
 }
 
 impl TuiData {
@@ -72,6 +75,8 @@ impl TuiData {
         let runtime = RuntimeService::new(context).status().await?.into();
         let tests = TuiTestStatus::load(context, &configs).await?;
 
+        let logs = TuiLogs::load(context).await?;
+
         let mut data = Self::from_parts(configs, sources, runtime, tests);
         data.db_label = context.runtime_paths.database_label.clone();
         data.config_path = context.runtime_paths.config_path.display().to_string();
@@ -84,6 +89,7 @@ impl TuiData {
         data.api_b64_url = format!("http://{}:{}/b64", api_host, server.port);
         data.server_enabled = server.enabled;
         data.daemon = load_daemon_info(context).await;
+        data.logs = logs;
         Ok(data)
     }
 
@@ -133,6 +139,7 @@ impl TuiData {
             api_b64_url: String::new(),
             server_enabled: false,
             daemon: TuiDaemonInfo::default(),
+            logs: TuiLogs::default(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::super::action_for_key;
-use crate::tui::app::{TuiAction, TuiView};
+use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::empty())
@@ -20,6 +20,7 @@ fn act(
     action_for_key(
         key,
         view,
+        TuiPanel::Table,
         &mut None,
         false,
         editing_search,

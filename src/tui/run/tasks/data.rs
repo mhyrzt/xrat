@@ -2,7 +2,7 @@ use tokio::sync::mpsc;
 
 use crate::app::context::AppContext;
 use crate::tui::app::TuiApp;
-use crate::tui::data::TuiData;
+use crate::tui::data::{TuiData, TuiLogs};
 use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 
 pub fn spawn_reload_data(
@@ -36,4 +36,14 @@ pub async fn reload_data(context: &AppContext, app: &mut TuiApp) {
         Ok(data) => app.reload_data(data),
         Err(error) => app.set_status(format!("reload failed: {error}")),
     }
+}
+
+pub fn spawn_reload_logs(
+    context: AppContext,
+    logs_tx: &mpsc::UnboundedSender<crate::app::Result<TuiLogs>>,
+) {
+    let logs_tx = logs_tx.clone();
+    tokio::spawn(async move {
+        let _ = logs_tx.send(TuiLogs::load(&context).await);
+    });
 }

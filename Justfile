@@ -119,9 +119,9 @@ ci: fmt-rust-check lint test
 docs:
     mdbook serve docs --open
 
-# Watch for changes and rebuild/rerun the TUI
-watch-tui:
-    cargo watch -x 'run --locked -- tui'
+# Run the TUI
+tui:
+    cargo run --locked -- tui
 
 # Clean build artifacts
 clean:
