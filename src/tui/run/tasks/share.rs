@@ -1,5 +1,5 @@
 use crate::app::context::AppContext;
-use crate::tui::app::{QrModalState, TuiApp};
+use crate::tui::app::{QrKind, QrModalState, TuiApp};
 
 pub async fn open_qr_for_config(
     context: &AppContext,
@@ -9,7 +9,7 @@ pub async fn open_qr_for_config(
 ) {
     match context.db.get_config_by_id(config_id).await {
         Ok(Some(record)) => {
-            app.qr_modal = Some(QrModalState::new(config_name, record.raw_config));
+            app.qr_modal = Some(QrModalState::new(QrKind::Config, config_name, record.raw_config));
             app.needs_full_clear = true;
         }
         Ok(None) => app.set_status(format!("config {config_id} not found")),
@@ -28,7 +28,7 @@ pub async fn copy_config_uri(context: &AppContext, app: &mut TuiApp, config_id: 
 }
 
 pub fn open_qr_for_source(app: &mut TuiApp, source_name: String, source_url: String) {
-    app.qr_modal = Some(QrModalState::new(source_name, source_url));
+    app.qr_modal = Some(QrModalState::new(QrKind::Source, source_name, source_url));
     app.needs_full_clear = true;
 }
 
@@ -42,7 +42,7 @@ pub fn open_qr_for_api_url(app: &mut TuiApp) {
         app.set_status("API subscription URL not available");
         return;
     }
-    app.qr_modal = Some(QrModalState::new("API /b64 subscription", url));
+    app.qr_modal = Some(QrModalState::new(QrKind::Api, "API /b64 subscription", url));
     app.needs_full_clear = true;
 }
 

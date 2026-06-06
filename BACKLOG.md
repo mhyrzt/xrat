@@ -90,7 +90,10 @@ vhs media/tapes/cli.tape
 
 ### Status
 
-Planned
+Done. QR modal now sizes to the QR width plus fixed horizontal padding via
+`centered_rect_fixed`, uses kind-specific titles (`Config QR`, `Source QR`,
+`API QR`) through the new `QrKind` enum, centers a muted label under the code,
+drops the truncated URI line, and shows a concise `[Esc] Close` footer.
 
 ### Goal
 
@@ -499,6 +502,9 @@ xrat rotate status
 xrat proxy endpoints
 xrat proxy endpoints --json
 
+xrat proxy pac url
+xrat proxy pac print
+
 xrat proxy shell enable
 xrat proxy shell disable
 xrat proxy shell status
@@ -529,16 +535,21 @@ Example output:
 HTTP         http://127.0.0.1:18201
 SOCKS5       socks5://127.0.0.1:18200
 Shadowsocks  ss://...@192.168.1.20:18202
+PAC          http://127.0.0.1:18203/proxy.pac
 ```
 
 Requirements:
 
 - Show only active runtime inbounds: HTTP, SOCKS5, and Shadowsocks.
+- Also show the PAC URL when the API server/PAC endpoint is available, so
+  `xrat proxy endpoints` is the quick place to copy every local proxy endpoint.
 - If the inbound bind host is `0.0.0.0`, display the machine LAN IP for easy
   local-network use.
 - Otherwise display the configured bind host, normally `127.0.0.1`.
 - Endpoint output must be clean and aligned like the rest of xrat command
   output, not raw debug formatting.
+- Keep PAC helper commands in the proxy namespace so users can print the
+  generated PAC file with `xrat proxy pac print` once PAC support lands.
 - Reuse or extend `format_inbound_endpoint` in
   `src/app/commands/runtime_output.rs`.
 
@@ -629,11 +640,13 @@ Requirements:
   backend.
 - Docs, man pages, and completions: document new command names and the removal
   of old proxy rotation commands.
+- Coordinate with PAC support so `xrat proxy pac print` is available as the
+  copy-paste friendly way to print the generated PAC file.
 
 ### Verification
 
 - CLI parse tests for new commands, removed old proxy rotation commands,
-  `--shell`, `--desktop`, and `--json`.
+  `--shell`, `--desktop`, `--json`, and `proxy pac print`.
 - Command tests for endpoint formatting.
 - Command tests for shell output in bash, zsh, and fish modes.
 - Command tests for shell status environment inspection.

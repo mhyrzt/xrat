@@ -179,16 +179,35 @@ pub struct RenameModalState {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QrKind {
+    Config,
+    Source,
+    Api,
+}
+
+impl QrKind {
+    pub fn modal_title(self) -> &'static str {
+        match self {
+            QrKind::Config => "Config QR",
+            QrKind::Source => "Source QR",
+            QrKind::Api => "API QR",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct QrModalState {
-    pub title: String,
+    pub kind: QrKind,
+    pub label: String,
     pub uri: String,
 }
 
 impl QrModalState {
-    pub fn new(title: impl Into<String>, uri: impl Into<String>) -> Self {
+    pub fn new(kind: QrKind, label: impl Into<String>, uri: impl Into<String>) -> Self {
         Self {
-            title: title.into(),
+            kind,
+            label: label.into(),
             uri: uri.into(),
         }
     }

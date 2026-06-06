@@ -11,7 +11,7 @@ mod views;
 
 pub use types::{
     BulkKind, BulkOp, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState,
-    PanelScroll, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
+    PanelScroll, QrKind, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
     TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiPanel, TuiView,
 };
 

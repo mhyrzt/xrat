@@ -27,7 +27,7 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     }
 
     if app.qr_modal.is_some() {
-        modals::render_qr_modal(frame, modals::centered_rect(60, 80, area), app);
+        modals::render_qr_modal(frame, area, app);
     }
 }
 

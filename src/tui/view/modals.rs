@@ -274,9 +274,8 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         return;
     };
 
-    frame.render_widget(Clear, area);
-
-    let mut lines: Vec<Line> = Vec::new();
+    // Render the QR code first so its module count defines the modal width.
+    let mut qr_lines: Vec<Line> = Vec::new();
     match qrcode::QrCode::new(modal.uri.as_bytes()) {
         Ok(code) => {
             let width = code.width();
@@ -299,37 +298,52 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
                     };
                     spans.push(Span::raw(ch.to_string()));
                 }
-                lines.push(Line::from(spans));
+                qr_lines.push(Line::from(spans));
                 row += 2;
             }
         }
         Err(_) => {
-            lines.push(Line::styled(
+            qr_lines.push(Line::styled(
                 "QR generation failed (URI may be too long)",
                 theme::failure_style(),
             ));
         }
     }
+
+    const H_PAD: u16 = 2;
+    let footer = "[Esc] Close";
+    let qr_width = qr_lines
+        .iter()
+        .map(|line| line.width() as u16)
+        .max()
+        .unwrap_or(0);
+    let label_width = modal.label.chars().count() as u16;
+    let footer_width = footer.chars().count() as u16;
+    let content_width = qr_width.max(label_width).max(footer_width);
+    let inner_width = content_width + H_PAD * 2;
+    // qr rows + blank spacer + label + blank spacer + footer
+    let content_height = qr_lines.len() as u16 + 4;
+
+    let modal_area = centered_rect_fixed(inner_width + 2, content_height + 2, area);
+    frame.render_widget(Clear, modal_area);
+
+    let block = Block::default()
+        .title(format!(" {} ", modal.kind.modal_title()))
+        .borders(Borders::ALL);
+    let inner = block.inner(modal_area);
+    frame.render_widget(block, modal_area);
+
+    let mut lines = qr_lines;
     lines.push(Line::raw(""));
-    let uri_preview = if modal.uri.len() > 60 {
-        format!("{}…", &modal.uri[..60])
-    } else {
-        modal.uri.clone()
-    };
-    lines.push(Line::styled(uri_preview, theme::muted_style()));
+    lines.push(Line::styled(modal.label.clone(), theme::muted_style()));
     lines.push(Line::raw(""));
-    lines.push(Line::styled("Esc/q close", theme::muted_style()));
+    lines.push(Line::styled(footer, theme::muted_style()));
 
     frame.render_widget(
         Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .title(format!(" QR: {} ", modal.title))
-                    .borders(Borders::ALL),
-            )
-            .alignment(Alignment::Left)
+            .alignment(Alignment::Center)
             .style(theme::chrome_style()),
-        area,
+        inner,
     );
 }
 
