@@ -7,55 +7,84 @@ use crate::app::commands::output;
 use crate::app::config::{
     AppConfig, ConnectionTestStage, DatabaseBackend, SecretString, TestingSettings,
 };
-use crate::cli::ValidateArgs;
+use crate::cli::{ValidateArgs, ValidateFormat};
 
 pub fn run(args: &ValidateArgs) -> crate::app::Result<()> {
-    validate_path(args)?;
-    let config = crate::app::config::load(&args.path)?;
-    validate_config(&config)?;
+    let errors = collect_errors(args);
+    let color = output::color_enabled();
 
-    println!(
-        "{}",
-        output::success(
-            format!("{} is valid.", args.path.display()),
-            output::color_enabled()
-        )
-    );
-
-    Ok(())
-}
-
-fn validate_path(args: &ValidateArgs) -> crate::app::Result<()> {
-    if !args.path.exists() {
-        return Err(AppError::InvalidArgument(format!(
-            "config file does not exist: {}",
-            args.path.display()
-        )));
+    match args.format {
+        ValidateFormat::Human => {
+            if errors.is_empty() {
+                println!(
+                    "{}",
+                    output::success(format!("{} is valid.", args.path.display()), color)
+                );
+            } else {
+                let title = format!(
+                    "{} has {} validation error(s):",
+                    args.path.display(),
+                    errors.len()
+                );
+                eprintln!("{}", output::format_list(&title, &errors, color));
+            }
+        }
+        ValidateFormat::Json => {
+            let report = serde_json::json!({
+                "path": args.path.display().to_string(),
+                "valid": errors.is_empty(),
+                "errors": errors,
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_string())
+            );
+        }
     }
-
-    if !args.path.is_file() {
-        return Err(AppError::InvalidArgument(format!(
-            "config path is not a file: {}",
-            args.path.display()
-        )));
-    }
-
-    Ok(())
-}
-
-fn validate_config(config: &AppConfig) -> crate::app::Result<()> {
-    let mut errors = Vec::new();
-
-    validate_runtime(config, &mut errors);
-    validate_database(config, &mut errors);
-    validate_testing(&config.testing, &mut errors);
-    validate_server(config, &mut errors);
 
     if errors.is_empty() {
-        return Ok(());
+        Ok(())
+    } else {
+        Err(AppError::InvalidArgument(format!(
+            "{} is invalid",
+            args.path.display()
+        )))
+    }
+}
+
+/// Collect all validation findings. Structural problems (missing/non-file path,
+/// parse failure) short-circuit deeper checks since there is no config to lint.
+fn collect_errors(args: &ValidateArgs) -> Vec<String> {
+    let mut errors = Vec::new();
+
+    if !args.path.exists() {
+        errors.push(format!(
+            "config file does not exist: {}",
+            args.path.display()
+        ));
+        return errors;
+    }
+    if !args.path.is_file() {
+        errors.push(format!(
+            "config path is not a file: {}",
+            args.path.display()
+        ));
+        return errors;
     }
 
-    Err(AppError::InvalidArgument(errors.join("; ")))
+    match crate::app::config::load(&args.path) {
+        Ok(config) => validate_config(&config, &mut errors),
+        Err(err) => errors.push(format!("config failed to parse: {err}")),
+    }
+
+    errors
+}
+
+fn validate_config(config: &AppConfig, errors: &mut Vec<String>) {
+    validate_runtime(config, errors);
+    validate_database(config, errors);
+    validate_testing(&config.testing, errors);
+    validate_server(config, errors);
 }
 
 fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
@@ -69,7 +98,7 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
     }
 
     for stage in &runtime.rotation.test_stages {
-        if !matches!(stage.as_str(), "icmp" | "ping" | "real_delay" | "download") {
+        if ConnectionTestStage::from_config_str(stage).is_none() {
             errors.push(format!(
                 "[runtime.rotation].test_stages contains unsupported stage: {stage}"
             ));
@@ -249,16 +278,24 @@ fn validate_inbound(
     }
 }
 
+/// Structural secret validation for the default lint path: a literal must not be
+/// empty and an env reference must name a variable, but the env variable is not
+/// required to be set at validation time (resolution is deferred to runtime).
 fn validate_secret(label: &str, secret: Option<&SecretString>, errors: &mut Vec<String>) {
     let Some(secret) = secret else {
         errors.push(format!("{label} is required"));
         return;
     };
 
-    match secret.resolve() {
-        Ok(value) if value.is_empty() => errors.push(format!("{label} must not be empty")),
-        Ok(_) => {}
-        Err(error) => errors.push(format!("{label} is invalid: {error}")),
+    match secret {
+        SecretString::Literal(value) if value.is_empty() => {
+            errors.push(format!("{label} must not be empty"));
+        }
+        SecretString::Literal(_) => {}
+        SecretString::Env { env } if env.trim().is_empty() => {
+            errors.push(format!("{label} env reference must name a variable"));
+        }
+        SecretString::Env { .. } => {}
     }
 }
 
@@ -290,22 +327,27 @@ fn validate_positive(label: &str, value: u64, errors: &mut Vec<String>) {
 }
 
 fn test_stage_name(stage: ConnectionTestStage) -> &'static str {
-    match stage {
-        ConnectionTestStage::Icmp => "icmp",
-        ConnectionTestStage::RealDelay => "real_delay",
-        ConnectionTestStage::Download => "download",
-    }
+    stage.config_name()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn errors_for(config: &AppConfig) -> Vec<String> {
+        let mut errors = Vec::new();
+        validate_config(config, &mut errors);
+        errors
+    }
+
     #[test]
     fn accepts_default_config() {
-        let config = AppConfig::default();
+        let errors = errors_for(&AppConfig::default());
 
-        validate_config(&config).expect("default config should validate");
+        assert!(
+            errors.is_empty(),
+            "default config should validate: {errors:?}"
+        );
     }
 
     #[test]
@@ -313,9 +355,9 @@ mod tests {
         let mut config = AppConfig::default();
         config.runtime.engine = "bad".to_string();
 
-        let error = validate_config(&config).expect_err("engine should be rejected");
+        let errors = errors_for(&config);
 
-        assert!(error.to_string().contains("[runtime].engine"));
+        assert!(errors.iter().any(|e| e.contains("[runtime].engine")));
     }
 
     #[test]
@@ -324,12 +366,61 @@ mod tests {
         config.runtime.http.enabled = true;
         config.runtime.http.port = config.runtime.socks.port;
 
-        let error = validate_config(&config).expect_err("duplicate port should be rejected");
+        let errors = errors_for(&config);
 
         assert!(
-            error
-                .to_string()
-                .contains("duplicates another enabled inbound port")
+            errors
+                .iter()
+                .any(|e| e.contains("duplicates another enabled inbound port"))
+        );
+    }
+
+    #[test]
+    fn accepts_rotation_stage_aliases() {
+        let mut config = AppConfig::default();
+        config.runtime.rotation.test_stages = vec![
+            "ping".to_string(),
+            "real-delay".to_string(),
+            "download".to_string(),
+        ];
+
+        let errors = errors_for(&config);
+
+        assert!(
+            !errors
+                .iter()
+                .any(|e| e.contains("test_stages contains unsupported stage")),
+            "stage aliases should be accepted: {errors:?}"
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_rotation_stage() {
+        let mut config = AppConfig::default();
+        config.runtime.rotation.test_stages = vec!["bogus".to_string()];
+
+        let errors = errors_for(&config);
+
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("test_stages contains unsupported stage: bogus"))
+        );
+    }
+
+    #[test]
+    fn env_secret_does_not_require_resolution() {
+        let mut config = AppConfig::default();
+        config.server.enabled = true;
+        config.server.key = Some(SecretString::Env {
+            env: "XRAT_UNSET_VALIDATE_KEY".to_string(),
+        });
+
+        let errors = errors_for(&config);
+
+        assert!(
+            !errors.iter().any(|e| e.contains("[server].key")),
+            "env-referenced secret should pass structural validation: {errors:?}"
         );
     }
 
@@ -337,10 +428,15 @@ mod tests {
     fn rejects_missing_config_file() {
         let args = ValidateArgs {
             path: "/tmp/xrat-missing-config.toml".into(),
+            format: ValidateFormat::Human,
         };
 
-        let error = validate_path(&args).expect_err("missing file should be rejected");
+        let errors = collect_errors(&args);
 
-        assert!(error.to_string().contains("config file does not exist"));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("config file does not exist"))
+        );
     }
 }

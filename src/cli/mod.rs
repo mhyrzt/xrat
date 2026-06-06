@@ -61,7 +61,7 @@ pub use status::StatusArgs;
 pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
 pub use tui::TuiArgs;
 pub use upgrade::UpgradeArgs;
-pub use validate::ValidateArgs;
+pub use validate::{ValidateArgs, ValidateFormat};
 pub use version::VersionArgs;
 
 use clap::Parser;

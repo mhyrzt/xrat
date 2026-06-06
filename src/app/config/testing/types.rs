@@ -25,6 +25,24 @@ pub enum ConnectionTestStage {
     Download,
 }
 
+impl ConnectionTestStage {
+    /// Canonical config name (snake_case), matching serde `rename_all`.
+    pub fn config_name(self) -> &'static str {
+        match self {
+            ConnectionTestStage::Icmp => "icmp",
+            ConnectionTestStage::RealDelay => "real_delay",
+            ConnectionTestStage::Download => "download",
+        }
+    }
+
+    /// Parse a config stage string, honoring the same canonical names and
+    /// aliases as deserialization. This is the single source of truth for which
+    /// stage names are accepted in `[testing].order` and rotation `test_stages`.
+    pub fn from_config_str(value: &str) -> Option<Self> {
+        serde_json::from_value(serde_json::Value::String(value.to_string())).ok()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TestFailurePolicy {

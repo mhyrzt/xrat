@@ -235,7 +235,27 @@ Currently `RuntimeOp` appears as plain running text in
 
 ### Status
 
-Planned
+Done. Findings:
+
+- **Stage drift resolved**: rotation `test_stages` are now validated through the
+  authoritative `ConnectionTestStage::from_config_str` (added alongside
+  `config_name`), which honors the same canonical names and aliases as
+  deserialization (`ping` is a real alias for `icmp`; `real-delay`/
+  `download-speed` accepted). `test_stage_name` reuses `config_name` so there is
+  a single source of truth. `upload`/`tcp` are not standalone stages, so they
+  remain unvalidated by design.
+- **Secrets**: secret validation is now structural — a literal must be
+  non-empty and an env reference must name a variable, but env vars are not
+  resolved at lint time.
+- **Output**: failures render through `output::format_list` (clean multi-line)
+  instead of `; `-joined blobs; added `--format json` with
+  `{ path, valid, errors }`; invalid configs still exit non-zero via `AppError`.
+- **Wiring**: command/handler already registered; added CLI parse tests in
+  `src/cli/tests/cases/runtime_parse/validate.rs`, unit tests for stage aliases
+  and env secrets, and docs at `docs/src/02-cli/validate.md` (+ SUMMARY entry).
+
+Engine and `tcp`/`udp` network values stay as small documented string sets
+since no dedicated runtime-engine enum exists yet.
 
 ### Goal
 
