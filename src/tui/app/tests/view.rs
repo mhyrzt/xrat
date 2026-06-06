@@ -52,6 +52,21 @@ fn cycles_through_all_three_log_tabs() {
 }
 
 #[test]
+fn request_clear_events_arms_confirm() {
+    use crate::tui::app::ConfirmKind;
+
+    let mut app = TuiApp::default();
+    app.apply(TuiAction::RequestClearEvents);
+
+    let confirm = app.confirm.as_ref().expect("confirm should be armed");
+    assert_eq!(confirm.kind, ConfirmKind::ClearEvents);
+
+    // Cancelling clears the armed confirm without touching the database.
+    app.apply(TuiAction::Cancel);
+    assert!(app.confirm.is_none());
+}
+
+#[test]
 fn back_closes_help() {
     let mut app = TuiApp::default();
 

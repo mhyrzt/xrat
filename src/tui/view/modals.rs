@@ -118,6 +118,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                 vec![
                     help_line("1 / 2 / 3", "Events / Engine / Stats"),
                     help_line("[ ]", "Cycle log tabs"),
+                    help_line("C p", "Clear events (db)"),
                 ],
             ),
             section(

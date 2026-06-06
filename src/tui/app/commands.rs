@@ -6,7 +6,7 @@ impl TuiApp {
         match confirm.kind {
             ConfirmKind::SoftDeleteConfig(id) => Some(TuiConfigCommand::SoftDelete(id)),
             ConfirmKind::PurgeConfig(id) => Some(TuiConfigCommand::Purge(id)),
-            ConfirmKind::DeleteSource(_) => None,
+            ConfirmKind::DeleteSource(_) | ConfirmKind::ClearEvents => None,
         }
     }
 

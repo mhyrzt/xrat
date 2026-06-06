@@ -400,6 +400,10 @@ fn delete_purge_restore_chords_resolve() {
         chord(KeyCode::Char('r'), KeyCode::Char('a'), TuiView::Configs),
         TuiAction::RequestBulk(BulkOp::RestoreAllDeleted)
     );
+    assert_eq!(
+        chord(KeyCode::Char('C'), KeyCode::Char('p'), TuiView::Configs),
+        TuiAction::RequestClearEvents
+    );
 }
 
 #[test]

@@ -1,10 +1,12 @@
-use clap::{Args, ValueEnum};
+use clap::{Args, Subcommand, ValueEnum};
 
 use crate::cli::ListFormat;
 
 #[derive(Debug, Args)]
 #[command(about = "Show app events plus xray-core / sing-box engine logs.")]
 pub struct LogsArgs {
+    #[command(subcommand)]
+    pub command: Option<LogsCommand>,
     #[arg(
         short = 'f',
         long = "follow",
@@ -38,6 +40,19 @@ pub struct LogsArgs {
         help = "Output format for the event stream: table, tsv, or json [default: table]."
     )]
     pub format: ListFormat,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum LogsCommand {
+    /// Permanently delete persisted app/runtime events from the database.
+    #[command(about = "Permanently delete persisted app events from the database.")]
+    Clear(LogsClearArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct LogsClearArgs {
+    #[arg(long = "yes", help = "Skip the confirmation prompt.")]
+    pub yes: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]

@@ -96,6 +96,11 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         } else {
                             None
                         };
+                    let confirmed_clear_events =
+                        matches!(action, crate::tui::app::TuiAction::Confirm)
+                            && app.confirm.as_ref().is_some_and(|confirm| {
+                                matches!(confirm.kind, crate::tui::app::ConfirmKind::ClearEvents)
+                            });
                     let direct_command = app.config_command_for_action(action);
                     let start_focused_id =
                         if matches!(action, crate::tui::app::TuiAction::StartFocused) {
@@ -227,6 +232,9 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     }
                     if let Some(source_id) = confirmed_source_delete {
                         tasks::run_source_delete(context, &mut app, source_id).await;
+                    }
+                    if confirmed_clear_events {
+                        tasks::run_clear_events(context, &mut app).await;
                     }
                     if let Some((config_id, config_name)) = qr_config_id {
                         tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;

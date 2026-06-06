@@ -50,10 +50,7 @@ impl TuiLogTab {
     pub const ORDER: [Self; 3] = [Self::XratEvents, Self::ProxyEngine, Self::Stats];
 
     fn position(self) -> usize {
-        Self::ORDER
-            .iter()
-            .position(|tab| *tab == self)
-            .unwrap_or(0)
+        Self::ORDER.iter().position(|tab| *tab == self).unwrap_or(0)
     }
 
     pub fn next(self) -> Self {
@@ -116,6 +113,7 @@ pub enum TuiAction {
     NextLogTab,
     PrevLogTab,
     SelectLogTab(TuiLogTab),
+    RequestClearEvents,
     RefreshFocusedSource,
     RefreshAllSources,
     OpenRenameModal,
@@ -148,6 +146,7 @@ pub enum ConfirmKind {
     SoftDeleteConfig(i64),
     PurgeConfig(i64),
     DeleteSource(i64),
+    ClearEvents,
 }
 
 /// Destructive multi-config operations triggered through the chord keymap.

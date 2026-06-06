@@ -47,6 +47,22 @@ impl TuiApp {
         });
     }
 
+    /// Arm an inline confirm for clearing all persisted events from the
+    /// database. This is the destructive DB clear, distinct from a view-only
+    /// buffer clear.
+    pub(crate) fn request_clear_events(&mut self) {
+        if self.active_view != TuiView::Configs
+            || self.config_list.editing_search
+            || self.confirm.is_some()
+        {
+            return;
+        }
+        self.confirm = Some(ConfirmState {
+            kind: ConfirmKind::ClearEvents,
+            prompt: "clear all persisted events from db (cannot undo)?".to_string(),
+        });
+    }
+
     pub(crate) fn request_purge_focused(&mut self) {
         if self.active_view != TuiView::Configs
             || self.config_list.editing_search

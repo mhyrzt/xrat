@@ -6,10 +6,14 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
 use crate::app::commands::output::{self, Align, Cell, Column};
 use crate::app::context::AppContext;
-use crate::cli::{ListFormat, LogLevel, LogSource, LogsArgs};
+use crate::cli::{ListFormat, LogLevel, LogSource, LogsArgs, LogsClearArgs, LogsCommand};
 use crate::db::{EventFilter, EventRecord};
 
 pub async fn run(context: &AppContext, args: &LogsArgs) -> crate::app::Result<()> {
+    if let Some(LogsCommand::Clear(clear_args)) = &args.command {
+        return clear(context, clear_args).await;
+    }
+
     let feeds = Feeds::resolve(context, args.source).await?;
     let filter = EventFilter {
         source: None,
@@ -22,6 +26,39 @@ pub async fn run(context: &AppContext, args: &LogsArgs) -> crate::app::Result<()
     } else {
         one_time(context, args, &feeds, &filter).await
     }
+}
+
+/// Permanently delete persisted app/runtime events. This is a database clear,
+/// distinct from the TUI's view-only log clear. Engine log files are not
+/// touched; they are tied to runtime sessions and rotate on their own.
+async fn clear(context: &AppContext, args: &LogsClearArgs) -> crate::app::Result<()> {
+    let probe = EventFilter {
+        limit: i64::MAX,
+        ..EventFilter::default()
+    };
+    let pending = context.db.list_events(&probe).await?.len();
+    if pending == 0 {
+        println!(
+            "{}",
+            output::notice("No persisted events to clear.", output::color_enabled())
+        );
+        return Ok(());
+    }
+
+    if !args.yes && !output::confirm("Permanently delete all persisted app events?")? {
+        println!("{}", output::notice("Aborted.", output::color_enabled()));
+        return Ok(());
+    }
+
+    let cleared = context.db.clear_events().await?;
+    println!(
+        "{}",
+        output::success(
+            format!("Cleared {cleared} event(s)."),
+            output::color_enabled()
+        )
+    );
+    Ok(())
 }
 
 async fn one_time(

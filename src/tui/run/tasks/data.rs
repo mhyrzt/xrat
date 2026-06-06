@@ -47,3 +47,22 @@ pub fn spawn_reload_logs(
         let _ = logs_tx.send(TuiLogs::load(&context).await);
     });
 }
+
+async fn reload_logs(context: &AppContext, app: &mut TuiApp) {
+    match TuiLogs::load(context).await {
+        Ok(logs) => app.reload_logs(logs),
+        Err(error) => app.push_log(format!("ERR log reload failed: {error}")),
+    }
+}
+
+/// Clear all persisted events from the database, then refresh the logs card.
+/// This is the destructive DB clear; engine log files are left untouched.
+pub async fn run_clear_events(context: &AppContext, app: &mut TuiApp) {
+    match context.db.clear_events().await {
+        Ok(count) => {
+            reload_logs(context, app).await;
+            app.push_log(format!("OK  cleared {count} persisted event(s) from db"));
+        }
+        Err(error) => app.push_log(format!("ERR clear events failed: {error}")),
+    }
+}

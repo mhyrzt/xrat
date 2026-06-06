@@ -17,4 +17,9 @@ impl Database {
     ) -> crate::db::Result<Vec<EventRecord>> {
         repository::events_after(&self.pool, after_id, filter).await
     }
+
+    /// Delete all persisted events. Returns the number of rows removed.
+    pub async fn clear_events(&self) -> crate::db::Result<u64> {
+        repository::clear_events(&self.pool).await
+    }
 }

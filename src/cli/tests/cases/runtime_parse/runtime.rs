@@ -68,12 +68,36 @@ fn parses_logs_defaults() {
     let cli = Cli::parse_from(["xrat", "logs"]);
     match cli.command {
         Command::Logs(args) => {
+            assert!(args.command.is_none());
             assert!(!args.follow);
             assert_eq!(args.lines, 200);
             assert!(matches!(args.source, LogSource::All));
             assert!(args.level.is_none());
             assert!(matches!(args.format, ListFormat::Table));
         }
+        _ => panic!("expected logs command"),
+    }
+}
+
+#[test]
+fn parses_logs_clear() {
+    use crate::cli::LogsCommand;
+
+    let cli = Cli::parse_from(["xrat", "logs", "clear", "--yes"]);
+    match cli.command {
+        Command::Logs(args) => match args.command {
+            Some(LogsCommand::Clear(clear)) => assert!(clear.yes),
+            _ => panic!("expected logs clear subcommand"),
+        },
+        _ => panic!("expected logs command"),
+    }
+
+    let cli = Cli::parse_from(["xrat", "logs", "clear"]);
+    match cli.command {
+        Command::Logs(args) => match args.command {
+            Some(LogsCommand::Clear(clear)) => assert!(!clear.yes),
+            _ => panic!("expected logs clear subcommand"),
+        },
         _ => panic!("expected logs command"),
     }
 }

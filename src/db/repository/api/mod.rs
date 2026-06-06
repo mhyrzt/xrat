@@ -19,7 +19,7 @@ pub use connection_tests::{
     insert_connection_test, insert_connection_test_run, list_connection_tests,
     list_connection_tests_by_run,
 };
-pub use events::{events_after, list_events, record_event};
+pub use events::{clear_events, events_after, list_events, record_event};
 pub use runtime_sessions::{
     get_latest_runtime_session, get_latest_runtime_session_for_config, get_running_runtime_session,
     get_runtime_session_count, insert_runtime_session, mark_runtime_session_stopped,

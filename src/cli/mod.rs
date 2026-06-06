@@ -50,7 +50,7 @@ pub use lifecycle::{
 pub use list::{
     ListArgs, ListConfigsArgs, ListFormat, ListSubscriptionsArgs, ListTarget, SubscriptionKind,
 };
-pub use logs::{LogLevel, LogSource, LogsArgs};
+pub use logs::{LogLevel, LogSource, LogsArgs, LogsClearArgs, LogsCommand};
 pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{

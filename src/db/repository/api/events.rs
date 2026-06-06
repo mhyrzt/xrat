@@ -20,3 +20,7 @@ pub async fn events_after(
 ) -> crate::db::Result<Vec<EventRecord>> {
     events::query_after(pool, after_id, filter).await
 }
+
+pub async fn clear_events(pool: &DbPool) -> crate::db::Result<u64> {
+    events::delete_all(pool).await
+}

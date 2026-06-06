@@ -3,14 +3,15 @@ use crossterm::event::KeyCode;
 use crate::tui::app::{BulkOp, TestScope, TuiAction};
 
 /// Chord leader keys, active only in the Configs view: `t` (test), `d`
-/// (soft-delete), `D` (purge), `r` (restore). Pressing one arms a chord that
-/// resolves on the next key.
+/// (soft-delete), `D` (purge), `r` (restore), `C` (clear logs). Pressing one
+/// arms a chord that resolves on the next key.
 pub fn leader_char(code: KeyCode) -> Option<char> {
     match code {
         KeyCode::Char('t') => Some('t'),
         KeyCode::Char('d') => Some('d'),
         KeyCode::Char('D') => Some('D'),
         KeyCode::Char('r') => Some('r'),
+        KeyCode::Char('C') => Some('C'),
         _ => None,
     }
 }
@@ -40,6 +41,8 @@ pub fn resolve_chord(leader: char, code: KeyCode) -> TuiAction {
         ('r', KeyCode::Char('v')) => TuiAction::RequestBulk(BulkOp::RestoreFilteredDeleted),
         ('r', KeyCode::Char('a')) => TuiAction::RequestBulk(BulkOp::RestoreAllDeleted),
 
+        ('C', KeyCode::Char('p')) => TuiAction::RequestClearEvents,
+
         _ => TuiAction::None,
     }
 }
@@ -51,6 +54,7 @@ pub fn chord_title(leader: char) -> &'static str {
         'd' => "DELETE",
         'D' => "PURGE",
         'r' => "RESTORE",
+        'C' => "CLEAR",
         _ => "",
     }
 }
@@ -80,6 +84,7 @@ pub fn chord_entries(leader: char) -> &'static [(&'static str, &'static str)] {
             ("a", "trash"),
         ],
         'r' => &[("r", "focused"), ("v", "filtered"), ("a", "trash")],
+        'C' => &[("p", "events (db)")],
         _ => &[],
     }
 }

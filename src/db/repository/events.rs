@@ -91,6 +91,20 @@ pub async fn query_after(
     }
 }
 
+/// Delete every persisted event. Returns the number of rows removed.
+pub async fn delete_all(pool: &DbPool) -> crate::db::Result<u64> {
+    match pool {
+        DbPool::Sqlite(pool) => Ok(sqlx::query("DELETE FROM events")
+            .execute(pool)
+            .await?
+            .rows_affected()),
+        DbPool::Postgres(pool) => Ok(sqlx::query("DELETE FROM events")
+            .execute(pool)
+            .await?
+            .rows_affected()),
+    }
+}
+
 const BASE_SELECT: &str = "SELECT id, level, source, kind, config_id, session_id, message, detail, created_at FROM events";
 
 fn push_insert_values<'args, DB>(builder: &mut QueryBuilder<'args, DB>, event: &'args NewEvent)
