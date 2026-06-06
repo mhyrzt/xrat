@@ -39,6 +39,18 @@ impl TuiConfigRow {
         format!("{}:{}", self.address, self.port)
     }
 
+    pub fn address_label(&self) -> &str {
+        if self.address.is_empty() {
+            "-"
+        } else {
+            &self.address
+        }
+    }
+
+    pub fn port_label(&self) -> String {
+        self.port.to_string()
+    }
+
     pub fn network_label(&self) -> String {
         match &self.tls {
             Some(tls) if !tls.is_empty() => format!("{}+{}", self.network, tls),

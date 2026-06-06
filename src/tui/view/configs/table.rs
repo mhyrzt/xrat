@@ -10,8 +10,10 @@ use crate::tui::theme;
 const MAX_NAME_CHARS: usize = 24;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
-    let header = Row::new(["St", "Ref", "Name", "Proto", "Address", "Net", "Delay"])
-        .style(theme::accent_style().add_modifier(Modifier::BOLD));
+    let header = Row::new([
+        "St", "Ref", "Name", "Proto", "Address", "Port", "Net", "Delay",
+    ])
+    .style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let visible = app.visible_configs();
     let rows = visible.iter().enumerate().map(|(idx, config)| {
@@ -39,7 +41,8 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             Cell::from(config.display_ref().to_string()),
             Cell::from(truncate_name(config.display_name())),
             Cell::from(config.protocol.clone()),
-            Cell::from(config.endpoint()),
+            Cell::from(config.address_label().to_string()),
+            Cell::from(config.port_label()),
             Cell::from(config.network_label()),
             Cell::from(delay_label(app, config)),
         ])
@@ -53,7 +56,8 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             Constraint::Length(8),
             Constraint::Max(MAX_NAME_CHARS as u16),
             Constraint::Length(9),
-            Constraint::Percentage(35),
+            Constraint::Percentage(30),
+            Constraint::Length(6),
             Constraint::Length(10),
             Constraint::Length(8),
         ],

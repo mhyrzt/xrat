@@ -7,8 +7,8 @@ Refs are random lowercase hex strings generated on insert. Human output shows
 the first 8 characters by default:
 
 ```text
-REF       STATUS          PROTO  ADDRESS              NAME
-a1b2c3d4  enabled,active  vless  example.com:443      Main
+REF       STATUS          PROTO  ADDRESS          PORT  NAME
+a1b2c3d4  enabled,active  vless  example.com       443  Main
 ```
 
 You can use any unique prefix:

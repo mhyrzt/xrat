@@ -80,6 +80,10 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
             align: Align::Left,
         },
         Column {
+            header: "PORT",
+            align: Align::Right,
+        },
+        Column {
             header: "NAME",
             align: Align::Left,
         },
@@ -99,10 +103,8 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
                     config_style(config),
                 ),
                 Cell::plain(config.protocol.clone()),
-                Cell::plain(output::truncate(
-                    &format!("{}:{}", config.address, config.port),
-                    36,
-                )),
+                Cell::plain(output::truncate(&output::dash(Some(&config.address)), 36)),
+                Cell::plain(config.port.to_string()),
                 Cell::plain(output::truncate(config.name.as_deref().unwrap_or("-"), 32)),
             ]
         })

@@ -37,11 +37,13 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
     }
 
     let headers = [
-        "REF", "STATUS", "ICMP", "REAL", "DOWN", "UP", "PROTO", "ADDRESS", "NAME",
+        "REF", "STATUS", "ICMP", "REAL", "DOWN", "UP", "PROTO", "ADDRESS", "PORT", "NAME",
     ];
-    let right_aligned = [false, false, true, true, true, true, false, false, false];
+    let right_aligned = [
+        false, false, true, true, true, true, false, false, true, false,
+    ];
 
-    let mut rows: Vec<[String; 9]> = Vec::with_capacity(outputs.len());
+    let mut rows: Vec<[String; 10]> = Vec::with_capacity(outputs.len());
     for output in outputs {
         rows.push([
             short_ref(&output.r#ref).to_string(),
@@ -51,12 +53,13 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
             mbps_cell(output.download_mbps),
             mbps_cell(output.upload_mbps),
             output.protocol.clone(),
-            format!("{}:{}", output.address, output.port),
+            dash_cell(&output.address),
+            output.port.to_string(),
             truncate_display(output.name.as_deref().unwrap_or("-"), MAX_NAME_WIDTH),
         ]);
     }
 
-    let mut widths = [0usize; 9];
+    let mut widths = [0usize; 10];
     for (index, header) in headers.iter().enumerate() {
         widths[index] = header.width();
     }
@@ -131,6 +134,14 @@ fn maybe_color(text: &str, code: &str, color: bool) -> String {
         format!("{code}{text}{RESET}")
     } else {
         text.to_string()
+    }
+}
+
+fn dash_cell(value: &str) -> String {
+    if value.is_empty() {
+        "-".to_string()
+    } else {
+        value.to_string()
     }
 }
 
