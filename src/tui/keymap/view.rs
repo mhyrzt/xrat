@@ -11,10 +11,10 @@ pub fn action_for_view_key(
         KeyCode::Char('q') => TuiAction::Quit,
         KeyCode::Esc => TuiAction::Back,
         KeyCode::Char('?') => TuiAction::ShowHelp,
-        KeyCode::Left if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
+        KeyCode::Char('[') if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
             TuiAction::PrevLogTab
         }
-        KeyCode::Right if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
+        KeyCode::Char(']') if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
             TuiAction::NextLogTab
         }
         KeyCode::Char('[') => TuiAction::PrevTab,

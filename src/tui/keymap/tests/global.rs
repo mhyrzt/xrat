@@ -138,10 +138,10 @@ fn maps_tab_to_panel_focus() {
 }
 
 #[test]
-fn maps_log_tab_keys_only_when_log_panel_focused() {
+fn maps_bracket_keys_to_focused_tab_group() {
     assert_eq!(
         action_for_key(
-            key(KeyCode::Right),
+            key(KeyCode::Char(']')),
             TuiView::Configs,
             TuiPanel::Log,
             &mut None,
@@ -155,7 +155,7 @@ fn maps_log_tab_keys_only_when_log_panel_focused() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Left),
+            key(KeyCode::Char('[')),
             TuiView::Configs,
             TuiPanel::Log,
             &mut None,
@@ -169,9 +169,23 @@ fn maps_log_tab_keys_only_when_log_panel_focused() {
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Right),
+            key(KeyCode::Char(']')),
             TuiView::Configs,
             TuiPanel::Table,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::NextTab
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Right),
+            TuiView::Configs,
+            TuiPanel::Log,
             &mut None,
             false,
             false,
