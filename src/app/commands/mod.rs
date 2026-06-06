@@ -3,6 +3,7 @@ mod completions;
 mod connect;
 mod daemon;
 mod daemon_install;
+mod db;
 mod disconnect;
 mod geoip;
 mod import;
@@ -46,6 +47,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Status(args) => status::run(context, args).await,
         Command::Logs(args) => logs::run(context, args).await,
         Command::Daemon(args) => daemon::run(context, args).await,
+        Command::Db(args) => db::run(context, args).await,
         Command::Proxy(args) => proxy::run(context, args).await,
         Command::Serve(args) => serve::run(context, args).await,
         Command::Tui(args) => tui::run(context, args).await,

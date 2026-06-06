@@ -9,9 +9,13 @@ use crate::app::AppError;
 use crate::app::commands::output;
 use crate::cli::UpgradeArgs;
 
-use super::{REPO, current_version, install_binary, same_version};
+use super::{REPO, current_version, install_binary, run_post_upgrade_migrations, same_version};
 
-pub(crate) async fn upgrade(args: &UpgradeArgs, target: &Path) -> crate::app::Result<()> {
+pub(crate) async fn upgrade(
+    args: &UpgradeArgs,
+    target: &Path,
+    config_path: &Path,
+) -> crate::app::Result<()> {
     let color = output::color_enabled();
     let arch = detect_arch()?;
 
@@ -74,6 +78,9 @@ pub(crate) async fn upgrade(args: &UpgradeArgs, target: &Path) -> crate::app::Re
     );
     extract_binary(work.path(), &filename)?;
     install_binary(&work.path().join("xrat"), target)?;
+
+    println!("{}", output::notice("applying database migrations", color));
+    run_post_upgrade_migrations(target, config_path)?;
 
     println!(
         "{}",

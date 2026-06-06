@@ -33,6 +33,10 @@ xrat upgrade
 3. Downloads the matching `xrat-<version>-<arch>.tar.gz` archive with a progress
    bar, verifies it against `SHASUMS256.txt`, extracts the binary, and replaces
    the running executable.
+4. Runs database migrations with the newly installed binary so any migration
+   failure is reported as part of the upgrade instead of surfacing on the next
+   unrelated command. If migrations fail, see [`db migrate`](db.md) for recovery
+   details.
 
 Prebuilt archives are Linux-only (`x86_64` and `aarch64`, musl). On other
 platforms or architectures, use `--source`.

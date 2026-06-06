@@ -1,10 +1,10 @@
 use clap::Subcommand;
 
 use crate::cli::{
-    AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DeleteArgs, DisableArgs, DisconnectArgs,
-    EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs, ParseArgs,
-    ProxyArgs, PurgeArgs, RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs, TestArgs,
-    TuiArgs, UpgradeArgs, ValidateArgs, VersionArgs,
+    AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DbArgs, DeleteArgs, DisableArgs,
+    DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs,
+    ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, ScanArgs, ServeArgs, ShowArgs, StatusArgs,
+    TestArgs, TuiArgs, UpgradeArgs, ValidateArgs, VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -43,6 +43,8 @@ pub enum Command {
     Logs(LogsArgs),
     #[command(about = "Run or control the XRAT daemon supervisor process.")]
     Daemon(DaemonArgs),
+    #[command(about = "Inspect and maintain the XRAT database.")]
+    Db(DbArgs),
     #[command(about = "Control auto-rotating proxy scheduling via the daemon.")]
     Proxy(ProxyArgs),
     #[command(about = "Start the local Axum HTTP API server.")]

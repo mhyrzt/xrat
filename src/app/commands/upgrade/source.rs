@@ -5,9 +5,13 @@ use crate::app::AppError;
 use crate::app::commands::output;
 use crate::cli::UpgradeArgs;
 
-use super::install_binary;
+use super::{install_binary, run_post_upgrade_migrations};
 
-pub(crate) async fn upgrade(args: &UpgradeArgs, target: &Path) -> crate::app::Result<()> {
+pub(crate) async fn upgrade(
+    args: &UpgradeArgs,
+    target: &Path,
+    config_path: &Path,
+) -> crate::app::Result<()> {
     let color = output::color_enabled();
     let source_dir = &args.path;
     if !source_dir.join("Cargo.toml").is_file() {
@@ -51,6 +55,9 @@ pub(crate) async fn upgrade(args: &UpgradeArgs, target: &Path) -> crate::app::Re
         output::notice(format!("installing to {}", target.display()), color)
     );
     install_binary(&built, target)?;
+
+    println!("{}", output::notice("applying database migrations", color));
+    run_post_upgrade_migrations(target, config_path)?;
 
     println!("{}", output::success("upgraded xrat from source", color));
 

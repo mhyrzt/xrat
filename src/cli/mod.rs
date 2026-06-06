@@ -3,6 +3,7 @@ mod command;
 mod completions;
 mod connect;
 mod daemon;
+mod db;
 mod disconnect;
 mod geoip;
 mod import;
@@ -33,6 +34,7 @@ pub use daemon::{
     DaemonAction, DaemonArgs, DaemonInstallArgs, DaemonRestartArgs, DaemonServeArgs,
     DaemonStartArgs, DaemonStatusArgs, DaemonStopArgs, DaemonUninstallArgs,
 };
+pub use db::{DbAction, DbArgs, DbMigrateArgs};
 pub use disconnect::DisconnectArgs;
 pub use geoip::{
     GeoIpAction, GeoIpArgs, GeoIpBackendArgs, GeoIpDownloadArgs, GeoIpLookupArgs, GeoIpPathArgs,

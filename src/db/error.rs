@@ -6,6 +6,9 @@ pub enum DbError {
     #[error("database migration failed: {0}")]
     Migration(#[from] sqlx::migrate::MigrateError),
 
+    #[error("{0}")]
+    MigrationFailed(String),
+
     #[error("database query failed: {0}")]
     Sqlx(#[from] sqlx::Error),
 

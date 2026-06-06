@@ -2,6 +2,7 @@ mod release;
 mod source;
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use crate::app::AppError;
 use crate::app::context::AppContext;
@@ -9,14 +10,43 @@ use crate::cli::UpgradeArgs;
 
 pub(crate) const REPO: &str = "mhyrzt/xrat";
 
-pub async fn run(_context: &AppContext, args: &UpgradeArgs) -> crate::app::Result<()> {
+pub async fn run(context: &AppContext, args: &UpgradeArgs) -> crate::app::Result<()> {
     let target = current_exe()?;
+    let config_path = &context.runtime_paths.config_path;
 
     if args.source {
-        source::upgrade(args, &target).await
+        source::upgrade(args, &target, config_path).await
     } else {
-        release::upgrade(args, &target).await
+        release::upgrade(args, &target, config_path).await
     }
+}
+
+/// Run database migrations using the freshly installed binary so any migration
+/// failure is reported as part of `xrat upgrade` rather than surfacing on the
+/// next unrelated command.
+pub(crate) fn run_post_upgrade_migrations(
+    target: &Path,
+    config_path: &Path,
+) -> crate::app::Result<()> {
+    let status = Command::new(target)
+        .arg("--config")
+        .arg(config_path)
+        .arg("db")
+        .arg("migrate")
+        .status()
+        .map_err(|error| {
+            AppError::InvalidArgument(format!(
+                "could not run post-upgrade database migrations: {error}"
+            ))
+        })?;
+
+    if !status.success() {
+        return Err(AppError::InvalidArgument(format!(
+            "post-upgrade database migration failed ({status}); run `xrat db migrate` for details"
+        )));
+    }
+
+    Ok(())
 }
 
 fn current_exe() -> crate::app::Result<PathBuf> {

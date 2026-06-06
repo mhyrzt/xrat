@@ -372,7 +372,27 @@ previous runtime/config automatically; the config had to be selected manually.
 
 ### Status
 
-Planned
+Done. Audit: `migrations/sqlite/` and `migrations/postgres/` both hold 18
+matching ordered files (no count/order drift), so the most likely cause remains
+a checksum/dirty/missing-migration state surfacing lazily on the first
+post-upgrade command. Changes:
+
+- **Actionable errors**: `src/db/schema.rs` now maps `MigrateError`
+  (`VersionMismatch`, `Dirty`, `VersionMissing`, `ExecuteMigration`) to a new
+  `DbError::MigrationFailed` with the migration version, likely cause, and
+  recovery guidance instead of a bare sqlx message.
+- **Explicit step**: added `xrat db migrate` (`src/cli/db.rs` +
+  `src/app/commands/db.rs`) to apply/verify migrations on demand and as a
+  recovery entry point.
+- **Upgrade-time migration**: `xrat upgrade` (both release and `--source`) now
+  runs `db migrate` with the freshly installed binary, so migration failures are
+  attributed to the upgrade rather than the next unrelated command.
+- **Policy**: documented "never edit shipped migrations" in `docs/src/02-cli/db.md`.
+- **Tests**: migrator applies cleanly on a fresh in-memory SQLite and is
+  idempotent on re-run; CLI parse tests for `db migrate`.
+
+The exact production error string still needs capturing from the affected user;
+the actionable wrapping now ensures whatever it is will be self-explanatory.
 
 ### Problem
 
