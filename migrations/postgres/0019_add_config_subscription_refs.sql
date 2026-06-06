@@ -5,10 +5,8 @@
 ALTER TABLE configs ADD COLUMN ref TEXT;
 ALTER TABLE subscriptions ADD COLUMN ref TEXT;
 
-UPDATE configs SET ref = substr(md5(random()::TEXT || id::TEXT), 1, 12)
-WHERE ref IS NULL;
-UPDATE subscriptions SET ref = substr(md5(random()::TEXT || id::TEXT), 1, 12)
-WHERE ref IS NULL;
+UPDATE configs SET ref = substr(md5(random()::text || id::text), 1, 12) WHERE ref IS NULL;
+UPDATE subscriptions SET ref = substr(md5(random()::text || id::text), 1, 12) WHERE ref IS NULL;
 
 CREATE UNIQUE INDEX idx_configs_ref ON configs (ref);
 CREATE UNIQUE INDEX idx_subscriptions_ref ON subscriptions (ref);
