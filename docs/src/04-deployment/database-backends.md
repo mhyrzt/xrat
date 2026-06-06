@@ -290,41 +290,53 @@ psql xrat < migrations/postgres/0001_init.sql
 ### Migration Policy
 
 SQLx records the checksum of every applied migration in the `_sqlx_migrations`
-table. Editing a migration file after any database has applied it — even a
-whitespace or formatting change — changes that checksum and makes SQLx reject
-the migration history on the next startup.
+table. Editing a migration file changes that checksum, and SQLx would normally
+reject the migration history on the next startup. xrat distinguishes two kinds
+of edit:
 
-To prevent this, migrations are **append-only**:
+- **Reformatting** (whitespace, line wrapping, `--` comments) is allowed.
+  Running `just fmt` over migrations is safe.
+- **Changing the meaning** of a migration that has already been applied or
+  released is not. Add a new ordered migration instead.
 
-- Never edit a migration that has been applied or released. Add a new ordered
-  migration instead.
-- A committed manifest (`migrations/checksums.json`) pins each migration's
-  checksum. The test `migration_files_match_committed_checksum_manifest` fails
-  in CI if a migration file changes without an intentional manifest update.
-- When you add a new migration, regenerate the manifest:
+This is enforced at two layers:
 
-  ```bash
-  UPDATE_MIGRATION_MANIFEST=1 cargo test \
-    migration_files_match_committed_checksum_manifest
-  ```
+- **Runtime**: on startup, xrat records each applied migration's *normalized*
+  checksum (comments stripped, whitespace collapsed) in `_xrat_migration_norms`.
+  If a migration's stored checksum no longer matches the file but the normalized
+  SQL is unchanged, it heals the stored checksum automatically. If the
+  normalized SQL changed, startup fails with an actionable error — the meaning of
+  an applied migration was altered.
+- **CI**: a committed manifest (`migrations/checksums.json`) pins each
+  migration's normalized checksum. The test
+  `migration_files_match_committed_checksum_manifest` passes through reformatting
+  and only fails when a migration changes meaning or a new migration is added.
+
+When you add a new migration (or deliberately change one that no database has
+applied), regenerate the manifest:
+
+```bash
+UPDATE_MIGRATION_MANIFEST=1 cargo test \
+  migration_files_match_committed_checksum_manifest
+```
 
 ### Recovering from a Checksum Mismatch
 
-If startup fails with a checksum mismatch, the recovery path depends on whether
-the affected migration has shipped.
+Reformatting recovers automatically — no action needed. A startup failure means
+a migration's *meaning* changed after it was applied; recovery depends on
+whether it shipped.
 
-**Local development database** (the migration is not yet released, and the file
-edit was intentional):
+**Local development database** (the migration is not yet released):
 
-- Discard the throwaway local database and let migrations re-run from scratch,
-  or
-- Reset the recorded checksum by deleting the affected database and reimporting,
-  then regenerate the manifest with the command above.
+- If the change was intentional, discard the throwaway local database and let
+  migrations re-run from scratch, then regenerate the manifest with the command
+  above.
 
 **Released user database** (the migration shipped in a published build):
 
-- Do not edit the migration. Restore the original migration file by reinstalling
-  the matching release, then add a new migration for any further schema change.
+- Do not change the migration's meaning. Restore the original migration file by
+  reinstalling the matching release, then add a new migration for any further
+  schema change.
 - If the database is already broken, restore it from a backup (see the Backup
   sections above).
 

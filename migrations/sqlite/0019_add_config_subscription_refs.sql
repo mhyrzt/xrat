@@ -7,7 +7,8 @@ ALTER TABLE subscriptions ADD COLUMN ref TEXT;
 
 UPDATE configs SET ref = lower(hex(randomblob(6)))
 WHERE ref IS NULL;
-UPDATE subscriptions SET ref = lower(hex(randomblob(6))) WHERE ref IS NULL;
+UPDATE subscriptions SET ref = lower(hex(randomblob(6)))
+WHERE ref IS NULL;
 
 CREATE UNIQUE INDEX idx_configs_ref ON configs (ref);
 CREATE UNIQUE INDEX idx_subscriptions_ref ON subscriptions (ref);
