@@ -52,14 +52,21 @@ The installer will:
 3. Download the latest GitHub release archive.
 4. Verify the archive against `SHASUMS256.txt`.
 5. Install `xrat` to `~/.local/bin/xrat`.
-6. Offer to run `xrat init`.
-7. Offer to install and start the systemd user daemon by default.
-8. Offer to enable systemd user lingering for boot startup before login.
+6. Install bundled man pages, shell completions, and desktop launcher assets.
+7. Offer to run `xrat init` when the script has an interactive terminal.
+8. Offer to install and start the systemd user daemon by default.
+9. Offer to enable systemd user lingering for boot startup before login.
 
 To install to a different directory:
 
 ```bash
 INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
+```
+
+To skip the desktop launcher:
+
+```bash
+INSTALL_DESKTOP=0 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
 Make sure the install directory is in `PATH`:
@@ -97,7 +104,8 @@ The script will:
 
 1. Run `cargo build --release` inside the checkout.
 2. Generate man pages and shell completions from the built binary.
-3. Install `xrat` and extras the same way as the release path.
+3. Install `xrat`, man pages, completions, and desktop launcher assets the same
+   way as the release path.
 4. Offer first-time setup prompts.
 
 For a pure Cargo-managed install or a development workflow, see

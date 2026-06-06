@@ -4,6 +4,8 @@ set -euo pipefail
 REPO="mhyrzt/xrat"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 BUILD_FROM_SOURCE="${BUILD_FROM_SOURCE:-}"
+INSTALL_DESKTOP="${INSTALL_DESKTOP:-1}"
+WORK_DIR="$(mktemp -d)"
 
 RED='\033[0;31m'
 YLW='\033[1;33m'
@@ -30,7 +32,7 @@ EOF
        /       \_/
       (  )   (  )
 EOF
-    echo -e "${NC}  installing xrat - squeak squeak"
+    echo -e "${NC}  installing xrat - the rat that tunnels for you"
     echo -e "  Proxy config manager for Xray and sing-box"
     echo
 }
@@ -93,9 +95,17 @@ check_singbox() {
 }
 
 get_latest_version() {
-    curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    local version
+    version=$(curl -fsSL -H "User-Agent: xrat-install" "https://api.github.com/repos/${REPO}/releases/latest" \
         | grep '"tag_name"' \
-        | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'
+        | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' || true)
+
+    if [[ -z "$version" ]]; then
+        error "Could not determine latest release version."
+        exit 1
+    fi
+
+    echo "$version"
 }
 
 download_and_verify() {
@@ -104,20 +114,23 @@ download_and_verify() {
     local base_url="https://github.com/${REPO}/releases/download/${version}"
 
     step "Downloading ${filename}..."
-    curl -fsSL --progress-bar -o "/tmp/${filename}" "${base_url}/${filename}"
+    curl -fsSL --progress-bar -o "${WORK_DIR}/${filename}" "${base_url}/${filename}"
 
     step "Verifying checksum..."
-    curl -fsSL -o "/tmp/SHASUMS256.txt" "${base_url}/SHASUMS256.txt"
-    (cd /tmp && grep "${filename}" SHASUMS256.txt | sha256sum -c -)
+    curl -fsSL -o "${WORK_DIR}/SHASUMS256.txt" "${base_url}/SHASUMS256.txt"
+    if ! grep -F "${filename}" "${WORK_DIR}/SHASUMS256.txt" > "${WORK_DIR}/checksum.txt"; then
+        error "No checksum entry found for ${filename}."
+        exit 1
+    fi
+    (cd "${WORK_DIR}" && sha256sum -c checksum.txt)
 
     step "Extracting binary and extras..."
-    tar -xzf "/tmp/${filename}" -C /tmp ./xrat ./man ./completions
-    rm "/tmp/${filename}" "/tmp/SHASUMS256.txt"
+    tar -xzf "${WORK_DIR}/${filename}" -C "${WORK_DIR}"
 }
 
 install_binary() {
     mkdir -p "$INSTALL_DIR"
-    mv /tmp/xrat "$INSTALL_DIR/xrat"
+    mv "${WORK_DIR}/xrat" "$INSTALL_DIR/xrat"
     chmod +x "$INSTALL_DIR/xrat"
     info "Installed to ${INSTALL_DIR}/xrat"
 }
@@ -138,36 +151,58 @@ build_from_source() {
 
     step "Generating man pages and completions..."
     local bin="$repo_dir/target/release/xrat"
-    mkdir -p /tmp/man/man1 /tmp/completions
-    "$bin" manpage --output /tmp/man/man1
-    "$bin" completions bash > /tmp/completions/xrat.bash
-    "$bin" completions zsh  > /tmp/completions/_xrat
-    "$bin" completions fish > /tmp/completions/xrat.fish
+    mkdir -p "${WORK_DIR}/man/man1" "${WORK_DIR}/completions"
+    "$bin" manpage --output "${WORK_DIR}/man/man1"
+    "$bin" completions bash > "${WORK_DIR}/completions/xrat.bash"
+    "$bin" completions zsh  > "${WORK_DIR}/completions/_xrat"
+    "$bin" completions fish > "${WORK_DIR}/completions/xrat.fish"
 
-    cp "$bin" /tmp/xrat
+    if [[ -d "$repo_dir/packaging/desktop" ]]; then
+        cp -rL "$repo_dir/packaging/desktop" "${WORK_DIR}/desktop"
+    fi
+
+    cp "$bin" "${WORK_DIR}/xrat"
 }
 
 install_extras() {
     local data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
 
-    if [[ -d /tmp/man ]]; then
+    if [[ -d "${WORK_DIR}/man" ]]; then
         local man_dir="${data_dir}/man/man1"
         mkdir -p "$man_dir"
-        cp /tmp/man/man1/*.1 "$man_dir/" 2>/dev/null || true
-        rm -rf /tmp/man
+        cp "${WORK_DIR}"/man/man1/*.1 "$man_dir/" 2>/dev/null || true
         info "Man pages installed to ${man_dir}"
     fi
 
-    if [[ -d /tmp/completions ]]; then
+    if [[ -d "${WORK_DIR}/completions" ]]; then
         local bash_dir="${data_dir}/bash-completion/completions"
         local zsh_dir="${data_dir}/zsh/site-functions"
         local fish_dir="${HOME}/.config/fish/completions"
 
-        [[ -f /tmp/completions/xrat.bash ]] && { mkdir -p "$bash_dir"; cp /tmp/completions/xrat.bash "$bash_dir/xrat"; }
-        [[ -f /tmp/completions/_xrat ]]      && { mkdir -p "$zsh_dir";  cp /tmp/completions/_xrat "$zsh_dir/_xrat"; }
-        [[ -f /tmp/completions/xrat.fish ]] && { mkdir -p "$fish_dir"; cp /tmp/completions/xrat.fish "$fish_dir/xrat.fish"; }
-        rm -rf /tmp/completions
+        [[ -f "${WORK_DIR}/completions/xrat.bash" ]] && { mkdir -p "$bash_dir"; cp "${WORK_DIR}/completions/xrat.bash" "$bash_dir/xrat"; }
+        [[ -f "${WORK_DIR}/completions/_xrat" ]]      && { mkdir -p "$zsh_dir";  cp "${WORK_DIR}/completions/_xrat" "$zsh_dir/_xrat"; }
+        [[ -f "${WORK_DIR}/completions/xrat.fish" ]] && { mkdir -p "$fish_dir"; cp "${WORK_DIR}/completions/xrat.fish" "$fish_dir/xrat.fish"; }
         info "Shell completions installed"
+    fi
+
+    if [[ "$INSTALL_DESKTOP" != "0" && -d "${WORK_DIR}/desktop" ]]; then
+        local apps_dir="${data_dir}/applications"
+        local icon_root="${data_dir}/icons/hicolor"
+        local icon_48_dir="${icon_root}/48x48/apps"
+        local icon_256_dir="${icon_root}/256x256/apps"
+
+        if [[ -f "${WORK_DIR}/desktop/xrat.desktop" ]]; then
+            mkdir -p "$apps_dir"
+            awk -v exec_path="${INSTALL_DIR}/xrat tui" '
+                /^Exec=/ { print "Exec=" exec_path; next }
+                { print }
+            ' "${WORK_DIR}/desktop/xrat.desktop" > "$apps_dir/xrat.desktop"
+        fi
+        [[ -f "${WORK_DIR}/desktop/icons/xrat-48x48.png" ]] && { mkdir -p "$icon_48_dir"; cp "${WORK_DIR}/desktop/icons/xrat-48x48.png" "$icon_48_dir/xrat.png"; }
+        [[ -f "${WORK_DIR}/desktop/icons/xrat-256x256.png" ]] && { mkdir -p "$icon_256_dir"; cp "${WORK_DIR}/desktop/icons/xrat-256x256.png" "$icon_256_dir/xrat.png"; }
+        check_cmd update-desktop-database && update-desktop-database "$apps_dir" >/dev/null 2>&1 || true
+        check_cmd gtk-update-icon-cache && gtk-update-icon-cache -f -t "$icon_root" >/dev/null 2>&1 || true
+        info "Desktop launcher installed"
     fi
 }
 
@@ -210,6 +245,25 @@ run_linger_enable() {
     echo -e "  ${DIM}loginctl disable-linger \"${user_name}\"${NC}"
 }
 
+prompt_yes_no() {
+    local prompt="$1" default="$2" answer
+
+    if ! { : </dev/tty; } 2>/dev/null; then
+        echo "n"
+        return 0
+    fi
+
+    ask "$prompt" >/dev/tty
+    read -r answer </dev/tty || answer=""
+    answer="${answer,,}"
+
+    if [[ -z "$answer" ]]; then
+        echo "$default"
+    else
+        echo "$answer"
+    fi
+}
+
 show_guide() {
     echo
     echo -e "${GRN}Quick start:${NC}"
@@ -227,8 +281,13 @@ show_guide() {
     echo -e "    ${DIM}xrat connect <id>${NC}"
     echo
     echo "  Rotate proxy:"
-    echo -e "    ${DIM}xrat proxy rotate${NC}"
+    echo -e "    ${DIM}xrat rotate now${NC}"
+    echo -e "    ${DIM}xrat rotate status${NC}"
     echo -e "    ${DIM}# requires xrat-daemon; install.sh can install it as a systemd user service${NC}"
+    echo
+    echo "  Proxy helpers:"
+    echo -e "    ${DIM}xrat proxy endpoints${NC}"
+    echo -e "    ${DIM}eval \"\$(xrat proxy shell enable)\"${NC}"
     echo
     echo "  Launch TUI:"
     echo -e "    ${DIM}xrat tui${NC}"
@@ -238,6 +297,8 @@ show_guide() {
 }
 
 main() {
+    trap 'rm -rf "${WORK_DIR}"' EXIT
+
     print_ascii
 
     if [[ "$(uname -s)" != "Linux" ]]; then
@@ -279,19 +340,16 @@ main() {
     info "xrat ${version} installed successfully."
     echo
 
-    ask "Automatically set up xrat? (init config + optional systemd daemon) [Y/n]"
-    read -r do_setup </dev/tty || do_setup=""
+    do_setup=$(prompt_yes_no "Automatically set up xrat? (init config + optional systemd daemon) [Y/n]" "y")
     if [[ "${do_setup,,}" != "n" ]]; then
         echo
         run_init
         echo
-        ask "Install and start xrat-daemon as a systemd user service? [Y/n]"
-        read -r do_daemon </dev/tty || do_daemon=""
+        do_daemon=$(prompt_yes_no "Install and start xrat-daemon as a systemd user service? [Y/n]" "y")
         if [[ "${do_daemon,,}" != "n" ]]; then
             run_daemon_install
             echo
-            ask "Start xrat-daemon at boot before login / keep it after logout? [y/N]"
-            read -r do_linger </dev/tty || do_linger=""
+            do_linger=$(prompt_yes_no "Start xrat-daemon at boot before login / keep it after logout? [y/N]" "n")
             if [[ "${do_linger,,}" == "y" ]]; then
                 run_linger_enable
             else
