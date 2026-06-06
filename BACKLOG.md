@@ -291,3 +291,61 @@ work, runtime startup/shutdown, and upgrade flows.
 - CLI output tests or focused unit tests for commands that can be checked
   without starting external services.
 - Manual checks for representative blocking commands, especially `connect`.
+
+## 04. Hard, P1: Managed sing-box runtime, hysteria2 connect, and Clash stats
+
+### Status
+
+Planned
+
+### Goal
+
+Let xrat actually run configs that only sing-box supports (notably hysteria2/hy2)
+and surface their live traffic in the TUI stats tab. Today the managed runtime is
+xray/v2ray only and the xray config generator cannot express hy2, so hy2 configs
+can be imported/parsed/translated but never connected — and therefore never
+produce stats.
+
+### Current limitations
+
+- `src/app/runtime_service/launch.rs` rejects `engine == "sing-box"` outright.
+- `src/xray/config/outbound.rs` returns an error for `Protocol::Hy2`
+  ("hysteria2/hy2 is not supported by xray config generator").
+- sing-box support is parse/translate only (`src/singbox/config/`), with no
+  launch, reattach, readiness, or runtime-session lifecycle.
+- Stats are xray gRPC StatsService only (see item 02); sing-box exposes traffic
+  through the Clash API instead, which has no client here.
+
+### Changes required
+
+- Lift the sing-box reject and build a managed sing-box launch path: generate a
+  sing-box runtime config from the stored node (reuse `src/singbox/config/`),
+  start the `sing-box_path` binary, wire readiness, reattach
+  (`exec_matches_runtime_engine`), and runtime-session persistence to match the
+  xray path.
+- Decide engine selection: hy2 (and other sing-box-only protocols) must route to
+  sing-box even when `runtime.engine` is xray. Either auto-select per-config
+  engine from the node protocol or validate/error clearly when the configured
+  engine cannot run the selected config.
+- Enable the sing-box Clash API (or experimental v2 API) in the generated
+  runtime config, gated by config like `[runtime.stats]`.
+- Add a `ClashStatsSource` implementing the `StatsSource` trait from item 02
+  (HTTP/WebSocket traffic endpoint) returning the same `StatsSample`
+  (cumulative up/down bytes), so the TUI stats tab works unchanged.
+- CLI/UX: ensure `connect`, `status`, `disconnect`, and the TUI reflect the
+  active engine; surface clear errors when a binary is missing.
+
+### Verification
+
+- Launch/reattach/lifecycle tests for the sing-box engine mirroring the xray
+  runtime-session tests.
+- Engine-selection tests: hy2 config routes to sing-box; unsupported
+  combinations error clearly.
+- `ClashStatsSource` sample parsing tests (no live engine).
+- Manual: `connect` a real hy2 config, confirm traffic flows and the TUI stats
+  tab shows rising totals via the Clash API.
+
+### Decisions
+
+- Reuse the engine-neutral `StatsSource` trait introduced in item 02; do not
+  fork the stats UI per engine.
