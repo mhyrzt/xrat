@@ -299,9 +299,8 @@ To prevent this, migrations are **append-only**:
 - Never edit a migration that has been applied or released. Add a new ordered
   migration instead.
 - A committed manifest (`migrations/checksums.json`) pins each migration's
-  checksum. The test
-  `migration_files_match_committed_checksum_manifest` fails in CI if a migration
-  file changes without an intentional manifest update.
+  checksum. The test `migration_files_match_committed_checksum_manifest` fails
+  in CI if a migration file changes without an intentional manifest update.
 - When you add a new migration, regenerate the manifest:
 
   ```bash

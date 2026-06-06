@@ -104,9 +104,9 @@ Replace the current config log view with a tabbed logs card. Current
 
 ### Target tabs
 
-1. `XRAT`: internal app events such as session changes, tests, rotation,
-   health, daemon activity, and runtime transitions. Source: `src/app/events.rs`
-   and `src/db/repository/events.rs`, the same data used by `xrat logs`.
+1. `XRAT`: internal app events such as session changes, tests, rotation, health,
+   daemon activity, and runtime transitions. Source: `src/app/events.rs` and
+   `src/db/repository/events.rs`, the same data used by `xrat logs`.
 2. `Engine`: raw proxy process logs from xray or sing-box. Source: process
    stdout/stderr or log files from `src/xray/process_mgmt/` and the sing-box
    equivalent.
