@@ -327,7 +327,18 @@ xrat validate --help
 
 ### Status
 
-Planned
+Done. Root cause: `reconcile_reattach_*` treated a missing PID as a terminal
+failure — it marked the session `Failed` and cleared the active config, so the
+TUI showed `daemon_restart_reattach_rejected_pid_missing` and never restored the
+previous config. Fix: `reconcile_reattach_with_inspector` now returns
+`Option<config_id>`, signalling recovery when the rejection reason is
+PID-missing and the persisted config is still enabled and not deleted. The
+daemon supervisor acts on that intent by relaunching via `connect`, recording
+`daemon_restart_stale_pid_recovered` / `daemon_restart_stale_pid_recovery_failed`
+events. Exec/cmdline mismatches are deliberately not auto-recovered (a live
+foreign process owns the PID). Tests assert the recovery intent for PID-missing,
+`None` for exec mismatch, and `None` for a disabled persisted config; docs note
+the recovery flow.
 
 ### Problem
 

@@ -43,10 +43,14 @@ async fn reattach_rejects_exec_mismatch_marks_session_failed() {
         .await
         .expect("session should insert");
 
-    RuntimeService::new(&context)
+    let recovery = RuntimeService::new(&context)
         .reconcile_reattach_on_daemon_start("daemon-test")
         .await
         .expect("reattach reconcile should succeed");
+    assert_eq!(
+        recovery, None,
+        "exec mismatch must not auto-relaunch over a foreign PID"
+    );
 
     let session = context
         .db

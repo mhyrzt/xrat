@@ -9,10 +9,14 @@ const REASON_REATTACH_REJECTED_CMDLINE_MISMATCH: &str =
     "daemon_restart_reattach_rejected_cmdline_mismatch";
 
 impl<'a> RuntimeService<'a> {
+    /// Reconcile a persisted runtime session against live processes on daemon
+    /// start. Returns `Some(config_id)` when a session was rejected because its
+    /// proxy process is gone (for example after a reboot) but the persisted
+    /// config is still usable, signalling the caller to relaunch it.
     pub async fn reconcile_reattach_on_daemon_start(
         &self,
         daemon_instance_id: &str,
-    ) -> crate::app::Result<()> {
+    ) -> crate::app::Result<Option<i64>> {
         self.reconcile_reattach_with_inspector(&process::SystemProcessInspector, daemon_instance_id)
             .await
     }
@@ -21,37 +25,12 @@ impl<'a> RuntimeService<'a> {
         &self,
         inspector: &dyn ProcessInspector,
         daemon_instance_id: &str,
-    ) -> crate::app::Result<()> {
+    ) -> crate::app::Result<Option<i64>> {
         let Some(session) = self.context.db.get_running_runtime_session().await? else {
-            return Ok(());
+            return Ok(None);
         };
 
-        if !validate_reattach_session(self.context, &session, inspector) {
-            let reject_reason = reattach_reject_reason(self.context, &session, inspector);
-            self.context
-                .db
-                .update_runtime_session_state(
-                    session.id,
-                    RuntimeSessionStatus::Failed,
-                    None,
-                    None,
-                    Some(&now_string()),
-                    Some(reject_reason),
-                )
-                .await?;
-            self.context
-                .db
-                .update_runtime_session_transition_metadata(
-                    session.id,
-                    Some("daemon"),
-                    Some(daemon_instance_id),
-                    Some(reject_reason),
-                    None,
-                    Some("daemon"),
-                )
-                .await?;
-            self.context.db.clear_active_config().await?;
-        } else {
+        if validate_reattach_session(self.context, &session, inspector) {
             self.context
                 .db
                 .update_runtime_session_transition_metadata(
@@ -63,9 +42,48 @@ impl<'a> RuntimeService<'a> {
                     Some("daemon"),
                 )
                 .await?;
+            return Ok(None);
         }
 
-        Ok(())
+        let reject_reason = reattach_reject_reason(self.context, &session, inspector);
+        self.context
+            .db
+            .update_runtime_session_state(
+                session.id,
+                RuntimeSessionStatus::Failed,
+                None,
+                None,
+                Some(&now_string()),
+                Some(reject_reason),
+            )
+            .await?;
+        self.context
+            .db
+            .update_runtime_session_transition_metadata(
+                session.id,
+                Some("daemon"),
+                Some(daemon_instance_id),
+                Some(reject_reason),
+                None,
+                Some("daemon"),
+            )
+            .await?;
+        self.context.db.clear_active_config().await?;
+
+        // A missing PID means the proxy process is genuinely gone (the common
+        // reboot case), so it is safe to relaunch from the persisted config. An
+        // exec/cmdline mismatch means a different process now owns that PID, so
+        // we do not auto-launch over it.
+        if reject_reason == REASON_REATTACH_REJECTED_PID_MISSING
+            && let Some(config_id) = session.config_id
+            && let Some(config) = self.context.db.get_config_by_id(config_id).await?
+            && config.is_enabled
+            && !config.is_deleted
+        {
+            return Ok(Some(config_id));
+        }
+
+        Ok(None)
     }
 }
 

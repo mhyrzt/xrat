@@ -1,2 +1,3 @@
+mod recover_disabled_config_case;
 mod reject_exec_mismatch_case;
 mod reject_pid_missing_case;

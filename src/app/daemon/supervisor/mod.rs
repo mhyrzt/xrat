@@ -14,7 +14,8 @@ pub use types::{
 };
 
 use crate::app::context::AppContext;
-use crate::app::runtime_service::RuntimeService;
+use crate::app::events;
+use crate::app::runtime_service::{ConnectRequest, RuntimeService};
 use crate::app::subscription_refresh;
 use crate::support::time::now_epoch_seconds;
 
@@ -26,11 +27,13 @@ const SUBSCRIPTION_REFRESH_TICK_SECONDS: u64 = 300;
 
 pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
     let daemon_instance_id = uuid::Uuid::new_v4().to_string();
-    if let Err(err) = RuntimeService::new(&context)
+    match RuntimeService::new(&context)
         .reconcile_reattach_on_daemon_start(&daemon_instance_id)
         .await
     {
-        tracing::warn!(error = %err, "daemon reattach reconciliation failed");
+        Ok(Some(config_id)) => recover_runtime_after_stale_pid(&context, config_id).await,
+        Ok(None) => {}
+        Err(err) => tracing::warn!(error = %err, "daemon reattach reconciliation failed"),
     }
     let mut state = SupervisorState::new(daemon_instance_id);
     state.rotation_enabled = context.app_config.runtime.rotation.enabled;
@@ -62,6 +65,43 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
                 };
                 handlers::handle_event(&mut state, event, &context).await;
             }
+        }
+    }
+}
+
+/// Relaunch the persisted runtime config after a stale-PID reattach rejection
+/// (typically after a reboot left a dead proxy PID). Records a readable event
+/// for either outcome so recovery is visible in `xrat logs`.
+async fn recover_runtime_after_stale_pid(context: &AppContext, config_id: i64) {
+    match RuntimeService::new(context)
+        .connect(ConnectRequest { config_id })
+        .await
+    {
+        Ok(result) => {
+            events::record(
+                &context.db,
+                events::LEVEL_INFO,
+                events::SOURCE_RUNTIME,
+                "daemon_restart_stale_pid_recovered",
+                format!("Reconnected config {config_id} after stale runtime PID on daemon start"),
+                Some(config_id),
+                Some(result.session_id),
+                None,
+            )
+            .await;
+        }
+        Err(err) => {
+            events::record(
+                &context.db,
+                events::LEVEL_WARN,
+                events::SOURCE_RUNTIME,
+                "daemon_restart_stale_pid_recovery_failed",
+                format!("Failed to reconnect config {config_id} after stale runtime PID"),
+                Some(config_id),
+                None,
+                Some(err.to_string()),
+            )
+            .await;
         }
     }
 }

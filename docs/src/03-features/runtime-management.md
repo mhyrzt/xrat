@@ -202,7 +202,24 @@ When the daemon starts, it reconciles stale sessions:
    - PID alive + cmdline matches → reattach (keep as `running`)
    - PID alive + cmdline mismatch → mark as `failed` (different process reused
      PID)
-   - PID dead → mark as `failed`
+   - PID dead → mark as `failed`, then **auto-recover**
+
+### Stale PID Recovery After Reboot
+
+A dead PID is the common case after a reboot: the persisted session points at a
+proxy process that no longer exists. Rather than leaving the runtime stopped and
+forcing a manual reconnect, the daemon clears the stale attachment and relaunches
+the persisted config automatically (when it is still enabled and not deleted).
+
+Recovery is recorded as an event visible in `xrat logs`:
+
+- `daemon_restart_stale_pid_recovered` — the persisted config reconnected
+  successfully.
+- `daemon_restart_stale_pid_recovery_failed` — the relaunch attempt failed; the
+  detail field carries the error.
+
+A cmdline/exec mismatch is **not** auto-recovered, because a different live
+process owns that PID and launching over it could be unsafe.
 
 ### Reattach Validation
 

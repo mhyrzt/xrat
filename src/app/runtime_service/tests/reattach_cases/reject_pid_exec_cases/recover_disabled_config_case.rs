@@ -1,7 +1,7 @@
 use super::super::*;
 
 #[tokio::test]
-async fn reattach_rejects_pid_missing_marks_session_failed() {
+async fn pid_missing_with_disabled_config_does_not_signal_recovery() {
     let context = test_context().await;
     let summary = context
         .db
@@ -18,6 +18,11 @@ async fn reattach_rejects_pid_missing_marks_session_failed() {
         .next()
         .expect("config should exist");
 
+    context
+        .db
+        .set_config_enabled(config.id, false)
+        .await
+        .expect("config should disable");
     context
         .db
         .set_active_config(config.id)
@@ -46,36 +51,9 @@ async fn reattach_rejects_pid_missing_marks_session_failed() {
         .reconcile_reattach_on_daemon_start("daemon-test")
         .await
         .expect("reattach reconcile should succeed");
-    assert_eq!(
-        recovery,
-        Some(config.id),
-        "stale-PID session should signal recovery for its persisted config"
-    );
 
-    let session = context
-        .db
-        .get_latest_runtime_session()
-        .await
-        .expect("latest should load")
-        .expect("latest should exist");
-    assert_eq!(session.status, RuntimeSessionStatus::Failed);
     assert_eq!(
-        session.failure_reason.as_deref(),
-        Some("daemon_restart_reattach_rejected_pid_missing")
-    );
-    assert_eq!(session.owner_kind.as_deref(), Some("daemon"));
-    assert_eq!(session.owner_instance_id.as_deref(), Some("daemon-test"));
-    assert_eq!(
-        session.last_transition_reason_code.as_deref(),
-        Some("daemon_restart_reattach_rejected_pid_missing")
-    );
-    assert_eq!(session.last_transition_origin.as_deref(), Some("daemon"));
-    assert!(
-        context
-            .db
-            .get_active_config()
-            .await
-            .expect("active should load")
-            .is_none()
+        recovery, None,
+        "a disabled persisted config must not be auto-relaunched"
     );
 }
