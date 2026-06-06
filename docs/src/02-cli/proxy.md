@@ -207,8 +207,52 @@ No command-specific flags.
 2. Daemon disables the rotation scheduler
 3. Active proxy session continues running (not disconnected)
 
+---
+
+## proxy pac
+
+Work with a Proxy Auto-Config (PAC) file generated from the active runtime
+endpoints, so browsers and desktop environments can use per-destination routing
+instead of a blunt global proxy.
+
+```bash
+xrat proxy pac url     # print the PAC URL served by the API server
+xrat proxy pac print   # print the generated PAC file for the active runtime
+```
+
+### proxy pac url
+
+Prints the URL the API server serves the PAC file at, for example
+`http://127.0.0.1:8787/proxy.pac`. A wildcard bind host (`0.0.0.0`) is shown as
+`127.0.0.1`, since PAC consumers should fetch over loopback. If the API server
+is disabled, a note explains how to enable it.
+
+### proxy pac print
+
+Generates the PAC file locally from the active runtime's HTTP/SOCKS inbounds and
+prints it to stdout. The generated PAC:
+
+- Routes plain hostnames, `*.local`, loopback, and private IP ranges `DIRECT`.
+- Prefers SOCKS, then HTTP, then `DIRECT` for everything else.
+- With no active runtime, routes everything `DIRECT`.
+
+### PAC route
+
+The PAC file is also served by the Axum API server at:
+
+```
+GET /proxy.pac
+```
+
+This route is **unauthenticated by default** and returns
+`Content-Type: application/x-ns-proxy-autoconfig`. PAC consumers usually cannot
+send auth headers, and the file exposes only non-secret local endpoint data
+(Shadowsocks credentials are never included). Prefer a loopback server bind for
+PAC use.
+
 ## Related
 
 - [`daemon`](daemon.md) — daemon must be running for proxy commands to work
 - [`connect`](runtime.md#connect) — start one proxy session through the daemon
 - [`test`](test.md) — test configs before enabling rotation
+- [`serve`](serve.md) — run the API server that hosts `/proxy.pac`

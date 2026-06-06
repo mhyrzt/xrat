@@ -21,7 +21,29 @@ pub enum ProxyAction {
         about = "Disable automatic proxy rotation. State is volatile and resets to config defaults on daemon restart."
     )]
     Stop(ProxyStopArgs),
+    #[command(about = "Print or locate the Proxy Auto-Config (PAC) file.")]
+    Pac(ProxyPacArgs),
 }
+
+#[derive(Debug, Args)]
+pub struct ProxyPacArgs {
+    #[command(subcommand)]
+    pub action: ProxyPacAction,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ProxyPacAction {
+    #[command(about = "Print the PAC URL served by the API server.")]
+    Url(ProxyPacUrlArgs),
+    #[command(about = "Print the generated PAC file for the active runtime.")]
+    Print(ProxyPacPrintArgs),
+}
+
+#[derive(Debug, Args, Default)]
+pub struct ProxyPacUrlArgs {}
+
+#[derive(Debug, Args, Default)]
+pub struct ProxyPacPrintArgs {}
 
 /// No additional arguments.
 #[derive(Debug, Args, Default)]

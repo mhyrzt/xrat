@@ -1,7 +1,8 @@
 use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
-use crate::cli::{ProxyAction, ProxyArgs};
+use crate::cli::{ProxyAction, ProxyArgs, ProxyPacAction};
+use crate::server::{PacEndpoints, render_pac};
 
 pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<()> {
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
@@ -215,9 +216,55 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
                 Err(err) => return Err(err),
             }
         }
+        ProxyAction::Pac(pac_args) => match &pac_args.action {
+            ProxyPacAction::Url(_) => print_pac_url(context),
+            ProxyPacAction::Print(_) => print_pac_file(context).await?,
+        },
     }
 
     Ok(())
+}
+
+fn print_pac_url(context: &AppContext) {
+    let server = &context.app_config.server;
+    // PAC consumers should fetch over loopback; show 127.0.0.1 for a wildcard
+    // bind rather than an unusable 0.0.0.0 URL.
+    let host = if server.host == "0.0.0.0" || server.host.is_empty() {
+        "127.0.0.1"
+    } else {
+        server.host.as_str()
+    };
+    println!("http://{host}:{}/proxy.pac", server.port);
+    if !server.enabled {
+        println!(
+            "{}",
+            output::notice(
+                "API server is disabled; enable [server] and run `xrat serve` (or the daemon) to serve this URL.",
+                output::color_enabled()
+            )
+        );
+    }
+}
+
+async fn print_pac_file(context: &AppContext) -> crate::app::Result<()> {
+    let endpoints = match context.db.get_running_runtime_session().await? {
+        Some(session) => PacEndpoints {
+            http: pac_endpoint(session.http_host, session.http_port),
+            socks: pac_endpoint(session.socks_host, session.socks_port),
+        },
+        None => PacEndpoints::default(),
+    };
+    print!("{}", render_pac(&endpoints));
+    Ok(())
+}
+
+fn pac_endpoint(host: Option<String>, port: Option<i64>) -> Option<(String, u16)> {
+    match (host, port) {
+        (Some(host), Some(port)) if port > 0 && port <= i64::from(u16::MAX) => {
+            Some((host, port as u16))
+        }
+        _ => None,
+    }
 }
 
 fn daemon_unreachable_message(socket_path: &std::path::Path) -> String {

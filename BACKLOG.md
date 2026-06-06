@@ -727,7 +727,19 @@ Requirements:
 
 ### Status
 
-Planned
+Done. Added `GET /proxy.pac` to the Axum server (`src/server/routes/pac.rs`),
+unauthenticated, returning `Content-Type: application/x-ns-proxy-autoconfig`. A
+deterministic `render_pac(PacEndpoints)` helper (exported as
+`crate::server::render_pac`) emits PAC JavaScript from active runtime HTTP/SOCKS
+inbounds: local/private/loopback hosts go `DIRECT`; everything else prefers
+SOCKS, then HTTP, then `DIRECT`; no active runtime routes everything `DIRECT`.
+Shadowsocks credentials are never included. CLI `xrat proxy pac url` /
+`xrat proxy pac print` reuse the same generator. Tests cover rendering (http/
+socks/both/none), the route content type + unauthenticated access, and CLI
+parsing. Docs updated in `docs/src/02-cli/proxy.md`.
+
+Note: the `proxy pac` commands are added under the current `proxy` namespace and
+remain there after the item 09 rename.
 
 ### Goal
 

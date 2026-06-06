@@ -16,6 +16,7 @@ use crate::app::config::ServerSettings;
 use crate::db::Database;
 
 pub use error::{ServerError, ServerResult};
+pub use routes::pac::{PacEndpoints, render_pac};
 pub use state::ServerState;
 
 pub fn build_router(state: ServerState) -> Router {

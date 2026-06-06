@@ -53,7 +53,8 @@ pub use logs::{LogLevel, LogSource, LogsArgs};
 pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
-    ProxyAction, ProxyArgs, ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
+    ProxyAction, ProxyArgs, ProxyPacAction, ProxyPacArgs, ProxyPacPrintArgs, ProxyPacUrlArgs,
+    ProxyRotateArgs, ProxyStartArgs, ProxyStatusArgs, ProxyStopArgs,
 };
 pub use purge::PurgeArgs;
 pub use root::Cli;

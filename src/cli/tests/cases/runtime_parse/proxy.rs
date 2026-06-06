@@ -1,6 +1,6 @@
 use clap::{CommandFactory, Parser};
 
-use crate::cli::{Cli, Command, ProxyAction};
+use crate::cli::{Cli, Command, ProxyAction, ProxyPacAction};
 
 #[test]
 fn parses_proxy_subcommands() {
@@ -31,6 +31,27 @@ fn parses_proxy_subcommands() {
     let stop = Cli::parse_from(["xrat", "proxy", "stop"]);
     match stop.command {
         Command::Proxy(args) => assert!(matches!(args.action, ProxyAction::Stop(_))),
+        _ => panic!("expected proxy command"),
+    }
+}
+
+#[test]
+fn parses_proxy_pac_subcommands() {
+    let url = Cli::parse_from(["xrat", "proxy", "pac", "url"]);
+    match url.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Pac(pac) => assert!(matches!(pac.action, ProxyPacAction::Url(_))),
+            _ => panic!("expected pac subcommand"),
+        },
+        _ => panic!("expected proxy command"),
+    }
+
+    let print = Cli::parse_from(["xrat", "proxy", "pac", "print"]);
+    match print.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Pac(pac) => assert!(matches!(pac.action, ProxyPacAction::Print(_))),
+            _ => panic!("expected pac subcommand"),
+        },
         _ => panic!("expected proxy command"),
     }
 }
