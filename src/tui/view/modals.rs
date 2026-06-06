@@ -276,7 +276,7 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     // Render the QR code first so its module count defines the modal width.
     let mut qr_lines: Vec<Line> = Vec::new();
-    match qrcode::QrCode::new(modal.uri.as_bytes()) {
+    match qrcode::QrCode::with_error_correction_level(modal.uri.as_bytes(), qrcode::EcLevel::L) {
         Ok(code) => {
             let width = code.width();
             let pixels = code.to_colors();
@@ -310,19 +310,19 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         }
     }
 
-    const H_PAD: u16 = 2;
-    let footer = "[Esc] Close";
+    const PAD: u16 = 4;
+    let vertical_pad = PAD / 2;
     let qr_width = qr_lines
         .iter()
         .map(|line| line.width() as u16)
         .max()
         .unwrap_or(0);
     let label_width = modal.label.chars().count() as u16;
-    let footer_width = footer.chars().count() as u16;
-    let content_width = qr_width.max(label_width).max(footer_width);
-    let inner_width = content_width + H_PAD * 2;
-    // qr rows + blank spacer + label + blank spacer + footer
-    let content_height = qr_lines.len() as u16 + 4;
+    let content_width = qr_width.max(label_width);
+    let inner_width = content_width + PAD * 2;
+    // qr rows + label. With half-block rendering, width is roughly 2x height
+    // in terminal cells, which keeps the modal visually square.
+    let content_height = qr_lines.len() as u16 + 1 + vertical_pad * 2;
 
     let modal_area = centered_rect_fixed(inner_width + 2, content_height + 2, area);
     frame.render_widget(Clear, modal_area);
@@ -333,11 +333,15 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let inner = block.inner(modal_area);
     frame.render_widget(block, modal_area);
 
-    let mut lines = qr_lines;
-    lines.push(Line::raw(""));
+    let mut lines = Vec::new();
+    for _ in 0..vertical_pad {
+        lines.push(Line::raw(""));
+    }
+    lines.extend(qr_lines);
     lines.push(Line::styled(modal.label.clone(), theme::muted_style()));
-    lines.push(Line::raw(""));
-    lines.push(Line::styled(footer, theme::muted_style()));
+    for _ in 0..vertical_pad {
+        lines.push(Line::raw(""));
+    }
 
     frame.render_widget(
         Paragraph::new(lines)
