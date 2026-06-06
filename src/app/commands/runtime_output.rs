@@ -8,14 +8,15 @@ fn format_inbound_endpoint_with_ip<F>(host: &str, port: u16, ip_lookup: F) -> St
 where
     F: FnOnce() -> Option<IpAddr>,
 {
-    let endpoint = format!("{host}:{port}");
     if host != "0.0.0.0" {
-        return endpoint;
+        return format!("{host}:{port}");
     }
 
+    // A wildcard bind is not a useful copy/paste address, so substitute the
+    // reachable host IP directly into the endpoint when it can be resolved.
     ip_lookup()
-        .map(|ip| format!("{endpoint} (host {ip}:{port})"))
-        .unwrap_or(endpoint)
+        .map(|ip| format!("{ip}:{port}"))
+        .unwrap_or_else(|| format!("{host}:{port}"))
 }
 
 fn local_machine_ip() -> Option<IpAddr> {
@@ -29,12 +30,12 @@ mod tests {
     use super::format_inbound_endpoint_with_ip;
 
     #[test]
-    fn appends_host_ip_for_wildcard_bind() {
+    fn substitutes_host_ip_for_wildcard_bind() {
         let endpoint = format_inbound_endpoint_with_ip("0.0.0.0", 1080, || {
             Some("192.0.2.10".parse().expect("test ip should parse"))
         });
 
-        assert_eq!(endpoint, "0.0.0.0:1080 (host 192.0.2.10:1080)");
+        assert_eq!(endpoint, "192.0.2.10:1080");
     }
 
     #[test]

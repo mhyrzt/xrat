@@ -135,7 +135,7 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
                                     .unwrap_or("-")
                                     .to_string(),
                             ),
-                            ("last result", payload.last_result),
+                            ("last result", friendly_result(&payload.last_result)),
                             (
                                 "candidate config",
                                 payload
@@ -143,7 +143,10 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
                                     .map(|value| value.to_string())
                                     .unwrap_or_else(|| "-".to_string()),
                             ),
-                            ("candidate result", payload.last_candidate_result),
+                            (
+                                "candidate result",
+                                friendly_result(&payload.last_candidate_result),
+                            ),
                             (
                                 "next timer",
                                 payload
@@ -239,6 +242,16 @@ fn daemon_unreachable_message(socket_path: &std::path::Path) -> String {
     )
 }
 
+/// Translate internal scheduler sentinel values into human-readable status text.
+/// JSON output keeps the raw sentinels for stable machine parsing.
+fn friendly_result(result: &str) -> String {
+    match result {
+        "never_triggered" => "auto-rotation has not run yet".to_string(),
+        "never_selected" => "no candidate selected yet".to_string(),
+        other => other.to_string(),
+    }
+}
+
 fn rotate_error_message(message: String) -> String {
     if message.contains("no running runtime session to replace") {
         return format!("{message}. Start a runtime first with `xrat connect <id>`");
@@ -262,5 +275,18 @@ mod tests {
     fn rotate_error_message_mentions_connect_when_no_runtime_is_running() {
         let message = rotate_error_message("no running runtime session to replace".to_string());
         assert!(message.contains("xrat connect <id>"));
+    }
+
+    #[test]
+    fn friendly_result_translates_sentinels() {
+        assert_eq!(
+            friendly_result("never_triggered"),
+            "auto-rotation has not run yet"
+        );
+        assert_eq!(
+            friendly_result("never_selected"),
+            "no candidate selected yet"
+        );
+        assert_eq!(friendly_result("replaced"), "replaced");
     }
 }
