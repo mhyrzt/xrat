@@ -140,9 +140,7 @@ pub(crate) async fn download_one_with_client(
     {
         file.write_all(&chunk)?;
         bytes_written += chunk.len() as u64;
-        if let Some(progress) = &progress {
-            progress.inc(chunk.len() as u64);
-        }
+        progress.inc(chunk.len() as u64);
     }
 
     ensure_non_empty_download(bytes_written, &progress, edition, &url)?;
@@ -151,9 +149,7 @@ pub(crate) async fn download_one_with_client(
     let _persisted = file.persist(&destination).map_err(|error| error.error)?;
     set_mmdb_permissions(&destination)?;
 
-    if let Some(progress) = progress {
-        progress.finish_with_message("done".to_string());
-    }
+    progress.finish_with_message("done");
     println!(
         "downloaded: {} -> {}",
         edition.file_name(),

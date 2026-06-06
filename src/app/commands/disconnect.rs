@@ -1,11 +1,15 @@
 use crate::app::commands::output;
+use crate::app::commands::progress::CliProgress;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::DisconnectArgs;
 
 pub async fn run(context: &AppContext, args: &DisconnectArgs) -> crate::app::Result<()> {
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
-    let result = match ipc::runtime_disconnect_daemon(&socket_path).await {
+    let progress = CliProgress::spinner(!args.json, "disconnecting runtime");
+    let response = ipc::runtime_disconnect_daemon(&socket_path).await;
+    progress.finish_and_clear();
+    let result = match response {
         Ok(response) => {
             if !response.ok {
                 return Err(crate::app::AppError::InvalidArgument(response.message));

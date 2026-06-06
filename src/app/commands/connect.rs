@@ -1,4 +1,5 @@
 use crate::app::commands::output;
+use crate::app::commands::progress::CliProgress;
 use crate::app::commands::resolve::resolve_config_id;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
@@ -7,7 +8,10 @@ use crate::cli::ConnectArgs;
 pub async fn run(context: &AppContext, args: &ConnectArgs) -> crate::app::Result<()> {
     let config_id = resolve_config_id(context, &args.id).await?;
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
-    match ipc::runtime_connect_daemon(&socket_path, config_id).await {
+    let progress = CliProgress::spinner(!args.json, format!("connecting config {config_id}"));
+    let response = ipc::runtime_connect_daemon(&socket_path, config_id).await;
+    progress.finish_and_clear();
+    match response {
         Ok(response) => {
             if !response.ok {
                 return Err(crate::app::AppError::InvalidArgument(response.message));

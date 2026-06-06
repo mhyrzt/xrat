@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::app::AppError;
 use crate::app::commands::output::{self, Align, Cell, Column, Style};
+use crate::app::commands::progress::CliProgress;
 use crate::app::context::AppContext;
 use crate::cli::{ListFormat, ScanArgs};
 use crate::db::{CfScanResultRecord, CfScanResultUpsert};
@@ -29,6 +30,7 @@ pub async fn run(context: &AppContext, args: &ScanArgs) -> crate::app::Result<()
 
     let timeout = Duration::from_millis(args.timeout_ms.max(100));
     let mut results = Vec::with_capacity(ips.len());
+    let progress = CliProgress::bar(true, ips.len() as u64, "scanning");
 
     for ip in ips {
         let probe = tcp_check(&ip, args.port, timeout).await;
@@ -39,7 +41,9 @@ pub async fn run(context: &AppContext, args: &ScanArgs) -> crate::app::Result<()
             upload_mbps: None,
             error: probe.failure_reason,
         });
+        progress.inc(1);
     }
+    progress.finish_with_message(format!("done: {} scanned", results.len()));
 
     context.db.upsert_cf_scan_results(&results).await?;
     println!(

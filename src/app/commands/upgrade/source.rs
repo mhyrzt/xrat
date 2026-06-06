@@ -3,6 +3,7 @@ use std::process::Command;
 
 use crate::app::AppError;
 use crate::app::commands::output;
+use crate::app::commands::progress::CliProgress;
 use crate::cli::UpgradeArgs;
 
 use super::{install_binary, run_post_upgrade_migrations};
@@ -50,14 +51,15 @@ pub(crate) async fn upgrade(
         )));
     }
 
-    println!(
-        "{}",
-        output::notice(format!("installing to {}", target.display()), color)
-    );
-    install_binary(&built, target)?;
+    let progress = CliProgress::spinner(true, format!("installing to {}", target.display()));
+    let result = install_binary(&built, target);
+    progress.finish_and_clear();
+    result?;
 
-    println!("{}", output::notice("applying database migrations", color));
-    run_post_upgrade_migrations(target, config_path)?;
+    let progress = CliProgress::spinner(true, "applying database migrations");
+    let result = run_post_upgrade_migrations(target, config_path);
+    progress.finish_and_clear();
+    result?;
 
     println!("{}", output::success("upgraded xrat from source", color));
 

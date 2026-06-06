@@ -3,10 +3,9 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
-use indicatif::{ProgressBar, ProgressStyle};
-
 use crate::app::AppError;
 use crate::app::commands::output;
+use crate::app::commands::progress::CliProgress;
 use crate::cli::UpgradeArgs;
 
 use super::{REPO, current_version, install_binary, run_post_upgrade_migrations, same_version};
@@ -22,11 +21,10 @@ pub(crate) async fn upgrade(
     let version = match &args.version {
         Some(tag) => tag.clone(),
         None => {
-            println!(
-                "{}",
-                output::notice("checking for the latest release", color)
-            );
-            fetch_latest_tag(args.timeout_secs).await?
+            let progress = CliProgress::spinner(true, "checking latest release");
+            let result = fetch_latest_tag(args.timeout_secs).await;
+            progress.finish_and_clear();
+            result?
         }
     };
 
@@ -63,24 +61,32 @@ pub(crate) async fn upgrade(
     )
     .await?;
 
-    println!("{}", output::notice("verifying checksum", color));
-    download(
-        &client,
-        &format!("{base_url}/SHASUMS256.txt"),
-        &work.path().join("SHASUMS256.txt"),
-    )
-    .await?;
-    verify_checksum(work.path(), &filename)?;
+    let progress = CliProgress::spinner(true, "verifying checksum");
+    let result = async {
+        download(
+            &client,
+            &format!("{base_url}/SHASUMS256.txt"),
+            &work.path().join("SHASUMS256.txt"),
+        )
+        .await?;
+        verify_checksum(work.path(), &filename)
+    }
+    .await;
+    progress.finish_and_clear();
+    result?;
 
-    println!(
-        "{}",
-        output::notice(format!("installing to {}", target.display()), color)
-    );
-    extract_binary(work.path(), &filename)?;
-    install_binary(&work.path().join("xrat"), target)?;
+    let progress = CliProgress::spinner(true, format!("installing to {}", target.display()));
+    let result = (|| {
+        extract_binary(work.path(), &filename)?;
+        install_binary(&work.path().join("xrat"), target)
+    })();
+    progress.finish_and_clear();
+    result?;
 
-    println!("{}", output::notice("applying database migrations", color));
-    run_post_upgrade_migrations(target, config_path)?;
+    let progress = CliProgress::spinner(true, "applying database migrations");
+    let result = run_post_upgrade_migrations(target, config_path);
+    progress.finish_and_clear();
+    result?;
 
     println!(
         "{}",
@@ -168,38 +174,19 @@ async fn download_with_progress(
         )));
     }
 
-    let progress = progress_bar(label, response.content_length());
+    let progress = CliProgress::bytes_bar(
+        true,
+        response.content_length(),
+        format!("downloading {label}"),
+    );
     let mut file = std::fs::File::create(destination)?;
     while let Some(chunk) = response.chunk().await? {
         file.write_all(&chunk)?;
-        if let Some(progress) = &progress {
-            progress.inc(chunk.len() as u64);
-        }
+        progress.inc(chunk.len() as u64);
     }
     file.flush()?;
-    if let Some(progress) = progress {
-        progress.finish_with_message(format!("{label} done"));
-    }
+    progress.finish_with_message(format!("{label} done"));
     Ok(())
-}
-
-fn progress_bar(label: &str, content_length: Option<u64>) -> Option<ProgressBar> {
-    use std::io::IsTerminal;
-
-    if !std::io::stderr().is_terminal() {
-        println!("downloading {label}");
-        return None;
-    }
-
-    let progress = ProgressBar::new(content_length.unwrap_or(0));
-    let style = ProgressStyle::with_template(
-        "{spinner:.green} {msg} [{bar:32.cyan/blue}] {bytes}/{total_bytes}",
-    )
-    .unwrap_or_else(|_| ProgressStyle::default_bar())
-    .progress_chars("=>-");
-    progress.set_style(style);
-    progress.set_message(format!("downloading {label}"));
-    Some(progress)
 }
 
 fn verify_checksum(work_dir: &Path, filename: &str) -> crate::app::Result<()> {

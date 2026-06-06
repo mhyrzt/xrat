@@ -8,6 +8,7 @@ use super::progress::ensure_non_empty_download;
 use super::request::{DownloadRequest, resolve_requested_editions};
 use super::summary::{DownloadFailure, DownloadSummary};
 use crate::app::AppError;
+use crate::app::commands::progress::CliProgress;
 
 fn test_request(mmdb_dir: std::path::PathBuf) -> DownloadRequest {
     DownloadRequest {
@@ -74,9 +75,10 @@ fn failure_summary_includes_reason() {
 
 #[test]
 fn rejects_empty_downloads() {
+    let progress = CliProgress::disabled();
     let error = ensure_non_empty_download(
         0,
-        &None,
+        &progress,
         MmdbEdition::City,
         "https://example.com/GeoLite2-City.mmdb",
     )

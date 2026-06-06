@@ -14,6 +14,7 @@ mod logs;
 mod manpage;
 mod output;
 mod parse;
+mod progress;
 mod proxy;
 mod purge;
 mod resolve;
