@@ -287,6 +287,48 @@ sqlite3 ~/.config/xrat/db.sqlite < migrations/sqlite/0001_init.sql
 psql xrat < migrations/postgres/0001_init.sql
 ```
 
+### Migration Policy
+
+SQLx records the checksum of every applied migration in the `_sqlx_migrations`
+table. Editing a migration file after any database has applied it — even a
+whitespace or formatting change — changes that checksum and makes SQLx reject
+the migration history on the next startup.
+
+To prevent this, migrations are **append-only**:
+
+- Never edit a migration that has been applied or released. Add a new ordered
+  migration instead.
+- A committed manifest (`migrations/checksums.json`) pins each migration's
+  checksum. The test
+  `migration_files_match_committed_checksum_manifest` fails in CI if a migration
+  file changes without an intentional manifest update.
+- When you add a new migration, regenerate the manifest:
+
+  ```bash
+  UPDATE_MIGRATION_MANIFEST=1 cargo test \
+    migration_files_match_committed_checksum_manifest
+  ```
+
+### Recovering from a Checksum Mismatch
+
+If startup fails with a checksum mismatch, the recovery path depends on whether
+the affected migration has shipped.
+
+**Local development database** (the migration is not yet released, and the file
+edit was intentional):
+
+- Discard the throwaway local database and let migrations re-run from scratch,
+  or
+- Reset the recorded checksum by deleting the affected database and reimporting,
+  then regenerate the manifest with the command above.
+
+**Released user database** (the migration shipped in a published build):
+
+- Do not edit the migration. Restore the original migration file by reinstalling
+  the matching release, then add a new migration for any further schema change.
+- If the database is already broken, restore it from a backup (see the Backup
+  sections above).
+
 ## Switching Backends
 
 To switch from SQLite to PostgreSQL:
