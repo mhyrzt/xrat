@@ -103,9 +103,56 @@ In progress
 - Added persisted-event clearing: `xrat logs clear [--yes]` (CLI) and the TUI
   `C p` clear chord, both deleting `events` rows after a confirm. Labeled
   "events (db)" to keep it distinct from the planned view-only buffer clears.
-- Remaining: stats API/poller + ring buffer + sparkline, the `API` tab, and
-  view-only buffer clears (`C l` log view, `C s` stats view) once live buffers
-  exist.
+
+### Remaining plan
+
+The remaining heavy pieces (live stats, API tab, view-only clears) are sequenced
+as focused commits A–F.
+
+- **A — xray runtime config emits stats plumbing.** Add optional
+  `api`/`stats`/`policy`/`routing` fields to `XrayConfig`
+  (`src/xray/config/types.rs`), all `#[serde(skip_serializing_if = "Option::is_none")]`
+  so probe configs and stats-disabled runtime serialize identically. Add
+  `StatsSettings { enabled, host, port }` (default enabled, `127.0.0.1:10085`) to
+  `RuntimeSettings` (`src/app/config/proxy/types.rs`). When enabled,
+  `src/app/runtime_service/launch.rs` appends a `dokodemo-door` inbound tagged
+  `api` and populates the new config fields; readiness inbound selection is
+  unchanged.
+- **B — gRPC StatsService client + engine-neutral trait.** xray StatsService is
+  gRPC-only. Add `tonic` + `prost` deps (rustls only, no `build.rs`/`protoc`);
+  hand-write the prost messages (`QueryStatsRequest`, `Stat`,
+  `QueryStatsResponse`) for `/xray.app.stats.command.StatsService/QueryStats`.
+  New `src/xray/stats/` with `XrayStatsClient` + stat-name parsing. Define
+  `trait StatsSource { async fn sample(&self) -> Result<StatsSample> }`
+  (async-trait); `XrayStatsSource` for `xray`/`v2ray`, sing-box returns
+  unsupported for now. `StatsSample { at, uplink_total, downlink_total }`.
+- **C — TUI stats poller, ring buffer, sparkline.** `src/tui/data/stats.rs`
+  bounded `VecDeque` ring buffer (~120 points) reset on session id change; app
+  state + new `stats_tx/rx` channel and ~1s interval gate in `src/tui/run/`;
+  `spawn_poll_stats` polls only when running + stats enabled. Replace the
+  `stats_lines` placeholder with header rows (total ↓/↑, throughput, delay,
+  failed count) plus a `ratatui` `Sparkline`/`Chart` (confirm import in 0.30).
+- **D — API tab via request-logging middleware.** Add `SOURCE_API` to
+  `src/app/events.rs`; axum `middleware::from_fn_with_state` records each request
+  as a fire-and-forget event (`source=api`, `kind=<method>`,
+  `message="<METHOD> <path> -> <status>"`) wired in `build_router`. Add
+  `TuiLogTab::Api` to `ORDER` (tabs become events/engine/api/stats, number keys
+  `1`–`4`); `api_lines` filters events to `source == "api"`.
+- **E — view-only clears (`C l`, `C s`).** Extend the `C` chord to
+  `[("l","log view"), ("s","stats view"), ("p","events (db)")]`; add actions
+  `ClearLogView`/`ClearStatsView`. Track per-tab view watermarks
+  (events: `events_clear_before_id`; proxy: last-visible-row signature) so the
+  periodic reload does not resurrect cleared rows; `ClearStatsView` empties the
+  ring buffer. Update help modal + docs to distinguish view clears from the DB
+  clear.
+- **F — docs + backlog.** Update `docs/src/02-cli/tui.md` (stats/API tabs, full
+  clear set) and the `[runtime.stats]` config reference; mark this item Done.
+
+Constraints: stats config is backward-compatible via `#[serde(default)]`; the
+default-on api inbound binds an extra localhost port (gated by config); stats RPC
+failures must stay silent in the TUI; `tonic`/`prost` must build on the musl
+release target (rustls only, no `build.rs`). Verify a `--locked` build after
+adding deps.
 
 ### Goal
 
