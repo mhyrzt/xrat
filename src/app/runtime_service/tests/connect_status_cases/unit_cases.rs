@@ -46,6 +46,7 @@ fn running_session_with_reachable_inbounds_keeps_persisted_status() {
 fn rejects_unknown_protocol() {
     let record = ConfigRecord {
         id: 1,
+        r#ref: "ref000000001".to_string(),
         subscription_id: None,
         dedup_key: "key".to_string(),
         protocol: "unknown".to_string(),

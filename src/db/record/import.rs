@@ -40,6 +40,7 @@ pub struct RefreshableSubscription {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SubscriptionRecord {
     pub id: i64,
+    pub r#ref: String,
     pub source_kind: String,
     pub source_url: Option<String>,
     pub name: Option<String>,

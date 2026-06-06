@@ -448,7 +448,24 @@ data or a partially applied/dirty migration row.
 
 ### Status
 
-Planned
+In progress. Data layer landed:
+
+- `src/support/refs.rs`: 12-char hex generation, 8-char short display,
+  ref-prefix detection (unit tested).
+- Migrations `0019_add_config_subscription_refs.sql` (sqlite + postgres): add
+  nullable `ref`, backfill existing rows (`hex(randomblob(6))` /
+  `md5(random())`), and create unique indexes. (NOT NULL is enforced at the app
+  layer since SQLite cannot add NOT NULL UNIQUE via ALTER.)
+- `ref` added to `ConfigRecord`/`SubscriptionRecord`, all SELECT column lists,
+  row mappers, and both insert paths (generated on insert; upsert leaves
+  existing refs stable across subscription refresh).
+- Repository + `Database` resolve helpers `resolve_config_ref_prefix` /
+  `resolve_subscription_ref_prefix` returning `RefMatch::{None,Unique,Ambiguous}`,
+  with DB tests for unique/not-found/ambiguous and subscription resolution.
+
+Remaining: CLI acceptance of ref prefixes wherever ids are taken
+(connect/show/parse/test/delete/restore), `output.rs` + TUI + server display of
+short refs, and docs under `docs/src/02-cli/`.
 
 ### Goal
 

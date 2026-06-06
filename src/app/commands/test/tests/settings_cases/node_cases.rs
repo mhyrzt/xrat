@@ -4,6 +4,7 @@ use super::super::super::*;
 fn rebuilds_node_from_config_record() {
     let record = ConfigRecord {
         id: 1,
+        r#ref: "ref000000001".to_string(),
         subscription_id: Some(2),
         dedup_key: "key".to_string(),
         protocol: "vmess".to_string(),

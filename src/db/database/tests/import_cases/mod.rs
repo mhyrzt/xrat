@@ -6,6 +6,7 @@ mod config_state;
 mod import_subscription;
 mod reconcile;
 mod refresh_due;
+mod refs;
 mod upsert;
 
 pub(super) fn test_node(name: &str) -> Node {

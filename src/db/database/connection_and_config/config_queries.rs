@@ -25,6 +25,17 @@ impl Database {
         repository::get_config_by_id(&self.pool, id).await
     }
 
+    pub async fn resolve_config_ref_prefix(&self, prefix: &str) -> crate::db::Result<RefMatch> {
+        repository::resolve_config_ref_prefix(&self.pool, prefix).await
+    }
+
+    pub async fn resolve_subscription_ref_prefix(
+        &self,
+        prefix: &str,
+    ) -> crate::db::Result<RefMatch> {
+        repository::resolve_subscription_ref_prefix(&self.pool, prefix).await
+    }
+
     pub async fn get_active_config(&self) -> crate::db::Result<Option<ConfigRecord>> {
         repository::get_active_config(&self.pool).await
     }

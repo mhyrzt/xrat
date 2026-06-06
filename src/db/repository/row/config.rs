@@ -13,6 +13,7 @@ where
 {
     ConfigRecord {
         id: row.get("id"),
+        r#ref: row.get("ref"),
         subscription_id: row.get("subscription_id"),
         dedup_key: row.get("dedup_key"),
         protocol: row.get("protocol"),

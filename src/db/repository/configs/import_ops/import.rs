@@ -13,20 +13,26 @@ pub async fn import_nodes(
 ) -> crate::db::Result<ImportSummary> {
     let mut removed_configs = 0u64;
     if !nodes.is_empty() {
+        // A stable ref per new config. On dedup_key conflict the upsert leaves
+        // the existing ref untouched, so refs survive subscription refreshes.
+        let refs: Vec<String> = nodes
+            .iter()
+            .map(|_| crate::support::refs::generate_ref())
+            .collect();
         match pool {
             DbPool::Sqlite(pool) => {
                 let mut builder = QueryBuilder::<Sqlite>::new(
-                    "INSERT INTO configs (subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
+                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
                 );
-                push_node_values(&mut builder, subscription_id, nodes);
+                push_node_values(&mut builder, subscription_id, &refs, nodes);
                 push_upsert_clause(&mut builder, "CURRENT_TIMESTAMP");
                 builder.build().execute(pool).await?;
             }
             DbPool::Postgres(pool) => {
                 let mut builder = QueryBuilder::<Postgres>::new(
-                    "INSERT INTO configs (subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
+                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
                 );
-                push_node_values(&mut builder, subscription_id, nodes);
+                push_node_values(&mut builder, subscription_id, &refs, nodes);
                 push_upsert_clause(&mut builder, "CURRENT_TIMESTAMP::TEXT");
                 builder.build().execute(pool).await?;
             }
@@ -96,6 +102,7 @@ fn push_reconcile_predicate<'args, DB>(
 fn push_node_values<'args, DB>(
     builder: &mut QueryBuilder<'args, DB>,
     subscription_id: i64,
+    refs: &'args [String],
     nodes: &'args [Node],
 ) where
     DB: sqlx::Database,
@@ -105,8 +112,9 @@ fn push_node_values<'args, DB>(
     &'args String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
 {
-    builder.push_values(nodes, |mut row, node| {
-        row.push_bind(subscription_id)
+    builder.push_values(refs.iter().zip(nodes), |mut row, (config_ref, node)| {
+        row.push_bind(config_ref.as_str())
+            .push_bind(subscription_id)
             .push_bind(node.dedup_key_string())
             .push_bind(node.protocol.as_str())
             .push_bind(&node.address)

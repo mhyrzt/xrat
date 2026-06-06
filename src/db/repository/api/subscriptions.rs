@@ -1,6 +1,13 @@
 use crate::db::connection::DbPool;
-use crate::db::record::{RefreshableSubscription, SubscriptionRecord};
+use crate::db::record::{RefMatch, RefreshableSubscription, SubscriptionRecord};
 use crate::db::repository::subscriptions;
+
+pub async fn resolve_subscription_ref_prefix(
+    pool: &DbPool,
+    prefix: &str,
+) -> crate::db::Result<RefMatch> {
+    subscriptions::resolve_ref_prefix(pool, prefix).await
+}
 
 pub async fn get_subscription_count(pool: &DbPool) -> crate::db::Result<i64> {
     subscriptions::get_count(pool).await

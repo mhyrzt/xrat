@@ -11,8 +11,8 @@ pub use configs::{
     delete_configs, get_active_config, get_config_by_id, get_config_count,
     get_config_with_latest_test, hard_delete_config, hard_delete_configs, import_nodes,
     list_configs, list_configs_paginated_with_latest_tests, list_configs_with_latest_tests,
-    list_top_configs_by_real_delay, purge_deleted_configs, restore_config, restore_configs,
-    set_active_config, set_config_enabled,
+    list_top_configs_by_real_delay, purge_deleted_configs, resolve_config_ref_prefix,
+    restore_config, restore_configs, set_active_config, set_config_enabled,
 };
 pub use connection_tests::{
     get_connection_test_count, get_latest_connection_test, get_latest_connection_test_run,
@@ -28,5 +28,6 @@ pub use runtime_sessions::{
 };
 pub use subscriptions::{
     delete_subscription_with_configs, get_subscription_by_id, get_subscription_count,
-    list_refreshable_due_subscriptions, list_subscriptions, set_subscription_name,
+    list_refreshable_due_subscriptions, list_subscriptions, resolve_subscription_ref_prefix,
+    set_subscription_name,
 };

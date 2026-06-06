@@ -60,6 +60,7 @@ fn matches_searchable_config_fields() {
 fn maps_subscription_record_to_source_row() {
     let row = TuiSourceRow::from(SubscriptionRecord {
         id: 7,
+        r#ref: "ref000000007".to_string(),
         source_kind: "url".to_string(),
         source_url: Some("https://example.com/sub".to_string()),
         name: Some("main".to_string()),

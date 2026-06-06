@@ -1,9 +1,14 @@
 use crate::db::connection::DbPool;
 use crate::db::record::{
-    ConfigListFilter, ConfigRecord, ConfigWithLatestTest, ImportSource, ImportSummary, SourceKind,
+    ConfigListFilter, ConfigRecord, ConfigWithLatestTest, ImportSource, ImportSummary, RefMatch,
+    SourceKind,
 };
 use crate::db::repository::{configs, subscriptions};
 use crate::model::Node;
+
+pub async fn resolve_config_ref_prefix(pool: &DbPool, prefix: &str) -> crate::db::Result<RefMatch> {
+    configs::resolve_ref_prefix(pool, prefix).await
+}
 
 pub async fn import_nodes(
     pool: &DbPool,

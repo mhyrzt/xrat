@@ -13,6 +13,7 @@ where
 {
     SubscriptionRecord {
         id: row.get("id"),
+        r#ref: row.get("ref"),
         source_kind: row.get("source_kind"),
         source_url: row.get("source_url"),
         name: row.get("name"),

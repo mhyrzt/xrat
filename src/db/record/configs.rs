@@ -29,6 +29,7 @@ pub struct ConfigWithLatestTest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConfigRecord {
     pub id: i64,
+    pub r#ref: String,
     pub subscription_id: Option<i64>,
     pub dedup_key: String,
     pub protocol: String,

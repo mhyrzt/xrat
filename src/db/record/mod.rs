@@ -3,6 +3,7 @@ mod configs;
 mod connection_tests;
 mod events;
 mod import;
+mod refs;
 mod runtime_sessions;
 
 pub use cf_scan_results::{CfScanResultRecord, CfScanResultUpsert};
@@ -14,4 +15,5 @@ pub use events::{EventFilter, EventRecord, NewEvent};
 pub use import::{
     ImportSource, ImportSummary, RefreshableSubscription, SourceKind, SubscriptionRecord,
 };
+pub use refs::RefMatch;
 pub use runtime_sessions::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};

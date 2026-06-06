@@ -2,38 +2,74 @@ use sqlx::{Postgres, QueryBuilder, Sqlite};
 
 use super::row::map_subscription_row;
 use crate::db::connection::DbPool;
-use crate::db::record::{ImportSource, RefreshableSubscription, SourceKind, SubscriptionRecord};
+use crate::db::record::{
+    ImportSource, RefMatch, RefreshableSubscription, SourceKind, SubscriptionRecord,
+};
 use crate::support::time::now_epoch_seconds;
 
+/// Resolve a ref prefix to a single subscription id.
+pub async fn resolve_ref_prefix(pool: &DbPool, prefix: &str) -> crate::db::Result<RefMatch> {
+    let like = format!("{prefix}%");
+    let ids: Vec<i64> = match pool {
+        DbPool::Sqlite(pool) => {
+            sqlx::query_scalar(
+                "SELECT id FROM subscriptions WHERE ref LIKE ?1 ORDER BY id ASC LIMIT 2",
+            )
+            .bind(&like)
+            .fetch_all(pool)
+            .await?
+        }
+        DbPool::Postgres(pool) => {
+            sqlx::query_scalar(
+                "SELECT id FROM subscriptions WHERE ref LIKE $1 ORDER BY id ASC LIMIT 2",
+            )
+            .bind(&like)
+            .fetch_all(pool)
+            .await?
+        }
+    };
+    Ok(match ids.len() {
+        0 => RefMatch::None,
+        1 => RefMatch::Unique(ids[0]),
+        _ => RefMatch::Ambiguous,
+    })
+}
+
 pub async fn insert(pool: &DbPool, source: &ImportSource) -> crate::db::Result<i64> {
+    let new_ref = crate::support::refs::generate_ref();
     match pool {
         DbPool::Sqlite(pool) => {
             let mut builder = QueryBuilder::<Sqlite>::new(
-                "INSERT INTO subscriptions (source_url, source_kind, name) VALUES (",
+                "INSERT INTO subscriptions (ref, source_url, source_kind, name) VALUES (",
             );
-            push_insert_values(&mut builder, source);
+            push_insert_values(&mut builder, &new_ref, source);
             builder.push(") RETURNING id");
             Ok(builder.build_query_scalar::<i64>().fetch_one(pool).await?)
         }
         DbPool::Postgres(pool) => {
             let mut builder = QueryBuilder::<Postgres>::new(
-                "INSERT INTO subscriptions (source_url, source_kind, name) VALUES (",
+                "INSERT INTO subscriptions (ref, source_url, source_kind, name) VALUES (",
             );
-            push_insert_values(&mut builder, source);
+            push_insert_values(&mut builder, &new_ref, source);
             builder.push(") RETURNING id");
             Ok(builder.build_query_scalar::<i64>().fetch_one(pool).await?)
         }
     }
 }
 
-fn push_insert_values<'args, DB>(builder: &mut QueryBuilder<'args, DB>, source: &'args ImportSource)
-where
+fn push_insert_values<'args, DB>(
+    builder: &mut QueryBuilder<'args, DB>,
+    new_ref: &'args str,
+    source: &'args ImportSource,
+) where
     DB: sqlx::Database,
     Option<&'args str>: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     &'args str: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
 {
     let source_url = matches!(source.kind, SourceKind::Url).then_some(source.value.as_str());
     builder
+        .push_bind(new_ref)
+        .push(", ")
         .push_bind(source_url)
         .push(", ")
         .push_bind(source.kind.as_str())
@@ -249,6 +285,7 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
     const SQLITE_SQL: &str = r#"
         SELECT
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,
@@ -260,6 +297,7 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
         WHERE subscriptions.id = ?1
         GROUP BY
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,
@@ -269,6 +307,7 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
     const POSTGRES_SQL: &str = r#"
         SELECT
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,
@@ -280,6 +319,7 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
         WHERE subscriptions.id = $1
         GROUP BY
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,
@@ -305,6 +345,7 @@ pub async fn list(pool: &DbPool) -> crate::db::Result<Vec<SubscriptionRecord>> {
     const SQL: &str = r#"
         SELECT
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,
@@ -315,6 +356,7 @@ pub async fn list(pool: &DbPool) -> crate::db::Result<Vec<SubscriptionRecord>> {
         LEFT JOIN configs ON configs.subscription_id = subscriptions.id
         GROUP BY
             subscriptions.id,
+            subscriptions.ref,
             subscriptions.source_kind,
             subscriptions.source_url,
             subscriptions.name,

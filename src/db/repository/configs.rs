@@ -2,7 +2,7 @@ pub(crate) mod import_ops;
 mod server_ops;
 mod state_ops;
 
-pub use import_ops::{get_by_id, get_count, import_nodes, list};
+pub use import_ops::{get_by_id, get_count, import_nodes, list, resolve_ref_prefix};
 pub use server_ops::{
     count_filtered, get_with_latest_test, list_paginated_with_latest_tests, list_top_by_real_delay,
     list_with_latest_tests,
