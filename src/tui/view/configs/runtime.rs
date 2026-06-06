@@ -14,13 +14,23 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let rt = &app.data.runtime;
 
     let active = rt.active_config.as_deref().unwrap_or("-");
-    let task = app.task_state.label();
+    let in_flight = app.runtime_op_in_flight();
+    let task = if in_flight {
+        format!("{} {}", app.spinner_frame(), app.task_state.label())
+    } else {
+        app.task_state.label()
+    };
     let data = &app.data;
     let content_width = area.width.saturating_sub(2 + RIGHT_PAD) as usize;
 
+    let status_line = if in_flight {
+        format!("{} [{}]", app.spinner_frame(), rt.status)
+    } else {
+        format!("[{}]", rt.status)
+    };
     let mut lines = vec![
         Line::styled(
-            format!("[{}]", rt.status),
+            status_line,
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
         Line::raw(""),

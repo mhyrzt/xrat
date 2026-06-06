@@ -107,9 +107,25 @@ impl TuiApp {
     }
 
     pub fn tick(&mut self) {
-        if self.task_state.running == Some(crate::tui::task::TuiTaskKind::TestBatch) {
+        use crate::tui::task::TuiTaskKind;
+        if matches!(
+            self.task_state.running,
+            Some(TuiTaskKind::TestBatch) | Some(TuiTaskKind::RuntimeOp)
+        ) {
             self.spinner_tick = self.spinner_tick.wrapping_add(1);
         }
+    }
+
+    /// Current Unicode spinner frame, advanced by [`TuiApp::tick`] while a task
+    /// is in flight.
+    pub fn spinner_frame(&self) -> &'static str {
+        const FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        FRAMES[self.spinner_tick % FRAMES.len()]
+    }
+
+    /// True while a runtime switch/start/stop task is in flight.
+    pub fn runtime_op_in_flight(&self) -> bool {
+        self.task_state.running == Some(crate::tui::task::TuiTaskKind::RuntimeOp)
     }
 
     pub fn is_testing_config(&self, config_id: i64) -> bool {

@@ -197,7 +197,12 @@ xrat daemon restart
 
 ### Status
 
-Planned
+Done. `TuiApp::tick` now advances `spinner_tick` for `RuntimeOp` as well as
+`TestBatch`, and the runtime panel renders a Unicode braille spinner next to the
+status header and the `Task` line while `runtime_op_in_flight()` is true. The
+existing 100ms event-poll loop keeps the frame animating without input, and the
+spinner clears on completion/failure when `task_state.running` resets. State
+tests cover advance-while-running and stop-on-completion.
 
 ### Goal
 

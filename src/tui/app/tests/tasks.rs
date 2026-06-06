@@ -34,6 +34,50 @@ fn cancelled_event_clears_cancellation_token() {
 }
 
 #[test]
+fn spinner_advances_only_while_runtime_op_in_flight() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    assert!(!app.runtime_op_in_flight());
+
+    let before = app.spinner_frame();
+    app.tick();
+    assert_eq!(
+        app.spinner_frame(),
+        before,
+        "spinner should not advance while idle"
+    );
+
+    let (_token, _receiver) = app.task_state.start(TuiTaskKind::RuntimeOp);
+    assert!(app.runtime_op_in_flight());
+    let frame_before = app.spinner_frame();
+    app.tick();
+    assert_ne!(
+        app.spinner_frame(),
+        frame_before,
+        "spinner should advance during a runtime op"
+    );
+}
+
+#[test]
+fn runtime_op_completion_stops_spinner() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    let (_token, _receiver) = app.task_state.start(TuiTaskKind::RuntimeOp);
+    app.apply_task_event(TuiTaskEvent::Completed {
+        kind: TuiTaskKind::RuntimeOp,
+        message: "connected".to_string(),
+        data: None,
+    });
+    assert!(!app.runtime_op_in_flight());
+
+    let frame_before = app.spinner_frame();
+    app.tick();
+    assert_eq!(
+        app.spinner_frame(),
+        frame_before,
+        "spinner should stop after the runtime op completes"
+    );
+}
+
+#[test]
 fn applies_task_completion_and_reloads_data() {
     let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
 
