@@ -10,6 +10,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let lines = match app.active_log_tab {
         TuiLogTab::XratEvents => event_lines(app),
         TuiLogTab::ProxyEngine => proxy_lines(app),
+        TuiLogTab::Stats => stats_lines(app),
     };
 
     render_scroll_panel(
@@ -116,10 +117,18 @@ fn proxy_level_style(level: Option<&str>) -> ratatui::style::Style {
     }
 }
 
+fn stats_lines(_app: &TuiApp) -> Vec<Line<'static>> {
+    vec![Line::styled(
+        "Live traffic stats are not wired up yet.",
+        theme::muted_style(),
+    )]
+}
+
 fn log_title(tab: TuiLogTab) -> &'static str {
     match tab {
-        TuiLogTab::XratEvents => " Logs  [xrat events]  proxy engine  ",
-        TuiLogTab::ProxyEngine => " Logs   xrat events  [proxy engine] ",
+        TuiLogTab::XratEvents => " Logs  [xrat events]  proxy engine   stats  ",
+        TuiLogTab::ProxyEngine => " Logs   xrat events  [proxy engine]  stats  ",
+        TuiLogTab::Stats => " Logs   xrat events   proxy engine  [stats] ",
     }
 }
 

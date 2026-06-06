@@ -198,6 +198,54 @@ fn maps_bracket_keys_to_focused_tab_group() {
 }
 
 #[test]
+fn maps_number_keys_to_log_tab_selection_when_log_focused() {
+    use crate::tui::app::TuiLogTab;
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('3')),
+            TuiView::Configs,
+            TuiPanel::Log,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::SelectLogTab(TuiLogTab::Stats)
+    );
+    // Out-of-range index and non-Log focus fall through to no-op tab select.
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('9')),
+            TuiView::Configs,
+            TuiPanel::Log,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::None
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('3')),
+            TuiView::Configs,
+            TuiPanel::Table,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::None
+    );
+}
+
+#[test]
 fn maps_navigation_and_help_keys() {
     assert_eq!(
         act(

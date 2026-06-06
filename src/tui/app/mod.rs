@@ -57,6 +57,12 @@ impl TuiApp {
                 self.active_log_tab = self.active_log_tab.prev();
                 self.panel_scroll.log.set(0);
             }
+            TuiAction::SelectLogTab(tab) => {
+                if self.active_log_tab != tab {
+                    self.active_log_tab = tab;
+                    self.panel_scroll.log.set(0);
+                }
+            }
             TuiAction::StartTest(scope) => {
                 self.test_state.scope = scope;
             }

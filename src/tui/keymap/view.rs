@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::tui::app::{TuiAction, TuiPanel, TuiView};
+use crate::tui::app::{TuiAction, TuiLogTab, TuiPanel, TuiView};
 
 pub fn action_for_view_key(
     key: KeyEvent,
@@ -16,6 +16,14 @@ pub fn action_for_view_key(
         }
         KeyCode::Char(']') if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
             TuiAction::NextLogTab
+        }
+        KeyCode::Char(ch @ '1'..='9')
+            if active_view == TuiView::Configs && focused_panel == TuiPanel::Log =>
+        {
+            match TuiLogTab::from_index(ch as usize - '1' as usize) {
+                Some(tab) => TuiAction::SelectLogTab(tab),
+                None => TuiAction::None,
+            }
         }
         KeyCode::Char('[') => TuiAction::PrevTab,
         KeyCode::Char(']') => TuiAction::NextTab,
