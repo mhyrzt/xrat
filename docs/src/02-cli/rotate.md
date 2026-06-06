@@ -62,8 +62,8 @@ xrat rotate status [--json]
 
 ### Flags
 
-| Flag     | Description                  |
-| -------- | ---------------------------- |
+| Flag     | Description                   |
+| -------- | ----------------------------- |
 | `--json` | Print rotation status as JSON |
 
 ---
@@ -78,9 +78,9 @@ xrat rotate now [--config-id <id-or-ref>] [--refresh]
 
 ### Flags
 
-| Flag          | Description                                                |
-| ------------- | ---------------------------------------------------------- |
-| `--config-id` | Force rotation to a specific enabled config ID or ref prefix |
+| Flag          | Description                                                   |
+| ------------- | ------------------------------------------------------------- |
+| `--config-id` | Force rotation to a specific enabled config ID or ref prefix  |
 | `--refresh`   | Refresh URL-backed subscriptions before selecting a candidate |
 
 ### Behavior

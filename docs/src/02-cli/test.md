@@ -8,18 +8,18 @@ xrat test [id-or-ref] [flags]
 
 ## Arguments
 
-| Argument    | Description                                                        |
-| ----------- | ------------------------------------------------------------------ |
+| Argument    | Description                                                         |
+| ----------- | ------------------------------------------------------------------- |
 | `id-or-ref` | Config numeric ID or ref prefix. Omit to bulk-test matching configs |
 
 ## Filter Flags
 
 When testing multiple configs (no `id` specified):
 
-| Flag                  | Description                                         |
-| --------------------- | --------------------------------------------------- |
-| `--enabled-only`      | Filter: only enabled configs                        |
-| `--active-only`       | Filter: only the active config                      |
+| Flag                         | Description                                                       |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `--enabled-only`             | Filter: only enabled configs                                      |
+| `--active-only`              | Filter: only the active config                                    |
 | `--subscription <id-or-ref>` | Filter: only configs from the given subscription ID or ref prefix |
 
 ## Stage Skip Flags

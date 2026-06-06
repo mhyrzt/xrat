@@ -256,14 +256,14 @@ Hint: start the daemon with 'xrat daemon start'
 
 When the daemon is running, these commands route through IPC:
 
-| Command             | IPC Request         |
-| ------------------- | ------------------- |
-| `xrat connect <id>` | `RuntimeConnect`    |
-| `xrat disconnect`   | `RuntimeDisconnect` |
-| `xrat status`       | `RuntimeStatus`     |
+| Command              | IPC Request         |
+| -------------------- | ------------------- |
+| `xrat connect <id>`  | `RuntimeConnect`    |
+| `xrat disconnect`    | `RuntimeDisconnect` |
+| `xrat status`        | `RuntimeStatus`     |
 | `xrat rotate start`  | `ProxyStart`        |
 | `xrat rotate status` | `ProxyStatus`       |
-| `xrat rotate now` | `RuntimeReplace`    |
+| `xrat rotate now`    | `RuntimeReplace`    |
 | `xrat rotate stop`   | `ProxyStop`         |
 
 ### Daemon Required

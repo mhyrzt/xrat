@@ -11,12 +11,12 @@ xrat proxy <action> [flags]
 
 ## Actions
 
-| Action      | Description                                              |
-| ----------- | ------------------------------------------------------- |
-| `endpoints` | Show active local proxy endpoints                       |
-| `pac`       | Print or locate the Proxy Auto-Config (PAC) file        |
-| `shell`     | Proxy the current terminal session via env vars         |
-| `desktop`   | Manage Linux desktop environment proxy settings         |
+| Action      | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `endpoints` | Show active local proxy endpoints                |
+| `pac`       | Print or locate the Proxy Auto-Config (PAC) file |
+| `shell`     | Proxy the current terminal session via env vars  |
+| `desktop`   | Manage Linux desktop environment proxy settings  |
 
 ---
 
@@ -29,8 +29,9 @@ xrat proxy endpoints [--json]
 ```
 
 Lists the active runtime inbounds (HTTP, SOCKS5, Shadowsocks) plus the PAC URL
-when the API server is enabled. If an inbound binds `0.0.0.0`, the machine LAN IP
-is shown for easy local-network use; otherwise the configured bind host is shown.
+when the API server is enabled. If an inbound binds `0.0.0.0`, the machine LAN
+IP is shown for easy local-network use; otherwise the configured bind host is
+shown.
 
 Shadowsocks credentials are not persisted in runtime status, so the Shadowsocks
 line shows only the endpoint with a `(credentials not shown)` note rather than a
@@ -38,9 +39,9 @@ leaky partial `ss://` URI.
 
 ### Flags
 
-| Flag     | Description              |
-| -------- | ------------------------ |
-| `--json` | Print endpoints as JSON  |
+| Flag     | Description             |
+| -------- | ----------------------- |
+| `--json` | Print endpoints as JSON |
 
 ---
 

@@ -23,14 +23,14 @@ xrat list configs [flags]
 
 ### Flags
 
-| Flag                  | Description                                              |
-| --------------------- | -------------------------------------------------------- |
-| `--enabled-only`      | Show only enabled configs                                |
-| `--active-only`       | Show only the active config                              |
-| `--deleted`           | Show only soft-deleted configs                           |
-| `--all`               | Include soft-deleted configs in results                  |
+| Flag                         | Description                                                    |
+| ---------------------------- | -------------------------------------------------------------- |
+| `--enabled-only`             | Show only enabled configs                                      |
+| `--active-only`              | Show only the active config                                    |
+| `--deleted`                  | Show only soft-deleted configs                                 |
+| `--all`                      | Include soft-deleted configs in results                        |
 | `--subscription <id-or-ref>` | Show only configs from the given subscription ID or ref prefix |
-| `--format <format>`   | Output format: `table`, `tsv`, `json` (default: `table`) |
+| `--format <format>`          | Output format: `table`, `tsv`, `json` (default: `table`)       |
 
 ### Examples
 

@@ -70,8 +70,8 @@ xrat show subscription <id-or-ref> [--json]
 
 ### Arguments
 
-| Argument    | Description                                      |
-| ----------- | ------------------------------------------------ |
+| Argument    | Description                                     |
+| ----------- | ----------------------------------------------- |
 | `id-or-ref` | Config or subscription numeric ID or ref prefix |
 
 ### Flags
@@ -100,8 +100,8 @@ xrat enable <id-or-ref>
 
 ### Arguments
 
-| Argument    | Description                             |
-| ----------- | --------------------------------------- |
+| Argument    | Description                            |
+| ----------- | -------------------------------------- |
 | `id-or-ref` | Config numeric ID or ref prefix to use |
 
 Enabled configs are included in normal enabled-only workflows, such as:
@@ -127,8 +127,8 @@ xrat disable <id-or-ref>
 
 ### Arguments
 
-| Argument    | Description                             |
-| ----------- | --------------------------------------- |
+| Argument    | Description                            |
+| ----------- | -------------------------------------- |
 | `id-or-ref` | Config numeric ID or ref prefix to use |
 
 Disabled configs remain in the database but are excluded from enabled-only
@@ -148,8 +148,8 @@ xrat delete subscription <id-or-ref> [--yes]
 
 ### Arguments
 
-| Argument    | Description                                      |
-| ----------- | ------------------------------------------------ |
+| Argument    | Description                                     |
+| ----------- | ----------------------------------------------- |
 | `id-or-ref` | Config or subscription numeric ID or ref prefix |
 
 ### Flags
@@ -183,8 +183,8 @@ xrat restore <id-or-ref>
 
 ### Arguments
 
-| Argument    | Description                             |
-| ----------- | --------------------------------------- |
+| Argument    | Description                            |
+| ----------- | -------------------------------------- |
 | `id-or-ref` | Config numeric ID or ref prefix to use |
 
 `restore` only applies to soft-deleted configs. It does not recreate a config

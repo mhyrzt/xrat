@@ -15,8 +15,8 @@ xrat connect <id-or-ref> [flags]
 
 ### Arguments
 
-| Argument    | Description                                                       |
-| ----------- | ----------------------------------------------------------------- |
+| Argument    | Description                                                    |
+| ----------- | -------------------------------------------------------------- |
 | `id-or-ref` | Config numeric ID or ref prefix to start as the active session |
 
 ### Flags

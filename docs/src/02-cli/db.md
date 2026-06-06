@@ -8,9 +8,9 @@ xrat db <action>
 
 ## Actions
 
-| Action    | Description                                        |
-| --------- | -------------------------------------------------- |
-| `migrate` | Apply any pending database migrations and report   |
+| Action    | Description                                      |
+| --------- | ------------------------------------------------ |
+| `migrate` | Apply any pending database migrations and report |
 
 ---
 
@@ -43,8 +43,8 @@ and recovery guidance. Common cases:
 - **Checksum mismatch** — a previously shipped migration file was edited after
   release. Restore the original migration (reinstall the matching release) or
   reset the database from a backup.
-- **Dirty / partially applied** — inspect the `_sqlx_migrations` table, finish or
-  revert the offending migration by hand, and remove its row before retrying.
+- **Dirty / partially applied** — inspect the `_sqlx_migrations` table, finish
+  or revert the offending migration by hand, and remove its row before retrying.
 - **Missing migration** — the database records a migration this build does not
   contain, usually after a downgrade. Upgrade back to a build that includes it.
 

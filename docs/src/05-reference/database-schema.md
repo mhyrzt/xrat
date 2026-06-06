@@ -36,16 +36,16 @@ CREATE TABLE subscriptions (
 );
 ```
 
-| Column        | Type      | Description                            |
-| ------------- | --------- | -------------------------------------- |
-| `id`          | INTEGER   | Primary key                            |
-| `ref`         | TEXT      | Stable user-facing ref                 |
-| `source_url`  | TEXT      | Original URL, file path, or "raw_text" |
-| `source_kind` | TEXT      | `url`, `file`, or `raw_text`           |
-| `name`        | TEXT      | Optional subscription name             |
-| `last_refreshed_at` | TIMESTAMP | Latest successful refresh timestamp |
-| `created_at`  | TIMESTAMP | First import timestamp                 |
-| `updated_at`  | TIMESTAMP | Latest import timestamp                |
+| Column              | Type      | Description                            |
+| ------------------- | --------- | -------------------------------------- |
+| `id`                | INTEGER   | Primary key                            |
+| `ref`               | TEXT      | Stable user-facing ref                 |
+| `source_url`        | TEXT      | Original URL, file path, or "raw_text" |
+| `source_kind`       | TEXT      | `url`, `file`, or `raw_text`           |
+| `name`              | TEXT      | Optional subscription name             |
+| `last_refreshed_at` | TIMESTAMP | Latest successful refresh timestamp    |
+| `created_at`        | TIMESTAMP | First import timestamp                 |
+| `updated_at`        | TIMESTAMP | Latest import timestamp                |
 
 ---
 

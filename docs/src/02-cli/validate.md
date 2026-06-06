@@ -12,17 +12,17 @@ whether the file is valid.
 
 ## Flags
 
-| Flag       | Description                                          |
-| ---------- | ---------------------------------------------------- |
-| `--format` | Output format: `human` (default) or `json`           |
+| Flag       | Description                                |
+| ---------- | ------------------------------------------ |
+| `--format` | Output format: `human` (default) or `json` |
 
 ## What it checks
 
 - **Runtime**: engine is one of `xray`, `v2ray`, `sing-box`; rotation
-  `test_concurrency` is non-negative; rotation `test_stages` only contains
-  known stage names (`icmp`/`ping`, `real_delay`, `download`, and their
-  aliases); enabled inbounds have a host and a non-zero, non-duplicated port;
-  SOCKS auth and Shadowsocks material are present when enabled.
+  `test_concurrency` is non-negative; rotation `test_stages` only contains known
+  stage names (`icmp`/`ping`, `real_delay`, `download`, and their aliases);
+  enabled inbounds have a host and a non-zero, non-duplicated port; SOCKS auth
+  and Shadowsocks material are present when enabled.
 - **Database**: when `backend = "postgres"`, validates user, database name,
   connection-pool bounds, and connect timeout.
 - **Testing**: concurrency is non-negative; `[testing].order` has no duplicate
@@ -33,8 +33,8 @@ whether the file is valid.
 ### Secret references
 
 Secret values such as passwords and API keys can be inline literals or
-environment references (`{ env = "VAR_NAME" }`). Validation is **structural**:
-a literal must be non-empty and an env reference must name a variable, but the
+environment references (`{ env = "VAR_NAME" }`). Validation is **structural**: a
+literal must be non-empty and an env reference must name a variable, but the
 environment variable is **not** required to be set at validation time. Actual
 resolution happens at runtime.
 
@@ -58,9 +58,7 @@ xrat validate --format json config.toml
 {
   "path": "config.toml",
   "valid": false,
-  "errors": [
-    "[runtime].engine must be one of: xray, v2ray, sing-box"
-  ]
+  "errors": ["[runtime].engine must be one of: xray, v2ray, sing-box"]
 }
 ```
 

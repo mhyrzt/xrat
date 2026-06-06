@@ -90,7 +90,12 @@ vhs media/tapes/cli.tape
 
 ### Status
 
-Planned
+In progress
+
+### Progress
+
+- Implemented `xrat events` and `proxy engine` tabs in the TUI logs card.
+- Left the `stats` tab and stats API/poller work for a later focused change.
 
 ### Goal
 
@@ -100,12 +105,11 @@ Replace the current config log view with a tabbed logs card. Current
 ### Target tabs
 
 1. `xrat events`: internal app events such as session changes, tests, rotation,
-   health, daemon activity, and runtime transitions. Source:
-   `src/app/events.rs` and `src/db/repository/events.rs`, the same data used by
-   `xrat logs`.
-2. `proxy engine`: raw proxy process logs from xray or sing-box. Source:
-   process stdout/stderr or log files from `src/xray/process_mgmt/` and the
-   sing-box equivalent.
+   health, daemon activity, and runtime transitions. Source: `src/app/events.rs`
+   and `src/db/repository/events.rs`, the same data used by `xrat logs`.
+2. `proxy engine`: raw proxy process logs from xray or sing-box. Source: process
+   stdout/stderr or log files from `src/xray/process_mgmt/` and the sing-box
+   equivalent.
 3. `stats`: totals and live traffic data:
    - total download
    - total upload
@@ -113,9 +117,9 @@ Replace the current config log view with a tabbed logs card. Current
    - failed request count
    - live throughput graph
 
-Stats source should be xray StatsService (`grpc`/`StatsService`) or the
-sing-box Clash API. Feed the TUI through a poller and ring buffer; render with a
-ratatui sparkline/chart widget.
+Stats source should be xray StatsService (`grpc`/`StatsService`) or the sing-box
+Clash API. Feed the TUI through a poller and ring buffer; render with a ratatui
+sparkline/chart widget.
 
 ### Cross-cutting UI requirements
 
@@ -129,7 +133,8 @@ ratatui sparkline/chart widget.
 
 ### Changes required
 
-- `src/tui/view/configs/log.rs`: rewrite as tab container plus per-tab renderers.
+- `src/tui/view/configs/log.rs`: rewrite as tab container plus per-tab
+  renderers.
 - `src/tui/app/types.rs` and related `src/tui/app/` modules: add active-tab
   state, stats ring buffer, and proxy-log buffer.
 - `src/tui/data/`: add adapters for xrat events, proxy log tailing, and stats

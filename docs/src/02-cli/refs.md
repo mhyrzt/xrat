@@ -35,5 +35,4 @@ Commands that accept config refs include `connect`, `show config`, `enable`,
 `rotate now --config-id`.
 
 Commands that accept subscription refs include `show subscription`,
-`delete subscription`, `list configs --subscription`, and
-`test --subscription`.
+`delete subscription`, `list configs --subscription`, and `test --subscription`.
