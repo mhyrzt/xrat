@@ -7,7 +7,7 @@ pub(crate) fn print_single_header(config: &ConfigRecord) {
         cli_output::format_kv(
             Some("Testing config"),
             &[
-                ("id", format!("#{}", config.id)),
+                ("ref", config.r#ref.clone()),
                 ("name", cli_output::dash(config.name.as_deref())),
                 ("protocol", config.protocol.clone()),
                 ("address", format!("{}:{}", config.address, config.port)),

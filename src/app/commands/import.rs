@@ -17,8 +17,8 @@ pub async fn run(context: &AppContext, input: &str) -> crate::app::Result<()> {
         .get_subscription_by_id(summary.subscription_id)
         .await?;
     let subscription_label = subscription
-        .map(|subscription| format!("{} (id {})", subscription.r#ref, subscription.id))
-        .unwrap_or_else(|| format!("#{}", summary.subscription_id));
+        .map(|subscription| subscription.r#ref)
+        .unwrap_or_else(|| "-".to_string());
 
     println!(
         "{}",

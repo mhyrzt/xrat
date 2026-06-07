@@ -4,6 +4,7 @@ use crate::app::context::AppContext;
 use crate::cli::{ListArgs, ListConfigsArgs, ListFormat, ListSubscriptionsArgs, ListTarget};
 use crate::db::{ConfigListFilter, ConfigRecord, SubscriptionRecord};
 use crate::support::refs::short_ref;
+use std::collections::HashMap;
 
 pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result<()> {
     match &command.target {
@@ -17,13 +18,21 @@ pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result
 async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate::app::Result<()> {
     let filter = build_config_list_filter(context, filters).await?;
     let configs = context.db.list_configs(&filter).await?;
+    let subscriptions = context.db.list_subscriptions().await?;
+    let subscription_refs = subscriptions
+        .iter()
+        .map(|subscription| (subscription.id, subscription.r#ref.as_str()))
+        .collect::<HashMap<_, _>>();
 
     if configs.is_empty() {
         println!("{}", output::empty_message("No configs matched."));
         return Ok(());
     }
 
-    println!("{}", format_configs(&configs, filters.format)?);
+    println!(
+        "{}",
+        format_configs(&configs, &subscription_refs, filters.format)?
+    );
 
     Ok(())
 }
@@ -47,17 +56,24 @@ async fn print_subscriptions(
     Ok(())
 }
 
-fn format_configs(configs: &[ConfigRecord], format: ListFormat) -> crate::app::Result<String> {
+fn format_configs(
+    configs: &[ConfigRecord],
+    subscription_refs: &HashMap<i64, &str>,
+    format: ListFormat,
+) -> crate::app::Result<String> {
     match format {
-        ListFormat::Table => Ok(format_config_table(configs)),
-        ListFormat::Tsv => Ok(format_config_tsv(configs)),
+        ListFormat::Table => Ok(format_config_table(configs, subscription_refs)),
+        ListFormat::Tsv => Ok(format_config_tsv(configs, subscription_refs)),
         ListFormat::Json => Ok(serde_json::to_string_pretty(
-            &configs.iter().map(config_json).collect::<Vec<_>>(),
+            &configs
+                .iter()
+                .map(|config| config_json(config, subscription_refs))
+                .collect::<Vec<_>>(),
         )?),
     }
 }
 
-fn format_config_table(configs: &[ConfigRecord]) -> String {
+fn format_config_table(configs: &[ConfigRecord], subscription_refs: &HashMap<i64, &str>) -> String {
     let columns = [
         Column {
             header: "REF",
@@ -93,11 +109,10 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
         .map(|config| {
             vec![
                 Cell::plain(short_ref(&config.r#ref).to_string()),
-                Cell::plain(
-                    config
-                        .subscription_id
-                        .map_or("-".to_string(), |id| id.to_string()),
-                ),
+                Cell::plain(subscription_ref_cell(
+                    config.subscription_id,
+                    subscription_refs,
+                )),
                 Cell::styled(
                     format_config_flags(config.is_enabled, config.is_active, config.is_deleted),
                     config_style(config),
@@ -113,17 +128,14 @@ fn format_config_table(configs: &[ConfigRecord]) -> String {
     output::format_table(&columns, &rows, output::color_enabled())
 }
 
-fn format_config_tsv(configs: &[ConfigRecord]) -> String {
+fn format_config_tsv(configs: &[ConfigRecord], subscription_refs: &HashMap<i64, &str>) -> String {
     let mut lines = Vec::with_capacity(configs.len() + 1);
-    lines.push("ref\tid\tsubscription_id\tstatus\tprotocol\taddress\tport\tname".to_string());
+    lines.push("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\tname".to_string());
     for config in configs {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}",
             config.r#ref,
-            config.id,
-            config
-                .subscription_id
-                .map_or(String::new(), |id| id.to_string()),
+            subscription_ref_tsv_cell(config.subscription_id, subscription_refs),
             format_config_flags(config.is_enabled, config.is_active, config.is_deleted),
             config.protocol,
             config.address,
@@ -197,12 +209,11 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
 
 fn format_subscription_tsv(subscriptions: &[SubscriptionRecord]) -> String {
     let mut lines = Vec::with_capacity(subscriptions.len() + 1);
-    lines.push("ref\tid\tkind\tconfig_count\tname\tsource".to_string());
+    lines.push("ref\tkind\tconfig_count\tname\tsource".to_string());
     for subscription in subscriptions {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}",
             subscription.r#ref,
-            subscription.id,
             subscription.source_kind,
             subscription.config_count,
             tsv_cell(subscription.name.as_deref()),
@@ -242,11 +253,12 @@ fn config_style(config: &ConfigRecord) -> Style {
     }
 }
 
-fn config_json(config: &ConfigRecord) -> serde_json::Value {
+fn config_json(config: &ConfigRecord, subscription_refs: &HashMap<i64, &str>) -> serde_json::Value {
     serde_json::json!({
-        "id": config.id,
         "ref": &config.r#ref,
-        "subscription_id": config.subscription_id,
+        "subscription_ref": config
+            .subscription_id
+            .and_then(|id| subscription_refs.get(&id).copied()),
         "protocol": config.protocol,
         "address": config.address,
         "port": config.port,
@@ -265,7 +277,6 @@ fn config_json(config: &ConfigRecord) -> serde_json::Value {
 
 pub(crate) fn subscription_json(subscription: &SubscriptionRecord) -> serde_json::Value {
     serde_json::json!({
-        "id": subscription.id,
         "ref": &subscription.r#ref,
         "source_kind": subscription.source_kind,
         "source_url": subscription.source_url,
@@ -278,6 +289,27 @@ pub(crate) fn subscription_json(subscription: &SubscriptionRecord) -> serde_json
 
 fn tsv_cell(value: Option<&str>) -> String {
     value.unwrap_or_default().replace(['\t', '\r', '\n'], " ")
+}
+
+fn subscription_ref_cell(
+    subscription_id: Option<i64>,
+    subscription_refs: &HashMap<i64, &str>,
+) -> String {
+    subscription_id
+        .and_then(|id| subscription_refs.get(&id).copied())
+        .map(short_ref)
+        .unwrap_or("-")
+        .to_string()
+}
+
+fn subscription_ref_tsv_cell(
+    subscription_id: Option<i64>,
+    subscription_refs: &HashMap<i64, &str>,
+) -> String {
+    subscription_id
+        .and_then(|id| subscription_refs.get(&id).copied())
+        .unwrap_or_default()
+        .to_string()
 }
 
 async fn build_config_list_filter(
@@ -306,15 +338,21 @@ mod tests {
     #[test]
     fn config_outputs_include_refs() {
         let config = config_record("abcdef123456");
+        let subscriptions = HashMap::from([(2, "123456abcdef")]);
 
-        let table = format_config_table(std::slice::from_ref(&config));
-        let tsv = format_config_tsv(std::slice::from_ref(&config));
-        let json = config_json(&config);
+        let table = format_config_table(std::slice::from_ref(&config), &subscriptions);
+        let tsv = format_config_tsv(std::slice::from_ref(&config), &subscriptions);
+        let json = config_json(&config, &subscriptions);
 
         assert!(table.contains("REF"));
         assert!(table.contains("abcdef12"));
-        assert!(tsv.starts_with("ref\tid\t"));
+        assert!(table.contains("123456ab"));
+        assert!(tsv.starts_with("ref\tsubscription_ref\t"));
+        assert!(!tsv.starts_with("ref\tid\t"));
         assert_eq!(json["ref"], "abcdef123456");
+        assert_eq!(json["subscription_ref"], "123456abcdef");
+        assert!(json.get("id").is_none());
+        assert!(json.get("subscription_id").is_none());
     }
 
     #[test]
@@ -336,8 +374,9 @@ mod tests {
 
         assert!(table.contains("REF"));
         assert!(table.contains("123456ab"));
-        assert!(tsv.starts_with("ref\tid\t"));
+        assert!(tsv.starts_with("ref\tkind\t"));
         assert_eq!(json["ref"], "123456abcdef");
+        assert!(json.get("id").is_none());
     }
 
     fn config_record(value_ref: &str) -> ConfigRecord {

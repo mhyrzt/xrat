@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct TestOutputRow {
+    #[serde(skip_serializing)]
     pub(crate) id: i64,
     pub(crate) r#ref: String,
     pub(crate) name: Option<String>,

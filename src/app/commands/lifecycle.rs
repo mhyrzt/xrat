@@ -213,12 +213,19 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
     })?;
 
     if args.json {
+        let subscription_ref = match config.subscription_id {
+            Some(subscription_id) => context
+                .db
+                .get_subscription_by_id(subscription_id)
+                .await?
+                .map(|subscription| subscription.r#ref),
+            None => None,
+        };
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
-                "id": config.id,
                 "ref": config.r#ref,
-                "subscription_id": config.subscription_id,
+                "subscription_ref": subscription_ref,
                 "protocol": config.protocol,
                 "address": config.address,
                 "port": config.port,
@@ -244,13 +251,23 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
         return Ok(());
     }
 
+    let subscription_ref = match config.subscription_id {
+        Some(subscription_id) => context
+            .db
+            .get_subscription_by_id(subscription_id)
+            .await?
+            .map(|subscription| subscription.r#ref)
+            .unwrap_or_else(|| "-".to_string()),
+        None => "-".to_string(),
+    };
+
     println!(
         "{}",
         output::format_kv(
             Some("Config"),
             &[
-                ("id", config.id.to_string()),
                 ("ref", config.r#ref),
+                ("subscription", subscription_ref),
                 ("name", output::dash(config.name.as_deref())),
                 ("protocol", config.protocol),
                 ("address", format!("{}:{}", config.address, config.port)),
@@ -299,7 +316,6 @@ async fn show_subscription(
         output::format_kv(
             Some("Subscription"),
             &[
-                ("id", subscription.id.to_string()),
                 ("ref", subscription.r#ref),
                 ("name", output::dash(subscription.name.as_deref())),
                 ("kind", subscription.source_kind),

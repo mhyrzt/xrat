@@ -10,7 +10,7 @@ pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<
     match &args.action {
         RotateAction::Start(_) => start(&socket_path).await,
         RotateAction::Stop(_) => stop(&socket_path).await,
-        RotateAction::Status(status_args) => status(&socket_path, status_args.json).await,
+        RotateAction::Status(status_args) => status(context, &socket_path, status_args.json).await,
         RotateAction::Now(now_args) => {
             now(
                 context,
@@ -81,7 +81,11 @@ async fn stop(socket_path: &std::path::Path) -> crate::app::Result<()> {
     }
 }
 
-async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result<()> {
+async fn status(
+    context: &AppContext,
+    socket_path: &std::path::Path,
+    json: bool,
+) -> crate::app::Result<()> {
     match ipc::proxy_status_daemon(socket_path).await {
         Ok(response) => {
             if !response.ok {
@@ -92,8 +96,26 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
                     "proxy status response missing payload".to_string(),
                 )
             })?;
+            let active_config_ref = config_ref(context, payload.active_config_id).await?;
+            let last_candidate_config_ref =
+                config_ref(context, payload.last_candidate_config_id).await?;
             if json {
-                println!("{}", serde_json::to_string_pretty(&payload)?);
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "rotation_enabled": payload.rotation_enabled,
+                        "interval_secs": payload.interval_secs,
+                        "health_trigger_enabled": payload.health_trigger_enabled,
+                        "cooldown_secs": payload.cooldown_secs,
+                        "cooldown_active": payload.cooldown_active,
+                        "active_config_ref": active_config_ref,
+                        "last_trigger": payload.last_trigger,
+                        "last_result": payload.last_result,
+                        "last_candidate_config_ref": last_candidate_config_ref,
+                        "last_candidate_result": payload.last_candidate_result,
+                        "next_timer_epoch_secs": payload.next_timer_epoch_secs,
+                    }))?
+                );
             } else {
                 println!(
                     "{}",
@@ -116,10 +138,7 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
                             ),
                             (
                                 "active config",
-                                payload
-                                    .active_config_id
-                                    .map(|value| value.to_string())
-                                    .unwrap_or_else(|| "-".to_string()),
+                                active_config_ref.unwrap_or_else(|| "-".to_string()),
                             ),
                             (
                                 "last trigger",
@@ -138,10 +157,7 @@ async fn status(socket_path: &std::path::Path, json: bool) -> crate::app::Result
                             ("last result", friendly_result(&payload.last_result)),
                             (
                                 "candidate config",
-                                payload
-                                    .last_candidate_config_id
-                                    .map(|value| value.to_string())
-                                    .unwrap_or_else(|| "-".to_string()),
+                                last_candidate_config_ref.unwrap_or_else(|| "-".to_string()),
                             ),
                             (
                                 "candidate result",
@@ -208,6 +224,9 @@ async fn now(
                     "proxy rotate response missing payload".to_string(),
                 )
             })?;
+            let new_config_ref = config_ref(context, Some(payload.new_config_id))
+                .await?
+                .unwrap_or_else(|| "-".to_string());
             println!(
                 "{}",
                 output::success("Proxy rotation completed.", output::color_enabled())
@@ -219,7 +238,7 @@ async fn now(
                     &[
                         ("replaced", output::bool_label(payload.replaced).to_string()),
                         ("old session", payload.old_session_id.to_string()),
-                        ("new config", payload.new_config_id.to_string()),
+                        ("new config", new_config_ref),
                         ("new session", payload.new_session_id.to_string()),
                         ("new pid", payload.new_pid.to_string()),
                     ],
@@ -240,6 +259,20 @@ fn daemon_unreachable_message(socket_path: &std::path::Path) -> String {
         "daemon is not running. Start it now with `xrat daemon start`, or install it for login startup with `xrat daemon install --start` (socket: {})",
         socket_path.display()
     )
+}
+
+async fn config_ref(
+    context: &AppContext,
+    config_id: Option<i64>,
+) -> crate::app::Result<Option<String>> {
+    let Some(config_id) = config_id else {
+        return Ok(None);
+    };
+    Ok(context
+        .db
+        .get_config_by_id(config_id)
+        .await?
+        .map(|config| config.r#ref))
 }
 
 /// Translate internal scheduler sentinel values into human-readable status text.

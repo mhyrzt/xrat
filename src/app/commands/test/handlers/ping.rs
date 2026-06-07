@@ -19,8 +19,8 @@ pub(super) async fn run_ping_loop(
         .await?;
     let interval_ms = args.ping_interval_ms.max(100);
     println!(
-        "Starting ping loop for config #{} (interval={}ms). Press Ctrl+C to stop.",
-        config_id, interval_ms
+        "Starting ping loop for config {} (interval={}ms). Press Ctrl+C to stop.",
+        config.r#ref, interval_ms
     );
 
     let mut ticker = tokio::time::interval(Duration::from_millis(interval_ms));

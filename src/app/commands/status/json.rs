@@ -33,7 +33,6 @@ pub(super) fn print_json_status(snapshot: &RuntimeStatusSnapshot) -> crate::app:
 
 fn config_json(config: &crate::db::ConfigRecord) -> serde_json::Value {
     serde_json::json!({
-        "id": config.id,
         "ref": &config.r#ref,
         "name": &config.name,
         "protocol": &config.protocol,

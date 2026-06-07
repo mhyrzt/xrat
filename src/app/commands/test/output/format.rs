@@ -183,13 +183,12 @@ fn truncate_display(text: &str, max_width: usize) -> String {
 
 pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
     let mut lines = Vec::with_capacity(outputs.len() + 1);
-    lines.push("ref\tid\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tstatus\terror".to_string());
+    lines.push("ref\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tstatus\terror".to_string());
 
     for output in outputs {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             output.r#ref,
-            output.id,
             tsv_cell(output.name.as_deref()),
             output.protocol,
             output.address,
@@ -214,13 +213,12 @@ pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
 
 pub(crate) fn format_csv(outputs: &[TestOutputRow]) -> String {
     let mut lines = Vec::with_capacity(outputs.len() + 1);
-    lines.push("ref,id,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error".to_string());
+    lines.push("ref,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error".to_string());
 
     for output in outputs {
         lines.push(
             [
                 csv_cell(Some(&output.r#ref)),
-                output.id.to_string(),
                 csv_cell(output.name.as_deref()),
                 csv_cell(Some(&output.protocol)),
                 csv_cell(Some(&output.address)),
