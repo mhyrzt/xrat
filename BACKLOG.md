@@ -341,5 +341,11 @@ must not gate mutations.
 - `?key=` stays only for read-only, non-critical endpoints. Management endpoints
   require header tokens with scopes, constant-time comparison, and
   localhost-only binding by default.
+-----
 
-====Unstructured Todos================
+## Drafts
+
+read the Dockerfile do you thing it's a good idea to include and install xray and sing-box in this Dockerfile so user would not necessary need to install it
+another thing
+in some situtation users would deploy such apps in PaaS problem with iranian paas is that you can not attach config.toml for example what if instead we could define config.toml as b64
+encoded string that it would be decoded later
