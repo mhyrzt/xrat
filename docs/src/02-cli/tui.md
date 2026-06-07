@@ -6,6 +6,13 @@ Start the interactive terminal UI.
 xrat tui
 ```
 
+When installed via `install.sh` or `just install`, xrat also installs an
+`xratui` shortcut next to the `xrat` binary:
+
+```bash
+xratui
+```
+
 The TUI has no command-specific flags. It uses the same global flags as other
 commands, including `--database`, `--config`, `--xray`, `--v2ray`, `--sing-box`,
 `-v`, and `-q`.
