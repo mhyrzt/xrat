@@ -104,7 +104,7 @@ with its own icon in the taskbar — never the xrat icon.
   is expected).
 
 ---
-
+- enable roatation by default in both init_config_default.toml and related variables 
 - xrat daemon restart reattach previous connection or connect to best connection
 - show a message when config copied at clipboard at chromebar center with
   following message `copied config#ref to clipboard` and remove it after some
