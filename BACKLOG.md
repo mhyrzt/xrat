@@ -86,6 +86,8 @@ vhs media/tapes/cli.tape
 - Keep gif regeneration manual through `just gifs`; do not add CI regeneration
   for the first pass.
 
+---
+
 ## 02. Hard, P2: TUI logs card with events, proxy logs, and stats tabs
 
 ### Status
@@ -180,7 +182,7 @@ Stats source should be xray StatsService (`grpc`/`StatsService`) or the sing-box
 Clash API. Feed the TUI through a poller and ring buffer; render with a ratatui
 sparkline/chart widget.
 
-### Proxy log refinements
+### Proxy log **refinements**
 
 The first TUI logs implementation likely exposed raw process stream labels and
 raw engine lines to get observability working quickly. That is useful for
@@ -260,60 +262,9 @@ Desired behavior:
 - Reset stats per runtime session.
 - Use live tail for proxy logs.
 
-## 05. Medium, P2: Routing rules in generated PAC file
+---
 
-### Status
-
-Planned
-
-### Goal
-
-Make `GET /proxy.pac` honor routing rules so destinations can be matched to
-`DIRECT` / proxy / block decisions directly inside the PAC `FindProxyForURL`
-conditionals, instead of the current fixed "local + private ranges bypass,
-everything else proxied" logic (`src/server/routes/pac.rs:54`). Putting common
-direct/proxy domain and IP rules into the PAC if-statement makes routing more
-convenient and can speed up resolution (no proxy round-trip for direct hosts).
-
-### Current behavior
-
-`render_pac` emits a static function: plain hostnames, `*.local`, localhost, and
-RFC1918 ranges return `DIRECT`; everything else returns the proxy chain. There
-is no way to add custom direct/proxy/blocked domains or IP ranges.
-
-### Changes required
-
-- Define a routing-rule source for PAC generation. Options to weigh:
-  - reuse the runtime routing rules that item 02 introduces on `XrayConfig`
-    (`src/xray/config/types.rs`) where they map cleanly to host/domain matches;
-  - and/or a dedicated user-editable rule set (direct domains, proxy domains,
-    blocked domains, direct/proxy IP CIDRs) in app config.
-- Translate rules into PAC primitives: `shExpMatch(host, "*.example.com")` for
-  domains, `isInNet(host, ip, mask)` for CIDRs (convert prefix → dotted mask),
-  ordered direct → block (`return "DIRECT"` / a blackhole) → proxy → default
-  chain. Keep the existing local/private bypass as the first rule block.
-- Keep generation deterministic and bounded: large geosite/geoip lists do not
-  belong inline in a PAC; cap or summarize, or restrict PAC rules to curated
-  domain/CIDR lists and leave full geo routing to the engine. Document the
-  limit.
-- Preserve current defaults when no rules are configured (byte-identical output
-  to today for the no-rules case).
-
-### Verification
-
-- `render_pac` unit tests: direct-domain rule emits `shExpMatch` + `DIRECT`;
-  CIDR rule emits `isInNet` with correct mask; blocked-domain rule returns the
-  blackhole; rule ordering is stable; no-rules output matches the current
-  baseline.
-- Manual: load the PAC in a browser/OS proxy setting and confirm a configured
-  direct domain bypasses the proxy while others still route through it.
-
-### Decisions
-
-- PAC carries curated/convenience rules only; full geosite/geoip routing stays
-  in the engine config. Keep no-rules output identical to today.
-
-## 06. Hard, P1: Proper authentication for a management HTTP API
+## 03. Hard, P1: Proper authentication for a management HTTP API
 
 ### Status
 
@@ -379,3 +330,16 @@ must not gate mutations.
 - `?key=` stays only for read-only, non-critical endpoints. Management endpoints
   require header tokens with scopes, constant-time comparison, and
   localhost-only binding by default.
+
+- also change `?key=` to `?token=`
+
+====Unstructured Todos================
+
+1. installation script must be changed to do not show /tmp/..../ logs and
+   manpages
+2. when in tui and running test (t <Key>) is it possible to show the results of
+   test for a finshied config immedietly after it's done
+3. xrat proxy endpoints -> xrat proxy info or xrat proxy show what ever you
+   think is better (also change Proxy Endpoints to sth better)
+4. adding xrat proxy toggle -> automatically captures env vars and outputs new
+   varaible
