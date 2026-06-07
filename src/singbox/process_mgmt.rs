@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -46,7 +46,7 @@ pub async fn spawn_detached(
     ready_host: &str,
     ready_port: u16,
     startup_timeout: Duration,
-) -> Result<ManagedSingboxProcess, SingboxRuntimeError> {
+) -> Result<ManagedSingboxProcess, crate::app::AppError> {
     std::fs::create_dir_all(runtime_dir)?;
 
     let paths = ManagedSingboxPaths {
@@ -69,7 +69,7 @@ pub async fn spawn_detached(
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::from(stderr))
         .spawn()
-        .map_err(|error| SingboxRuntimeError::Spawn(error.to_string()))?;
+        .map_err(|error| crate::app::AppError::SingboxSpawn(error.to_string()))?;
 
     let pid = child.id();
     match wait_for_ready(&mut child, ready_host, ready_port, startup_timeout).await {
@@ -81,7 +81,7 @@ pub async fn spawn_detached(
         Err(error) => {
             let _ = child.kill();
             let _ = child.wait();
-            Err(error)
+            Err(error.with_process_stderr(&paths.stderr_path))
         }
     }
 }
@@ -91,14 +91,14 @@ async fn wait_for_ready(
     host: &str,
     port: u16,
     timeout: Duration,
-) -> Result<(), SingboxRuntimeError> {
+) -> Result<(), crate::app::AppError> {
     let start = Instant::now();
     let check_interval = Duration::from_millis(100);
     let address = format!("{host}:{port}");
 
     loop {
         if let Some(status) = child.try_wait()? {
-            return Err(SingboxRuntimeError::ProcessExited(status.to_string()));
+            return Err(crate::app::AppError::SingboxExited(status.to_string()));
         }
 
         if TcpStream::connect(&address).await.is_ok() {
@@ -106,9 +106,47 @@ async fn wait_for_ready(
         }
 
         if start.elapsed() >= timeout {
-            return Err(SingboxRuntimeError::StartupTimeout { port });
+            return Err(crate::app::AppError::SingboxStartupTimeout { port });
         }
 
         sleep(check_interval).await;
     }
+}
+
+trait StartupErrorExt {
+    fn with_process_stderr(self, stderr_path: &Path) -> Self;
+}
+
+impl StartupErrorExt for crate::app::AppError {
+    fn with_process_stderr(self, stderr_path: &Path) -> Self {
+        let Some(stderr_tail) = read_stderr_tail(stderr_path) else {
+            return self;
+        };
+
+        match self {
+            crate::app::AppError::SingboxExited(status) => {
+                crate::app::AppError::SingboxExited(format!("{status}; stderr: {stderr_tail}"))
+            }
+            crate::app::AppError::SingboxStartupTimeout { port } => {
+                crate::app::AppError::SingboxSpawn(format!(
+                    "sing-box did not open local port {port} before startup timeout; stderr: {stderr_tail}"
+                ))
+            }
+            other => other,
+        }
+    }
+}
+
+fn read_stderr_tail(path: &Path) -> Option<String> {
+    let mut file = File::open(path).ok()?;
+    let mut output = String::new();
+    file.read_to_string(&mut output).ok()?;
+    let output = output.trim();
+    if output.is_empty() {
+        return None;
+    }
+
+    let mut lines: Vec<&str> = output.lines().rev().take(6).collect();
+    lines.reverse();
+    Some(lines.join(" | "))
 }

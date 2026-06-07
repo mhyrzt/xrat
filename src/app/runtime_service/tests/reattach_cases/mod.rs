@@ -13,7 +13,12 @@ impl ProcessInspector for AcceptingInspector {
         true
     }
 
-    fn exec_matches_runtime_engine(&self, _context: &AppContext, _pid: i64) -> bool {
+    fn exec_matches_runtime_engine(
+        &self,
+        _context: &AppContext,
+        _session_id: i64,
+        _pid: i64,
+    ) -> bool {
         true
     }
 
@@ -34,7 +39,12 @@ impl ProcessInspector for CmdlineMismatchInspector {
         true
     }
 
-    fn exec_matches_runtime_engine(&self, _context: &AppContext, _pid: i64) -> bool {
+    fn exec_matches_runtime_engine(
+        &self,
+        _context: &AppContext,
+        _session_id: i64,
+        _pid: i64,
+    ) -> bool {
         true
     }
 

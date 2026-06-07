@@ -86,33 +86,25 @@ impl<'a> RuntimeService<'a> {
             })
             .await?;
 
-        let process = match xray_runtime::spawn_detached(
-            &launch.binary_path,
-            &self.context.runtime_paths.runtime_dir,
-            session_id,
-            &launch.config,
-            &launch.ready_host,
-            launch.ready_port,
-            Duration::from_millis(defaults::DEFAULT_XRAY_STARTUP_TIMEOUT_MS),
-        )
-        .await
-        {
-            Ok(process) => process,
-            Err(error) => {
-                self.context
-                    .db
-                    .update_runtime_session_state(
-                        session_id,
-                        RuntimeSessionStatus::Failed,
-                        None,
-                        None,
-                        Some(&now_string()),
-                        Some(&error.to_string()),
-                    )
-                    .await?;
-                return Err(error);
-            }
-        };
+        let process =
+            match spawn_runtime(&launch, &self.context.runtime_paths.runtime_dir, session_id).await
+            {
+                Ok(process) => process,
+                Err(error) => {
+                    self.context
+                        .db
+                        .update_runtime_session_state(
+                            session_id,
+                            RuntimeSessionStatus::Failed,
+                            None,
+                            None,
+                            Some(&now_string()),
+                            Some(&error.to_string()),
+                        )
+                        .await?;
+                    return Err(error);
+                }
+            };
 
         self.context
             .db
@@ -142,7 +134,7 @@ impl<'a> RuntimeService<'a> {
             config,
             session_id,
             pid: process.pid,
-            runtime_config_path: process.paths.config_path,
+            runtime_config_path: process.config_path,
             endpoints: launch.endpoints,
         })
     }

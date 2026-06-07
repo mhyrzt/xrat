@@ -1,4 +1,4 @@
-use super::generate_singbox_probe_config;
+use super::{SingboxInbound, generate_singbox_probe_config, generate_singbox_runtime_config};
 use crate::model::{Node, Protocol};
 use std::collections::BTreeMap;
 
@@ -34,6 +34,46 @@ fn generates_hy2_singbox_config_with_optional_fields() {
 }
 
 #[test]
+fn generates_hy2_runtime_config_with_multiple_local_inbounds() {
+    let node = hy2_node(None);
+    let config = generate_singbox_runtime_config(
+        &node,
+        vec![
+            SingboxInbound {
+                kind: "socks".to_string(),
+                tag: "socks-in".to_string(),
+                listen: "127.0.0.1".to_string(),
+                listen_port: 1080,
+                network: Some("udp".to_string()),
+                method: None,
+                password: None,
+                users: None,
+            },
+            SingboxInbound {
+                kind: "http".to_string(),
+                tag: "http-in".to_string(),
+                listen: "127.0.0.1".to_string(),
+                listen_port: 8080,
+                network: None,
+                method: None,
+                password: None,
+                users: None,
+            },
+        ],
+        None,
+    )
+    .expect("hy2 runtime config should generate");
+
+    let value = serde_json::to_value(config).expect("config should serialize");
+    assert_eq!(value["inbounds"][0]["type"], "socks");
+    assert_eq!(value["inbounds"][0]["listen_port"], 1080);
+    assert_eq!(value["inbounds"][0]["network"], "udp");
+    assert_eq!(value["inbounds"][1]["type"], "http");
+    assert_eq!(value["outbounds"][0]["type"], "hysteria2");
+    assert!(value.get("experimental").is_none());
+}
+
+#[test]
 fn prefers_protocol_extensions_when_present() {
     let mut extensions = BTreeMap::new();
     extensions.insert("insecure".to_string(), "1".to_string());
@@ -62,4 +102,24 @@ fn prefers_protocol_extensions_when_present() {
     let outbound = &config.outbounds[0];
     assert_eq!(outbound["tls"]["insecure"], true);
     assert_eq!(outbound["obfs"]["password"], "pwd");
+}
+
+fn hy2_node(extensions: Option<BTreeMap<String, String>>) -> Node {
+    Node {
+        protocol: Protocol::Hy2,
+        address: "hy2.example.com".to_string(),
+        port: 443,
+        username: None,
+        uuid: None,
+        password: Some("secret".to_string()),
+        method: None,
+        network: "udp".to_string(),
+        tls: Some("tls".to_string()),
+        sni: Some("edge.example.com".to_string()),
+        host: None,
+        path: None,
+        name: Some("hy2".to_string()),
+        extensions,
+        raw_config: "hy2://secret@hy2.example.com:443?sni=edge.example.com#hy2".to_string(),
+    }
 }

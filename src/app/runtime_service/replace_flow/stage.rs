@@ -62,16 +62,8 @@ impl<'a> RuntimeService<'a> {
             })
             .await?;
 
-        let spawned = xray_runtime::spawn_detached(
-            &launch.binary_path,
-            &self.context.runtime_paths.runtime_dir,
-            session_id,
-            &launch.config,
-            &launch.ready_host,
-            launch.ready_port,
-            Duration::from_millis(defaults::DEFAULT_XRAY_STARTUP_TIMEOUT_MS),
-        )
-        .await;
+        let spawned =
+            spawn_runtime(&launch, &self.context.runtime_paths.runtime_dir, session_id).await;
         let spawned = match spawned {
             Ok(process) => process,
             Err(err) => {

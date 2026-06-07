@@ -74,7 +74,7 @@ async fn connect_rejects_when_runtime_running_and_replace_disabled() {
 }
 
 #[tokio::test]
-async fn connect_rejects_sing_box_runtime_engine_until_supported() {
+async fn connect_rejects_non_hy2_sing_box_runtime_until_generation_exists() {
     let mut context = test_context().await;
     context.app_config.runtime.engine = "sing-box".to_string();
     let config = import_single_config(&context).await;
@@ -87,7 +87,7 @@ async fn connect_rejects_sing_box_runtime_engine_until_supported() {
 
     match result {
         Err(AppError::InvalidArgument(message)) => {
-            assert!(message.contains("managed runtime engine \"sing-box\" is not supported yet"));
+            assert!(message.contains("supports hy2 configs only"));
         }
         other => panic!("expected invalid argument, got {other:?}"),
     }

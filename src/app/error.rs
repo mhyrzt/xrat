@@ -66,6 +66,15 @@ pub enum AppError {
     #[error("Xray did not open local port {port} before startup timeout")]
     XrayStartupTimeout { port: u16 },
 
+    #[error("failed to spawn sing-box process: {0}")]
+    SingboxSpawn(String),
+
+    #[error("sing-box process exited during startup: {0}")]
+    SingboxExited(String),
+
+    #[error("sing-box did not open local port {port} before startup timeout")]
+    SingboxStartupTimeout { port: u16 },
+
     #[error(
         "runtime session already active; disconnect first or enable [runtime].replace_active_session"
     )]

@@ -10,8 +10,13 @@ pub(crate) use lifecycle::{
 
 pub(super) struct ResolvedLaunch {
     pub(super) binary_path: PathBuf,
-    pub(super) config: crate::xray::XrayConfig,
+    pub(super) config: RuntimeLaunchConfig,
     pub(super) ready_host: String,
     pub(super) ready_port: u16,
     pub(super) endpoints: RuntimeEndpoints,
+}
+
+pub(super) enum RuntimeLaunchConfig {
+    Xray(crate::xray::XrayConfig),
+    Singbox(SingboxConfig),
 }

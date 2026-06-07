@@ -89,7 +89,7 @@ impl<'a> RuntimeService<'a> {
 
 pub(super) trait ProcessInspector: Sync {
     fn is_running(&self, pid: i64) -> bool;
-    fn exec_matches_runtime_engine(&self, context: &AppContext, pid: i64) -> bool;
+    fn exec_matches_runtime_engine(&self, context: &AppContext, session_id: i64, pid: i64) -> bool;
     fn cmdline_matches_session_config(
         &self,
         context: &AppContext,
@@ -109,7 +109,7 @@ fn reattach_reject_reason(
     if !inspector.is_running(pid) {
         return REASON_REATTACH_REJECTED_PID_MISSING;
     }
-    if !inspector.exec_matches_runtime_engine(context, pid) {
+    if !inspector.exec_matches_runtime_engine(context, session.id, pid) {
         return REASON_REATTACH_REJECTED_EXEC_MISMATCH;
     }
     if !inspector.cmdline_matches_session_config(context, pid, session.id) {
@@ -128,6 +128,6 @@ fn validate_reattach_session(
     };
 
     inspector.is_running(pid)
-        && inspector.exec_matches_runtime_engine(context, pid)
+        && inspector.exec_matches_runtime_engine(context, session.id, pid)
         && inspector.cmdline_matches_session_config(context, pid, session.id)
 }
