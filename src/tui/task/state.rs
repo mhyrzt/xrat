@@ -56,6 +56,10 @@ impl TuiTaskState {
                 self.progress_done = *done;
                 self.progress_total = *total;
             }
+            TuiTaskEvent::ConfigTested { done, total, .. } => {
+                self.progress_done = *done;
+                self.progress_total = *total;
+            }
             TuiTaskEvent::Completed { kind, message, .. } => {
                 if self.running == Some(*kind) {
                     self.running = None;

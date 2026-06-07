@@ -64,7 +64,7 @@ pub(crate) async fn run_bulk_for_configs_with_progress(
     configs: Vec<ConfigRecord>,
     run_kind: &str,
     cancel_rx: Option<crate::support::cancel::CancellationReceiver>,
-    progress_tx: tokio::sync::mpsc::UnboundedSender<(usize, usize)>,
+    progress_tx: tokio::sync::mpsc::UnboundedSender<TestProgressUpdate>,
 ) -> crate::app::Result<Vec<TestOutputRow>> {
     bulk_executor::run_bulk_for_configs_with_progress(
         context,

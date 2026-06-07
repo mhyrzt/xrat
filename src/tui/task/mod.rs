@@ -2,7 +2,7 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-use crate::tui::data::TuiData;
+use crate::tui::data::{TuiConfigRow, TuiData};
 
 pub use state::TuiTaskState;
 
@@ -22,6 +22,11 @@ pub enum TuiTaskEvent {
     },
     Progress {
         kind: TuiTaskKind,
+        done: usize,
+        total: usize,
+    },
+    ConfigTested {
+        row: TuiConfigRow,
         done: usize,
         total: usize,
     },

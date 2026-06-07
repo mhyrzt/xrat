@@ -41,6 +41,13 @@ use stages::*;
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TestProgressUpdate {
+    pub(crate) config_id: i64,
+    pub(crate) done: usize,
+    pub(crate) total: usize,
+}
+
 #[allow(dead_code)]
 pub(crate) async fn run_bulk_for_config_ids_cancellable(
     args: &TestArgs,
@@ -78,7 +85,7 @@ pub(crate) async fn run_bulk_for_config_ids_with_progress(
     context: &AppContext,
     config_ids: &[i64],
     cancel_rx: crate::support::cancel::CancellationReceiver,
-    progress_tx: tokio::sync::mpsc::UnboundedSender<(usize, usize)>,
+    progress_tx: tokio::sync::mpsc::UnboundedSender<TestProgressUpdate>,
 ) -> crate::app::Result<usize> {
     let settings = resolve_test_settings(args, &context.app_config, &context.runtime_paths)?;
     let mut configs = Vec::with_capacity(config_ids.len());

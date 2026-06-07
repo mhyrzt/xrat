@@ -26,11 +26,32 @@ pub fn spawn_test_batch(
     let (token, receiver) = app.task_state.start(kind);
     let _ = task_tx.send(TuiTaskEvent::Started { kind });
 
-    let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<(usize, usize)>();
+    let (progress_tx, mut progress_rx) =
+        mpsc::unbounded_channel::<crate::app::commands::test::TestProgressUpdate>();
     let task_tx_clone = task_tx.clone();
+    let progress_context = context.clone();
     tokio::spawn(async move {
-        while let Some((done, total)) = progress_rx.recv().await {
-            let _ = task_tx_clone.send(TuiTaskEvent::Progress { kind, done, total });
+        while let Some(update) = progress_rx.recv().await {
+            match progress_context
+                .db
+                .get_config_with_latest_test(update.config_id)
+                .await
+            {
+                Ok(Some(row)) => {
+                    let _ = task_tx_clone.send(TuiTaskEvent::ConfigTested {
+                        row: row.into(),
+                        done: update.done,
+                        total: update.total,
+                    });
+                }
+                _ => {
+                    let _ = task_tx_clone.send(TuiTaskEvent::Progress {
+                        kind,
+                        done: update.done,
+                        total: update.total,
+                    });
+                }
+            }
         }
     });
 

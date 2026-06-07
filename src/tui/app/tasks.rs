@@ -55,6 +55,16 @@ impl TuiApp {
                 }
                 self.push_log(format!("OK  {:?} cancelled", kind));
             }
+            crate::tui::task::TuiTaskEvent::ConfigTested { row, done, total } => {
+                self.task_state
+                    .apply(&crate::tui::task::TuiTaskEvent::ConfigTested {
+                        row: row.clone(),
+                        done,
+                        total,
+                    });
+                self.testing_config_ids.retain(|id| *id != row.id);
+                self.replace_config_row(row);
+            }
             event => {
                 self.task_state.apply(&event);
             }

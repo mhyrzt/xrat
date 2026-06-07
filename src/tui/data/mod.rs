@@ -144,6 +144,36 @@ impl TuiData {
             logs: TuiLogs::default(),
         }
     }
+
+    pub fn replace_config_row(&mut self, row: TuiConfigRow) {
+        if let Some(existing) = self.configs.iter_mut().find(|config| config.id == row.id) {
+            *existing = row;
+        } else {
+            self.configs.push(row);
+        }
+        self.refresh_config_counts();
+    }
+
+    fn refresh_config_counts(&mut self) {
+        self.total_configs = self.configs.len();
+        self.enabled_configs = self.configs.iter().filter(|row| row.is_enabled).count();
+        self.deleted_configs = self.configs.iter().filter(|row| row.is_deleted).count();
+        self.failed_configs = self
+            .configs
+            .iter()
+            .filter(|row| row.failure_reason.is_some())
+            .count();
+        self.tests.untested_configs = self
+            .configs
+            .iter()
+            .filter(|config| config.real_delay_ms.is_none() && config.tcp_ms.is_none())
+            .count();
+        self.tests.stale_configs = self
+            .configs
+            .iter()
+            .filter(|config| config.failure_reason.is_some())
+            .count();
+    }
 }
 
 /// Probe the proxy engines once (engines don't change during a session). Runs

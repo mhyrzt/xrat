@@ -1,4 +1,4 @@
-use crate::tui::data::TuiData;
+use crate::tui::data::{TuiConfigRow, TuiData};
 
 use super::{TuiApp, TuiView};
 
@@ -10,6 +10,20 @@ impl TuiApp {
         self.panel_scroll.detail.set(0);
         self.panel_scroll.log.set(0);
         self.panel_scroll.runtime.set(0);
+    }
+
+    pub fn replace_config_row(&mut self, row: TuiConfigRow) {
+        let focused_id = self.focused_config().map(|config| config.id);
+        self.data.replace_config_row(row);
+        self.clamp_config_focus();
+        if let Some(focused_id) = focused_id
+            && let Some(position) = self
+                .visible_config_indices()
+                .iter()
+                .position(|idx| self.data.configs[*idx].id == focused_id)
+        {
+            self.config_list.focused = position;
+        }
     }
 
     pub(super) fn show_help(&mut self) {

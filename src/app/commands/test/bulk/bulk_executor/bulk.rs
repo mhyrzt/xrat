@@ -53,7 +53,7 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
     run_kind: &str,
     show_progress: bool,
     cancel_rx: Option<CancellationReceiver>,
-    progress_tx: Option<tokio::sync::mpsc::UnboundedSender<(usize, usize)>>,
+    progress_tx: Option<tokio::sync::mpsc::UnboundedSender<TestProgressUpdate>>,
 ) -> crate::app::Result<Vec<TestOutputRow>> {
     let run_id = context
         .db
@@ -96,10 +96,15 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
                 if output.status != TestStatus::Ok {
                     failed += 1;
                 }
+                let config_id = output.id;
                 outputs.push(output);
                 update_bulk_progress(&progress, completed, failed);
                 if let Some(tx) = &progress_tx {
-                    let _ = tx.send((completed, total));
+                    let _ = tx.send(TestProgressUpdate {
+                        config_id,
+                        done: completed,
+                        total,
+                    });
                 }
             }
             Ok(Err(error)) => return Err(error),
