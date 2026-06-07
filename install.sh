@@ -94,6 +94,82 @@ detect_arch() {
     esac
 }
 
+detect_os() {
+    local os_name
+    os_name="$(uname -s)"
+
+    if [[ -r /etc/os-release ]]; then
+        local pretty_name=""
+        . /etc/os-release
+        pretty_name="${PRETTY_NAME:-${NAME:-}}"
+
+        if [[ -n "$pretty_name" ]]; then
+            echo "${pretty_name} (${os_name}, kernel $(uname -r))"
+            return 0
+        fi
+    fi
+
+    echo "${os_name} (kernel $(uname -r))"
+}
+
+extract_semver() {
+    awk '
+        match($0, /[0-9]+(\.[0-9]+)+/) {
+            print "v" substr($0, RSTART, RLENGTH)
+            exit
+        }
+    '
+}
+
+binary_version() {
+    local cmd="$1"
+    local output version
+
+    output=$("$cmd" version 2>&1 || true)
+    version=$(printf '%s\n' "$output" | extract_semver)
+
+    if [[ -n "$version" ]]; then
+        echo "$version"
+    else
+        echo "version unavailable"
+    fi
+}
+
+detect_shell() {
+    local shell_path="${SHELL:-}"
+    local shell_name version_output version
+
+    shell_name="$(basename "${shell_path:-unknown}")"
+    case "$shell_name" in
+        bash|zsh|fish)
+            version_output=$("$shell_path" --version 2>&1 || true)
+            version=$(printf '%s\n' "$version_output" | extract_semver)
+            ;;
+        *)
+            version=""
+            ;;
+    esac
+
+    if [[ -n "$version" ]]; then
+        echo "${shell_name} ${version}"
+    else
+        echo "$shell_name"
+    fi
+}
+
+print_detection() {
+    local os_info machine arch shell_info
+    os_info="$(detect_os)"
+    machine="$(uname -m)"
+    arch="$(detect_arch)"
+    shell_info="$(detect_shell)"
+
+    info "OS: ${os_info}"
+    info "CPU architecture: ${machine} (${arch})"
+    info "Shell: ${shell_info}"
+    echo
+}
+
 check_cmd() {
     command -v "$1" &>/dev/null
 }
@@ -107,7 +183,9 @@ require_cmd() {
 
 check_xray() {
     if check_cmd xray; then
-        info "xray: $(command -v xray)"
+        local xray_path
+        xray_path="$(command -v xray)"
+        info "xray: ${xray_path} ($(binary_version "$xray_path"))"
         return 0
     fi
 
@@ -123,7 +201,9 @@ check_xray() {
 
 check_singbox() {
     if check_cmd sing-box; then
-        info "sing-box: $(command -v sing-box)"
+        local singbox_path
+        singbox_path="$(command -v sing-box)"
+        info "sing-box: ${singbox_path} ($(binary_version "$singbox_path"))"
         return 0
     fi
 
@@ -353,6 +433,7 @@ main() {
         exit 1
     fi
 
+    print_detection
     check_xray
     check_singbox
 
@@ -369,8 +450,6 @@ main() {
 
         local arch
         arch=$(detect_arch)
-        info "Architecture: ${arch}"
-        echo
 
         step "Fetching latest release..."
         version=$(get_latest_version)
