@@ -45,8 +45,7 @@ pub enum TuiLogTab {
 }
 
 impl TuiLogTab {
-    /// Tabs in their bar/cycle order. The index also drives direct `1..` key
-    /// selection in the keymap.
+    /// Tabs in their bar/cycle order.
     pub const ORDER: [Self; 3] = [Self::XratEvents, Self::ProxyEngine, Self::Stats];
 
     fn position(self) -> usize {
@@ -61,12 +60,6 @@ impl TuiLogTab {
     pub fn prev(self) -> Self {
         let index = self.position();
         Self::ORDER[(index + Self::ORDER.len() - 1) % Self::ORDER.len()]
-    }
-
-    /// Tab for a zero-based index, used by direct number-key selection. Returns
-    /// `None` when the index is out of range.
-    pub fn from_index(index: usize) -> Option<Self> {
-        Self::ORDER.get(index).copied()
     }
 }
 
@@ -112,7 +105,6 @@ pub enum TuiAction {
     RuntimeRestart,
     NextLogTab,
     PrevLogTab,
-    SelectLogTab(TuiLogTab),
     RequestClearEvents,
     RefreshFocusedSource,
     RefreshAllSources,

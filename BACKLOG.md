@@ -278,6 +278,8 @@ etc.). The current `?key=KEY` scheme (`src/server/auth.rs`,
 `src/server/routes/*`) is acceptable for read-only, non-critical endpoints but
 must not gate mutations.
 
+- also change `?key=` to `?token=`
+
 ### Current behavior
 
 - API key passed as a `?key=` query parameter on each route
@@ -331,13 +333,4 @@ must not gate mutations.
   require header tokens with scopes, constant-time comparison, and
   localhost-only binding by default.
 
-- also change `?key=` to `?token=`
-
 ====Unstructured Todos================
-
-2. when in tui and running test (t <Key>) is it possible to show the results of
-   test for a finshied config immedietly after it's done
-3. `xrat proxy endpoints` -> `xrat proxy info` or `xrat proxy show` whatever you
-   think is better (also change Proxy Endpoints outputs to sth better)
-4. adding xrat proxy toggle -> automatically captures env vars and outputs new
-   varaible

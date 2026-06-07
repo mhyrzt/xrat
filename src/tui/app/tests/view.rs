@@ -27,17 +27,6 @@ fn switches_log_tabs_and_resets_log_scroll() {
 }
 
 #[test]
-fn selects_log_tab_directly_and_resets_scroll() {
-    let mut app = TuiApp::default();
-    app.panel_scroll.log.set(7);
-
-    app.apply(TuiAction::SelectLogTab(TuiLogTab::Stats));
-
-    assert_eq!(app.active_log_tab, TuiLogTab::Stats);
-    assert_eq!(app.panel_scroll.log.get(), 0);
-}
-
-#[test]
 fn cycles_through_all_three_log_tabs() {
     let mut app = TuiApp::default();
 

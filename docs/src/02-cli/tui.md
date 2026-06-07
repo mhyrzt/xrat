@@ -193,11 +193,10 @@ stay visible under both tabs.
 
 The Logs card is tabbed. Focus it with `Tab`/`Shift+Tab`, then switch tabs:
 
-| Key         | Action                                        |
-| ----------- | --------------------------------------------- |
-| `[` / `]`   | Cycle to the previous / next log tab          |
-| `1` `2` `3` | Jump directly to xrat events / engine / stats |
-| `C p`       | Clear all persisted events from the database  |
+| Key       | Action                                       |
+| --------- | -------------------------------------------- |
+| `[` / `]` | Cycle to the previous / next log tab         |
+| `C p`     | Clear all persisted events from the database |
 
 | Tab          | Shows                                                         |
 | ------------ | ------------------------------------------------------------- |

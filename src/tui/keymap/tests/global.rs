@@ -198,8 +198,7 @@ fn maps_bracket_keys_to_focused_tab_group() {
 }
 
 #[test]
-fn maps_number_keys_to_log_tab_selection_when_log_focused() {
-    use crate::tui::app::TuiLogTab;
+fn number_keys_do_not_select_log_tabs() {
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('3')),
@@ -212,9 +211,8 @@ fn maps_number_keys_to_log_tab_selection_when_log_focused() {
             false,
             false,
         ),
-        TuiAction::SelectLogTab(TuiLogTab::Stats)
+        TuiAction::None
     );
-    // Out-of-range index and non-Log focus fall through to no-op tab select.
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('9')),
