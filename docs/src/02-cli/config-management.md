@@ -64,15 +64,15 @@ Show details for one stored config or subscription. The target is a required
 subcommand (`config` or `subscription`).
 
 ```bash
-xrat show config <id-or-ref> [--json]
-xrat show subscription <id-or-ref> [--json]
+xrat show config <ref> [--json]
+xrat show subscription <ref> [--json]
 ```
 
 ### Arguments
 
-| Argument    | Description                                     |
-| ----------- | ----------------------------------------------- |
-| `id-or-ref` | Config or subscription numeric ID or ref prefix |
+| Argument | Description                       |
+| -------- | --------------------------------- |
+| `ref`    | Config or subscription ref prefix |
 
 ### Flags
 
@@ -95,14 +95,14 @@ xrat show subscription f00d
 Enable a config.
 
 ```bash
-xrat enable <id-or-ref>
+xrat enable <ref>
 ```
 
 ### Arguments
 
-| Argument    | Description                            |
-| ----------- | -------------------------------------- |
-| `id-or-ref` | Config numeric ID or ref prefix to use |
+| Argument | Description              |
+| -------- | ------------------------ |
+| `ref`    | Config ref prefix to use |
 
 Enabled configs are included in normal enabled-only workflows, such as:
 
@@ -122,14 +122,14 @@ changing state.
 Disable a config.
 
 ```bash
-xrat disable <id-or-ref>
+xrat disable <ref>
 ```
 
 ### Arguments
 
-| Argument    | Description                            |
-| ----------- | -------------------------------------- |
-| `id-or-ref` | Config numeric ID or ref prefix to use |
+| Argument | Description              |
+| -------- | ------------------------ |
+| `ref`    | Config ref prefix to use |
 
 Disabled configs remain in the database but are excluded from enabled-only
 queries, tests, and rotation candidate selection.
@@ -142,15 +142,15 @@ Delete a config (soft by default) or a whole subscription. The target is a
 required subcommand (`config` or `subscription`).
 
 ```bash
-xrat delete config <id-or-ref> [--hard]
-xrat delete subscription <id-or-ref> [--yes]
+xrat delete config <ref> [--hard]
+xrat delete subscription <ref> [--yes]
 ```
 
 ### Arguments
 
-| Argument    | Description                                     |
-| ----------- | ----------------------------------------------- |
-| `id-or-ref` | Config or subscription numeric ID or ref prefix |
+| Argument | Description                       |
+| -------- | --------------------------------- |
+| `ref`    | Config or subscription ref prefix |
 
 ### Flags
 
@@ -178,14 +178,14 @@ confirmation unless `--yes` is given.
 Restore a soft-deleted config.
 
 ```bash
-xrat restore <id-or-ref>
+xrat restore <ref>
 ```
 
 ### Arguments
 
-| Argument    | Description                            |
-| ----------- | -------------------------------------- |
-| `id-or-ref` | Config numeric ID or ref prefix to use |
+| Argument | Description              |
+| -------- | ------------------------ |
+| `ref`    | Config ref prefix to use |
 
 `restore` only applies to soft-deleted configs. It does not recreate a config
 that was removed with `delete config --hard`.

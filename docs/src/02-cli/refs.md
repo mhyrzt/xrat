@@ -1,7 +1,7 @@
 # Stable Refs
 
-xrat stores numeric database IDs internally, but user-facing commands also
-accept stable short refs for configs and subscriptions.
+xrat stores numeric database IDs internally, but user-facing commands use stable
+short refs for configs and subscriptions.
 
 Refs are random lowercase hex strings generated on insert. Human output shows
 the first 8 characters by default:
@@ -20,7 +20,7 @@ xrat test a1b2
 xrat delete subscription f00d
 ```
 
-Numeric IDs still work for compatibility:
+Numeric IDs still work as command input for compatibility:
 
 ```bash
 xrat connect 42
@@ -31,7 +31,7 @@ numeric string matches an existing numeric ID, the numeric ID wins; otherwise
 xrat tries it as a ref prefix.
 
 Commands that accept config refs include `connect`, `show config`, `enable`,
-`disable`, `restore`, `delete config`, `test <id>`, and
+`disable`, `restore`, `delete config`, `test <ref>`, and
 `rotate now --config-id`.
 
 Commands that accept subscription refs include `show subscription`,

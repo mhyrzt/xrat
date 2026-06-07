@@ -178,7 +178,7 @@ For each inbound port:
 When `replace_active_session = true` in config.toml:
 
 ```bash
-xrat connect 99
+xrat connect a1b2
 ```
 
 If a session is already running:

@@ -3,24 +3,24 @@
 Test connectivity and latency for stored configs.
 
 ```bash
-xrat test [id-or-ref] [flags]
+xrat test [ref] [flags]
 ```
 
 ## Arguments
 
-| Argument    | Description                                                         |
-| ----------- | ------------------------------------------------------------------- |
-| `id-or-ref` | Config numeric ID or ref prefix. Omit to bulk-test matching configs |
+| Argument | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `ref`    | Config ref prefix. Omit to bulk-test matching configs |
 
 ## Filter Flags
 
-When testing multiple configs (no `id` specified):
+When testing multiple configs (no ref specified):
 
-| Flag                         | Description                                                       |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `--enabled-only`             | Filter: only enabled configs                                      |
-| `--active-only`              | Filter: only the active config                                    |
-| `--subscription <id-or-ref>` | Filter: only configs from the given subscription ID or ref prefix |
+| Flag                   | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `--enabled-only`       | Filter: only enabled configs                                |
+| `--active-only`        | Filter: only the active config                              |
+| `--subscription <ref>` | Filter: only configs from the given subscription ref prefix |
 
 ## Stage Skip Flags
 
@@ -115,7 +115,7 @@ failure_policy = "continue"  # "continue" | "skip_remaining" | "mark_failed"
 Test a single config:
 
 ```bash
-xrat test 42
+xrat test a1b2
 ```
 
 Bulk-test all enabled configs with 4 workers:
@@ -127,7 +127,7 @@ xrat test --enabled-only --concurrency 4
 Test with custom URLs and timeouts:
 
 ```bash
-xrat test 1 \
+xrat test a1b2 \
   --test-url https://example.com/generate_204 \
   --download-url https://example.com/10mb.test \
   --real-delay-timeout 5000 \
@@ -137,7 +137,7 @@ xrat test 1 \
 Skip ICMP and download stages:
 
 ```bash
-xrat test 1 --skip-icmp --skip-download
+xrat test a1b2 --skip-icmp --skip-download
 ```
 
 Export results to CSV:
@@ -149,7 +149,7 @@ xrat test --enabled-only --format csv --output results.csv
 Continuous ping loop:
 
 ```bash
-xrat test 1 --ping --ping-interval 2000
+xrat test a1b2 --ping --ping-interval 2000
 ```
 
 View latest test run summary:
@@ -175,9 +175,9 @@ Aligned human-readable table for terminal use.
 Tab-separated values for scripts:
 
 ```
-ID	Protocol	Address	ICMP	TCP	Real Delay	Download	Status
-1	vless	example.com:443	15ms	12ms	145ms	-	alive
-2	vmess	edge.com:8443	-	-	-	-	timeout
+ref	name	protocol	address	port	icmp_ms	real_delay_ms	download_mbps	upload_mbps	status	error
+a1b2c3d4	Primary	vless	example.com	443	15	145			ok
+f00d1234	Edge	vmess	edge.com	8443					failed	timeout
 ```
 
 ### CSV

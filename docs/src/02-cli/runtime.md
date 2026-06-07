@@ -10,14 +10,14 @@ check status.
 Start a managed proxy runtime for a stored config.
 
 ```bash
-xrat connect <id-or-ref> [flags]
+xrat connect <ref> [flags]
 ```
 
 ### Arguments
 
-| Argument    | Description                                                    |
-| ----------- | -------------------------------------------------------------- |
-| `id-or-ref` | Config numeric ID or ref prefix to start as the active session |
+| Argument | Description                                      |
+| -------- | ------------------------------------------------ |
+| `ref`    | Config ref prefix to start as the active session |
 
 ### Flags
 
@@ -151,7 +151,9 @@ If no daemon is reachable, the command exits with a hint to run
 {
   "status": "running",
   "session_id": 5,
-  "config_id": 42,
+  "session_config": {
+    "ref": "a1b2c3d4e5f6"
+  },
   "protocol": "vless",
   "address": "example.com",
   "port": 443,

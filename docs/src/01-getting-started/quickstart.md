@@ -47,23 +47,23 @@ xrat list configs
 Filter by subscription source:
 
 ```bash
-xrat list configs --subscription 1
+xrat list configs --subscription f00d
 ```
 
 Use `enable` and `disable` to control whether a config appears in enabled-only
 workflows:
 
 ```bash
-xrat disable 7
-xrat enable 7
+xrat disable a1b2
+xrat enable a1b2
 ```
 
 ## 3. Test Connectivity
 
-Test a single config by ID:
+Test a single config by ref:
 
 ```bash
-xrat test 1
+xrat test a1b2
 ```
 
 Bulk-test all enabled configs:
@@ -75,7 +75,7 @@ xrat test --enabled-only --concurrency 4
 Skip specific stages:
 
 ```bash
-xrat test 1 --skip-icmp --skip-download
+xrat test a1b2 --skip-icmp --skip-download
 ```
 
 ## 4. Start a Proxy
@@ -89,7 +89,7 @@ xrat daemon start
 Connect using a tested config:
 
 ```bash
-xrat connect 1
+xrat connect a1b2
 ```
 
 The command sends a daemon IPC request. The daemon starts the Xray (or V2Ray)

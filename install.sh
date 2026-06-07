@@ -404,7 +404,7 @@ show_guide() {
     echo -e "    ${DIM}xrat test${NC}"
     echo
     echo "  Connect:"
-    echo -e "    ${DIM}xrat connect <id>${NC}"
+    echo -e "    ${DIM}xrat connect <ref>${NC}"
     echo
     echo "  Rotate proxy:"
     echo -e "    ${DIM}xrat rotate now${NC}"
@@ -413,7 +413,8 @@ show_guide() {
     echo
     echo "  Proxy helpers:"
     echo -e "    ${DIM}xrat proxy endpoints${NC}"
-    echo -e "    ${DIM}eval \"\$(xrat proxy shell enable)\"${NC}"
+    echo -e "    ${DIM}eval \"\$(xrat proxy shell toggle)\"${NC}"
+    echo -e "    ${DIM}xrat proxy desktop toggle${NC}"
     echo
     echo "  Launch TUI:"
     echo -e "    ${DIM}xrat tui${NC}"

@@ -23,14 +23,14 @@ xrat list configs [flags]
 
 ### Flags
 
-| Flag                         | Description                                                    |
-| ---------------------------- | -------------------------------------------------------------- |
-| `--enabled-only`             | Show only enabled configs                                      |
-| `--active-only`              | Show only the active config                                    |
-| `--deleted`                  | Show only soft-deleted configs                                 |
-| `--all`                      | Include soft-deleted configs in results                        |
-| `--subscription <id-or-ref>` | Show only configs from the given subscription ID or ref prefix |
-| `--format <format>`          | Output format: `table`, `tsv`, `json` (default: `table`)       |
+| Flag                   | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `--enabled-only`       | Show only enabled configs                                |
+| `--active-only`        | Show only the active config                              |
+| `--deleted`            | Show only soft-deleted configs                           |
+| `--all`                | Include soft-deleted configs in results                  |
+| `--subscription <ref>` | Show only configs from the given subscription ref prefix |
+| `--format <format>`    | Output format: `table`, `tsv`, `json` (default: `table`) |
 
 ### Examples
 
@@ -82,5 +82,6 @@ xrat list subscriptions --kind url
 ```
 
 Human tables show short refs first. Use `--format tsv` or `--format json` for
-scripts; those formats include both refs and numeric IDs. The default `table`
-format is optimized for humans and may change as the CLI evolves.
+scripts; those formats use stable refs and omit internal numeric database IDs.
+The default `table` format is optimized for humans and may change as the CLI
+evolves.

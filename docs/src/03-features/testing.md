@@ -215,7 +215,7 @@ Measures upload throughput by POSTing data through the proxy.
 ### Invocation
 
 ```bash
-xrat test 42 --upload-url https://example.com/upload --upload-timeout 30000
+xrat test a1b2 --upload-url https://example.com/upload --upload-timeout 30000
 ```
 
 ### Output
@@ -270,13 +270,13 @@ Sort results by:
 Continuous monitoring mode for a single config:
 
 ```bash
-xrat test 42 --ping --ping-interval 2000
+xrat test a1b2 --ping --ping-interval 2000
 ```
 
 Runs the test repeatedly until Ctrl+C, printing a live summary:
 
 ```
-Ping loop for config 42 (vless://example.com:443)
+Ping loop for config a1b2 (vless://example.com:443)
 ─────────────────────────────────────────────────────
 #1  ICMP: 15ms  TCP: 12ms  Real Delay: 145ms  ✓
 #2  ICMP: 14ms  TCP: 11ms  Real Delay: 142ms  ✓
