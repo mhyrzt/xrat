@@ -104,16 +104,29 @@ with its own icon in the taskbar — never the xrat icon.
   is expected).
 
 ---
-- enable roatation by default in both init_config_default.toml and related variables 
+
 - xrat daemon restart reattach previous connection or connect to best connection
-- show a message when config copied at clipboard at chromebar center with
-  following message `copied config#ref to clipboard` and remove it after some
-  time
+
+- show a message when config/subscription copied at clipboard at chromebar
+  center with following message
+  `copied config#ref to clipboard`/`copied subscription name to clipboard` and
+  remove it after some time. (feel free to change the messages) i think we have
+  alredy implented the show message in chromebar for functionality
 - Logs > xrat event can have more standard spacing and be more aligned currently
   is like this
 
 ```
 2026-06-07 00:15:28  info   runtime       daemon_restart_stale_pid_recovered  Reconnected config 2 after stale runtime PID on daemon start
 2026-06-07 00:15:27  info   daemon        daemon_started  Daemon supervisor started
+```
 
+- Tui > Logs > xrat events seems have a bug also visible in `xrat logs`
+
+```
+2026-06-07 21:21:56  info   daemon    daemon_started                      Daemon supervisor started
+2026-06-07 21:22:02  info   daemon    daemon_started                      Daemon supervisor started
+2026-06-07 21:22:07  info   daemon    daemon_started                      Daemon supervisor started
+2026-06-07 21:22:12  info   daemon    daemon_started                      Daemon supervisor started
+2026-06-07 21:22:17  info   daemon    daemon_started                      Daemon supervisor started
+2026-06-07 21:22:22  info   daemon    daemon_started                      Daemon supervisor started
 ```

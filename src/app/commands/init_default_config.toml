@@ -88,20 +88,20 @@ level = "warning"
 # network = "tcp,udp"
 
 # Automatic config rotation: periodically switch to a healthy config.
-# [runtime.rotation]
-# enabled = false
-# # Switch on a fixed interval (seconds).
-# interval_secs = 1800
-# # Also switch immediately when the active config becomes unhealthy.
-# health_trigger_enabled = true
-# # Minimum seconds between health-triggered switches.
-# cooldown_secs = 300
-# # Concurrency for the pre-rotation test pass (0 = auto).
-# test_concurrency = 0
-# # Test stages run to pick the next config.
-# test_stages = ["real_delay", "download"]
-# # Refresh URL-backed subscriptions before picking a rotation candidate.
-# refresh_subscriptions = false
+[runtime.rotation]
+enabled = true
+# Switch on a fixed interval (seconds).
+interval_secs = 1800
+# Also switch immediately when the active config becomes unhealthy.
+health_trigger_enabled = true
+# Minimum seconds between health-triggered switches.
+cooldown_secs = 300
+# Concurrency for the pre-rotation test pass (0 = auto).
+test_concurrency = 0
+# Test stages run to pick the next config.
+test_stages = ["real_delay", "download"]
+# Refresh URL-backed subscriptions before picking a rotation candidate.
+refresh_subscriptions = false
 
 
 # -----------------------------------------------------------------

@@ -129,5 +129,6 @@ mod tests {
         assert_eq!(config.server.port, 18203);
         assert!(config.runtime.socks.enabled);
         assert_eq!(config.runtime.engine, "xray");
+        assert!(config.runtime.rotation.enabled);
     }
 }

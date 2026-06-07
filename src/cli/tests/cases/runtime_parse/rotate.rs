@@ -4,15 +4,15 @@ use crate::cli::{Cli, Command, RotateAction};
 
 #[test]
 fn parses_rotate_subcommands() {
-    let start = Cli::parse_from(["xrat", "rotate", "start"]);
-    match start.command {
-        Command::Rotate(args) => assert!(matches!(args.action, RotateAction::Start(_))),
+    let enable = Cli::parse_from(["xrat", "rotate", "enable"]);
+    match enable.command {
+        Command::Rotate(args) => assert!(matches!(args.action, RotateAction::Enable(_))),
         _ => panic!("expected rotate command"),
     }
 
-    let stop = Cli::parse_from(["xrat", "rotate", "stop"]);
-    match stop.command {
-        Command::Rotate(args) => assert!(matches!(args.action, RotateAction::Stop(_))),
+    let disable = Cli::parse_from(["xrat", "rotate", "disable"]);
+    match disable.command {
+        Command::Rotate(args) => assert!(matches!(args.action, RotateAction::Disable(_))),
         _ => panic!("expected rotate command"),
     }
 
@@ -23,6 +23,16 @@ fn parses_rotate_subcommands() {
             _ => panic!("expected status subcommand"),
         },
         _ => panic!("expected rotate command"),
+    }
+}
+
+#[test]
+fn old_rotate_subcommands_are_removed() {
+    for removed in [["xrat", "rotate", "start"], ["xrat", "rotate", "stop"]] {
+        assert!(
+            Cli::try_parse_from(removed).is_err(),
+            "{removed:?} should no longer parse"
+        );
     }
 }
 

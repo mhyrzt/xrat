@@ -12,11 +12,11 @@ pub enum RotateAction {
     #[command(
         about = "Enable automatic proxy rotation on a fixed schedule. State is volatile and resets to config defaults on daemon restart."
     )]
-    Start(RotateStartArgs),
+    Enable(RotateEnableArgs),
     #[command(
         about = "Disable automatic proxy rotation. State is volatile and resets to config defaults on daemon restart."
     )]
-    Stop(RotateStopArgs),
+    Disable(RotateDisableArgs),
     #[command(about = "Show the current proxy rotation status.")]
     Status(RotateStatusArgs),
     #[command(about = "Trigger an immediate manual rotation.")]
@@ -25,11 +25,11 @@ pub enum RotateAction {
 
 /// No additional arguments.
 #[derive(Debug, Args, Default)]
-pub struct RotateStartArgs {}
+pub struct RotateEnableArgs {}
 
 /// No additional arguments.
 #[derive(Debug, Args, Default)]
-pub struct RotateStopArgs {}
+pub struct RotateDisableArgs {}
 
 #[derive(Debug, Args, Default)]
 pub struct RotateStatusArgs {

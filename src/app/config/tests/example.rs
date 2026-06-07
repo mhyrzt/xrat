@@ -16,7 +16,7 @@ fn parses_example_config() {
         Some("db.sqlite".as_ref())
     );
     assert_eq!(config.runtime.engine, "xray");
-    assert!(!config.runtime.rotation.enabled);
+    assert!(config.runtime.rotation.enabled);
     assert_eq!(config.runtime.rotation.interval_secs, 1800);
     assert!(config.runtime.rotation.health_trigger_enabled);
     assert_eq!(config.runtime.rotation.cooldown_secs, 300);

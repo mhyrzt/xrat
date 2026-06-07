@@ -65,6 +65,19 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
     let total = configs.len();
     let concurrency = resolve_concurrency(settings.concurrency)?;
     let progress = bulk_progress_bar(total, show_progress);
+    if run_kind == "rotation" && total > 0 {
+        crate::app::events::record(
+            &context.db,
+            crate::app::events::LEVEL_INFO,
+            crate::app::events::SOURCE_ROTATION,
+            "rotation_bulk_progress",
+            "rotation_bulk_started".to_string(),
+            None,
+            None,
+            Some(format!("{{\"done\":0,\"total\":{total}}}")),
+        )
+        .await;
+    }
     let mut next_config = configs.into_iter();
     let mut join_set = JoinSet::new();
     let mut completed = 0usize;
@@ -99,6 +112,19 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
                 let config_id = output.id;
                 outputs.push(output);
                 update_bulk_progress(&progress, completed, failed);
+                if run_kind == "rotation" {
+                    crate::app::events::record(
+                        &context.db,
+                        crate::app::events::LEVEL_INFO,
+                        crate::app::events::SOURCE_ROTATION,
+                        "rotation_bulk_progress",
+                        "rotation_bulk_advanced".to_string(),
+                        Some(config_id),
+                        None,
+                        Some(format!("{{\"done\":{completed},\"total\":{total}}}")),
+                    )
+                    .await;
+                }
                 if let Some(tx) = &progress_tx {
                     let _ = tx.send(TestProgressUpdate {
                         config_id,
@@ -128,6 +154,19 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
         }
     }
     finish_bulk_progress(progress, completed, failed);
+    if run_kind == "rotation" {
+        crate::app::events::record(
+            &context.db,
+            crate::app::events::LEVEL_INFO,
+            crate::app::events::SOURCE_ROTATION,
+            "rotation_bulk_progress",
+            "rotation_bulk_finished".to_string(),
+            None,
+            None,
+            Some(format!("{{\"done\":{completed},\"total\":{total}}}")),
+        )
+        .await;
+    }
 
     let level = if failed > 0 && failed == completed {
         crate::app::events::LEVEL_WARN

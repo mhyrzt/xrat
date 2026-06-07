@@ -1,15 +1,18 @@
 use crate::app::commands::output;
+use crate::app::commands::progress::CliProgress;
 use crate::app::commands::resolve::resolve_config_id;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::{RotateAction, RotateArgs};
+use crate::db::{EventFilter, EventRecord};
+use tokio::time::Duration;
 
 pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<()> {
     let socket_path = ipc::default_socket_path(&context.runtime_paths.runtime_dir);
 
     match &args.action {
-        RotateAction::Start(_) => start(&socket_path).await,
-        RotateAction::Stop(_) => stop(&socket_path).await,
+        RotateAction::Enable(_) => enable(context, &socket_path).await,
+        RotateAction::Disable(_) => disable(context, &socket_path).await,
         RotateAction::Status(status_args) => status(context, &socket_path, status_args.json).await,
         RotateAction::Now(now_args) => {
             now(
@@ -23,7 +26,7 @@ pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<
     }
 }
 
-async fn start(socket_path: &std::path::Path) -> crate::app::Result<()> {
+async fn enable(context: &AppContext, socket_path: &std::path::Path) -> crate::app::Result<()> {
     match ipc::proxy_start_daemon(socket_path).await {
         Ok(response) => {
             if !response.ok {
@@ -43,6 +46,7 @@ async fn start(socket_path: &std::path::Path) -> crate::app::Result<()> {
                     output::color_enabled()
                 )
             );
+            print_rotation_config_guidance(context, true);
             Ok(())
         }
         Err(err) if ipc::daemon_unreachable(&err) => Err(crate::app::AppError::InvalidArgument(
@@ -52,7 +56,7 @@ async fn start(socket_path: &std::path::Path) -> crate::app::Result<()> {
     }
 }
 
-async fn stop(socket_path: &std::path::Path) -> crate::app::Result<()> {
+async fn disable(context: &AppContext, socket_path: &std::path::Path) -> crate::app::Result<()> {
     match ipc::proxy_stop_daemon(socket_path).await {
         Ok(response) => {
             if !response.ok {
@@ -72,6 +76,7 @@ async fn stop(socket_path: &std::path::Path) -> crate::app::Result<()> {
                     output::color_enabled()
                 )
             );
+            print_rotation_config_guidance(context, false);
             Ok(())
         }
         Err(err) if ipc::daemon_unreachable(&err) => Err(crate::app::AppError::InvalidArgument(
@@ -212,46 +217,179 @@ async fn now(
         None => None,
     };
 
-    match ipc::runtime_replace_daemon(socket_path, ipc::RotationTrigger::Manual, config_id).await {
-        Ok(response) => {
-            if !response.ok {
-                return Err(crate::app::AppError::InvalidArgument(rotate_error_message(
-                    response.message,
-                )));
+    let stream_task = tokio::spawn(stream_rotation_events(context.clone()));
+    let result =
+        match ipc::runtime_replace_daemon(socket_path, ipc::RotationTrigger::Manual, config_id)
+            .await
+        {
+            Ok(response) => {
+                if !response.ok {
+                    return Err(crate::app::AppError::InvalidArgument(rotate_error_message(
+                        response.message,
+                    )));
+                }
+                let payload = response.payload.ok_or_else(|| {
+                    crate::app::AppError::InvalidArgument(
+                        "proxy rotate response missing payload".to_string(),
+                    )
+                })?;
+                let new_config_ref = config_ref(context, Some(payload.new_config_id))
+                    .await?
+                    .unwrap_or_else(|| "-".to_string());
+                println!(
+                    "{}",
+                    output::success("Proxy rotation completed.", output::color_enabled())
+                );
+                println!(
+                    "{}",
+                    output::format_kv(
+                        None,
+                        &[
+                            ("replaced", output::bool_label(payload.replaced).to_string()),
+                            ("old session", payload.old_session_id.to_string()),
+                            ("new config", new_config_ref),
+                            ("new session", payload.new_session_id.to_string()),
+                            ("new pid", payload.new_pid.to_string()),
+                        ],
+                        output::color_enabled(),
+                    )
+                );
+                Ok(())
             }
-            let payload = response.payload.ok_or_else(|| {
-                crate::app::AppError::InvalidArgument(
-                    "proxy rotate response missing payload".to_string(),
-                )
-            })?;
-            let new_config_ref = config_ref(context, Some(payload.new_config_id))
-                .await?
-                .unwrap_or_else(|| "-".to_string());
-            println!(
-                "{}",
-                output::success("Proxy rotation completed.", output::color_enabled())
-            );
-            println!(
-                "{}",
-                output::format_kv(
-                    None,
-                    &[
-                        ("replaced", output::bool_label(payload.replaced).to_string()),
-                        ("old session", payload.old_session_id.to_string()),
-                        ("new config", new_config_ref),
-                        ("new session", payload.new_session_id.to_string()),
-                        ("new pid", payload.new_pid.to_string()),
-                    ],
-                    output::color_enabled(),
-                )
-            );
-            Ok(())
+            Err(err) if ipc::daemon_unreachable(&err) => Err(
+                crate::app::AppError::InvalidArgument(daemon_unreachable_message(socket_path)),
+            ),
+            Err(err) => Err(err),
+        };
+    stream_task.abort();
+    let _ = stream_task.await;
+    result
+}
+
+async fn stream_rotation_events(context: AppContext) {
+    let mut cursor = latest_event_id(&context).await.unwrap_or(0);
+    let filter = EventFilter {
+        source: None,
+        levels: None,
+        limit: 0,
+    };
+
+    let mut ticker = tokio::time::interval(Duration::from_millis(200));
+    let mut progress = CliProgress::disabled();
+    let mut progress_active = false;
+    let color = output::color_enabled();
+    loop {
+        ticker.tick().await;
+        let events = match context.db.events_after(cursor, &filter).await {
+            Ok(events) => events,
+            Err(_) => continue,
+        };
+        for event in events {
+            cursor = cursor.max(event.id);
+            if event.source == crate::app::events::SOURCE_ROTATION
+                && event.kind == "rotation_bulk_progress"
+            {
+                if let Some((done, total)) = parse_rotation_progress_detail(event.detail.as_deref())
+                {
+                    if !progress_active && total > 0 {
+                        progress = CliProgress::bar(
+                            true,
+                            total as u64,
+                            format!("rotation candidate tests {done}/{total}"),
+                        );
+                        progress_active = true;
+                    }
+                    progress.set_position(done as u64);
+                    progress.set_message(format!("rotation candidate tests {done}/{total}"));
+                    if done >= total && total > 0 {
+                        progress.finish_with_message(format!(
+                            "rotation candidate tests {done}/{total}"
+                        ));
+                        println!(
+                            "{}",
+                            output::notice(
+                                format!("Rotation candidate testing finished: {done}/{total}."),
+                                color
+                            )
+                        );
+                        progress = CliProgress::disabled();
+                        progress_active = false;
+                    }
+                }
+                continue;
+            }
+
+            if should_render_rotation_event(&event) {
+                println!(
+                    "{}",
+                    output::notice(
+                        format!(
+                            "[{}:{}] {}",
+                            event.source,
+                            event.kind,
+                            event.message.replace(['\n', '\r', '\t'], " ")
+                        ),
+                        output::color_enabled()
+                    )
+                );
+            }
         }
-        Err(err) if ipc::daemon_unreachable(&err) => Err(crate::app::AppError::InvalidArgument(
-            daemon_unreachable_message(socket_path),
-        )),
-        Err(err) => Err(err),
     }
+}
+
+async fn latest_event_id(context: &AppContext) -> crate::app::Result<i64> {
+    let events = context
+        .db
+        .list_events(&EventFilter {
+            source: None,
+            levels: None,
+            limit: 1,
+        })
+        .await?;
+    Ok(events.first().map(|event| event.id).unwrap_or(0))
+}
+
+fn should_render_rotation_event(event: &EventRecord) -> bool {
+    if event.source == crate::app::events::SOURCE_ROTATION {
+        return true;
+    }
+    if event.source == crate::app::events::SOURCE_SUBSCRIPTION {
+        return event.kind.contains("refresh");
+    }
+    if event.source == crate::app::events::SOURCE_TEST {
+        return event.kind == "test_run";
+    }
+    false
+}
+
+fn parse_rotation_progress_detail(detail: Option<&str>) -> Option<(usize, usize)> {
+    let detail = detail?;
+    let parsed: serde_json::Value = serde_json::from_str(detail).ok()?;
+    let done = parsed.get("done")?.as_u64()? as usize;
+    let total = parsed.get("total")?.as_u64()? as usize;
+    Some((done, total))
+}
+
+fn print_rotation_config_guidance(context: &AppContext, enabled: bool) {
+    let (config_line, instruction_line) =
+        rotation_config_guidance_lines(&context.runtime_paths.config_path, enabled);
+    println!("{}", output::notice(config_line, output::color_enabled()));
+    println!(
+        "{}",
+        output::notice(instruction_line, output::color_enabled())
+    );
+}
+
+fn rotation_config_guidance_lines(
+    config_path: &std::path::Path,
+    enabled: bool,
+) -> (String, String) {
+    let persisted_value = if enabled { "true" } else { "false" };
+    let config_line = format!("Config file: {}", config_path.display());
+    let instruction_line = format!(
+        "To make this permanent, set [runtime.rotation].enabled = {persisted_value} in that file."
+    );
+    (config_line, instruction_line)
 }
 
 fn daemon_unreachable_message(socket_path: &std::path::Path) -> String {
@@ -295,6 +433,7 @@ fn rotate_error_message(message: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::NewEvent;
 
     #[test]
     fn daemon_unreachable_message_mentions_persistent_install() {
@@ -321,5 +460,78 @@ mod tests {
             "no candidate selected yet"
         );
         assert_eq!(friendly_result("replaced"), "replaced");
+    }
+
+    #[test]
+    fn parse_rotation_progress_detail_reads_json_fields() {
+        assert_eq!(
+            parse_rotation_progress_detail(Some(r#"{"done":3,"total":9}"#)),
+            Some((3, 9))
+        );
+    }
+
+    #[test]
+    fn parse_rotation_progress_detail_rejects_missing_fields() {
+        assert_eq!(parse_rotation_progress_detail(Some(r#"{"done":3}"#)), None);
+    }
+
+    #[test]
+    fn parse_rotation_progress_detail_rejects_invalid_json() {
+        assert_eq!(parse_rotation_progress_detail(Some("not-json")), None);
+    }
+
+    #[test]
+    fn should_render_rotation_event_filters_expected_sources() {
+        let base = NewEvent {
+            level: "info".to_string(),
+            source: crate::app::events::SOURCE_ROTATION.to_string(),
+            kind: "proxy_rotated".to_string(),
+            config_id: None,
+            session_id: None,
+            message: "ok".to_string(),
+            detail: None,
+        };
+        let rotation = EventRecord {
+            id: 1,
+            level: base.level.clone(),
+            source: base.source.clone(),
+            kind: base.kind.clone(),
+            config_id: base.config_id,
+            session_id: base.session_id,
+            message: base.message.clone(),
+            detail: None,
+            created_at: "now".to_string(),
+        };
+        assert!(should_render_rotation_event(&rotation));
+
+        let subscription = EventRecord {
+            source: crate::app::events::SOURCE_SUBSCRIPTION.to_string(),
+            kind: "subscription_refresh_result".to_string(),
+            ..rotation.clone()
+        };
+        assert!(should_render_rotation_event(&subscription));
+
+        let test_run = EventRecord {
+            source: crate::app::events::SOURCE_TEST.to_string(),
+            kind: "test_run".to_string(),
+            ..rotation.clone()
+        };
+        assert!(should_render_rotation_event(&test_run));
+
+        let unrelated = EventRecord {
+            source: crate::app::events::SOURCE_DAEMON.to_string(),
+            kind: "daemon_started".to_string(),
+            ..rotation
+        };
+        assert!(!should_render_rotation_event(&unrelated));
+    }
+
+    #[test]
+    fn rotation_config_guidance_lines_include_config_key_and_value() {
+        let (config_line, instruction_line) =
+            rotation_config_guidance_lines(std::path::Path::new("/tmp/config.toml"), true);
+        assert!(config_line.contains("Config file: "));
+        assert!(config_line.contains("/tmp/config.toml"));
+        assert!(instruction_line.contains("[runtime.rotation].enabled = true"));
     }
 }

@@ -125,13 +125,13 @@ For persistent operation with auto-rotation:
 
 ```bash
 xrat daemon start
-xrat rotate start
+xrat rotate enable
 xrat rotate now
 xrat rotate status
 xrat daemon stop
 ```
 
 `xrat connect <id>` starts one managed runtime session immediately through the
-daemon. `xrat rotate start` enables daemon-driven auto-rotation.
+daemon. `xrat rotate enable` enables daemon-driven auto-rotation.
 
 See [daemon](../02-cli/daemon.md) and [proxy](../02-cli/proxy.md) for details.

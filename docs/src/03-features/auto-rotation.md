@@ -262,7 +262,7 @@ xrat rotate status --json
 ### Start Rotation
 
 ```bash
-xrat rotate start
+xrat rotate enable
 ```
 
 Sends a `ProxyStart` request to the daemon, which enables the rotation
@@ -271,7 +271,7 @@ scheduler.
 ### Stop Rotation
 
 ```bash
-xrat rotate stop
+xrat rotate disable
 ```
 
 Sends a `ProxyStop` request to the daemon, which disables the rotation
@@ -329,7 +329,7 @@ Best for: stable connections with automatic failover
 Rotation state is tracked in memory (not persisted to database). On daemon
 restart:
 
-- Rotation is disabled (must be re-enabled with `xrat rotate start`)
+- Rotation is disabled (must be re-enabled with `xrat rotate enable`)
 - Cooldown is reset
 - Timer is reset
 

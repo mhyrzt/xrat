@@ -6,7 +6,7 @@ fn parses_minimal_config_with_defaults() {
     let config: AppConfig = toml::from_str("").expect("empty config should use defaults");
 
     assert_eq!(config.runtime.engine, "xray");
-    assert!(!config.runtime.rotation.enabled);
+    assert!(config.runtime.rotation.enabled);
     assert_eq!(config.runtime.rotation.interval_secs, 1800);
     assert!(config.runtime.rotation.health_trigger_enabled);
     assert_eq!(config.runtime.rotation.cooldown_secs, 300);

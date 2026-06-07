@@ -29,7 +29,7 @@ still accepted for compatibility.
 | `deleted`  | Soft-deleted and hidden unless `--deleted` or `--all` used. |
 
 Use `xrat connect <ref>` when you want to start a proxy runtime. Use
-`xrat rotate start` when you want the daemon to manage automatic rotation.
+`xrat rotate enable` when you want the daemon to manage automatic rotation.
 
 ---
 

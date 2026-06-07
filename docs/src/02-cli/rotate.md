@@ -18,21 +18,21 @@ xrat daemon start
 
 ## Actions
 
-| Action   | Description                                         |
-| -------- | --------------------------------------------------- |
-| `start`  | Enable automatic proxy rotation on a fixed schedule |
-| `stop`   | Disable automatic proxy rotation                    |
-| `status` | Show the current proxy rotation status              |
-| `now`    | Trigger an immediate manual rotation                |
+| Action    | Description                                         |
+| --------- | --------------------------------------------------- |
+| `enable`  | Enable automatic proxy rotation on a fixed schedule |
+| `disable` | Disable automatic proxy rotation                    |
+| `status`  | Show the current proxy rotation status              |
+| `now`     | Trigger an immediate manual rotation                |
 
 ---
 
-## rotate start
+## rotate enable
 
 Enable automatic proxy rotation on a fixed schedule.
 
 ```bash
-xrat rotate start
+xrat rotate enable
 ```
 
 The daemon enables the rotation scheduler using `[runtime.rotation]` settings
@@ -41,13 +41,13 @@ volatile and resets to config defaults on daemon restart.
 
 ---
 
-## rotate stop
+## rotate disable
 
 Disable automatic proxy rotation. The active proxy session keeps running; only
 the scheduler is disabled.
 
 ```bash
-xrat rotate stop
+xrat rotate disable
 ```
 
 ---

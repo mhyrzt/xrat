@@ -64,7 +64,7 @@ pub use proxy::{
 pub use purge::PurgeArgs;
 pub use root::Cli;
 pub use rotate::{
-    RotateAction, RotateArgs, RotateNowArgs, RotateStartArgs, RotateStatusArgs, RotateStopArgs,
+    RotateAction, RotateArgs, RotateDisableArgs, RotateEnableArgs, RotateNowArgs, RotateStatusArgs,
 };
 pub use scan::ScanArgs;
 pub use serve::ServeArgs;

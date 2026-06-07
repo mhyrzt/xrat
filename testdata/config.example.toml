@@ -36,7 +36,7 @@ engine = "xray" # xray | v2ray | sing-box
 replace_active_session = true
 
 [runtime.rotation]
-enabled = false
+enabled = true
 interval_secs = 1800
 health_trigger_enabled = true
 cooldown_secs = 300
