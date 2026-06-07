@@ -1,6 +1,6 @@
 # list
 
-List stored configs or subscription sources.
+List stored configs or subscriptions.
 
 ```bash
 xrat list <target> [flags]
@@ -8,10 +8,10 @@ xrat list <target> [flags]
 
 ## Targets
 
-| Target          | Alias   | Description                      |
-| --------------- | ------- | -------------------------------- |
-| `configs`       | `nodes` | List stored proxy configs        |
-| `subscriptions` | `subs`  | List stored subscription sources |
+| Target          | Alias   | Description               |
+| --------------- | ------- | ------------------------- |
+| `configs`       | `nodes` | List stored proxy configs |
+| `subscriptions` | `subs`  | List stored subscriptions |
 
 ---
 
@@ -85,3 +85,6 @@ Human tables show short refs first. Use `--format tsv` or `--format json` for
 scripts; those formats use stable refs and omit internal numeric database IDs.
 The default `table` format is optimized for humans and may change as the CLI
 evolves.
+
+Subscription output includes an `updated_at` timestamp in all formats so you can
+see the latest refresh/import time at a glance.

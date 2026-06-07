@@ -180,8 +180,9 @@ restores them). An empty payload removes nothing. See
 
 There are two ways to refresh:
 
-- **Manual** — re-run `xrat import <url>`, or press `r` / `R` on the TUI Sources
-  tab. Available any time, no daemon required.
+- **Manual** — run `xrat update` (or `xrat update <ref...>`), re-run
+  `xrat import <url>`, or press `r` / `R` on the TUI Subscriptions tab.
+  Available any time, no daemon required.
 - **Automatic** — the daemon periodically re-fetches URL-backed subscriptions on
   a fixed interval. Configure it under `[subscriptions]`:
 

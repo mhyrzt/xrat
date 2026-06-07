@@ -184,6 +184,10 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
             header: "SOURCE",
             align: Align::Left,
         },
+        Column {
+            header: "UPDATED AT",
+            align: Align::Left,
+        },
     ];
     let rows = subscriptions
         .iter()
@@ -200,6 +204,7 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
                     subscription.source_url.as_deref().unwrap_or("-"),
                     56,
                 )),
+                Cell::plain(subscription.updated_at.clone()),
             ]
         })
         .collect::<Vec<_>>();
@@ -209,15 +214,16 @@ fn format_subscription_table(subscriptions: &[SubscriptionRecord]) -> String {
 
 fn format_subscription_tsv(subscriptions: &[SubscriptionRecord]) -> String {
     let mut lines = Vec::with_capacity(subscriptions.len() + 1);
-    lines.push("ref\tkind\tconfig_count\tname\tsource".to_string());
+    lines.push("ref\tkind\tconfig_count\tname\tsource\tupdated_at".to_string());
     for subscription in subscriptions {
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}",
             subscription.r#ref,
             subscription.source_kind,
             subscription.config_count,
             tsv_cell(subscription.name.as_deref()),
             tsv_cell(subscription.source_url.as_deref()),
+            subscription.updated_at,
         ));
     }
     lines.join("\n")
@@ -374,6 +380,8 @@ mod tests {
 
         assert!(table.contains("REF"));
         assert!(table.contains("123456ab"));
+        assert!(table.contains("UPDATED AT"));
+        assert!(table.contains("updated"));
         assert!(tsv.starts_with("ref\tkind\t"));
         assert_eq!(json["ref"], "123456abcdef");
         assert!(json.get("id").is_none());

@@ -17,10 +17,10 @@ The TUI has no command-specific flags. It uses the same global flags as other
 commands, including `--database`, `--config`, `--xray`, `--v2ray`, `--sing-box`,
 `-v`, and `-q`.
 
-The TUI is an interactive view over xrat's shared database, source, testing, and
-runtime services. It does not keep a separate copy of business logic: config
-changes, imports, tests, and runtime operations use the same app services as the
-CLI commands.
+The TUI is an interactive view over xrat's shared database, subscription,
+testing, and runtime services. It does not keep a separate copy of business
+logic: config changes, imports, tests, and runtime operations use the same app
+services as the CLI commands.
 
 ## Tabs
 
@@ -28,10 +28,10 @@ The TUI is a single dashboard. The top-left table has two tabs; switching the
 tab also swaps the detail panel on the right. The Testing strip, the Logs panel,
 and the Runtime panel stay visible under both tabs.
 
-| Tab     | Purpose                                                                  |
-| ------- | ------------------------------------------------------------------------ |
-| Configs | Browse, filter, start, test, enable, disable, delete, and share configs  |
-| Sources | Inspect subscription sources, refresh sources, and share source/API URLs |
+| Tab           | Purpose                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| Configs       | Browse, filter, start, test, enable, disable, delete, and share configs |
+| Subscriptions | Inspect subscriptions, refresh them, and share subscription/API URLs    |
 
 Use `[` and `]` to move to the previous / next tab.
 
@@ -59,12 +59,12 @@ separate Tests view.
 
 ## Cards and Scrolling
 
-The dashboard has four cards: the table (Configs/Sources), Logs, the detail
-panel, and Runtime. Card titles show their direct focus shortcuts (`1:`, `2:`,
-`3:`, `4:`). `Tab` / `Shift+Tab` move focus between them; the focused card is
-drawn with an accent border. `j`/`k` (or the arrow keys) move the row selection
-when the table is focused, and scroll the focused card otherwise. Cards that
-overflow their height show a scrollbar.
+The dashboard has four cards: the table (Configs/Subscriptions), Logs, the
+detail panel, and Runtime. Card titles show their direct focus shortcuts (`1:`,
+`2:`, `3:`, `4:`). `Tab` / `Shift+Tab` move focus between them; the focused card
+is drawn with an accent border. `j`/`k` (or the arrow keys) move the row
+selection when the table is focused, and scroll the focused card otherwise.
+Cards that overflow their height show a scrollbar.
 
 ## Configs Tab
 
@@ -116,13 +116,13 @@ Multi-config chords run as a single bulk database operation.
 | `r a` | Restore every soft-deleted config                   |
 
 Search matches the displayed config fields. Sorting can cycle through latency,
-ID, name, protocol, source, last-tested time, and imported time. Deleted configs
-are hidden by default; press `T` to include them.
+ID, name, protocol, subscription, last-tested time, and imported time. Deleted
+configs are hidden by default; press `T` to include them.
 
 The config detail panel shows the subscription a config belongs to (`#id name`)
 or `none` for configs added directly. The Configs table title shows the active
-source filter (`· src:<name>` or `· src:orphans`) when one is set from the
-Sources tab.
+subscription filter (`· sub:<name>` or `· sub:orphans`) when one is set from the
+Subscriptions tab.
 
 Soft delete hides a config from normal views and workflows. Purge permanently
 deletes it. Both destructive actions require confirmation.
@@ -141,16 +141,17 @@ Focus a config on the Configs tab and press `Enter` to start or switch the
 runtime. Runtime operations run in the background and reload TUI data after
 completion.
 
-## Sources Tab
+## Subscriptions Tab
 
-The Sources tab replaces the Configs table with the subscription list; the right
-Detail panel then shows the focused subscription's metadata. The local HTTP API
-base64 subscription URL is shown in the Runtime panel.
+The Subscriptions tab replaces the Configs table with the subscription list; the
+right Detail panel then shows the focused subscription's metadata. The local
+HTTP API base64 subscription URL is shown in the Runtime panel.
 
 The table starts with two synthetic rows that act as filters for the Configs
 tab:
 
-- `All configs` — clear the source filter; the Configs tab shows every config.
+- `All configs` — clear the subscription filter; the Configs tab shows every
+  config.
 - `Orphans` — show only configs that do not belong to any subscription (for
   example, configs added with `xrat add`).
 
@@ -160,26 +161,29 @@ to browse the filtered set.
 
 | Key | Action                                                  |
 | --- | ------------------------------------------------------- |
-| `r` | Refresh the focused source                              |
-| `R` | Refresh all sources with stored values                  |
-| `n` | Rename the focused source                               |
-| `d` | Delete the focused source and its configs               |
-| `y` | Show a QR code for the focused source URL               |
-| `c` | Copy the focused source URL                             |
+| `r` | Refresh the focused subscription                        |
+| `R` | Refresh all subscriptions with stored values            |
+| `n` | Rename the focused subscription                         |
+| `d` | Delete the focused subscription and its configs         |
+| `y` | Show a QR code for the focused subscription URL         |
+| `c` | Copy the focused subscription URL                       |
 | `u` | Show a QR code for the HTTP API `/b64` subscription URL |
 | `U` | Copy the HTTP API `/b64` subscription URL               |
 
-Source actions apply to the focused subscription row; they are no-ops on the
-`All configs` and `Orphans` rows.
+Subscription actions apply to the focused subscription row; they are no-ops on
+the `All configs` and `Orphans` rows.
 
-The TUI does not import new sources. Add sources from the CLI with
+The TUI does not import new subscriptions. Add subscriptions from the CLI with
 [`xrat import <input>`](import.md) for subscriptions, files, and link lists, or
 [`xrat add <link>`](import.md#add) for a single config link, then refresh them
-here. This keeps every Sources row a real, refreshable subscription record.
+here. This keeps every Subscriptions row a real, refreshable subscription
+record.
 
-Source refresh runs as a background task. When it finishes, the TUI reloads
-database-backed data so both tabs reflect the new state, including any configs
-removed by subscription reconciliation.
+Subscription refresh runs as a background task. While it runs, the Runtime card
+shows live activity and the bottom bar shows completion summaries that
+auto-hide. When refresh finishes, the TUI reloads database-backed data so both
+tabs reflect the new state, including any configs removed by subscription
+reconciliation.
 
 ## Testing Strip
 
@@ -199,7 +203,7 @@ cancelled once the shared test executor observes the cancellation request.
 
 ## Runtime, Logs, and Help
 
-The merged runtime panel summarizes runtime, database, source, API, and
+The merged runtime panel summarizes runtime, database, subscription, API, and
 config-count state alongside the active config. Both the runtime and logs cards
 stay visible under both tabs.
 
@@ -230,8 +234,8 @@ Press `?` from either tab to open the help modal. Press `Esc` to close it.
 
 ## QR and Clipboard Behavior
 
-QR modals are available for focused config URIs, source URLs, and the HTTP API
-subscription URL. Press `Esc` or `q` to close a QR modal.
+QR modals are available for focused config URIs, subscription URLs, and the HTTP
+API subscription URL. Press `Esc` or `q` to close a QR modal.
 
 Clipboard actions use the host clipboard. They can fail in SSH, tmux, Wayland,
 X11, or headless sessions depending on environment support. When clipboard
@@ -247,8 +251,9 @@ happens, the QR modal reports the failure instead of crashing.
 | Manage config state   | [`config management`](config-management.md)        |
 | Start or stop runtime | [`runtime`](runtime.md)                            |
 | Run tests             | [`test`](test.md)                                  |
-| Inspect sources       | [`list subscriptions`](list.md#list-subscriptions) |
-| Import sources        | [`import`](import.md)                              |
+| Inspect subscriptions | [`list subscriptions`](list.md#list-subscriptions) |
+| Import subscriptions  | [`import`](import.md)                              |
+| Refresh subscriptions | [`update`](update.md)                              |
 | Serve API URL         | [`serve`](serve.md)                                |
 
 ## Troubleshooting
@@ -268,6 +273,6 @@ xrat connect <id>
 xrat status
 ```
 
-If source/API QR or copy actions report that a URL is unavailable, ensure the
-source has a stored value and that the HTTP API subscription URL can be built
-from the current app configuration.
+If subscription/API QR or copy actions report that a URL is unavailable, ensure
+the subscription has a stored value and that the HTTP API subscription URL can
+be built from the current app configuration.
