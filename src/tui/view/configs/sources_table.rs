@@ -94,6 +94,9 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
 
 fn tab_title(app: &TuiApp) -> Line<'static> {
     Line::from(vec![
+        Span::raw(" "),
+        Span::styled("1:", theme::accent_style().add_modifier(Modifier::BOLD)),
+        Span::raw(" "),
         Span::styled(" Configs ", theme::muted_style()),
         Span::styled(
             "[Sources]",

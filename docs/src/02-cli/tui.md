@@ -47,6 +47,10 @@ separate Tests view.
 | `[`, `]`      | Switch to previous / next table tab               |
 | `Tab`         | Cycle card focus (Table → Detail → Log → Runtime) |
 | `Shift+Tab`   | Cycle card focus in reverse                       |
+| `1`           | Focus the table card                              |
+| `2`           | Focus the logs/events card                        |
+| `3`           | Focus the detail card                             |
+| `4`           | Focus the runtime card                            |
 | `j`, `k`      | Move row / scroll the focused card down/up        |
 | arrow keys    | Move row / scroll the focused card down/up        |
 | `?`           | Open help                                         |
@@ -55,11 +59,12 @@ separate Tests view.
 
 ## Cards and Scrolling
 
-The dashboard has four cards: the table (Configs/Sources), the detail panel,
-Logs, and Runtime. `Tab` / `Shift+Tab` move focus between them; the focused card
-is drawn with an accent border. `j`/`k` (or the arrow keys) move the row
-selection when the table is focused, and scroll the focused card otherwise.
-Cards that overflow their height show a scrollbar.
+The dashboard has four cards: the table (Configs/Sources), Logs, the detail
+panel, and Runtime. Card titles show their direct focus shortcuts (`1:`, `2:`,
+`3:`, `4:`). `Tab` / `Shift+Tab` move focus between them; the focused card is
+drawn with an accent border. `j`/`k` (or the arrow keys) move the row selection
+when the table is focused, and scroll the focused card otherwise. Cards that
+overflow their height show a scrollbar.
 
 ## Configs Tab
 
@@ -198,7 +203,8 @@ The merged runtime panel summarizes runtime, database, source, API, and
 config-count state alongside the active config. Both the runtime and logs cards
 stay visible under both tabs.
 
-The Logs card is tabbed. Focus it with `Tab`/`Shift+Tab`, then switch tabs:
+The Logs card is tabbed. Focus it with `2`, `Tab`, or `Shift+Tab`, then switch
+tabs:
 
 | Key       | Action                                       |
 | --------- | -------------------------------------------- |

@@ -36,6 +36,7 @@ impl TuiApp {
             TuiAction::ToggleDeletedFilter => self.toggle_deleted_filter(),
             TuiAction::FocusNextPanel => self.focus_panel(self.focused_panel.next()),
             TuiAction::FocusPrevPanel => self.focus_panel(self.focused_panel.prev()),
+            TuiAction::FocusPanel(panel) => self.focus_panel(panel),
             TuiAction::RequestDeleteFocused => self.request_delete_focused(),
             TuiAction::RequestPurgeFocused => self.request_purge_focused(),
             TuiAction::RequestDeleteSource => self.request_delete_source(),

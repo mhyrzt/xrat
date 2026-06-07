@@ -1,5 +1,5 @@
 use super::helpers::{row, source};
-use crate::tui::app::{TuiAction, TuiApp};
+use crate::tui::app::{TuiAction, TuiApp, TuiPanel};
 use crate::tui::data::TuiData;
 
 #[test]
@@ -14,6 +14,23 @@ fn moves_config_focus_within_bounds() {
     app.apply(TuiAction::MoveUp);
     app.apply(TuiAction::MoveUp);
     assert_eq!(app.config_list.focused, 0);
+}
+
+#[test]
+fn focuses_panel_directly() {
+    let mut app = TuiApp::default();
+
+    app.apply(TuiAction::FocusPanel(TuiPanel::Log));
+    assert_eq!(app.focused_panel, TuiPanel::Log);
+
+    app.apply(TuiAction::FocusPanel(TuiPanel::Detail));
+    assert_eq!(app.focused_panel, TuiPanel::Detail);
+
+    app.apply(TuiAction::FocusPanel(TuiPanel::Runtime));
+    assert_eq!(app.focused_panel, TuiPanel::Runtime);
+
+    app.apply(TuiAction::FocusPanel(TuiPanel::Table));
+    assert_eq!(app.focused_panel, TuiPanel::Table);
 }
 
 #[test]

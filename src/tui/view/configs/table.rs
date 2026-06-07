@@ -86,8 +86,11 @@ fn border_style(focused: bool) -> ratatui::style::Style {
 
 fn tab_title(app: &TuiApp) -> Line<'static> {
     let mut spans = vec![
+        Span::raw(" "),
+        Span::styled("1:", theme::accent_style().add_modifier(Modifier::BOLD)),
+        Span::raw(" "),
         Span::styled(
-            " [Configs]",
+            "[Configs]",
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
         Span::styled(" Sources ", theme::muted_style()),

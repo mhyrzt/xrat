@@ -6,7 +6,7 @@ use ratatui::text::Line;
 use crate::tui::app::TuiApp;
 use crate::tui::data::TuiConfigRow;
 use crate::tui::theme;
-use crate::tui::view::shared::{PanelStyle, push_detail, render_scroll_panel};
+use crate::tui::view::shared::{PanelStyle, numbered_title, push_detail, render_scroll_panel};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let config = app.focused_config();
@@ -20,7 +20,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         lines,
         &app.panel_scroll.detail,
         PanelStyle {
-            title: " Detail ",
+            title: numbered_title(3, "Detail"),
             focused,
             right_pad: RIGHT_PAD,
             wrap_trim: true,

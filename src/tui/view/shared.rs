@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use ratatui::Frame;
 use ratatui::layout::{Margin, Rect};
+use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, Borders, Clear, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
@@ -32,10 +33,21 @@ pub fn push_detail<'a>(
 }
 
 pub struct PanelStyle {
-    pub title: &'static str,
+    pub title: Line<'static>,
     pub focused: bool,
     pub right_pad: u16,
     pub wrap_trim: bool,
+}
+
+pub fn numbered_title(number: u8, title: &'static str) -> Line<'static> {
+    Line::from(vec![
+        Span::raw(" "),
+        Span::styled(
+            format!("{number}:"),
+            theme::accent_style().add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(" {title} ")),
+    ])
 }
 
 /// Render a bordered, vertically scrollable card. The focused card gets an

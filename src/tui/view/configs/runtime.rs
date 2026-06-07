@@ -5,7 +5,7 @@ use ratatui::text::Line;
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
-use crate::tui::view::shared::{PanelStyle, push_detail, render_scroll_panel};
+use crate::tui::view::shared::{PanelStyle, numbered_title, push_detail, render_scroll_panel};
 
 const LABEL_WIDTH: usize = crate::tui::theme::DETAIL_LABEL_WIDTH;
 const RIGHT_PAD: u16 = crate::tui::theme::DETAIL_RIGHT_PAD;
@@ -159,7 +159,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         lines,
         &app.panel_scroll.runtime,
         PanelStyle {
-            title: " Runtime ",
+            title: numbered_title(4, "Runtime"),
             focused,
             right_pad: RIGHT_PAD,
             wrap_trim: true,

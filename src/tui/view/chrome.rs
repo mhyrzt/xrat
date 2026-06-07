@@ -20,7 +20,10 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         ));
     }
 
-    let actions = [Span::styled("[?]Help", theme::chrome_style())];
+    let actions = [
+        Span::styled("Keybindings: ", theme::chrome_style()),
+        Span::styled("?", theme::accent_style().bold()),
+    ];
 
     let center = center_spans(app);
     let center_width: usize = center.iter().map(Span::width).sum();

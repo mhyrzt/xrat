@@ -1,5 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
+use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 
 use crate::tui::app::{TuiApp, TuiLogTab};
@@ -124,12 +125,34 @@ fn stats_lines(_app: &TuiApp) -> Vec<Line<'static>> {
     )]
 }
 
-fn log_title(tab: TuiLogTab) -> &'static str {
-    match tab {
-        TuiLogTab::XratEvents => " Logs  [xrat events]  proxy engine   stats  ",
-        TuiLogTab::ProxyEngine => " Logs   xrat events  [proxy engine]  stats  ",
-        TuiLogTab::Stats => " Logs   xrat events   proxy engine  [stats] ",
+fn log_title(tab: TuiLogTab) -> Line<'static> {
+    let mut spans = vec![
+        Span::raw(" "),
+        Span::styled("2:", theme::accent_style().add_modifier(Modifier::BOLD)),
+        Span::raw(" Logs  "),
+    ];
+    for (index, (log_tab, label)) in [
+        (TuiLogTab::XratEvents, "xrat events"),
+        (TuiLogTab::ProxyEngine, "proxy engine"),
+        (TuiLogTab::Stats, "stats"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if index > 0 {
+            spans.push(Span::raw("  "));
+        }
+        if tab == log_tab {
+            spans.push(Span::styled(
+                format!("[{label}]"),
+                theme::accent_style().add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::styled(label.to_string(), theme::muted_style()));
+        }
     }
+    spans.push(Span::raw(" "));
+    Line::from(spans)
 }
 
 fn compact_time(value: &str) -> String {

@@ -198,10 +198,10 @@ fn maps_bracket_keys_to_focused_tab_group() {
 }
 
 #[test]
-fn number_keys_do_not_select_log_tabs() {
+fn maps_number_keys_to_panel_focus() {
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('3')),
+            key(KeyCode::Char('1')),
             TuiView::Configs,
             TuiPanel::Log,
             &mut None,
@@ -211,11 +211,11 @@ fn number_keys_do_not_select_log_tabs() {
             false,
             false,
         ),
-        TuiAction::None
+        TuiAction::FocusPanel(TuiPanel::Table)
     );
     assert_eq!(
         action_for_key(
-            key(KeyCode::Char('9')),
+            key(KeyCode::Char('2')),
             TuiView::Configs,
             TuiPanel::Log,
             &mut None,
@@ -225,13 +225,41 @@ fn number_keys_do_not_select_log_tabs() {
             false,
             false,
         ),
-        TuiAction::None
+        TuiAction::FocusPanel(TuiPanel::Log)
     );
     assert_eq!(
         action_for_key(
             key(KeyCode::Char('3')),
             TuiView::Configs,
             TuiPanel::Table,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::FocusPanel(TuiPanel::Detail)
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('4')),
+            TuiView::Configs,
+            TuiPanel::Table,
+            &mut None,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ),
+        TuiAction::FocusPanel(TuiPanel::Runtime)
+    );
+    assert_eq!(
+        action_for_key(
+            key(KeyCode::Char('9')),
+            TuiView::Configs,
+            TuiPanel::Log,
             &mut None,
             false,
             false,

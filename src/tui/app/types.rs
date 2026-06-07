@@ -90,6 +90,7 @@ pub enum TuiAction {
     ToggleDeletedFilter,
     FocusNextPanel,
     FocusPrevPanel,
+    FocusPanel(TuiPanel),
     StartFocused,
     EnableFocused,
     DisableFocused,
