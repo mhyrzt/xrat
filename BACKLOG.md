@@ -108,10 +108,10 @@ In progress
 
 ### Remaining plan
 
-The remaining heavy pieces (live stats, API tab, view-only clears) are sequenced
-as focused commits A–F.
+The remaining heavy pieces (live stats, API tab, view-only clears, and log
+severity polish) are sequenced as focused commits A–F.
 
-- **A — xray runtime config emits stats plumbing.** Add optional
+- **A — runtime config emits stats plumbing for both engines.** Add optional
   `api`/`stats`/`policy`/`routing` fields to `XrayConfig`
   (`src/xray/config/types.rs`), all
   `#[serde(skip_serializing_if = "Option::is_none")]` so probe configs and
@@ -120,15 +120,18 @@ as focused commits A–F.
   to `RuntimeSettings` (`src/app/config/proxy/types.rs`). When enabled,
   `src/app/runtime_service/launch.rs` appends a `dokodemo-door` inbound tagged
   `api` and populates the new config fields; readiness inbound selection is
-  unchanged.
-- **B — gRPC StatsService client + engine-neutral trait.** xray StatsService is
-  gRPC-only. Add `tonic` + `prost` deps (rustls only, no `build.rs`/`protoc`);
+  unchanged. For managed sing-box sessions, pass `SingboxClashApi` into
+  `generate_singbox_runtime_config` so `experimental.clash_api` binds the same
+  localhost controller endpoint.
+- **B — engine-neutral stats sources.** xray StatsService is gRPC-only. Add
+  `tonic` + `prost` deps (rustls only, no `build.rs`/`protoc`);
   hand-write the prost messages (`QueryStatsRequest`, `Stat`,
   `QueryStatsResponse`) for `/xray.app.stats.command.StatsService/QueryStats`.
   New `src/xray/stats/` with `XrayStatsClient` + stat-name parsing. Define
   `trait StatsSource { async fn sample(&self) -> Result<StatsSample> }`
-  (async-trait); `XrayStatsSource` for `xray`/`v2ray`, sing-box returns
-  unsupported for now. `StatsSample { at, uplink_total, downlink_total }`.
+  (async-trait); `XrayStatsSource` for `xray`/`v2ray`, plus a sing-box source
+  that samples the Clash API traffic endpoint exposed by
+  `experimental.clash_api`. `StatsSample { at, uplink_total, downlink_total }`.
 - **C — TUI stats poller, ring buffer, sparkline.** `src/tui/data/stats.rs`
   bounded `VecDeque` ring buffer (~120 points) reset on session id change; app
   state + new `stats_tx/rx` channel and ~1s interval gate in `src/tui/run/`;
@@ -148,13 +151,15 @@ as focused commits A–F.
   reload does not resurrect cleared rows; `ClearStatsView` empties the ring
   buffer. Update help modal + docs to distinguish view clears from the DB clear.
 - **F — docs + backlog.** Update `docs/src/02-cli/tui.md` (stats/API tabs, full
-  clear set) and the `[runtime.stats]` config reference; mark this item Done.
+  clear set, severity colors) and the `[runtime.stats]` config reference,
+  including xray StatsService and sing-box Clash API behavior; mark this item
+  Done.
 
 Constraints: stats config is backward-compatible via `#[serde(default)]`; the
-default-on api inbound binds an extra localhost port (gated by config); stats
-RPC failures must stay silent in the TUI; `tonic`/`prost` must build on the musl
-release target (rustls only, no `build.rs`). Verify a `--locked` build after
-adding deps.
+default-on xray api inbound and sing-box Clash API controller each bind an extra
+localhost port (gated by config); stats RPC/API failures must stay silent in the
+TUI; `tonic`/`prost` must build on the musl release target (rustls only, no
+`build.rs`). Verify a `--locked` build after adding deps.
 
 ### Goal
 
@@ -212,6 +217,10 @@ Desired behavior:
 
 - Render logs and events with aligned columns, readable timestamps, and
   level/kind coloring through the theme.
+- Use a consistent severity color schema across app events and proxy logs:
+  critical/fatal/panic/error in red, warn/warning in yellow, info/debug/trace in
+  neutral or accent colors. When a proxy line is unparseable, infer severity
+  from known keywords and stderr context without hiding the raw message.
 - Add reset/clear shortcuts per tab where useful:
   - clear visible log buffer
   - clear visible stats buffer/counters in the TUI only
