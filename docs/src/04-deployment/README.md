@@ -40,11 +40,11 @@ xrat respects these environment variables:
 
 xrat requires external proxy binaries:
 
-| Binary     | Required For                                                    | Installation                                                       |
-| ---------- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `xray`     | Managed runtime, most parse/test/generate flows                 | [Xray-core releases](https://github.com/XTLS/Xray-core/releases)   |
-| `v2ray`    | Alternative managed runtime binary                              | [V2Ray releases](https://github.com/v2fly/v2ray-core/releases)     |
-| `sing-box` | Parse-time sing-box JSON preview and Hysteria2 diagnostics only | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
+| Binary     | Required For                                                 | Installation                                                       |
+| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `xray`     | Managed runtime, most parse/test/generate flows              | [Xray-core releases](https://github.com/XTLS/Xray-core/releases)   |
+| `v2ray`    | Alternative managed runtime binary                           | [V2Ray releases](https://github.com/v2fly/v2ray-core/releases)     |
+| `sing-box` | sing-box JSON preview and managed Hysteria2 runtime sessions | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
 
 Ensure binaries are in `PATH` or specify paths in `config.toml`:
 
@@ -55,8 +55,9 @@ v2ray = "/usr/local/bin/v2ray"
 sing_box = "/usr/local/bin/sing-box"
 ```
 
-Managed runtime process lifecycle is Xray/V2Ray-focused. sing-box is not yet a
-managed runtime replacement for `xrat connect`.
+Managed runtime process lifecycle uses Xray/V2Ray for their supported protocols.
+Hysteria2 (`hy2`) configs are launched through sing-box automatically because
+Xray/V2Ray cannot generate a compatible runtime config for them.
 
 ## Security Considerations
 

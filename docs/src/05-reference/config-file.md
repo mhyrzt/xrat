@@ -121,10 +121,10 @@ engine = "xray"     # "xray" | "v2ray" | "sing-box"
 replace_active_session = true
 ```
 
-| Field                    | Type    | Default | Description                                                                                              |
-| ------------------------ | ------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `engine`                 | enum    | `xray`  | Managed runtime engine. Xray/V2Ray are currently used for `connect`; sing-box is parse/preview oriented. |
-| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                           |
+| Field                    | Type    | Default | Description                                                                                                                       |
+| ------------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `engine`                 | enum    | `xray`  | Managed runtime engine. Hy2 configs auto-select sing-box; non-Hy2 configs use Xray/V2Ray unless supported by the selected engine. |
+| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                                                    |
 
 ---
 

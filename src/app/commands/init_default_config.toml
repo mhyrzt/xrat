@@ -16,7 +16,8 @@
 # [runtime] — proxy engine and local inbound proxies
 # -----------------------------------------------------------------
 [runtime]
-# Proxy engine that powers the active session: "xray" or "sing-box".
+# Proxy engine that powers the active session: "xray", "v2ray", or "sing-box".
+# Hysteria2/hy2 configs auto-select sing-box because Xray/V2Ray cannot run them.
 engine = "xray"
 # Replace an already-running session when you connect to a new config.
 # Set false to refuse connecting while another session is active.

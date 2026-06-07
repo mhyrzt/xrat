@@ -326,11 +326,16 @@ Choose the proxy engine in `config.toml`:
 engine = "xray"  # "xray" | "v2ray" | "sing-box"
 ```
 
-| Engine     | Binary     | Protocols                                                                                    |
-| ---------- | ---------- | -------------------------------------------------------------------------------------------- |
-| `xray`     | `xray`     | All except Hysteria2                                                                         |
-| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                              |
-| `sing-box` | `sing-box` | Parse-time/runtime-config preview only; managed process lifecycle is not yet sing-box parity |
+| Engine     | Binary     | Protocols                                                                                   |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------- |
+| `xray`     | `xray`     | All except Hysteria2                                                                        |
+| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                             |
+| `sing-box` | `sing-box` | Managed Hysteria2 runtime sessions; other protocols currently require Xray/V2Ray generators |
+
+Hysteria2 (`hy2`) configs are selected for sing-box automatically, even when
+`engine = "xray"`, because Xray/V2Ray cannot generate a compatible Hysteria2
+runtime config. Non-Hysteria2 configs with `engine = "sing-box"` fail with an
+unsupported-combination error until their sing-box runtime generators are added.
 
 ## Related
 

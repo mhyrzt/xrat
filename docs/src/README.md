@@ -27,7 +27,8 @@ a single Rust binary.
 - **Test** proxies with ICMP, TCP, real-delay, download, and upload stages.
 - **Rank** bulk test results with concurrency control, failure classification,
   history, and GeoIP enrichment.
-- **Run** Xray-core or V2Ray-core as a managed local proxy runtime.
+- **Run** Xray-core, V2Ray-core, or sing-box-backed Hysteria2 as a managed local
+  proxy runtime.
 - **Expose** SOCKS5, HTTP, and Shadowsocks inbounds with configurable ports and
   sniffing.
 - **Supervise** runtime sessions through a daemon with IPC, health checks, and
@@ -46,19 +47,19 @@ a single Rust binary.
 - **Generate** shell completions, man pages, Docker images, and self-upgrade
   from releases or source.
 
-[SagerNet/sing-box](https://github.com/sagernet/sing-box) support currently
-covers parsing and runtime-config preview, including Hysteria2 diagnostics
-through `xrat parse --engine sing-box`. Managed runtime process lifecycle is
-[XTLS/Xray-core](https://github.com/xtls/xray-core) and
-[V2Fly/V2Ray-core](https://github.com/v2fly/v2ray-core)-focused.
+[SagerNet/sing-box](https://github.com/sagernet/sing-box) support covers
+sing-box JSON preview and managed Hysteria2 runtime sessions. Hy2 configs
+automatically launch through sing-box because Xray/V2Ray cannot express that
+protocol; other managed runtime protocols still use Xray/V2Ray unless
+`[runtime].engine` selects a supported engine.
 
 ## Sections
 
-| Section                                         | Description                                     |
-| ----------------------------------------------- | ----------------------------------------------- |
-| [Getting Started](01-getting-started/README.md) | Installation, quickstart, configuration         |
-| [CLI Reference](02-cli/README.md)               | Command reference for all subcommands           |
-| [Features](03-features/README.md)               | Deep-dives into each major subsystem            |
-| [Deployment](04-deployment/README.md)           | systemd services, database backends             |
-| [Reference](05-reference/README.md)             | Protocols, config file, database schema, errors |
-| [Architecture](06-architecture/README.md)       | Module map, config generation pipeline          |
+| Section                                          | Description                                     |
+| ------------------------------------------------ | ----------------------------------------------- |
+| [Getting Started](01-getting-started/index.html) | Installation, quickstart, configuration         |
+| [CLI Reference](02-cli/index.html)               | Command reference for all subcommands           |
+| [Features](03-features/index.html)               | Deep-dives into each major subsystem            |
+| [Deployment](04-deployment/index.html)           | systemd services, database backends             |
+| [Reference](05-reference/index.html)             | Protocols, config file, database schema, errors |
+| [Architecture](06-architecture/index.html)       | Module map, config generation pipeline          |

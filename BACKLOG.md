@@ -111,10 +111,11 @@ as focused commits A–F.
 
 - **A — xray runtime config emits stats plumbing.** Add optional
   `api`/`stats`/`policy`/`routing` fields to `XrayConfig`
-  (`src/xray/config/types.rs`), all `#[serde(skip_serializing_if = "Option::is_none")]`
-  so probe configs and stats-disabled runtime serialize identically. Add
-  `StatsSettings { enabled, host, port }` (default enabled, `127.0.0.1:10085`) to
-  `RuntimeSettings` (`src/app/config/proxy/types.rs`). When enabled,
+  (`src/xray/config/types.rs`), all
+  `#[serde(skip_serializing_if = "Option::is_none")]` so probe configs and
+  stats-disabled runtime serialize identically. Add
+  `StatsSettings { enabled, host, port }` (default enabled, `127.0.0.1:10085`)
+  to `RuntimeSettings` (`src/app/config/proxy/types.rs`). When enabled,
   `src/app/runtime_service/launch.rs` appends a `dokodemo-door` inbound tagged
   `api` and populates the new config fields; readiness inbound selection is
   unchanged.
@@ -133,24 +134,23 @@ as focused commits A–F.
   `stats_lines` placeholder with header rows (total ↓/↑, throughput, delay,
   failed count) plus a `ratatui` `Sparkline`/`Chart` (confirm import in 0.30).
 - **D — API tab via request-logging middleware.** Add `SOURCE_API` to
-  `src/app/events.rs`; axum `middleware::from_fn_with_state` records each request
-  as a fire-and-forget event (`source=api`, `kind=<method>`,
+  `src/app/events.rs`; axum `middleware::from_fn_with_state` records each
+  request as a fire-and-forget event (`source=api`, `kind=<method>`,
   `message="<METHOD> <path> -> <status>"`) wired in `build_router`. Add
   `TuiLogTab::Api` to `ORDER` (tabs become events/engine/api/stats, number keys
   `1`–`4`); `api_lines` filters events to `source == "api"`.
 - **E — view-only clears (`C l`, `C s`).** Extend the `C` chord to
   `[("l","log view"), ("s","stats view"), ("p","events (db)")]`; add actions
-  `ClearLogView`/`ClearStatsView`. Track per-tab view watermarks
-  (events: `events_clear_before_id`; proxy: last-visible-row signature) so the
-  periodic reload does not resurrect cleared rows; `ClearStatsView` empties the
-  ring buffer. Update help modal + docs to distinguish view clears from the DB
-  clear.
+  `ClearLogView`/`ClearStatsView`. Track per-tab view watermarks (events:
+  `events_clear_before_id`; proxy: last-visible-row signature) so the periodic
+  reload does not resurrect cleared rows; `ClearStatsView` empties the ring
+  buffer. Update help modal + docs to distinguish view clears from the DB clear.
 - **F — docs + backlog.** Update `docs/src/02-cli/tui.md` (stats/API tabs, full
   clear set) and the `[runtime.stats]` config reference; mark this item Done.
 
 Constraints: stats config is backward-compatible via `#[serde(default)]`; the
-default-on api inbound binds an extra localhost port (gated by config); stats RPC
-failures must stay silent in the TUI; `tonic`/`prost` must build on the musl
+default-on api inbound binds an extra localhost port (gated by config); stats
+RPC failures must stay silent in the TUI; `tonic`/`prost` must build on the musl
 release target (rustls only, no `build.rs`). Verify a `--locked` build after
 adding deps.
 
@@ -260,96 +260,6 @@ Desired behavior:
 - Reset stats per runtime session.
 - Use live tail for proxy logs.
 
-## 03. Medium, P2: Progress indicators for blocking CLI commands
-
-### Status
-
-Done
-
-### Goal
-
-Add consistent "working/trying" feedback for CLI commands that can block for a
-noticeable amount of time, such as `connect`, long-running probes, scans, import
-work, runtime startup/shutdown, and upgrade flows.
-
-### Changes required
-
-- Audit command handlers under `src/app/commands/` for operations that wait on
-  network, process startup, external command execution, database work over many
-  rows, or runtime health checks.
-- Reuse any existing progress/spinner/glyph output already present in the CLI
-  before adding a new helper.
-- Add a small shared helper if needed so blocking commands show consistent
-  status messages, glyphs, and completion/failure output.
-- Keep machine-readable output formats (`json`, `tsv`, `csv`) free of spinner
-  glyphs and terminal-only progress text.
-- Ensure progress output is disabled or degraded cleanly when stdout/stderr is
-  not a terminal.
-
-### Verification
-
-- CLI output tests or focused unit tests for commands that can be checked
-  without starting external services.
-- Manual checks for representative blocking commands, especially `connect`.
-
-## 04. Hard, P1: Managed sing-box runtime, hysteria2 connect, and Clash stats
-
-### Status
-
-Planned
-
-### Goal
-
-Let xrat actually run configs that only sing-box supports (notably hysteria2/hy2)
-and surface their live traffic in the TUI stats tab. Today the managed runtime is
-xray/v2ray only and the xray config generator cannot express hy2, so hy2 configs
-can be imported/parsed/translated but never connected — and therefore never
-produce stats.
-
-### Current limitations
-
-- `src/app/runtime_service/launch.rs` rejects `engine == "sing-box"` outright.
-- `src/xray/config/outbound.rs` returns an error for `Protocol::Hy2`
-  ("hysteria2/hy2 is not supported by xray config generator").
-- sing-box support is parse/translate only (`src/singbox/config/`), with no
-  launch, reattach, readiness, or runtime-session lifecycle.
-- Stats are xray gRPC StatsService only (see item 02); sing-box exposes traffic
-  through the Clash API instead, which has no client here.
-
-### Changes required
-
-- Lift the sing-box reject and build a managed sing-box launch path: generate a
-  sing-box runtime config from the stored node (reuse `src/singbox/config/`),
-  start the `sing-box_path` binary, wire readiness, reattach
-  (`exec_matches_runtime_engine`), and runtime-session persistence to match the
-  xray path.
-- Decide engine selection: hy2 (and other sing-box-only protocols) must route to
-  sing-box even when `runtime.engine` is xray. Either auto-select per-config
-  engine from the node protocol or validate/error clearly when the configured
-  engine cannot run the selected config.
-- Enable the sing-box Clash API (or experimental v2 API) in the generated
-  runtime config, gated by config like `[runtime.stats]`.
-- Add a `ClashStatsSource` implementing the `StatsSource` trait from item 02
-  (HTTP/WebSocket traffic endpoint) returning the same `StatsSample`
-  (cumulative up/down bytes), so the TUI stats tab works unchanged.
-- CLI/UX: ensure `connect`, `status`, `disconnect`, and the TUI reflect the
-  active engine; surface clear errors when a binary is missing.
-
-### Verification
-
-- Launch/reattach/lifecycle tests for the sing-box engine mirroring the xray
-  runtime-session tests.
-- Engine-selection tests: hy2 config routes to sing-box; unsupported
-  combinations error clearly.
-- `ClashStatsSource` sample parsing tests (no live engine).
-- Manual: `connect` a real hy2 config, confirm traffic flows and the TUI stats
-  tab shows rising totals via the Clash API.
-
-### Decisions
-
-- Reuse the engine-neutral `StatsSource` trait introduced in item 02; do not
-  fork the stats UI per engine.
-
 ## 05. Medium, P2: Routing rules in generated PAC file
 
 ### Status
@@ -368,8 +278,8 @@ convenient and can speed up resolution (no proxy round-trip for direct hosts).
 ### Current behavior
 
 `render_pac` emits a static function: plain hostnames, `*.local`, localhost, and
-RFC1918 ranges return `DIRECT`; everything else returns the proxy chain. There is
-no way to add custom direct/proxy/blocked domains or IP ranges.
+RFC1918 ranges return `DIRECT`; everything else returns the proxy chain. There
+is no way to add custom direct/proxy/blocked domains or IP ranges.
 
 ### Changes required
 
@@ -384,7 +294,8 @@ no way to add custom direct/proxy/blocked domains or IP ranges.
   chain. Keep the existing local/private bypass as the first rule block.
 - Keep generation deterministic and bounded: large geosite/geoip lists do not
   belong inline in a PAC; cap or summarize, or restrict PAC rules to curated
-  domain/CIDR lists and leave full geo routing to the engine. Document the limit.
+  domain/CIDR lists and leave full geo routing to the engine. Document the
+  limit.
 - Preserve current defaults when no rules are configured (byte-identical output
   to today for the no-rules case).
 
@@ -419,8 +330,8 @@ must not gate mutations.
 ### Current behavior
 
 - API key passed as a `?key=` query parameter on each route
-  (`ConfigsQuery`/`JsonQuery` `key` field), validated by
-  `require_api_key` in `src/server/auth.rs`.
+  (`ConfigsQuery`/`JsonQuery` `key` field), validated by `require_api_key` in
+  `src/server/auth.rs`.
 - All routes are read-only `GET` (`src/server/routes/mod.rs`): health, json,
   b64, configs list/get, proxy.pac.
 - Single shared key compared with `provided != expected`.
@@ -431,8 +342,8 @@ must not gate mutations.
   bookmarks, and `Referer` headers — unsafe for privileged operations.
 - Comparison is not constant-time (`!=`), a timing side channel.
 - No header-based credential (`Authorization: Bearer`/`X-API-Key`).
-- No separation of capability: one key grants everything; no read-only vs
-  manage distinction.
+- No separation of capability: one key grants everything; no read-only vs manage
+  distinction.
 - No rate limiting, lockout, or audit trail for failed/privileged calls.
 
 ### Changes required
@@ -466,5 +377,5 @@ must not gate mutations.
 ### Decisions
 
 - `?key=` stays only for read-only, non-critical endpoints. Management endpoints
-  require header tokens with scopes, constant-time comparison, and localhost-only
-  binding by default.
+  require header tokens with scopes, constant-time comparison, and
+  localhost-only binding by default.

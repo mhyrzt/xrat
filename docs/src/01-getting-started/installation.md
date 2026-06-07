@@ -12,10 +12,10 @@ For other install paths, see [Docker Install](docker-install.md),
 
 ### Runtime dependencies
 
-| Tool       | Required | Purpose                                                     | Install                                                   |
-| ---------- | -------- | ----------------------------------------------------------- | --------------------------------------------------------- |
-| `xray`     | Yes      | Managed Xray runtime and real-delay tests                   | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
-| `sing-box` | No       | sing-box parsing and runtime-config preview for diagnostics | [sing-box.app](https://sing-box.app/install.sh)           |
+| Tool       | Required | Purpose                                                 | Install                                                   |
+| ---------- | -------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| `xray`     | Yes      | Managed Xray runtime and real-delay tests               | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
+| `sing-box` | No       | sing-box preview and managed Hysteria2 runtime sessions | [sing-box.app](https://sing-box.app/install.sh)           |
 
 Install xray:
 
@@ -23,7 +23,7 @@ Install xray:
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 ```
 
-Install sing-box (optional):
+Install sing-box if you need Hysteria2 (`hy2`) managed runtime support:
 
 ```bash
 curl -fsSL https://sing-box.app/install.sh | sh

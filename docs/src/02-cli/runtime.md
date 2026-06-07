@@ -69,9 +69,11 @@ automatically disconnects the previous session.
 
 ### Engine Boundary
 
-The managed runtime lifecycle is Xray/V2Ray-focused.
-`xrat parse --engine sing-box` can generate sing-box JSON for diagnostics, but
-`connect`, `disconnect`, and `status` manage the Xray/V2Ray runtime path.
+The managed runtime uses Xray/V2Ray for protocols they can generate. Hysteria2
+(`hy2`) configs are sing-box-only, so `xrat connect` automatically launches the
+configured `sing-box` binary for those configs even when `[runtime].engine` is
+`xray`. Setting `[runtime].engine = "sing-box"` for non-Hysteria2 configs
+currently returns a clear unsupported-combination error.
 
 ---
 

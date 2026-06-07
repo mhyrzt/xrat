@@ -3,12 +3,13 @@
 xrat is a Rust-based CLI tool and daemon for managing proxy configurations. It
 imports subscription links, parses and normalizes proxy URIs, tests connectivity
 and performance, previews runtime configs for Xray-core and sing-box, manages an
-Xray/V2Ray local proxy runtime process, and exposes an HTTP API.
+Xray/V2Ray local proxy runtime process plus sing-box-backed Hysteria2 sessions,
+and exposes an HTTP API.
 
 ## Prerequisites
 
 - **Xray-core** binary installed and available in `PATH`
-- **sing-box** binary (optional, used for sing-box parse/preview support)
+- **sing-box** binary (optional, required for managed Hysteria2 runtime support)
 - **Rust toolchain** and **just** when building from source
 
 ## Installation
