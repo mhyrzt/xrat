@@ -69,6 +69,12 @@ mod tests {
         ServerState {
             db,
             api_key: api_key.map(str::to_string),
+            pac_enabled: true,
+            pac_allowed_hosts: crate::app::config::defaults::DEFAULT_SERVER_PAC_ALLOWED_HOSTS
+                .iter()
+                .map(|host| host.to_string())
+                .collect(),
+            pac_rules: crate::server::PacRules::default(),
         }
     }
 }

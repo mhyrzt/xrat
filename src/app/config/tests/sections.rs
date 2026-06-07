@@ -9,6 +9,8 @@ enabled = true
 host = "0.0.0.0"
 port = 9090
 key = "local-secret"
+pac_enabled = false
+pac_allowed_hosts = ["localhost", "pac.example.test"]
 "#,
     )
     .expect("config should parse");
@@ -19,6 +21,11 @@ key = "local-secret"
     assert_eq!(
         config.server.key,
         Some(SecretString::Literal("local-secret".to_string()))
+    );
+    assert!(!config.server.pac_enabled);
+    assert_eq!(
+        config.server.pac_allowed_hosts,
+        vec!["localhost", "pac.example.test"]
     );
 }
 

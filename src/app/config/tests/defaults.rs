@@ -73,4 +73,9 @@ fn parses_minimal_config_with_defaults() {
     assert_eq!(config.server.host, "127.0.0.1");
     assert_eq!(config.server.port, 18203);
     assert_eq!(config.server.key, None);
+    assert!(config.server.pac_enabled);
+    assert_eq!(
+        config.server.pac_allowed_hosts,
+        vec!["localhost", "127.0.0.1", "::1"]
+    );
 }

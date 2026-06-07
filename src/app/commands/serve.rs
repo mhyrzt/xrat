@@ -10,5 +10,5 @@ pub async fn run(context: &AppContext, args: &ServeArgs) -> crate::app::Result<(
         settings.port = port;
     }
 
-    crate::server::serve(context.db.clone(), &settings).await
+    crate::server::serve(context.db.clone(), &settings, &context.app_config.routing).await
 }

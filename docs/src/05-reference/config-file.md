@@ -100,14 +100,22 @@ enabled = false
 host = "127.0.0.1"
 port = 18203
 key = { env = "XRAT_API_KEY" }
+pac_enabled = true
+pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 ```
 
-| Field     | Type       | Default     | Description                |
-| --------- | ---------- | ----------- | -------------------------- |
-| `enabled` | boolean    | `false`     | Enable daemon-hosted API   |
-| `host`    | string     | `127.0.0.1` | Bind host                  |
-| `port`    | integer    | `18203`     | Bind port                  |
-| `key`     | string/env | -           | API key for authentication |
+| Field               | Type       | Default                             | Description                             |
+| ------------------- | ---------- | ----------------------------------- | --------------------------------------- |
+| `enabled`           | boolean    | `false`                             | Enable daemon-hosted API                |
+| `host`              | string     | `127.0.0.1`                         | Bind host                               |
+| `port`              | integer    | `18203`                             | Bind port                               |
+| `key`               | string/env | -                                   | API key for authenticated routes        |
+| `pac_enabled`       | boolean    | `true`                              | Serve `/proxy.pac`                      |
+| `pac_allowed_hosts` | string[]   | `["localhost", "127.0.0.1", "::1"]` | Allowed `Host` headers for `/proxy.pac` |
+
+`/proxy.pac` is unauthenticated because many PAC consumers cannot send auth
+headers. Keep `host = "127.0.0.1"` for local use. If you bind the server to
+`0.0.0.0`, add only trusted local DNS names to `pac_allowed_hosts`.
 
 ---
 
@@ -304,6 +312,10 @@ geoip = []
 | `[block].ip`       | string[] | `[]`           | Blocked IPs                     |
 | `[block].geosite`  | string[] | `[]`           | Blocked geosite categories      |
 | `[block].geoip`    | string[] | `[]`           | Blocked geoip categories        |
+
+The generated PAC file inlines only curated `domain` entries and IPv4 CIDRs from
+`ip` lists. `geosite` and `geoip` lists stay in the proxy engine config and are
+not expanded into PAC.
 
 ---
 

@@ -9,6 +9,8 @@ pub struct ServerSettings {
     pub host: String,
     pub port: u16,
     pub key: Option<SecretString>,
+    pub pac_enabled: bool,
+    pub pac_allowed_hosts: Vec<String>,
 }
 
 impl Default for ServerSettings {
@@ -18,6 +20,11 @@ impl Default for ServerSettings {
             host: defaults::DEFAULT_SERVER_HOST.to_string(),
             port: defaults::DEFAULT_SERVER_PORT,
             key: None,
+            pac_enabled: defaults::DEFAULT_SERVER_PAC_ENABLED,
+            pac_allowed_hosts: defaults::DEFAULT_SERVER_PAC_ALLOWED_HOSTS
+                .iter()
+                .map(|host| host.to_string())
+                .collect(),
         }
     }
 }

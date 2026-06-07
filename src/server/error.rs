@@ -16,6 +16,8 @@ pub enum ServerError {
     InvalidQuery(String),
     #[error("config not found")]
     NotFound,
+    #[error("PAC host is not allowed")]
+    PacHostNotAllowed,
     #[error(transparent)]
     Database(#[from] crate::db::DbError),
 }
@@ -26,6 +28,7 @@ impl IntoResponse for ServerError {
             Self::MissingApiKey | Self::InvalidApiKey => StatusCode::UNAUTHORIZED,
             Self::InvalidQuery(_) => StatusCode::BAD_REQUEST,
             Self::NotFound => StatusCode::NOT_FOUND,
+            Self::PacHostNotAllowed => StatusCode::FORBIDDEN,
             Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         let body = Json(ApiErrorResponse {

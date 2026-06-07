@@ -91,6 +91,12 @@ pub(super) async fn multi_config_state(api_key: Option<&str>, count: usize) -> S
     ServerState {
         db,
         api_key: api_key.map(str::to_string),
+        pac_enabled: true,
+        pac_allowed_hosts: crate::app::config::defaults::DEFAULT_SERVER_PAC_ALLOWED_HOSTS
+            .iter()
+            .map(|host| host.to_string())
+            .collect(),
+        pac_rules: crate::server::PacRules::default(),
     }
 }
 
@@ -151,6 +157,12 @@ pub(super) async fn populated_state(api_key: Option<&str>) -> ServerState {
     ServerState {
         db,
         api_key: api_key.map(str::to_string),
+        pac_enabled: true,
+        pac_allowed_hosts: crate::app::config::defaults::DEFAULT_SERVER_PAC_ALLOWED_HOSTS
+            .iter()
+            .map(|host| host.to_string())
+            .collect(),
+        pac_rules: crate::server::PacRules::default(),
     }
 }
 

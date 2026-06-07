@@ -180,12 +180,20 @@ concurrency = 0
 [server]
 # Disabled by default. Enable to expose /b64, /json, /configs, /health.
 enabled = false
-# Bind address. Keep "127.0.0.1" unless you intend remote access.
+# Bind address. Keep "127.0.0.1" unless you intend remote access. Binding to
+# "0.0.0.0" exposes the API server on your LAN and should be paired with a key.
 host = "127.0.0.1"
 port = 18203
 # API key required on requests. Use "env:VAR_NAME" to read from the
 # environment instead of storing the secret in plaintext.
 # key = "env:XRAT_API_KEY"
+# Serve /proxy.pac from the API server. Disable if you do not use PAC.
+pac_enabled = true
+# PAC is unauthenticated because browsers and desktop proxy settings usually
+# cannot send auth headers. Requests to /proxy.pac are accepted only when the
+# HTTP Host header matches this allowlist. Add DNS names here only if they
+# resolve to this trusted local server.
+pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 
 
 # -----------------------------------------------------------------
@@ -228,20 +236,22 @@ port = 18203
 
 
 # -----------------------------------------------------------------
-# [routing] — split routing rules applied to the generated config
+# [routing] — split routing rules applied to generated configs and PAC
 # -----------------------------------------------------------------
 # [routing]
 # # Xray domain strategy: "AsIs", "IPIfNonMatch", or "IPOnDemand".
 # domain_strategy = "IPIfNonMatch"
+# # PAC inlines only curated domain entries and IPv4 CIDRs from domain/ip lists.
+# # geosite/geoip lists stay in the engine config and are not expanded into PAC.
 # # Send matching traffic directly (bypass the proxy).
 # [routing.direct]
-# domain = ["geosite:private"]
-# ip = ["geoip:private"]
+# domain = ["example.test"]
+# ip = ["203.0.113.0/24"]
 # geosite = []
 # geoip = []
 # # Block matching traffic entirely.
 # [routing.block]
-# domain = ["geosite:category-ads-all"]
+# domain = ["ads.example.test"]
 # ip = []
 # geosite = []
 # geoip = []

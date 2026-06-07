@@ -75,3 +75,5 @@ pub const DEFAULT_TEST_GEOIP_ASN_PATH: &str = "mmdb/GeoLite2-ASN.mmdb";
 pub const DEFAULT_SERVER_ENABLED: bool = false;
 pub const DEFAULT_SERVER_HOST: &str = "127.0.0.1";
 pub const DEFAULT_SERVER_PORT: u16 = 18203;
+pub const DEFAULT_SERVER_PAC_ENABLED: bool = true;
+pub const DEFAULT_SERVER_PAC_ALLOWED_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1"];

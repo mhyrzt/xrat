@@ -1,6 +1,6 @@
 use crate::app::commands::output;
 use crate::app::context::AppContext;
-use crate::server::{PacEndpoints, render_pac};
+use crate::server::{PacEndpoints, PacRules, render_pac};
 
 use super::resolve_active_endpoints;
 
@@ -31,6 +31,12 @@ pub(super) async fn print_pac_file(context: &AppContext) -> crate::app::Result<(
         http: active.http,
         socks: active.socks,
     };
-    print!("{}", render_pac(&endpoints));
+    print!(
+        "{}",
+        render_pac(
+            &endpoints,
+            &PacRules::from_routing(&context.app_config.routing)
+        )
+    );
     Ok(())
 }

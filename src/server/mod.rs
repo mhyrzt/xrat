@@ -12,19 +12,23 @@ use std::net::{IpAddr, SocketAddr};
 use axum::Router;
 use tokio::net::TcpListener;
 
-use crate::app::config::ServerSettings;
+use crate::app::config::{RoutingSettings, ServerSettings};
 use crate::db::Database;
 
 pub use error::{ServerError, ServerResult};
-pub use routes::pac::{PacEndpoints, render_pac};
+pub use routes::pac::{PacEndpoints, PacRules, render_pac};
 pub use state::ServerState;
 
 pub fn build_router(state: ServerState) -> Router {
     routes::router().with_state(state)
 }
 
-pub async fn serve(db: Database, settings: &ServerSettings) -> crate::app::Result<()> {
-    let state = ServerState::from_settings(db, settings)?;
+pub async fn serve(
+    db: Database,
+    settings: &ServerSettings,
+    routing: &RoutingSettings,
+) -> crate::app::Result<()> {
+    let state = ServerState::from_settings(db, settings, routing)?;
     let addr = parse_bind_addr(&settings.host, settings.port)?;
     let router = build_router(state);
     let listener = TcpListener::bind(addr).await?;
@@ -45,9 +49,10 @@ pub async fn serve(db: Database, settings: &ServerSettings) -> crate::app::Resul
 pub async fn serve_with_shutdown(
     db: Database,
     settings: &ServerSettings,
+    routing: &RoutingSettings,
     shutdown: tokio::sync::oneshot::Receiver<()>,
 ) -> crate::app::Result<()> {
-    let state = ServerState::from_settings(db, settings)?;
+    let state = ServerState::from_settings(db, settings, routing)?;
     let addr = parse_bind_addr(&settings.host, settings.port)?;
     let router = build_router(state);
     let listener = TcpListener::bind(addr).await?;

@@ -49,6 +49,8 @@ enabled = false
 host = "127.0.0.1"
 port = 18203
 key = { env = "XRAT_API_KEY" }
+pac_enabled = true
+pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 
 [runtime]
 engine = "xray"

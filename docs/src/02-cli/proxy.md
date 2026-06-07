@@ -69,8 +69,13 @@ Generates the PAC file locally from the active runtime's HTTP/SOCKS inbounds and
 prints it to stdout. The generated PAC:
 
 - Routes plain hostnames, `*.local`, loopback, and private IP ranges `DIRECT`.
+- Applies curated `[routing.direct]` and `[routing.block]` `domain` entries and
+  IPv4 CIDRs from `ip` lists in that order.
 - Prefers SOCKS, then HTTP, then `DIRECT` for everything else.
 - With no active runtime, routes everything `DIRECT`.
+
+PAC generation does not inline `geosite` or `geoip` lists; those stay in the
+proxy engine config.
 
 ### PAC route
 
@@ -84,7 +89,9 @@ This route is **unauthenticated by default** and returns
 `Content-Type: application/x-ns-proxy-autoconfig`. PAC consumers usually cannot
 send auth headers, and the file exposes only non-secret local endpoint data
 (Shadowsocks credentials are never included). Prefer a loopback server bind for
-PAC use.
+PAC use. Set `[server].pac_enabled = false` to disable this route. Requests are
+accepted only when the HTTP `Host` header matches `[server].pac_allowed_hosts`,
+which defaults to `localhost`, `127.0.0.1`, and `::1`.
 
 ---
 

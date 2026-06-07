@@ -70,4 +70,9 @@ fn parses_example_config() {
             env: "XRAT_API_KEY".to_string()
         })
     );
+    assert!(config.server.pac_enabled);
+    assert_eq!(
+        config.server.pac_allowed_hosts,
+        vec!["localhost", "127.0.0.1", "::1"]
+    );
 }
