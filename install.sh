@@ -252,7 +252,13 @@ install_binary() {
     mkdir -p "$INSTALL_DIR"
     mv "${WORK_DIR}/xrat" "$INSTALL_DIR/xrat"
     chmod +x "$INSTALL_DIR/xrat"
+    cat > "$INSTALL_DIR/xratui" <<EOF
+#!/usr/bin/env sh
+exec "$INSTALL_DIR/xrat" tui "\$@"
+EOF
+    chmod +x "$INSTALL_DIR/xratui"
     info "Installed to ${INSTALL_DIR}/xrat"
+    info "Installed TUI shortcut to ${INSTALL_DIR}/xratui"
 }
 
 build_from_source() {
@@ -418,6 +424,7 @@ show_guide() {
     echo
     echo "  Launch TUI:"
     echo -e "    ${DIM}xrat tui${NC}"
+    echo -e "    ${DIM}xratui${NC}"
     echo
     echo -e "  Docs: ${BLU}https://mhyrzt.github.io/xrat/${NC}"
     echo
