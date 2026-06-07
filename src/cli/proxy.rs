@@ -9,10 +9,16 @@ pub struct ProxyArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ProxyAction {
-    #[command(about = "Show active local proxy endpoints (HTTP, SOCKS5, Shadowsocks, PAC).")]
-    Endpoints(ProxyEndpointsArgs),
+    #[command(
+        alias = "show",
+        alias = "endpoints",
+        about = "Show active local proxy endpoints and shell proxy values."
+    )]
+    Info(ProxyInfoArgs),
     #[command(about = "Print or locate the Proxy Auto-Config (PAC) file.")]
     Pac(ProxyPacArgs),
+    #[command(about = "Toggle shell proxy variables, preserving previous values.")]
+    Toggle(ProxyToggleArgs),
     #[command(about = "Print shell commands to proxy the current terminal session.")]
     Shell(ProxyShellArgs),
     #[command(about = "Manage Linux desktop environment proxy settings.")]
@@ -20,9 +26,15 @@ pub enum ProxyAction {
 }
 
 #[derive(Debug, Args, Default)]
-pub struct ProxyEndpointsArgs {
-    #[arg(long = "json", help = "Print endpoints as JSON.")]
+pub struct ProxyInfoArgs {
+    #[arg(long = "json", help = "Print proxy information as JSON.")]
     pub json: bool,
+}
+
+#[derive(Debug, Args, Default)]
+pub struct ProxyToggleArgs {
+    #[arg(long = "shell", value_enum, help = "Override shell detection.")]
+    pub shell: Option<ProxyShellKind>,
 }
 
 #[derive(Debug, Args)]

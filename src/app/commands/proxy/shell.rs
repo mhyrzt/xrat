@@ -3,7 +3,9 @@ use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::cli::{ProxyShellAction, ProxyShellKind};
 
-use super::{ActiveEndpoints, resolve_active_endpoints};
+use super::{
+    ActiveEndpoints, http_proxy_url, loopback_host, resolve_active_endpoints, socks_proxy_url,
+};
 
 pub(super) async fn run(context: &AppContext, action: &ProxyShellAction) -> crate::app::Result<()> {
     match action {
@@ -25,6 +27,27 @@ pub(super) async fn run(context: &AppContext, action: &ProxyShellAction) -> crat
             Ok(())
         }
     }
+}
+
+pub(super) async fn toggle(
+    context: &AppContext,
+    shell: Option<ProxyShellKind>,
+) -> crate::app::Result<()> {
+    let active = resolve_active_endpoints(context).await?;
+    let kind = detect_shell(shell);
+
+    if shell_points_at_active(&active) {
+        print!("{}", restore_script(kind));
+        return Ok(());
+    }
+
+    let (http_proxy, all_proxy) = proxy_urls(&active)?;
+    print!(
+        "{}{}",
+        capture_script(kind),
+        enable_script(kind, &http_proxy, &all_proxy)
+    );
+    Ok(())
 }
 
 /// Resolve the `http_proxy`/`https_proxy` and `all_proxy` URLs from active
@@ -61,23 +84,15 @@ fn proxy_urls(active: &ActiveEndpoints) -> crate::app::Result<(String, String)> 
     }
 }
 
-fn loopback(host: &str) -> &str {
-    if host == "0.0.0.0" || host.is_empty() {
-        "127.0.0.1"
-    } else {
-        host
-    }
-}
-
-fn http_proxy_url(host: &str, port: u16) -> String {
-    format!("http://{}:{port}", loopback(host))
-}
-
-fn socks_proxy_url(host: &str, port: u16) -> String {
-    format!("socks5://{}:{port}", loopback(host))
-}
-
 const VARS: [&str; 3] = ["http_proxy", "https_proxy", "all_proxy"];
+const ALL_VARS: [&str; 6] = [
+    "http_proxy",
+    "HTTP_PROXY",
+    "https_proxy",
+    "HTTPS_PROXY",
+    "all_proxy",
+    "ALL_PROXY",
+];
 
 fn enable_script(kind: ProxyShellKind, http_proxy: &str, all_proxy: &str) -> String {
     let value_for = |name: &str| -> &str {
@@ -122,6 +137,72 @@ fn disable_script(kind: ProxyShellKind) -> String {
         }
     }
     out
+}
+
+fn capture_script(kind: ProxyShellKind) -> String {
+    let mut out = String::new();
+    for name in ALL_VARS {
+        let old_name = old_var_name(name);
+        let had_name = had_var_name(name);
+        match kind {
+            ProxyShellKind::Bash | ProxyShellKind::Zsh => {
+                out.push_str(&format!("if [ \"${{{name}+x}}\" ]; then\n"));
+                out.push_str(&format!("  export {old_name}=\"${name}\"\n"));
+                out.push_str(&format!("  export {had_name}=1\n"));
+                out.push_str("else\n");
+                out.push_str(&format!("  unset {old_name}\n"));
+                out.push_str(&format!("  export {had_name}=0\n"));
+                out.push_str("fi\n");
+            }
+            ProxyShellKind::Fish => {
+                out.push_str(&format!("if set -q {name}\n"));
+                out.push_str(&format!("    set -gx {old_name} \"${name}\"\n"));
+                out.push_str(&format!("    set -gx {had_name} 1\n"));
+                out.push_str("else\n");
+                out.push_str(&format!("    set -e {old_name}\n"));
+                out.push_str(&format!("    set -gx {had_name} 0\n"));
+                out.push_str("end\n");
+            }
+        }
+    }
+    out
+}
+
+fn restore_script(kind: ProxyShellKind) -> String {
+    let mut out = String::new();
+    for name in ALL_VARS {
+        let old_name = old_var_name(name);
+        let had_name = had_var_name(name);
+        match kind {
+            ProxyShellKind::Bash | ProxyShellKind::Zsh => {
+                out.push_str(&format!("if [ \"${{{had_name}:-0}}\" = \"1\" ]; then\n"));
+                out.push_str(&format!("  export {name}=\"${old_name}\"\n"));
+                out.push_str("else\n");
+                out.push_str(&format!("  unset {name}\n"));
+                out.push_str("fi\n");
+                out.push_str(&format!("unset {old_name}\n"));
+                out.push_str(&format!("unset {had_name}\n"));
+            }
+            ProxyShellKind::Fish => {
+                out.push_str(&format!("if test \"${had_name}\" = 1\n"));
+                out.push_str(&format!("    set -gx {name} \"${old_name}\"\n"));
+                out.push_str("else\n");
+                out.push_str(&format!("    set -e {name}\n"));
+                out.push_str("end\n");
+                out.push_str(&format!("set -e {old_name}\n"));
+                out.push_str(&format!("set -e {had_name}\n"));
+            }
+        }
+    }
+    out
+}
+
+fn old_var_name(name: &str) -> String {
+    format!("XRAT_PROXY_OLD_{name}")
+}
+
+fn had_var_name(name: &str) -> String {
+    format!("XRAT_PROXY_HAD_{name}")
 }
 
 /// Detect the target shell: explicit override, then `$SHELL`, then the parent
@@ -169,15 +250,10 @@ fn print_status(active: &ActiveEndpoints) {
         .or_else(|_| std::env::var("ALL_PROXY"))
         .ok();
 
-    let active_hosts: Vec<String> = [active.http.as_ref(), active.socks.as_ref()]
-        .into_iter()
-        .flatten()
-        .map(|(host, port)| format!("{}:{port}", loopback(host)))
-        .collect();
-
+    let active_hosts = active_hostports(active);
     let pointing = current
         .as_deref()
-        .map(|value| active_hosts.iter().any(|hostport| value.contains(hostport)))
+        .map(|value| points_at_active(value, &active_hosts))
         .unwrap_or(false);
 
     let state = match (&current, pointing) {
@@ -208,6 +284,31 @@ fn print_status(active: &ActiveEndpoints) {
             color,
         )
     );
+}
+
+fn shell_points_at_active(active: &ActiveEndpoints) -> bool {
+    let active_hosts = active_hostports(active);
+    if active_hosts.is_empty() {
+        return false;
+    }
+
+    ALL_VARS.iter().any(|name| {
+        std::env::var(name)
+            .map(|value| points_at_active(&value, &active_hosts))
+            .unwrap_or(false)
+    })
+}
+
+fn active_hostports(active: &ActiveEndpoints) -> Vec<String> {
+    [active.http.as_ref(), active.socks.as_ref()]
+        .into_iter()
+        .flatten()
+        .map(|(host, port)| format!("{}:{port}", loopback_host(host)))
+        .collect()
+}
+
+fn points_at_active(value: &str, active_hosts: &[String]) -> bool {
+    active_hosts.iter().any(|hostport| value.contains(hostport))
 }
 
 #[cfg(test)]
@@ -270,6 +371,30 @@ mod tests {
         );
         assert!(script.contains("set -gx http_proxy \"http://127.0.0.1:18201\""));
         assert!(script.contains("set -gx ALL_PROXY \"socks5://127.0.0.1:18200\""));
+    }
+
+    #[test]
+    fn toggle_capture_script_saves_existing_bash_values() {
+        let script = capture_script(ProxyShellKind::Bash);
+        assert!(script.contains("export XRAT_PROXY_OLD_http_proxy=\"$http_proxy\""));
+        assert!(script.contains("export XRAT_PROXY_HAD_http_proxy=1"));
+        assert!(script.contains("export XRAT_PROXY_HAD_ALL_PROXY=0"));
+    }
+
+    #[test]
+    fn toggle_restore_script_restores_or_unsets_bash_values() {
+        let script = restore_script(ProxyShellKind::Bash);
+        assert!(script.contains("export http_proxy=\"$XRAT_PROXY_OLD_http_proxy\""));
+        assert!(script.contains("unset http_proxy"));
+        assert!(script.contains("unset XRAT_PROXY_HAD_http_proxy"));
+    }
+
+    #[test]
+    fn toggle_scripts_support_fish() {
+        let capture = capture_script(ProxyShellKind::Fish);
+        let restore = restore_script(ProxyShellKind::Fish);
+        assert!(capture.contains("set -gx XRAT_PROXY_OLD_http_proxy \"$http_proxy\""));
+        assert!(restore.contains("set -gx http_proxy \"$XRAT_PROXY_OLD_http_proxy\""));
     }
 
     #[test]

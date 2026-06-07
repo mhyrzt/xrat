@@ -2,6 +2,7 @@ use std::process::Command;
 
 use crate::app::AppError;
 use crate::app::commands::output;
+use crate::app::config::ServerSettings;
 use crate::app::context::AppContext;
 use crate::cli::{ProxyDesktopAction, ProxyDesktopKind};
 
@@ -33,7 +34,7 @@ pub(super) async fn run(
     match action {
         ProxyDesktopAction::Enable(args) => {
             let pac_url = if args.pac {
-                Some(pac_url(context))
+                Some(pac_url(context)?)
             } else {
                 None
             };
@@ -69,14 +70,30 @@ pub(super) async fn run(
     }
 }
 
-fn pac_url(context: &AppContext) -> String {
-    let server = &context.app_config.server;
+fn pac_url(context: &AppContext) -> crate::app::Result<String> {
+    pac_url_from_server(&context.app_config.server)
+}
+
+fn pac_url_from_server(server: &ServerSettings) -> crate::app::Result<String> {
+    if !server.enabled {
+        return Err(AppError::InvalidArgument(
+            "API server is disabled; enable [server] before using `xrat proxy desktop enable --pac`"
+                .to_string(),
+        ));
+    }
+    if !server.pac_enabled {
+        return Err(AppError::InvalidArgument(
+            "PAC serving is disabled; set [server].pac_enabled = true before using `xrat proxy desktop enable --pac`"
+                .to_string(),
+        ));
+    }
+
     let host = if server.host == "0.0.0.0" || server.host.is_empty() {
         "127.0.0.1"
     } else {
         server.host.as_str()
     };
-    format!("http://{host}:{}/proxy.pac", server.port)
+    Ok(format!("http://{host}:{}/proxy.pac", server.port))
 }
 
 fn loopback(host: &str) -> &str {
@@ -226,6 +243,7 @@ fn desktop_from_hint(hint: &str) -> Option<ProxyDesktopKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::config::AppConfig;
 
     fn endpoints() -> ActiveEndpoints {
         ActiveEndpoints {
@@ -270,6 +288,24 @@ mod tests {
                 "autoconfig-url",
                 "http://127.0.0.1:8787/proxy.pac"
             ]
+        );
+    }
+
+    #[test]
+    fn pac_url_requires_server_and_pac_enabled() {
+        let mut config = AppConfig::default();
+        config.server.enabled = true;
+        config.server.pac_enabled = false;
+        assert!(pac_url_from_server(&config.server).is_err());
+
+        config.server.enabled = false;
+        config.server.pac_enabled = true;
+        assert!(pac_url_from_server(&config.server).is_err());
+
+        config.server.enabled = true;
+        assert_eq!(
+            pac_url_from_server(&config.server).expect("pac url"),
+            "http://127.0.0.1:18203/proxy.pac"
         );
     }
 

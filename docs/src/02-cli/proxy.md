@@ -11,37 +11,43 @@ xrat proxy <action> [flags]
 
 ## Actions
 
-| Action      | Description                                      |
-| ----------- | ------------------------------------------------ |
-| `endpoints` | Show active local proxy endpoints                |
-| `pac`       | Print or locate the Proxy Auto-Config (PAC) file |
-| `shell`     | Proxy the current terminal session via env vars  |
-| `desktop`   | Manage Linux desktop environment proxy settings  |
+| Action    | Description                                      |
+| --------- | ------------------------------------------------ |
+| `info`    | Show active endpoints and shell proxy values     |
+| `pac`     | Print or locate the Proxy Auto-Config (PAC) file |
+| `toggle`  | Toggle shell proxy variables with restore state  |
+| `shell`   | Proxy the current terminal session via env vars  |
+| `desktop` | Manage Linux desktop environment proxy settings  |
 
 ---
 
-## proxy endpoints
+## proxy info
 
-Show active local proxy endpoints for quick copy/paste.
+Show active local proxy endpoints and the environment variable values xrat would
+export for the current runtime.
 
 ```bash
-xrat proxy endpoints [--json]
+xrat proxy info [--json]
 ```
 
 Lists the active runtime inbounds (HTTP, SOCKS5, Shadowsocks) plus the PAC URL
-when the API server is enabled. If an inbound binds `0.0.0.0`, the machine LAN
-IP is shown for easy local-network use; otherwise the configured bind host is
-shown.
+when `[server].enabled = true` and `[server].pac_enabled = true`. If an inbound
+binds `0.0.0.0`, the machine LAN IP is shown for easy local-network use;
+otherwise the configured bind host is shown.
 
 Shadowsocks credentials are not persisted in runtime status, so the Shadowsocks
 line shows only the endpoint with a `(credentials not shown)` note rather than a
 leaky partial `ss://` URI.
 
+The default output also includes `http_proxy`, `https_proxy`, and `all_proxy`
+values and a ready-to-evaluate toggle command. `xrat proxy show` and
+`xrat proxy endpoints` are accepted as aliases.
+
 ### Flags
 
-| Flag     | Description             |
-| -------- | ----------------------- |
-| `--json` | Print endpoints as JSON |
+| Flag     | Description                     |
+| -------- | ------------------------------- |
+| `--json` | Print proxy information as JSON |
 
 ---
 
@@ -61,7 +67,7 @@ xrat proxy pac print   # print the generated PAC file for the active runtime
 Prints the URL the API server serves the PAC file at, for example
 `http://127.0.0.1:8787/proxy.pac`. A wildcard bind host (`0.0.0.0`) is shown as
 `127.0.0.1`, since PAC consumers should fetch over loopback. If the API server
-is disabled, a note explains how to enable it.
+or PAC route is disabled, a note explains which `[server]` setting to enable.
 
 ### proxy pac print
 
@@ -144,6 +150,24 @@ The shell is detected from `$SHELL`, then the parent process name via
 
 ---
 
+## proxy toggle
+
+Toggle shell proxy variables for the current terminal session.
+
+```bash
+xrat proxy toggle [--shell bash|zsh|fish]
+```
+
+`toggle` prints shell commands. Use `eval "$(xrat proxy toggle)"` for bash/zsh
+or pipe to `source` in fish.
+
+When enabling, it captures the current proxy variables in temporary
+`XRAT_PROXY_OLD_*` / `XRAT_PROXY_HAD_*` variables before exporting the active
+xrat endpoints. When the shell already points at active xrat endpoints, the next
+toggle restores the captured values or unsets variables that were absent.
+
+---
+
 ## proxy desktop
 
 Linux-only desktop proxy integration. This changes desktop environment proxy
@@ -159,7 +183,8 @@ The desktop is auto-detected from `$XDG_CURRENT_DESKTOP` / `$DESKTOP_SESSION`;
 override with `--desktop`. **GNOME** is supported first through `gsettings`:
 
 - `enable` sets manual HTTP/HTTPS/SOCKS proxies from the active runtime, or with
-  `--pac` switches to automatic mode using the PAC URL.
+  `--pac` switches to automatic mode using the PAC URL. PAC mode requires both
+  `[server].enabled = true` and `[server].pac_enabled = true`.
 - `disable` resets the proxy mode to `none`.
 - `status` prints the current proxy mode.
 

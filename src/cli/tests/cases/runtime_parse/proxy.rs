@@ -6,13 +6,27 @@ use crate::cli::{
 
 #[test]
 fn parses_proxy_endpoints() {
-    let cli = Cli::parse_from(["xrat", "proxy", "endpoints", "--json"]);
+    let cli = Cli::parse_from(["xrat", "proxy", "info", "--json"]);
     match cli.command {
         Command::Proxy(args) => match args.action {
-            ProxyAction::Endpoints(endpoints) => assert!(endpoints.json),
-            _ => panic!("expected endpoints subcommand"),
+            ProxyAction::Info(info) => assert!(info.json),
+            _ => panic!("expected info subcommand"),
         },
         _ => panic!("expected proxy command"),
+    }
+}
+
+#[test]
+fn parses_proxy_info_aliases() {
+    for alias in ["show", "endpoints"] {
+        let cli = Cli::parse_from(["xrat", "proxy", alias]);
+        match cli.command {
+            Command::Proxy(args) => match args.action {
+                ProxyAction::Info(info) => assert!(!info.json),
+                _ => panic!("expected info subcommand"),
+            },
+            _ => panic!("expected proxy command"),
+        }
     }
 }
 
@@ -49,6 +63,20 @@ fn parses_proxy_shell_with_override() {
                 _ => panic!("expected shell enable"),
             },
             _ => panic!("expected shell subcommand"),
+        },
+        _ => panic!("expected proxy command"),
+    }
+}
+
+#[test]
+fn parses_proxy_toggle_with_override() {
+    let cli = Cli::parse_from(["xrat", "proxy", "toggle", "--shell", "zsh"]);
+    match cli.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Toggle(toggle) => {
+                assert_eq!(toggle.shell, Some(ProxyShellKind::Zsh));
+            }
+            _ => panic!("expected toggle subcommand"),
         },
         _ => panic!("expected proxy command"),
     }

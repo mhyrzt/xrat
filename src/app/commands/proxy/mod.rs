@@ -8,9 +8,7 @@ use crate::cli::{ProxyAction, ProxyArgs, ProxyPacAction};
 
 pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<()> {
     match &args.action {
-        ProxyAction::Endpoints(endpoints_args) => {
-            endpoints::run(context, endpoints_args.json).await
-        }
+        ProxyAction::Info(info_args) => endpoints::run(context, info_args.json).await,
         ProxyAction::Pac(pac_args) => match &pac_args.action {
             ProxyPacAction::Url(_) => {
                 pac::print_pac_url(context);
@@ -18,6 +16,7 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
             ProxyPacAction::Print(_) => pac::print_pac_file(context).await,
         },
+        ProxyAction::Toggle(toggle_args) => shell::toggle(context, toggle_args.shell).await,
         ProxyAction::Shell(shell_args) => shell::run(context, &shell_args.action).await,
         ProxyAction::Desktop(desktop_args) => desktop::run(context, &desktop_args.action).await,
     }
@@ -53,4 +52,20 @@ fn endpoint(host: Option<String>, port: Option<i64>) -> Option<(String, u16)> {
         }
         _ => None,
     }
+}
+
+pub(crate) fn loopback_host(host: &str) -> &str {
+    if host == "0.0.0.0" || host.is_empty() {
+        "127.0.0.1"
+    } else {
+        host
+    }
+}
+
+pub(crate) fn http_proxy_url(host: &str, port: u16) -> String {
+    format!("http://{}:{port}", loopback_host(host))
+}
+
+pub(crate) fn socks_proxy_url(host: &str, port: u16) -> String {
+    format!("socks5://{}:{port}", loopback_host(host))
 }

@@ -55,10 +55,10 @@ pub use manpage::ManpageArgs;
 pub use parse::{ParseArgs, ParseEngine};
 pub use proxy::{
     ProxyAction, ProxyArgs, ProxyDesktopAction, ProxyDesktopArgs, ProxyDesktopDisableArgs,
-    ProxyDesktopEnableArgs, ProxyDesktopKind, ProxyDesktopStatusArgs, ProxyEndpointsArgs,
+    ProxyDesktopEnableArgs, ProxyDesktopKind, ProxyDesktopStatusArgs, ProxyInfoArgs,
     ProxyPacAction, ProxyPacArgs, ProxyPacPrintArgs, ProxyPacUrlArgs, ProxyShellAction,
     ProxyShellArgs, ProxyShellDisableArgs, ProxyShellEnableArgs, ProxyShellKind,
-    ProxyShellStatusArgs,
+    ProxyShellStatusArgs, ProxyToggleArgs,
 };
 pub use purge::PurgeArgs;
 pub use root::Cli;
