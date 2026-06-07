@@ -269,6 +269,12 @@ fn render_events(events: &[EventRecord], format: ListFormat) -> crate::app::Resu
     }
 }
 
+const EVENT_TIME_WIDTH: usize = 19;
+const EVENT_LEVEL_WIDTH: usize = 5;
+const EVENT_SOURCE_WIDTH: usize = 12;
+const EVENT_KIND_WIDTH: usize = 32;
+const EVENT_MESSAGE_WIDTH: usize = 96;
+
 fn format_event_table(events: &[EventRecord]) -> String {
     let columns = [
         Column {
@@ -296,11 +302,26 @@ fn format_event_table(events: &[EventRecord]) -> String {
         .iter()
         .map(|event| {
             vec![
-                Cell::plain(event.created_at.clone()),
-                Cell::styled(event.level.clone(), level_style(&event.level)),
-                Cell::plain(event.source.clone()),
-                Cell::plain(event.kind.clone()),
-                Cell::plain(output::truncate(&event.message, 64)),
+                Cell::plain(format!(
+                    "{:<EVENT_TIME_WIDTH$}",
+                    output::truncate(&event.created_at, EVENT_TIME_WIDTH)
+                )),
+                Cell::styled(
+                    format!(
+                        "{:<EVENT_LEVEL_WIDTH$}",
+                        output::truncate(&event.level, EVENT_LEVEL_WIDTH)
+                    ),
+                    level_style(&event.level),
+                ),
+                Cell::plain(format!(
+                    "{:<EVENT_SOURCE_WIDTH$}",
+                    output::truncate(&event.source, EVENT_SOURCE_WIDTH)
+                )),
+                Cell::plain(format!(
+                    "{:<EVENT_KIND_WIDTH$}",
+                    output::truncate(&event.kind, EVENT_KIND_WIDTH)
+                )),
+                Cell::plain(output::truncate(&event.message, EVENT_MESSAGE_WIDTH)),
             ]
         })
         .collect::<Vec<_>>();
@@ -330,11 +351,25 @@ fn level_style(level: &str) -> output::Style {
 }
 
 fn format_event_line(event: &EventRecord, color: bool) -> String {
-    let level = output::style_text(&event.level, level_style(&event.level), color);
-    format!(
-        "{}  {}  {}  {}",
-        event.created_at, level, event.source, event.message
-    )
+    let level_text = format!(
+        "{:<EVENT_LEVEL_WIDTH$}",
+        output::truncate(&event.level, EVENT_LEVEL_WIDTH)
+    );
+    let level = output::style_text(&level_text, level_style(&event.level), color);
+    let time = format!(
+        "{:<EVENT_TIME_WIDTH$}",
+        output::truncate(&event.created_at, EVENT_TIME_WIDTH)
+    );
+    let source = format!(
+        "{:<EVENT_SOURCE_WIDTH$}",
+        output::truncate(&event.source, EVENT_SOURCE_WIDTH)
+    );
+    let kind = format!(
+        "{:<EVENT_KIND_WIDTH$}",
+        output::truncate(&event.kind, EVENT_KIND_WIDTH)
+    );
+    let message = output::truncate(&event.message, EVENT_MESSAGE_WIDTH);
+    format!("{time}  {level}  {source}  {kind}  {message}",)
 }
 
 fn format_file_line(label: &str, line: &str, color: bool) -> String {

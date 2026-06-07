@@ -2,10 +2,16 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
+use unicode_width::UnicodeWidthStr;
 
 use crate::tui::app::{TuiApp, TuiLogTab};
 use crate::tui::theme;
 use crate::tui::view::shared::{PanelStyle, render_scroll_panel};
+
+const EVENT_TIME_WIDTH: usize = 19;
+const EVENT_LEVEL_WIDTH: usize = 5;
+const EVENT_SOURCE_WIDTH: usize = 12;
+const EVENT_KIND_WIDTH: usize = 32;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let lines = match app.active_log_tab {
@@ -38,7 +44,7 @@ fn event_lines(app: &TuiApp) -> Vec<Line<'_>> {
 
     let mut lines = vec![Line::styled(
         format!(
-            "{:<19}  {:<5}  {:<12}  {:<14}  {}",
+            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_SOURCE_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
             "TIME", "LEVEL", "SOURCE", "KIND", "MESSAGE"
         ),
         theme::muted_style(),
@@ -46,15 +52,33 @@ fn event_lines(app: &TuiApp) -> Vec<Line<'_>> {
     lines.extend(app.data.logs.events.iter().map(|event| {
         Line::from(vec![
             Span::styled(
-                format!("{:<19}", compact_time(&event.time)),
+                format!("{:<EVENT_TIME_WIDTH$}", compact_time(&event.time)),
                 theme::muted_style(),
             ),
             Span::raw("  "),
-            Span::styled(format!("{:<5}", event.level), level_style(&event.level)),
+            Span::styled(
+                format!(
+                    "{:<EVENT_LEVEL_WIDTH$}",
+                    truncate(&event.level, EVENT_LEVEL_WIDTH)
+                ),
+                level_style(&event.level),
+            ),
             Span::raw("  "),
-            Span::styled(format!("{:<12}", event.source), theme::chrome_style()),
+            Span::styled(
+                format!(
+                    "{:<EVENT_SOURCE_WIDTH$}",
+                    truncate(&event.source, EVENT_SOURCE_WIDTH)
+                ),
+                theme::chrome_style(),
+            ),
             Span::raw("  "),
-            Span::styled(format!("{:<14}", event.kind), theme::chrome_style()),
+            Span::styled(
+                format!(
+                    "{:<EVENT_KIND_WIDTH$}",
+                    truncate(&event.kind, EVENT_KIND_WIDTH)
+                ),
+                theme::chrome_style(),
+            ),
             Span::raw("  "),
             Span::styled(event.message.as_str(), theme::chrome_style()),
         ])
@@ -129,7 +153,7 @@ fn log_title(tab: TuiLogTab) -> Line<'static> {
     let mut spans = vec![
         Span::raw(" "),
         Span::styled("2:", theme::accent_style().add_modifier(Modifier::BOLD)),
-        Span::raw(" Logs  "),
+        Span::raw("  "),
     ];
     for (index, (log_tab, label)) in [
         (TuiLogTab::XratEvents, "xrat events"),
@@ -170,4 +194,23 @@ fn level_style(level: &str) -> ratatui::style::Style {
         "warn" => theme::warning_style(),
         _ => theme::accent_style(),
     }
+}
+
+fn truncate(value: &str, width: usize) -> String {
+    if value.width() <= width {
+        return value.to_string();
+    }
+
+    let mut result = String::new();
+    let mut used = 0usize;
+    for ch in value.chars() {
+        let char_width = ch.to_string().width();
+        if used + char_width > width.saturating_sub(1) {
+            break;
+        }
+        result.push(ch);
+        used += char_width;
+    }
+    result.push('…');
+    result
 }

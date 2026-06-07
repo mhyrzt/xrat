@@ -69,21 +69,24 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             );
         }
         DaemonAction::RunServer(_) => {
+            let socket_already_active = ipc::ping_daemon(&socket_path).await.is_ok();
+            if should_record_daemon_started(socket_already_active) {
+                crate::app::events::record(
+                    &context.db,
+                    crate::app::events::LEVEL_INFO,
+                    crate::app::events::SOURCE_DAEMON,
+                    "daemon_started",
+                    "Daemon supervisor started",
+                    None,
+                    None,
+                    None,
+                )
+                .await;
+            }
+
             let (tx, rx) = supervisor::channel(32);
             let supervisor_context = context.clone();
             tokio::spawn(supervisor::run(rx, supervisor_context));
-
-            crate::app::events::record(
-                &context.db,
-                crate::app::events::LEVEL_INFO,
-                crate::app::events::SOURCE_DAEMON,
-                "daemon_started",
-                "Daemon supervisor started",
-                None,
-                None,
-                None,
-            )
-            .await;
 
             let http_handle = if context.app_config.server.enabled {
                 let server_settings = context.app_config.server.clone();
@@ -247,6 +250,10 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
     Ok(())
 }
 
+fn should_record_daemon_started(socket_already_active: bool) -> bool {
+    !socket_already_active
+}
+
 fn spawn_detached_daemon(context: &AppContext) -> crate::app::Result<()> {
     let current_exe = std::env::current_exe()?;
     let runtime_dir = &context.runtime_paths.runtime_dir;
@@ -293,4 +300,15 @@ async fn wait_until_daemon_stopped(socket_path: &std::path::Path) -> crate::app:
     Err(crate::app::AppError::InvalidArgument(
         "daemon restart failed: previous daemon did not stop in time".to_string(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_record_daemon_started_only_when_socket_is_not_active() {
+        assert!(should_record_daemon_started(false));
+        assert!(!should_record_daemon_started(true));
+    }
 }
