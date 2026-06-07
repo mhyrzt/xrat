@@ -19,17 +19,13 @@ check:
 release:
     cargo build --release --locked
 
-# Install xrat with cargo from this checkout
-install:
-    cargo install --path . --locked
+# Build from this checkout and install via install.sh
+install *args:
+    bash install.sh --from-source {{args}}
 
 # Install xrat with cargo from this checkout, replacing an existing binary
 reinstall:
     cargo install --path . --locked --force
-
-# Build from this checkout and install via install.sh
-install-sh:
-    BUILD_FROM_SOURCE=1 bash install.sh
 
 # Remove the cargo-installed xrat binary
 uninstall:
@@ -42,6 +38,7 @@ completions shell:
 # Install man pages generated from the local source tree
 install-manpages:
     mkdir -p "$HOME/.local/share/man/man1"
+    rm -f "$HOME/.local/share/man/man1/xrat.1" "$HOME/.local/share/man/man1"/xrat-*.1
     cargo run --locked -- manpage --output "$HOME/.local/share/man/man1"
     command -v mandb >/dev/null && mandb "$HOME/.local/share/man" || true
 

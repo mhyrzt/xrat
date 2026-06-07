@@ -45,6 +45,12 @@ curl -fsSL https://sing-box.app/install.sh | sh
 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
+To run all setup prompts with yes answers:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash -s -- --yes
+```
+
 The installer will:
 
 1. Check for `xray` and warn if optional `sing-box` is missing.
@@ -56,6 +62,14 @@ The installer will:
 7. Offer to run `xrat init` when the script has an interactive terminal.
 8. Offer to install and start the systemd user daemon by default.
 9. Offer to enable systemd user lingering for boot startup before login.
+
+Useful flags:
+
+| Flag            | Purpose                                                  |
+| --------------- | -------------------------------------------------------- |
+| `--from-source` | Build from the current checkout instead of downloading   |
+| `-y`, `--yes`   | Skip prompts and answer yes to setup, daemon, and linger |
+| `-h`, `--help`  | Show installer help                                      |
 
 To install to a different directory:
 
@@ -80,10 +94,10 @@ file if needed.
 
 ## Build and Install From Local Checkout
 
-Set `BUILD_FROM_SOURCE=1` to have the installer build the binary from the
-repository instead of downloading a release archive. Run the script directly
-from the repo root — piping from `curl` will not work because the script needs
-`Cargo.toml` present alongside it.
+Pass `--from-source` to have the installer build the binary from the repository
+instead of downloading a release archive. Run the script directly from the repo
+root — piping from `curl` will not work because the script needs `Cargo.toml`
+present alongside it.
 
 Requirements: `cargo` must be in `PATH`. `git`, `curl`, `tar`, and `sha256sum`
 are not needed.
@@ -91,13 +105,19 @@ are not needed.
 ```bash
 git clone https://github.com/mhyrzt/xrat.git
 cd xrat
-BUILD_FROM_SOURCE=1 bash install.sh
+bash install.sh --from-source
 ```
 
 To install to a different directory:
 
 ```bash
-BUILD_FROM_SOURCE=1 INSTALL_DIR=/usr/local/bin bash install.sh
+INSTALL_DIR=/usr/local/bin bash install.sh --from-source
+```
+
+To skip prompts:
+
+```bash
+bash install.sh --from-source --yes
 ```
 
 The script will:

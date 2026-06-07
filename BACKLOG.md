@@ -299,7 +299,7 @@ must not gate mutations.
 
 ### Changes required
 
-- Introduce header-based auth (`Authorization: Bearer <token>` and/or
+- Introduce header-based auth (`Authorization: Bearer <token>` and/ordo i
   `X-API-Key`) for any non-`GET`/management route; keep `?key=` allowed only for
   the existing read-only endpoints (or behind a compat flag) and document it as
   low-sensitivity.
@@ -335,11 +335,9 @@ must not gate mutations.
 
 ====Unstructured Todos================
 
-1. installation script must be changed to do not show /tmp/..../ logs and
-   manpages
 2. when in tui and running test (t <Key>) is it possible to show the results of
    test for a finshied config immedietly after it's done
-3. xrat proxy endpoints -> xrat proxy info or xrat proxy show what ever you
-   think is better (also change Proxy Endpoints to sth better)
+3. `xrat proxy endpoints` -> `xrat proxy info` or `xrat proxy show` whatever you
+   think is better (also change Proxy Endpoints outputs to sth better)
 4. adding xrat proxy toggle -> automatically captures env vars and outputs new
    varaible

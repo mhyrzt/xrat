@@ -5,6 +5,7 @@ REPO="mhyrzt/xrat"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 BUILD_FROM_SOURCE="${BUILD_FROM_SOURCE:-}"
 INSTALL_DESKTOP="${INSTALL_DESKTOP:-1}"
+ASSUME_YES=0
 WORK_DIR="$(mktemp -d)"
 
 RED='\033[0;31m'
@@ -42,6 +43,45 @@ warn()  { echo -e "${YLW}[!]${NC} $*"; }
 error() { echo -e "${RED}[✗]${NC} $*" >&2; }
 step()  { echo -e "${BLU}[→]${NC} $*"; }
 ask()   { echo -e "${YLW}[?]${NC} $*"; }
+
+usage() {
+    cat <<'EOF'
+Usage: install.sh [OPTIONS]
+
+Options:
+  --from-source    Build xrat from this checkout instead of downloading a release
+  -y, --yes        Skip prompts and answer yes to setup, daemon, and linger
+  -h, --help       Show this help
+
+Environment:
+  INSTALL_DIR      Binary install directory (default: $HOME/.local/bin)
+  INSTALL_DESKTOP  Install desktop launcher and icons (default: 1, set 0 to skip)
+EOF
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --from-source)
+                BUILD_FROM_SOURCE=1
+                ;;
+            -y|--yes)
+                ASSUME_YES=1
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                echo
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
 
 detect_arch() {
     case "$(uname -m)" in
@@ -142,7 +182,7 @@ build_from_source() {
     repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     if [[ ! -f "$repo_dir/Cargo.toml" ]]; then
-        error "BUILD_FROM_SOURCE requires running install.sh directly from the repo (no Cargo.toml found at ${repo_dir})"
+        error "--from-source requires running install.sh directly from the repo (no Cargo.toml found at ${repo_dir})"
         exit 1
     fi
 
@@ -152,7 +192,7 @@ build_from_source() {
     step "Generating man pages and completions..."
     local bin="$repo_dir/target/release/xrat"
     mkdir -p "${WORK_DIR}/man/man1" "${WORK_DIR}/completions"
-    "$bin" manpage --output "${WORK_DIR}/man/man1"
+    "$bin" manpage --output "${WORK_DIR}/man/man1" >/dev/null
     "$bin" completions bash > "${WORK_DIR}/completions/xrat.bash"
     "$bin" completions zsh  > "${WORK_DIR}/completions/_xrat"
     "$bin" completions fish > "${WORK_DIR}/completions/xrat.fish"
@@ -170,6 +210,7 @@ install_extras() {
     if [[ -d "${WORK_DIR}/man" ]]; then
         local man_dir="${data_dir}/man/man1"
         mkdir -p "$man_dir"
+        rm -f "$man_dir/xrat.1" "$man_dir"/xrat-*.1
         cp "${WORK_DIR}"/man/man1/*.1 "$man_dir/" 2>/dev/null || true
         info "Man pages installed to ${man_dir}"
     fi
@@ -248,6 +289,11 @@ run_linger_enable() {
 prompt_yes_no() {
     local prompt="$1" default="$2" answer
 
+    if [[ "$ASSUME_YES" == "1" ]]; then
+        echo "y"
+        return 0
+    fi
+
     if ! { : </dev/tty; } 2>/dev/null; then
         echo "n"
         return 0
@@ -298,6 +344,7 @@ show_guide() {
 
 main() {
     trap 'rm -rf "${WORK_DIR}"' EXIT
+    parse_args "$@"
 
     print_ascii
 

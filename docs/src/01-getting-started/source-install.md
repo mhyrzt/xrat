@@ -64,13 +64,27 @@ just run status
 
 ## Install From Checkout
 
-Install the current checkout to `~/.cargo/bin/xrat`:
+Build the current checkout and install it through `install.sh`:
 
 ```bash
 just install
 ```
 
-Replace an existing Cargo-installed binary:
+Pass installer flags after the recipe name:
+
+```bash
+just install --yes
+```
+
+By default, this installs to `~/.local/bin/xrat`, plus generated man pages,
+shell completions, and desktop launcher assets. Override the binary directory
+with `INSTALL_DIR`:
+
+```bash
+INSTALL_DIR=/usr/local/bin just install --yes
+```
+
+Replace an existing Cargo-installed binary directly with Cargo:
 
 ```bash
 just reinstall
@@ -82,14 +96,14 @@ Remove the Cargo-installed binary:
 just uninstall
 ```
 
-Ensure `~/.cargo/bin` is in `PATH`:
+Ensure `~/.local/bin` is in `PATH` for the installer path:
 
 ```bash
-export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Rustup usually adds this automatically. Add it to your shell startup file if
-`xrat --version` cannot find the installed binary.
+Add it to your shell startup file if `xrat --version` cannot find the installed
+binary.
 
 ## Install Man Pages From Source
 
@@ -100,7 +114,8 @@ just install-manpages
 ```
 
 This writes pages to `~/.local/share/man/man1` and refreshes that man database
-when `mandb` is available.
+when `mandb` is available. Existing `xrat.1` and `xrat-*.1` pages are removed
+first so renamed or removed commands do not leave stale man pages behind.
 
 ## Install Completions From Source
 
