@@ -16,7 +16,6 @@ pub async fn run(context: &AppContext, args: &ProxyArgs) -> crate::app::Result<(
             }
             ProxyPacAction::Print(_) => pac::print_pac_file(context).await,
         },
-        ProxyAction::Toggle(toggle_args) => shell::toggle(context, toggle_args.shell).await,
         ProxyAction::Shell(shell_args) => shell::run(context, &shell_args.action).await,
         ProxyAction::Desktop(desktop_args) => desktop::run(context, &desktop_args.action).await,
     }

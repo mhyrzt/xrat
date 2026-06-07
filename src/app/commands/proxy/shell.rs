@@ -26,6 +26,7 @@ pub(super) async fn run(context: &AppContext, action: &ProxyShellAction) -> crat
             print_status(&active);
             Ok(())
         }
+        ProxyShellAction::Toggle(args) => toggle(context, args.shell).await,
     }
 }
 

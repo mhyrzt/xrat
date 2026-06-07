@@ -2,7 +2,7 @@ use crate::app::commands::output;
 use crate::app::commands::runtime_output::format_inbound_endpoint;
 use crate::app::context::AppContext;
 
-use super::{http_proxy_url, loopback_host, resolve_active_endpoints, socks_proxy_url};
+use super::{loopback_host, resolve_active_endpoints};
 
 pub(super) async fn run(context: &AppContext, json: bool) -> crate::app::Result<()> {
     let active = resolve_active_endpoints(context).await?;
@@ -45,27 +45,6 @@ pub(super) async fn run(context: &AppContext, json: bool) -> crate::app::Result<
         rows.push(("PAC URL", url.clone()));
     }
 
-    let http_proxy = active
-        .http
-        .as_ref()
-        .map(|(host, port)| http_proxy_url(host, *port))
-        .or_else(|| {
-            active
-                .socks
-                .as_ref()
-                .map(|(host, port)| socks_proxy_url(host, *port))
-        });
-    let all_proxy = active
-        .socks
-        .as_ref()
-        .map(|(host, port)| socks_proxy_url(host, *port))
-        .or_else(|| {
-            active
-                .http
-                .as_ref()
-                .map(|(host, port)| http_proxy_url(host, *port))
-        });
-
     if json {
         let payload = serde_json::json!({
             "endpoints": {
@@ -73,11 +52,6 @@ pub(super) async fn run(context: &AppContext, json: bool) -> crate::app::Result<
                 "socks5": active.socks.as_ref().map(|(h, p)| format!("socks5://{}:{p}", loopback_host(h))),
                 "shadowsocks": active.shadowsocks.as_ref().map(|(h, p)| format!("{}:{p}", loopback_host(h))),
                 "pac": pac_url,
-            },
-            "environment": {
-                "http_proxy": http_proxy.clone(),
-                "https_proxy": http_proxy.clone(),
-                "all_proxy": all_proxy.clone(),
             },
         });
         println!("{}", serde_json::to_string_pretty(&payload)?);
@@ -93,15 +67,6 @@ pub(super) async fn run(context: &AppContext, json: bool) -> crate::app::Result<
         );
         return Ok(());
     }
-
-    if let Some(value) = &http_proxy {
-        rows.push(("http_proxy", value.clone()));
-        rows.push(("https_proxy", value.clone()));
-    }
-    if let Some(value) = &all_proxy {
-        rows.push(("all_proxy", value.clone()));
-    }
-    rows.push(("toggle", "eval \"$(xrat proxy toggle)\"".to_string()));
 
     let kv: Vec<(&str, String)> = rows;
     println!(

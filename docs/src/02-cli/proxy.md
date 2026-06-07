@@ -13,9 +13,8 @@ xrat proxy <action> [flags]
 
 | Action    | Description                                      |
 | --------- | ------------------------------------------------ |
-| `info`    | Show active endpoints and shell proxy values     |
+| `info`    | Show active local proxy endpoints                |
 | `pac`     | Print or locate the Proxy Auto-Config (PAC) file |
-| `toggle`  | Toggle shell proxy variables with restore state  |
 | `shell`   | Proxy the current terminal session via env vars  |
 | `desktop` | Manage Linux desktop environment proxy settings  |
 
@@ -23,8 +22,7 @@ xrat proxy <action> [flags]
 
 ## proxy info
 
-Show active local proxy endpoints and the environment variable values xrat would
-export for the current runtime.
+Show active local proxy endpoints for the current runtime.
 
 ```bash
 xrat proxy info [--json]
@@ -39,9 +37,7 @@ Shadowsocks credentials are not persisted in runtime status, so the Shadowsocks
 line shows only the endpoint with a `(credentials not shown)` note rather than a
 leaky partial `ss://` URI.
 
-The default output also includes `http_proxy`, `https_proxy`, and `all_proxy`
-values and a ready-to-evaluate toggle command. `xrat proxy show` and
-`xrat proxy endpoints` are accepted as aliases.
+`xrat proxy show` and `xrat proxy endpoints` are accepted as aliases.
 
 ### Flags
 
@@ -77,8 +73,13 @@ prints it to stdout. The generated PAC:
 - Routes plain hostnames, `*.local`, loopback, and private IP ranges `DIRECT`.
 - Applies curated `[routing.direct]` and `[routing.block]` `domain` entries and
   IPv4 CIDRs from `ip` lists in that order.
-- Prefers SOCKS, then HTTP, then `DIRECT` for everything else.
+- Prefers SOCKS, then HTTP, for everything else; no `DIRECT` fallback is added
+  while a proxy is active.
 - With no active runtime, routes everything `DIRECT`.
+- Rewrites wildcard inbound hosts like `0.0.0.0` to `127.0.0.1` because PAC
+  clients need a concrete proxy destination.
+- Resolves hostnames before private IPv4 CIDR checks and skips those checks when
+  DNS resolution fails.
 
 PAC generation does not inline `geosite` or `geoip` lists; those stay in the
 proxy engine config.
@@ -110,6 +111,7 @@ never edits `.bashrc`, `.zshrc`, or fish config.
 ```bash
 xrat proxy shell enable [--shell bash|zsh|fish]
 xrat proxy shell disable [--shell bash|zsh|fish]
+xrat proxy shell toggle [--shell bash|zsh|fish]
 xrat proxy shell status
 ```
 
@@ -141,6 +143,7 @@ Optional convenience aliases (xrat does not create these for you):
 ```sh
 alias xrat-proxy-on='eval "$(xrat proxy shell enable)"'
 alias xrat-proxy-off='eval "$(xrat proxy shell disable)"'
+alias xrat-proxy-toggle='eval "$(xrat proxy shell toggle)"'
 ```
 
 ### Shell detection
@@ -148,18 +151,10 @@ alias xrat-proxy-off='eval "$(xrat proxy shell disable)"'
 The shell is detected from `$SHELL`, then the parent process name via
 `/proc/$PPID/comm`, defaulting to bash. Override with `--shell bash|zsh|fish`.
 
----
+### Shell toggle
 
-## proxy toggle
-
-Toggle shell proxy variables for the current terminal session.
-
-```bash
-xrat proxy toggle [--shell bash|zsh|fish]
-```
-
-`toggle` prints shell commands. Use `eval "$(xrat proxy toggle)"` for bash/zsh
-or pipe to `source` in fish.
+`toggle` prints shell commands. Use `eval "$(xrat proxy shell toggle)"` for
+bash/zsh or pipe to `source` in fish.
 
 When enabling, it captures the current proxy variables in temporary
 `XRAT_PROXY_OLD_*` / `XRAT_PROXY_HAD_*` variables before exporting the active
@@ -176,16 +171,21 @@ settings, not every process on the system.
 ```bash
 xrat proxy desktop enable [--desktop gnome|kde|xfce] [--pac]
 xrat proxy desktop disable [--desktop gnome|kde|xfce]
+xrat proxy desktop toggle [--desktop gnome|kde|xfce] [--pac]
 xrat proxy desktop status [--desktop gnome|kde|xfce]
 ```
 
 The desktop is auto-detected from `$XDG_CURRENT_DESKTOP` / `$DESKTOP_SESSION`;
 override with `--desktop`. **GNOME** is supported first through `gsettings`:
 
-- `enable` sets manual HTTP/HTTPS/SOCKS proxies from the active runtime, or with
-  `--pac` switches to automatic mode using the PAC URL. PAC mode requires both
-  `[server].enabled = true` and `[server].pac_enabled = true`.
+- `enable` sets manual HTTP/HTTPS/SOCKS proxies from the active runtime by
+  default and does not require PAC. With `--pac`, it switches to automatic mode
+  using the PAC URL; PAC mode requires both `[server].enabled = true` and
+  `[server].pac_enabled = true`.
 - `disable` resets the proxy mode to `none`.
+- `toggle` enables manual HTTP/HTTPS/SOCKS settings when the current mode is
+  `none`; with `--pac`, it uses PAC only while turning proxy on. If the current
+  mode is not `none`, it disables without requiring PAC.
 - `status` prints the current proxy mode.
 
 KDE and XFCE are not supported yet and return a clear error suggesting

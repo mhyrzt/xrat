@@ -22,6 +22,7 @@ pub(super) async fn run(
         ProxyDesktopAction::Enable(args) => resolve_desktop(args.desktop)?,
         ProxyDesktopAction::Disable(args) => resolve_desktop(args.desktop)?,
         ProxyDesktopAction::Status(args) => resolve_desktop(args.desktop)?,
+        ProxyDesktopAction::Toggle(args) => resolve_desktop(args.desktop)?,
     };
 
     // Only GNOME (gsettings) is supported for now.
@@ -65,6 +66,29 @@ pub(super) async fn run(
                     output::color_enabled(),
                 )
             );
+            Ok(())
+        }
+        ProxyDesktopAction::Toggle(args) => {
+            let mode = run_gsettings_get(&["org.gnome.system.proxy", "mode"])?;
+            if normalize_gsettings_value(&mode) == "none" {
+                let pac_url = args.pac.then(|| pac_url(context)).transpose()?;
+                let active = resolve_active_endpoints(context).await?;
+                run_gsettings_batch(&gnome_toggle_commands(&active, pac_url.as_deref(), &mode)?)?;
+                println!(
+                    "{}",
+                    output::success("Desktop proxy enabled (GNOME).", output::color_enabled())
+                );
+            } else {
+                run_gsettings_batch(&gnome_toggle_commands(
+                    &ActiveEndpoints::default(),
+                    None,
+                    &mode,
+                )?)?;
+                println!(
+                    "{}",
+                    output::success("Desktop proxy disabled (GNOME).", output::color_enabled())
+                );
+            }
             Ok(())
         }
     }
@@ -153,6 +177,22 @@ fn gnome_enable_commands(
 
 fn gnome_disable_commands() -> Vec<Vec<String>> {
     vec![set_cmd("org.gnome.system.proxy", "mode", "none")]
+}
+
+fn gnome_toggle_commands(
+    active: &ActiveEndpoints,
+    pac_url: Option<&str>,
+    current_mode: &str,
+) -> crate::app::Result<Vec<Vec<String>>> {
+    if normalize_gsettings_value(current_mode) == "none" {
+        gnome_enable_commands(active, pac_url)
+    } else {
+        Ok(gnome_disable_commands())
+    }
+}
+
+fn normalize_gsettings_value(value: &str) -> String {
+    value.trim().trim_matches('\'').to_string()
 }
 
 fn set_cmd(schema: &str, key: &str, value: &str) -> Vec<String> {
@@ -312,6 +352,39 @@ mod tests {
     #[test]
     fn manual_enable_requires_an_active_inbound() {
         assert!(gnome_enable_commands(&ActiveEndpoints::default(), None).is_err());
+    }
+
+    #[test]
+    fn toggle_enables_when_mode_is_none() {
+        let commands = gnome_toggle_commands(&endpoints(), None, "'none'\n").expect("commands");
+        assert_eq!(
+            commands[0],
+            vec!["set", "org.gnome.system.proxy", "mode", "manual"]
+        );
+    }
+
+    #[test]
+    fn toggle_disables_when_mode_is_manual_or_auto() {
+        for mode in ["'manual'", "'auto'"] {
+            assert_eq!(
+                gnome_toggle_commands(&endpoints(), None, mode).expect("commands"),
+                gnome_disable_commands()
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_can_enable_with_pac() {
+        let commands = gnome_toggle_commands(
+            &ActiveEndpoints::default(),
+            Some("http://127.0.0.1:8787/proxy.pac"),
+            "none",
+        )
+        .expect("commands");
+        assert_eq!(
+            commands[0],
+            vec!["set", "org.gnome.system.proxy", "mode", "auto"]
+        );
     }
 
     #[test]

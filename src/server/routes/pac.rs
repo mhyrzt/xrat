@@ -115,17 +115,19 @@ async fn active_endpoints(state: &ServerState) -> ServerResult<PacEndpoints> {
 }
 
 /// Render a deterministic PAC file. Local and private destinations bypass the
-/// proxy; everything else prefers SOCKS, then HTTP, then `DIRECT`. With no
-/// active proxy the file routes everything `DIRECT`.
+/// proxy; everything else prefers SOCKS, then HTTP. With no active proxy the
+/// file routes everything `DIRECT`.
 pub fn render_pac(endpoints: &PacEndpoints, rules: &PacRules) -> String {
     let mut chain: Vec<String> = Vec::new();
     if let Some((host, port)) = &endpoints.socks {
-        chain.push(format!("SOCKS5 {host}:{port}"));
+        chain.push(format!("SOCKS5 {}:{port}", pac_proxy_host(host)));
     }
     if let Some((host, port)) = &endpoints.http {
-        chain.push(format!("PROXY {host}:{port}"));
+        chain.push(format!("PROXY {}:{port}", pac_proxy_host(host)));
     }
-    chain.push("DIRECT".to_string());
+    if chain.is_empty() {
+        chain.push("DIRECT".to_string());
+    }
     let proxy_chain = chain.join("; ");
 
     if !rules.is_empty() {
@@ -134,35 +136,44 @@ pub fn render_pac(endpoints: &PacEndpoints, rules: &PacRules) -> String {
 
     format!(
         "function FindProxyForURL(url, host) {{\n\
+\x20 host = host.toLowerCase();\n\
+\x20 var ip = dnsResolve(host);\n\
 \x20 if (\n\
 \x20   isPlainHostName(host) ||\n\
 \x20   shExpMatch(host, \"*.local\") ||\n\
 \x20   host == \"localhost\" ||\n\
 \x20   host == \"127.0.0.1\" ||\n\
 \x20   host == \"::1\" ||\n\
-\x20   isInNet(host, \"10.0.0.0\", \"255.0.0.0\") ||\n\
-\x20   isInNet(host, \"172.16.0.0\", \"255.240.0.0\") ||\n\
-\x20   isInNet(host, \"192.168.0.0\", \"255.255.0.0\")\n\
+\x20   (ip && (\n\
+\x20     isInNet(ip, \"10.0.0.0\", \"255.0.0.0\") ||\n\
+\x20     isInNet(ip, \"172.16.0.0\", \"255.240.0.0\") ||\n\
+\x20     isInNet(ip, \"192.168.0.0\", \"255.255.0.0\")\n\
+\x20   ))\n\
 \x20 ) {{\n\
 \x20   return \"DIRECT\";\n\
 \x20 }}\n\
-\x20 return \"{proxy_chain}\";\n\
-}}\n"
+\x20 return \"{}\";\n\
+}}\n",
+        escape_js(&proxy_chain)
     )
 }
 
 fn render_pac_with_rules(proxy_chain: &str, rules: &PacRules) -> String {
     let mut pac = String::from(
         "function FindProxyForURL(url, host) {\n\
+  host = host.toLowerCase();\n\
+  var ip = dnsResolve(host);\n\
   if (\n\
     isPlainHostName(host) ||\n\
     shExpMatch(host, \"*.local\") ||\n\
     host == \"localhost\" ||\n\
     host == \"127.0.0.1\" ||\n\
     host == \"::1\" ||\n\
-    isInNet(host, \"10.0.0.0\", \"255.0.0.0\") ||\n\
-    isInNet(host, \"172.16.0.0\", \"255.240.0.0\") ||\n\
-    isInNet(host, \"192.168.0.0\", \"255.255.0.0\")\n\
+    (ip && (\n\
+      isInNet(ip, \"10.0.0.0\", \"255.0.0.0\") ||\n\
+      isInNet(ip, \"172.16.0.0\", \"255.240.0.0\") ||\n\
+      isInNet(ip, \"192.168.0.0\", \"255.255.0.0\")\n\
+    ))\n\
   ) {\n\
     return \"DIRECT\";\n\
   }\n",
@@ -256,10 +267,18 @@ fn cidr_condition(cidr: &str) -> Option<String> {
     };
     let network = u32::from(ip) & mask;
     Some(format!(
-        "isInNet(host, \"{}\", \"{}\")",
+        "ip && isInNet(ip, \"{}\", \"{}\")",
         std::net::Ipv4Addr::from(network),
         std::net::Ipv4Addr::from(mask)
     ))
+}
+
+fn pac_proxy_host(host: &str) -> &str {
+    if host == "0.0.0.0" || host.is_empty() {
+        "127.0.0.1"
+    } else {
+        host
+    }
 }
 
 fn escape_js(value: &str) -> String {
@@ -279,8 +298,11 @@ mod tests {
             },
             &PacRules::default(),
         );
-        assert!(pac.contains("return \"SOCKS5 127.0.0.1:18200; PROXY 127.0.0.1:18201; DIRECT\";"));
+        assert!(pac.contains("return \"SOCKS5 127.0.0.1:18200; PROXY 127.0.0.1:18201\";"));
         assert!(pac.contains("isPlainHostName(host)"));
+        assert!(pac.contains("host = host.toLowerCase();"));
+        assert!(pac.contains("var ip = dnsResolve(host);"));
+        assert!(pac.contains("ip && ("));
     }
 
     #[test]
@@ -292,7 +314,7 @@ mod tests {
             },
             &PacRules::default(),
         );
-        assert!(pac.contains("return \"PROXY 127.0.0.1:18201; DIRECT\";"));
+        assert!(pac.contains("return \"PROXY 127.0.0.1:18201\";"));
     }
 
     #[test]
@@ -304,7 +326,21 @@ mod tests {
             },
             &PacRules::default(),
         );
-        assert!(pac.contains("return \"SOCKS5 127.0.0.1:18200; DIRECT\";"));
+        assert!(pac.contains("return \"SOCKS5 127.0.0.1:18200\";"));
+    }
+
+    #[test]
+    fn renders_loopback_for_wildcard_proxy_hosts() {
+        let pac = render_pac(
+            &PacEndpoints {
+                http: Some(("0.0.0.0".to_string(), 18201)),
+                socks: Some(("0.0.0.0".to_string(), 18200)),
+            },
+            &PacRules::default(),
+        );
+        assert!(pac.contains("return \"SOCKS5 127.0.0.1:18200; PROXY 127.0.0.1:18201\";"));
+        assert!(!pac.contains("SOCKS5 0.0.0.0"));
+        assert!(!pac.contains("PROXY 0.0.0.0"));
     }
 
     #[test]
@@ -338,7 +374,7 @@ mod tests {
             },
         );
 
-        assert!(pac.contains("isInNet(host, \"203.0.113.0\", \"255.255.255.0\")"));
+        assert!(pac.contains("ip && isInNet(ip, \"203.0.113.0\", \"255.255.255.0\")"));
     }
 
     #[test]
@@ -358,7 +394,7 @@ mod tests {
             .find("blocked.example")
             .expect("block rule should render");
         let default_index = pac
-            .find("return \"PROXY 127.0.0.1:18201; DIRECT\";")
+            .find("return \"PROXY 127.0.0.1:18201\";")
             .expect("default proxy fallback should render");
         assert!(block_index < default_index);
         assert!(pac.contains("return \"PROXY 127.0.0.1:9\";"));

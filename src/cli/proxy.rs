@@ -12,13 +12,11 @@ pub enum ProxyAction {
     #[command(
         alias = "show",
         alias = "endpoints",
-        about = "Show active local proxy endpoints and shell proxy values."
+        about = "Show active local proxy endpoints."
     )]
     Info(ProxyInfoArgs),
     #[command(about = "Print or locate the Proxy Auto-Config (PAC) file.")]
     Pac(ProxyPacArgs),
-    #[command(about = "Toggle shell proxy variables, preserving previous values.")]
-    Toggle(ProxyToggleArgs),
     #[command(about = "Print shell commands to proxy the current terminal session.")]
     Shell(ProxyShellArgs),
     #[command(about = "Manage Linux desktop environment proxy settings.")]
@@ -29,12 +27,6 @@ pub enum ProxyAction {
 pub struct ProxyInfoArgs {
     #[arg(long = "json", help = "Print proxy information as JSON.")]
     pub json: bool,
-}
-
-#[derive(Debug, Args, Default)]
-pub struct ProxyToggleArgs {
-    #[arg(long = "shell", value_enum, help = "Override shell detection.")]
-    pub shell: Option<ProxyShellKind>,
 }
 
 #[derive(Debug, Args)]
@@ -69,6 +61,8 @@ pub enum ProxyShellAction {
     Enable(ProxyShellEnableArgs),
     #[command(about = "Print commands that unset the proxy environment variables.")]
     Disable(ProxyShellDisableArgs),
+    #[command(about = "Toggle shell proxy variables, preserving previous values.")]
+    Toggle(ProxyShellToggleArgs),
     #[command(about = "Report whether the current shell points at active xrat endpoints.")]
     Status(ProxyShellStatusArgs),
 }
@@ -81,6 +75,12 @@ pub struct ProxyShellEnableArgs {
 
 #[derive(Debug, Args, Default)]
 pub struct ProxyShellDisableArgs {
+    #[arg(long = "shell", value_enum, help = "Override shell detection.")]
+    pub shell: Option<ProxyShellKind>,
+}
+
+#[derive(Debug, Args, Default)]
+pub struct ProxyShellToggleArgs {
     #[arg(long = "shell", value_enum, help = "Override shell detection.")]
     pub shell: Option<ProxyShellKind>,
 }
@@ -109,6 +109,8 @@ pub enum ProxyDesktopAction {
     Disable(ProxyDesktopDisableArgs),
     #[command(about = "Show the current Linux desktop proxy settings.")]
     Status(ProxyDesktopStatusArgs),
+    #[command(about = "Toggle the Linux desktop proxy settings.")]
+    Toggle(ProxyDesktopToggleArgs),
 }
 
 #[derive(Debug, Args, Default)]
@@ -132,6 +134,17 @@ pub struct ProxyDesktopDisableArgs {
 pub struct ProxyDesktopStatusArgs {
     #[arg(long = "desktop", value_enum, help = "Override desktop detection.")]
     pub desktop: Option<ProxyDesktopKind>,
+}
+
+#[derive(Debug, Args, Default)]
+pub struct ProxyDesktopToggleArgs {
+    #[arg(long = "desktop", value_enum, help = "Override desktop detection.")]
+    pub desktop: Option<ProxyDesktopKind>,
+    #[arg(
+        long = "pac",
+        help = "Configure the desktop to use the PAC URL instead of manual proxies when enabling."
+    )]
+    pub pac: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]

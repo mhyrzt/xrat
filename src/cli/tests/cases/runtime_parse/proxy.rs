@@ -69,14 +69,17 @@ fn parses_proxy_shell_with_override() {
 }
 
 #[test]
-fn parses_proxy_toggle_with_override() {
-    let cli = Cli::parse_from(["xrat", "proxy", "toggle", "--shell", "zsh"]);
+fn parses_proxy_shell_toggle_with_override() {
+    let cli = Cli::parse_from(["xrat", "proxy", "shell", "toggle", "--shell", "zsh"]);
     match cli.command {
         Command::Proxy(args) => match args.action {
-            ProxyAction::Toggle(toggle) => {
-                assert_eq!(toggle.shell, Some(ProxyShellKind::Zsh));
-            }
-            _ => panic!("expected toggle subcommand"),
+            ProxyAction::Shell(shell) => match shell.action {
+                ProxyShellAction::Toggle(toggle) => {
+                    assert_eq!(toggle.shell, Some(ProxyShellKind::Zsh));
+                }
+                _ => panic!("expected shell toggle"),
+            },
+            _ => panic!("expected shell subcommand"),
         },
         _ => panic!("expected proxy command"),
     }
@@ -98,11 +101,27 @@ fn parses_proxy_desktop_enable_pac() {
 }
 
 #[test]
+fn parses_proxy_desktop_toggle_pac() {
+    let cli = Cli::parse_from(["xrat", "proxy", "desktop", "toggle", "--pac"]);
+    match cli.command {
+        Command::Proxy(args) => match args.action {
+            ProxyAction::Desktop(desktop) => match desktop.action {
+                ProxyDesktopAction::Toggle(toggle) => assert!(toggle.pac),
+                _ => panic!("expected desktop toggle"),
+            },
+            _ => panic!("expected desktop subcommand"),
+        },
+        _ => panic!("expected proxy command"),
+    }
+}
+
+#[test]
 fn old_proxy_rotation_commands_are_removed() {
     for removed in [
         ["xrat", "proxy", "start"],
         ["xrat", "proxy", "stop"],
         ["xrat", "proxy", "status"],
+        ["xrat", "proxy", "toggle"],
     ] {
         assert!(
             Cli::try_parse_from(removed).is_err(),
