@@ -441,7 +441,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO xrat_read;
 
 ## Related
 
-- [Deployment](README.md) — deployment overview
+- [Deployment](index.html) — deployment overview
 - [Database Schema](../05-reference/database-schema.md) — table definitions
 - [Configuration](../01-getting-started/configuration.md) — config.toml
   reference

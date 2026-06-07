@@ -190,7 +190,7 @@ at `packaging/systemd/`.
 
 - [`daemon`](../02-cli/daemon.md) — daemon CLI reference including
   install/uninstall
-- [Deployment](README.md) — deployment overview
+- [Deployment](index.html) — deployment overview
 - [HTTP API](../03-features/http-api.md) — API server details
 - [Daemon and IPC](../03-features/daemon-and-ipc.md) — daemon supervisor
   internals
