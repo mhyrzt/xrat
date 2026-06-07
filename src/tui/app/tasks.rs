@@ -75,7 +75,7 @@ impl TuiApp {
         }
     }
 
-    fn set_chrome_message(&mut self, text: String, is_error: bool) {
+    pub fn set_chrome_message(&mut self, text: String, is_error: bool) {
         self.chrome_message = Some(crate::tui::app::ChromeMessage {
             text,
             is_error,

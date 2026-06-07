@@ -143,7 +143,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         {
                             app.focused_source()
                                 .filter(|s| !s.value.is_empty())
-                                .map(|s| s.value.clone())
+                                .map(|s| (s.display_name().to_string(), s.value.clone()))
                         } else {
                             None
                         };
@@ -245,8 +245,8 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     if let Some(config_id) = copy_focused_id {
                         tasks::copy_config_uri(context, &mut app, config_id).await;
                     }
-                    if let Some(source_url) = copy_focused_source {
-                        tasks::copy_source_uri(&mut app, source_url);
+                    if let Some((source_name, source_url)) = copy_focused_source {
+                        tasks::copy_source_uri(&mut app, source_name, source_url);
                     }
                     if matches!(action, crate::tui::app::TuiAction::OpenQrApiUrl) {
                         tasks::open_qr_for_api_url(&mut app);
