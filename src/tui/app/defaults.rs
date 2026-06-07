@@ -25,6 +25,7 @@ impl Default for TuiApp {
             rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),
+            chrome_message: None,
             needs_full_clear: true,
             testing_config_ids: Vec::new(),
             spinner_tick: 0,

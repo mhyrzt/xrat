@@ -85,7 +85,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                 ],
             ),
             section(
-                "Sources",
+                "Subscriptions",
                 vec![
                     help_line("r", "Refresh focused"),
                     help_line("R", "Refresh all"),
@@ -259,7 +259,7 @@ pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         Paragraph::new(lines)
             .block(
                 Block::default()
-                    .title(format!(" Rename Source #{} ", modal.source_id))
+                    .title(format!(" Rename Subscription #{} ", modal.source_id))
                     .borders(Borders::ALL),
             )
             .alignment(Alignment::Left)

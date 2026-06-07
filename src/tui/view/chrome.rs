@@ -60,6 +60,14 @@ fn center_spans(app: &TuiApp) -> Vec<Span<'static>> {
     if let Some(leader) = app.pending_chord {
         return chord_hint(leader);
     }
+    if let Some(message) = &app.chrome_message {
+        let style = if message.is_error {
+            theme::failure_style().bold()
+        } else {
+            theme::success_style().bold()
+        };
+        return vec![Span::styled(message.text.clone(), style)];
+    }
     Vec::new()
 }
 

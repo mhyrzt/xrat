@@ -201,19 +201,19 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     if matches!(action, crate::tui::app::TuiAction::RuntimeRestart) {
                         tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
                     }
-                    if let Some((source_id, source_value)) = focused_source_value {
+                    if let Some((source_id, _source_value)) = focused_source_value {
                         tasks::spawn_source_refresh(
                             context.clone(),
                             source_id,
-                            source_value,
                             app.config_list.include_deleted,
                             &task_tx,
                         );
                     }
                     if !all_source_values.is_empty() {
+                        let source_ids = all_source_values.into_iter().map(|(id, _)| id).collect();
                         tasks::spawn_source_refresh_all(
                             context.clone(),
-                            all_source_values,
+                            source_ids,
                             app.config_list.include_deleted,
                             &task_tx,
                         );

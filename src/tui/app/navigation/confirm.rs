@@ -14,7 +14,7 @@ impl TuiApp {
         self.confirm = Some(ConfirmState {
             kind: ConfirmKind::DeleteSource(id),
             prompt: format!(
-                "delete source {} \"{name}\" + its configs?",
+                "delete subscription {} \"{name}\" + its configs?",
                 source.display_ref()
             ),
         });

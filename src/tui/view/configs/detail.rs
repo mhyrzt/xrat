@@ -107,7 +107,7 @@ fn detail_lines<'a>(
             );
             push_detail(
                 &mut lines,
-                "Source",
+                "Subscription",
                 source_label,
                 LABEL_WIDTH,
                 content_width,

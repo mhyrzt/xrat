@@ -14,9 +14,15 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let rt = &app.data.runtime;
 
     let active = rt.active_config.as_deref().unwrap_or("-");
-    let in_flight = app.runtime_op_in_flight();
+    let in_flight = app.runtime_activity_in_flight();
     let task = if in_flight {
-        format!("{} {}", app.spinner_frame(), app.task_state.label())
+        if app.runtime_op_in_flight() {
+            format!("{} {}", app.spinner_frame(), app.task_state.label())
+        } else {
+            format!("{} runtime transitioning", app.spinner_frame())
+        }
+    } else if app.subscriptions_refresh_in_flight() {
+        format!("{} refreshing subscriptions", app.spinner_frame())
     } else {
         app.task_state.label()
     };
@@ -118,10 +124,15 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         LABEL_WIDTH,
         content_width,
     );
+    let subscriptions_count = if app.subscriptions_refresh_in_flight() {
+        format!("{} {}", app.spinner_frame(), data.sources.len())
+    } else {
+        data.sources.len().to_string()
+    };
     push_detail(
         &mut lines,
-        "Sources",
-        data.sources.len().to_string(),
+        "Subscriptions",
+        subscriptions_count,
         LABEL_WIDTH,
         content_width,
     );

@@ -16,8 +16,8 @@ impl TuiApp {
             .collect()
     }
 
-    /// The Sources tab renders synthetic "All" (index 0) and "Orphans"
-    /// (index 1) rows, so a real source begins at index 2.
+    /// The Subscriptions tab renders synthetic "All" (index 0) and "Orphans"
+    /// (index 1) rows, so a real subscription begins at index 2.
     pub fn focused_source(&self) -> Option<&TuiSourceRow> {
         self.source_list
             .focused

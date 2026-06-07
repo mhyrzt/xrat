@@ -31,6 +31,7 @@ impl TuiApp {
                     self.testing_config_ids.clear();
                 }
                 self.push_log(format!("OK  {message}"));
+                self.set_chrome_message(message, false);
             }
             crate::tui::task::TuiTaskEvent::Failed { kind, error, data } => {
                 self.task_state
@@ -46,6 +47,7 @@ impl TuiApp {
                     self.testing_config_ids.clear();
                 }
                 self.push_log(format!("ERR {error}"));
+                self.set_chrome_message(error, true);
             }
             crate::tui::task::TuiTaskEvent::Cancelled { kind } => {
                 self.task_state
@@ -53,7 +55,9 @@ impl TuiApp {
                 if kind == crate::tui::task::TuiTaskKind::TestBatch {
                     self.testing_config_ids.clear();
                 }
-                self.push_log(format!("OK  {:?} cancelled", kind));
+                let message = format!("{:?} cancelled", kind);
+                self.push_log(format!("OK  {message}"));
+                self.set_chrome_message(message, false);
             }
             crate::tui::task::TuiTaskEvent::ConfigTested { row, done, total } => {
                 self.task_state
@@ -69,5 +73,13 @@ impl TuiApp {
                 self.task_state.apply(&event);
             }
         }
+    }
+
+    fn set_chrome_message(&mut self, text: String, is_error: bool) {
+        self.chrome_message = Some(crate::tui::app::ChromeMessage {
+            text,
+            is_error,
+            expires_at: std::time::Instant::now() + std::time::Duration::from_secs(5),
+        });
     }
 }

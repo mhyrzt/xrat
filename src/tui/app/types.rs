@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::tui::data::TuiData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -222,7 +224,7 @@ impl QrKind {
     pub fn modal_title(self) -> &'static str {
         match self {
             QrKind::Config => "Config QR",
-            QrKind::Source => "Source QR",
+            QrKind::Source => "Subscription QR",
             QrKind::Api => "API QR",
         }
     }
@@ -243,6 +245,13 @@ impl QrModalState {
             uri: uri.into(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ChromeMessage {
+    pub text: String,
+    pub is_error: bool,
+    pub expires_at: Instant,
 }
 
 #[derive(Debug)]
@@ -266,6 +275,7 @@ pub struct TuiApp {
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,
+    pub chrome_message: Option<ChromeMessage>,
     pub needs_full_clear: bool,
     pub testing_config_ids: Vec<i64>,
     pub spinner_tick: usize,
@@ -287,8 +297,9 @@ pub struct ConfigListState {
     pub source_filter: SourceFilter,
 }
 
-/// Which configs the Sources tab is scoping the Configs tab to. Mirrors the
-/// focused row in the Sources table: the synthetic "All" and "Orphans" rows,
+/// Which configs the Subscriptions tab is scoping the Configs tab to. Mirrors
+/// the focused row in the Subscriptions table: the synthetic "All" and
+/// "Orphans" rows,
 /// or a concrete subscription.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SourceFilter {

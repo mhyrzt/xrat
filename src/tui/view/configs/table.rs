@@ -93,7 +93,7 @@ fn tab_title(app: &TuiApp) -> Line<'static> {
             "[Configs]",
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
-        Span::styled(" Sources ", theme::muted_style()),
+        Span::styled(" Subscriptions ", theme::muted_style()),
         Span::styled(
             format!(
                 "({}/{}) ",
@@ -118,7 +118,7 @@ fn tab_title(app: &TuiApp) -> Line<'static> {
     };
     if let Some(scope) = scope {
         spans.push(Span::styled(
-            format!("· src:{scope} "),
+            format!("· sub:{scope} "),
             theme::accent_style(),
         ));
     }

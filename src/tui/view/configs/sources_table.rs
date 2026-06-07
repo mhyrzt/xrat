@@ -99,7 +99,7 @@ fn tab_title(app: &TuiApp) -> Line<'static> {
         Span::raw(" "),
         Span::styled(" Configs ", theme::muted_style()),
         Span::styled(
-            "[Sources]",
+            "[Subscriptions]",
             theme::accent_style().add_modifier(Modifier::BOLD),
         ),
         Span::styled(

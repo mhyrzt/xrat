@@ -1,14 +1,13 @@
 use tokio::sync::mpsc;
 
+use crate::app::commands::update::update_by_ids;
 use crate::app::context::AppContext;
-use crate::app::import;
 use crate::tui::data::TuiData;
 use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 
 pub fn spawn_source_refresh(
     context: AppContext,
     source_id: i64,
-    source_value: String,
     include_deleted: bool,
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
 ) {
@@ -16,14 +15,14 @@ pub fn spawn_source_refresh(
     let _ = task_tx.send(TuiTaskEvent::Started { kind });
     let task_tx = task_tx.clone();
     tokio::spawn(async move {
-        let event = refresh_one(&context, source_id, &source_value, include_deleted).await;
+        let event = refresh_one(&context, source_id, include_deleted).await;
         let _ = task_tx.send(event);
     });
 }
 
 pub fn spawn_source_refresh_all(
     context: AppContext,
-    sources: Vec<(i64, String)>,
+    source_ids: Vec<i64>,
     include_deleted: bool,
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
 ) {
@@ -31,70 +30,43 @@ pub fn spawn_source_refresh_all(
     let _ = task_tx.send(TuiTaskEvent::Started { kind });
     let task_tx = task_tx.clone();
     tokio::spawn(async move {
-        let total = sources.len();
-        let mut ok = 0usize;
-        let mut removed_total = 0u64;
-        let mut errors: Vec<String> = Vec::new();
-        for (id, value) in &sources {
-            match import_from(&context, value).await {
-                Ok(summary) => {
-                    tracing::debug!(
-                        source_id = id,
-                        imported = summary.imported_configs,
-                        removed = summary.removed_configs,
-                        "source refreshed"
-                    );
-                    removed_total += summary.removed_configs;
-                    ok += 1;
-                }
-                Err(err) => {
-                    errors.push(format!("#{id}: {err}"));
+        let event = match update_by_ids(&context, &source_ids).await {
+            Ok(summary) if summary.failed == 0 => {
+                match TuiData::load(&context, include_deleted).await {
+                    Ok(data) => TuiTaskEvent::Completed {
+                        kind,
+                        message: summary.status_message(),
+                        data: Some(data),
+                    },
+                    Err(err) => TuiTaskEvent::Failed {
+                        kind,
+                        error: format!("refresh done but reload failed: {err}"),
+                        data: None,
+                    },
                 }
             }
-        }
-        let event = if errors.is_empty() {
-            match TuiData::load(&context, include_deleted).await {
-                Ok(data) => TuiTaskEvent::Completed {
-                    kind,
-                    message: format!("refreshed {ok}/{total} sources ({removed_total} removed)"),
-                    data: Some(data),
-                },
-                Err(err) => TuiTaskEvent::Failed {
-                    kind,
-                    error: format!("refresh done but reload failed: {err}"),
-                    data: None,
-                },
-            }
-        } else {
-            TuiTaskEvent::Failed {
+            Ok(summary) => TuiTaskEvent::Failed {
                 kind,
-                error: format!(
-                    "{} of {total} sources failed: {}",
-                    errors.len(),
-                    errors.join("; ")
-                ),
+                error: summary.status_message(),
                 data: None,
-            }
+            },
+            Err(error) => TuiTaskEvent::Failed {
+                kind,
+                error: format!("refresh subscriptions failed: {error}"),
+                data: None,
+            },
         };
         let _ = task_tx.send(event);
     });
 }
 
-async fn refresh_one(
-    context: &AppContext,
-    source_id: i64,
-    source_value: &str,
-    include_deleted: bool,
-) -> TuiTaskEvent {
+async fn refresh_one(context: &AppContext, source_id: i64, include_deleted: bool) -> TuiTaskEvent {
     let kind = TuiTaskKind::SourceRefresh;
-    match import_from(context, source_value).await {
-        Ok(summary) => match TuiData::load(context, include_deleted).await {
+    match update_by_ids(context, &[source_id]).await {
+        Ok(summary) if summary.failed == 0 => match TuiData::load(context, include_deleted).await {
             Ok(data) => TuiTaskEvent::Completed {
                 kind,
-                message: format!(
-                    "refreshed source #{source_id}: {} imported, {} removed",
-                    summary.imported_configs, summary.removed_configs
-                ),
+                message: summary.status_message(),
                 data: Some(data),
             },
             Err(err) => TuiTaskEvent::Failed {
@@ -103,9 +75,14 @@ async fn refresh_one(
                 data: None,
             },
         },
-        Err(err) => TuiTaskEvent::Failed {
+        Ok(summary) => TuiTaskEvent::Failed {
             kind,
-            error: format!("refresh source #{source_id} failed: {err}"),
+            error: summary.status_message(),
+            data: None,
+        },
+        Err(error) => TuiTaskEvent::Failed {
+            kind,
+            error: format!("refresh subscription #{source_id} failed: {error}"),
             data: None,
         },
     }
@@ -119,7 +96,9 @@ pub async fn run_source_delete(
     match context.db.delete_subscription_with_configs(source_id).await {
         Ok(_) => {
             super::data::reload_data(context, app).await;
-            app.push_log(format!("OK  deleted source #{source_id} and its configs"));
+            app.push_log(format!(
+                "OK  deleted subscription #{source_id} and its configs"
+            ));
         }
         Err(err) => {
             app.push_log(format!("ERR delete failed: {err}"));
@@ -136,19 +115,10 @@ pub async fn run_source_rename(
     match context.db.set_subscription_name(source_id, &name).await {
         Ok(_) => {
             super::data::reload_data(context, app).await;
-            app.push_log(format!("OK  renamed source #{source_id}"));
+            app.push_log(format!("OK  renamed subscription #{source_id}"));
         }
         Err(err) => {
             app.push_log(format!("ERR rename failed: {err}"));
         }
     }
-}
-
-async fn import_from(
-    context: &AppContext,
-    input: &str,
-) -> crate::app::Result<crate::db::ImportSummary> {
-    let input = input.to_string();
-    let (source, nodes) = tokio::task::spawn_blocking(move || import::load_nodes(&input)).await??;
-    Ok(context.db.import_nodes(&source, &nodes).await?)
 }

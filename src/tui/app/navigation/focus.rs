@@ -1,7 +1,7 @@
 use super::TuiApp;
 use crate::tui::app::SourceFilter;
 
-/// Sources tab rows: 0 = All, 1 = Orphans, 2.. = concrete sources.
+/// Subscriptions tab rows: 0 = All, 1 = Orphans, 2.. = concrete subscriptions.
 const SOURCE_PSEUDO_ROWS: usize = 2;
 
 impl TuiApp {
@@ -22,7 +22,7 @@ impl TuiApp {
         self.sync_source_filter();
     }
 
-    /// Mirror the focused Sources-tab row onto the configs source filter.
+    /// Mirror the focused Subscriptions-tab row onto the configs filter.
     pub(crate) fn sync_source_filter(&mut self) {
         self.config_list.source_filter = match self.source_list.focused {
             0 => SourceFilter::All,

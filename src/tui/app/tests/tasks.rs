@@ -2,6 +2,7 @@ use super::helpers::row;
 use crate::tui::app::TuiApp;
 use crate::tui::data::TuiData;
 use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
+use std::time::Duration;
 
 #[test]
 fn completed_event_clears_cancellation_token() {
@@ -81,6 +82,31 @@ fn runtime_op_completion_stops_spinner() {
         frame_before,
         "spinner should stop after the runtime op completes"
     );
+}
+
+#[test]
+fn spinner_advances_while_subscriptions_refresh_in_flight() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    let (_token, _receiver) = app.task_state.start(TuiTaskKind::SourceRefresh);
+    let frame_before = app.spinner_frame();
+    app.tick();
+    assert_ne!(app.spinner_frame(), frame_before);
+}
+
+#[test]
+fn chrome_message_auto_expires_after_timeout() {
+    let mut app = TuiApp::with_data(TuiData::from_configs(vec![row(1)]));
+    app.apply_task_event(TuiTaskEvent::Completed {
+        kind: TuiTaskKind::ReloadData,
+        message: "reloaded".to_string(),
+        data: None,
+    });
+    assert!(app.chrome_message.is_some());
+    if let Some(message) = &mut app.chrome_message {
+        message.expires_at = std::time::Instant::now() - Duration::from_millis(1);
+    }
+    app.tick();
+    assert!(app.chrome_message.is_none());
 }
 
 #[test]

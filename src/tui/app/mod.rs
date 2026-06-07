@@ -10,9 +10,10 @@ mod types;
 mod views;
 
 pub use types::{
-    BulkKind, BulkOp, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind, ConfirmState,
-    PanelScroll, QrKind, QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode,
-    TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiLogTab, TuiPanel, TuiView,
+    BulkKind, BulkOp, ChromeMessage, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind,
+    ConfirmState, PanelScroll, QrKind, QrModalState, RenameModalState, SourceFilter,
+    SourceListState, TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand,
+    TuiLogTab, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -112,9 +113,18 @@ impl TuiApp {
         use crate::tui::task::TuiTaskKind;
         if matches!(
             self.task_state.running,
-            Some(TuiTaskKind::TestBatch) | Some(TuiTaskKind::RuntimeOp)
+            Some(TuiTaskKind::TestBatch)
+                | Some(TuiTaskKind::RuntimeOp)
+                | Some(TuiTaskKind::SourceRefresh)
         ) {
             self.spinner_tick = self.spinner_tick.wrapping_add(1);
+        }
+        if self
+            .chrome_message
+            .as_ref()
+            .is_some_and(|message| std::time::Instant::now() >= message.expires_at)
+        {
+            self.chrome_message = None;
         }
     }
 
@@ -128,6 +138,16 @@ impl TuiApp {
     /// True while a runtime switch/start/stop task is in flight.
     pub fn runtime_op_in_flight(&self) -> bool {
         self.task_state.running == Some(crate::tui::task::TuiTaskKind::RuntimeOp)
+    }
+
+    pub fn subscriptions_refresh_in_flight(&self) -> bool {
+        self.task_state.running == Some(crate::tui::task::TuiTaskKind::SourceRefresh)
+    }
+
+    pub fn runtime_activity_in_flight(&self) -> bool {
+        self.runtime_op_in_flight()
+            || self.data.runtime.status == "starting"
+            || self.data.runtime.status == "stopping"
     }
 
     pub fn is_testing_config(&self, config_id: i64) -> bool {

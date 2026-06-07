@@ -22,6 +22,15 @@ fn tracks_task_lifecycle() {
 }
 
 #[test]
+fn source_refresh_label_uses_subscriptions_wording() {
+    let mut state = TuiTaskState::default();
+    state.apply(&TuiTaskEvent::Started {
+        kind: TuiTaskKind::SourceRefresh,
+    });
+    assert_eq!(state.label(), "Subscriptions refreshing");
+}
+
+#[test]
 fn start_creates_cancellation_token() {
     let mut state = TuiTaskState::default();
     let (token, _receiver) = state.start(TuiTaskKind::TestBatch);

@@ -19,6 +19,7 @@ impl TuiTaskState {
             Some(kind) if self.cancellation.as_ref().is_some_and(|t| t.is_cancelled()) => {
                 format!("{:?} cancelling", kind)
             }
+            Some(TuiTaskKind::SourceRefresh) => "Subscriptions refreshing".to_string(),
             Some(kind) => format!("{:?} running", kind),
             None => self
                 .last_summary
