@@ -13,7 +13,7 @@ pub struct ListArgs {
 pub enum ListTarget {
     #[command(alias = "nodes", about = "List stored nodes/configs.")]
     Configs(ListConfigsArgs),
-    #[command(alias = "subs", about = "List stored subscription sources.")]
+    #[command(alias = "subs", about = "List stored subscriptions.")]
     Subscriptions(ListSubscriptionsArgs),
 }
 

@@ -4,7 +4,7 @@ use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DbArgs, DeleteArgs, DisableArgs,
     DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs,
     ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs, ShowArgs,
-    StatusArgs, TestArgs, TuiArgs, UpgradeArgs, ValidateArgs, VersionArgs,
+    StatusArgs, TestArgs, TuiArgs, UpdateArgs, UpgradeArgs, ValidateArgs, VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -15,7 +15,7 @@ pub enum Command {
     Import(ImportArgs),
     #[command(about = "Add a single config URI directly to SQLite.")]
     Add(AddArgs),
-    #[command(about = "List stored configs or subscription sources.")]
+    #[command(about = "List stored configs or subscriptions.")]
     List(ListArgs),
     #[command(about = "Show details for a config or subscription.")]
     Show(ShowArgs),
@@ -53,6 +53,8 @@ pub enum Command {
     Serve(ServeArgs),
     #[command(about = "Start the interactive terminal UI.")]
     Tui(TuiArgs),
+    #[command(about = "Refresh stored subscriptions.")]
+    Update(UpdateArgs),
     #[command(about = "Parse and validate config links without persisting.")]
     Parse(ParseArgs),
     #[command(about = "Validate an XRAT config.toml file.")]

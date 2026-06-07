@@ -55,6 +55,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Proxy(_)
         | Command::Serve(_)
         | Command::Tui(_)
+        | Command::Update(_)
         | Command::Parse(_)
         | Command::Validate(_)
         | Command::Upgrade(_)
@@ -104,6 +105,7 @@ fn parses_add_subcommand() {
         | Command::Proxy(_)
         | Command::Serve(_)
         | Command::Tui(_)
+        | Command::Update(_)
         | Command::Parse(_)
         | Command::Validate(_)
         | Command::Upgrade(_)
@@ -158,6 +160,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Proxy(_)
         | Command::Serve(_)
         | Command::Tui(_)
+        | Command::Update(_)
         | Command::Parse(_)
         | Command::Validate(_)
         | Command::Upgrade(_)
@@ -220,6 +223,7 @@ fn parses_list_config_filters() {
         | Command::Proxy(_)
         | Command::Serve(_)
         | Command::Tui(_)
+        | Command::Update(_)
         | Command::Parse(_)
         | Command::Validate(_)
         | Command::Upgrade(_)
@@ -261,5 +265,22 @@ fn parses_list_output_formats() {
             ListTarget::Configs(_) => panic!("expected subscriptions target"),
         },
         _ => panic!("expected list command"),
+    }
+}
+
+#[test]
+fn parses_update_with_optional_refs() {
+    let all = Cli::parse_from(["xrat", "update"]);
+    match all.command {
+        Command::Update(args) => assert!(args.subs_ref.is_empty()),
+        _ => panic!("expected update command"),
+    }
+
+    let selected = Cli::parse_from(["xrat", "update", "7", "feedbeef"]);
+    match selected.command {
+        Command::Update(args) => {
+            assert_eq!(args.subs_ref, vec!["7".to_string(), "feedbeef".to_string()])
+        }
+        _ => panic!("expected update command"),
     }
 }
