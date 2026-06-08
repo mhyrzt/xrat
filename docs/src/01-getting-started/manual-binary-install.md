@@ -100,8 +100,8 @@ mkdir -p ~/.local/share/applications
 mkdir -p ~/.local/share/icons/hicolor/48x48/apps
 mkdir -p ~/.local/share/icons/hicolor/256x256/apps
 cp desktop/xrat.desktop ~/.local/share/applications/
-cp desktop/icons/xrat-48x48.png ~/.local/share/icons/hicolor/48x48/apps/xrat.png
-cp desktop/icons/xrat-256x256.png ~/.local/share/icons/hicolor/256x256/apps/xrat.png
+cp docs/src/media/icons/xrat-icon-48x48.png ~/.local/share/icons/hicolor/48x48/apps/xrat.png
+cp docs/src/media/icons/xrat-icon-256x256.png ~/.local/share/icons/hicolor/256x256/apps/xrat.png
 update-desktop-database ~/.local/share/applications/
 ```
 

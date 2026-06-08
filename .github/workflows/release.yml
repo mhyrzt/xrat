@@ -171,6 +171,9 @@ jobs:
             cp -r extras/man "$tmpdir/man"
             cp -r extras/completions "$tmpdir/completions"
             cp -rL packaging/desktop "$tmpdir/desktop"
+            mkdir -p "$tmpdir/desktop/icons"
+            cp docs/src/media/icons/xrat-icon-48x48.png "$tmpdir/desktop/icons/xrat-48x48.png"
+            cp docs/src/media/icons/xrat-icon-256x256.png "$tmpdir/desktop/icons/xrat-256x256.png"
             tar -czf "$archive" -C "$tmpdir" .
             rm -rf "$tmpdir"
           done

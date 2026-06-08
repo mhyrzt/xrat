@@ -287,6 +287,12 @@ build_from_source() {
         cp -rL "$repo_dir/packaging/desktop" "${WORK_DIR}/desktop"
     fi
 
+    if [[ -d "$repo_dir/docs/src/media/icons" ]]; then
+        mkdir -p "${WORK_DIR}/desktop/icons"
+        cp "$repo_dir/docs/src/media/icons/xrat-icon-48x48.png" "${WORK_DIR}/desktop/icons/xrat-48x48.png"
+        cp "$repo_dir/docs/src/media/icons/xrat-icon-256x256.png" "${WORK_DIR}/desktop/icons/xrat-256x256.png"
+    fi
+
     cp "$bin" "${WORK_DIR}/xrat"
 }
 
