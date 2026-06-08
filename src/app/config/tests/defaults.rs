@@ -10,6 +10,10 @@ fn parses_minimal_config_with_defaults() {
     assert_eq!(config.runtime.rotation.interval_secs, 1800);
     assert!(config.runtime.rotation.health_trigger_enabled);
     assert_eq!(config.runtime.rotation.cooldown_secs, 300);
+    assert_eq!(
+        config.runtime.rotation.test_stages,
+        vec!["icmp".to_string(), "real_delay".to_string()]
+    );
     assert_eq!(config.runtime.socks.port, 18200);
     assert_eq!(config.testing.concurrency, 0);
     assert_eq!(

@@ -62,7 +62,7 @@ interval_secs = 1800
 health_trigger_enabled = true
 cooldown_secs = 300
 test_concurrency = 0
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 
 [runtime.log]
 enabled = true

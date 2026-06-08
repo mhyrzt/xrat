@@ -23,7 +23,7 @@ interval_secs = 1800
 health_trigger_enabled = true
 cooldown_secs = 300
 test_concurrency = 0
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 refresh_subscriptions = false
 ```
 
@@ -34,7 +34,7 @@ refresh_subscriptions = false
 | `health_trigger_enabled` | Trigger rotation on health check failure          | `true`                       |
 | `cooldown_secs`          | Minimum time between rotations                    | `300` (5 minutes)            |
 | `test_concurrency`       | Concurrent test workers (`0` = auto)              | `0`                          |
-| `test_stages`            | Test stages to run for candidate selection        | `["real_delay", "download"]` |
+| `test_stages`            | Test stages to run for candidate selection        | `["icmp", "real_delay"]` |
 | `refresh_subscriptions`  | Refresh URL subscriptions before candidate select | `false`                      |
 
 ### Refresh Before Rotation
@@ -146,7 +146,7 @@ Run test stages on all candidates concurrently:
 
 ```toml
 test_concurrency = 4  # test 4 configs at once
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 ```
 
 For each candidate:
@@ -289,7 +289,7 @@ enabled = true
 interval_secs = 3600  # 1 hour
 health_trigger_enabled = true
 cooldown_secs = 600   # 10 minutes
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 ```
 
 Best for: stable connections, minimal disruption

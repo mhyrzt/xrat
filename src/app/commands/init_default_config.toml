@@ -99,7 +99,7 @@ cooldown_secs = 300
 # Concurrency for the pre-rotation test pass (0 = auto).
 test_concurrency = 0
 # Test stages run to pick the next config.
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 # Refresh URL-backed subscriptions before picking a rotation candidate.
 refresh_subscriptions = false
 

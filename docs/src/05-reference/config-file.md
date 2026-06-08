@@ -147,7 +147,7 @@ interval_secs = 1800
 health_trigger_enabled = true
 cooldown_secs = 300
 test_concurrency = 0
-test_stages = ["real_delay", "download"]
+test_stages = ["icmp", "real_delay"]
 ```
 
 | Field                    | Type     | Default                      | Description                        |
@@ -157,7 +157,7 @@ test_stages = ["real_delay", "download"]
 | `health_trigger_enabled` | boolean  | `true`                       | Trigger rotation on health failure |
 | `cooldown_secs`          | integer  | `300`                        | Minimum time between rotations     |
 | `test_concurrency`       | integer  | `0`                          | Test workers (0 = auto)            |
-| `test_stages`            | string[] | `["real_delay", "download"]` | Candidate test stages              |
+| `test_stages`            | string[] | `["icmp", "real_delay"]`    | Candidate test stages              |
 
 ---
 
