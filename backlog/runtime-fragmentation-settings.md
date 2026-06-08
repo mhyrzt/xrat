@@ -1,4 +1,4 @@
-# 05. Hard, P2: Runtime Xray fragmentation settings
+# Hard, P2: Runtime Xray fragmentation settings
 
 ### Status
 

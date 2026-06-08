@@ -1,4 +1,4 @@
-# 04. Medium, P2: Runtime Mux settings for generated Xray outbounds
+# Medium, P2: Runtime Mux settings for generated Xray outbounds
 
 ### Status
 

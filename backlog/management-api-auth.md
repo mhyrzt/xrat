@@ -1,4 +1,4 @@
-# 03. Hard, P1: Proper authentication for a management HTTP API
+# Hard, P1: Proper authentication for a management HTTP API
 
 ### Status
 

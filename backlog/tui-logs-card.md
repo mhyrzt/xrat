@@ -1,4 +1,4 @@
-# 02. Hard, P2: TUI logs card with events, proxy logs, and stats tabs
+# Hard, P2: TUI logs card with events, proxy logs, and stats tabs
 
 ### Status
 
