@@ -83,6 +83,22 @@ To skip the desktop launcher:
 INSTALL_DESKTOP=0 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
+The desktop launcher starts the TUI in a detected terminal emulator. When the
+installer finds a supported terminal, it generates a launcher that sets xrat's
+window identity for taskbar/dock icon matching on X11 or Wayland. If no
+supported terminal is found, the launcher falls back to the desktop's default
+terminal behavior and the taskbar icon may belong to that terminal window.
+
+| Terminal | X11 identity | Wayland identity | Notes |
+| -------- | ------------ | ---------------- | ----- |
+| kitty | `--class=xrat` | `--class=xrat` / app id | Preferred cross-session launcher |
+| Alacritty | `--class xrat,xrat` | `--class xrat,xrat` | Preferred cross-session launcher |
+| WezTerm | `--class xrat` | `--class xrat` / app id | Preferred cross-session launcher |
+| foot / footclient | n/a | `--app-id=xrat` | Wayland-only terminal |
+| Konsole | `--desktopfile xrat` | `--desktopfile xrat` | KDE/Qt desktop-file identity hint |
+| GNOME Terminal | `--class=xrat` | fallback only | Used for X11 sessions |
+| xterm | `-class xrat` | n/a | X11-only fallback |
+
 Make sure the install directory is in `PATH`:
 
 ```bash

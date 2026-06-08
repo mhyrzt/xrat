@@ -8,4 +8,4 @@ Terminal=true
 Categories=Network;
 Keywords=proxy;vpn;xray;sing-box;tui;
 Icon=xrat
-StartupNotify=false
+StartupNotify=true

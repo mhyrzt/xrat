@@ -9,7 +9,6 @@ moved into dedicated backlog files.
 
 - `backlog/docker-runtime-binaries.md`
 - `backlog/paas-config-b64.md`
-- `backlog/desktop-taskbar-icon.md`
 
 ### Dirty notes grouped by target/scope
 

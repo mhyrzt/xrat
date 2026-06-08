@@ -174,6 +174,95 @@ check_cmd() {
     command -v "$1" &>/dev/null
 }
 
+desktop_session_type() {
+    printf '%s' "${XDG_SESSION_TYPE:-unknown}" | tr '[:upper:]' '[:lower:]'
+}
+
+select_desktop_terminal() {
+    local session_type
+    session_type="$(desktop_session_type)"
+
+    if [[ "$session_type" == "wayland" ]]; then
+        for terminal in kitty alacritty wezterm footclient foot konsole; do
+            if check_cmd "$terminal"; then
+                echo "$terminal"
+                return 0
+            fi
+        done
+    else
+        for terminal in kitty alacritty wezterm konsole gnome-terminal xterm; do
+            if check_cmd "$terminal"; then
+                echo "$terminal"
+                return 0
+            fi
+        done
+    fi
+
+    echo ""
+}
+
+write_desktop_launcher() {
+    local terminal="$1"
+    local launcher_path="${INSTALL_DIR}/xrat-desktop"
+    local xrat_path="${INSTALL_DIR}/xrat"
+
+    case "$terminal" in
+        kitty)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec kitty --class=xrat --title=XRAT "$xrat_path" tui "\$@"
+EOF
+            ;;
+        alacritty)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec alacritty --class xrat,xrat --title XRAT -e "$xrat_path" tui "\$@"
+EOF
+            ;;
+        wezterm)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec wezterm start --always-new-process --class xrat "$xrat_path" tui "\$@"
+EOF
+            ;;
+        footclient)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec footclient --app-id=xrat --title=XRAT "$xrat_path" tui "\$@"
+EOF
+            ;;
+        foot)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec foot --app-id=xrat --title=XRAT "$xrat_path" tui "\$@"
+EOF
+            ;;
+        konsole)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec konsole --desktopfile xrat -e "$xrat_path" tui "\$@"
+EOF
+            ;;
+        gnome-terminal)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec gnome-terminal --class=xrat --title=XRAT -- "$xrat_path" tui "\$@"
+EOF
+            ;;
+        xterm)
+            cat > "$launcher_path" <<EOF
+#!/usr/bin/env sh
+exec xterm -class xrat -title XRAT -e "$xrat_path" tui "\$@"
+EOF
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    chmod +x "$launcher_path"
+}
+
 require_cmd() {
     if ! check_cmd "$1"; then
         error "Required tool not found: $1"
@@ -327,9 +416,46 @@ install_extras() {
 
         if [[ -f "${WORK_DIR}/desktop/xrat.desktop" ]]; then
             mkdir -p "$apps_dir"
-            awk -v exec_path="${INSTALL_DIR}/xrat tui" '
+            local desktop_terminal=""
+            local exec_path="${INSTALL_DIR}/xrat tui"
+            local terminal_value="true"
+            local startup_wm_class=""
+
+            desktop_terminal="$(select_desktop_terminal)"
+            if [[ -n "$desktop_terminal" ]] && write_desktop_launcher "$desktop_terminal"; then
+                exec_path="${INSTALL_DIR}/xrat-desktop"
+                terminal_value="false"
+                startup_wm_class="xrat"
+                info "Desktop launcher will use ${desktop_terminal} with xrat window identity"
+            else
+                warn "No supported terminal found for desktop window identity; taskbar may show the terminal icon."
+            fi
+
+            awk -v exec_path="$exec_path" -v terminal_value="$terminal_value" -v startup_wm_class="$startup_wm_class" '
+                BEGIN { saw_startup_wm_class = 0 }
                 /^Exec=/ { print "Exec=" exec_path; next }
+                /^Terminal=/ { print "Terminal=" terminal_value; next }
+                /^StartupWMClass=/ {
+                    if (startup_wm_class != "") {
+                        print "StartupWMClass=" startup_wm_class
+                        saw_startup_wm_class = 1
+                    }
+                    next
+                }
+                /^StartupNotify=/ {
+                    if (startup_wm_class != "" && saw_startup_wm_class == 0) {
+                        print "StartupWMClass=" startup_wm_class
+                        saw_startup_wm_class = 1
+                    }
+                    print
+                    next
+                }
                 { print }
+                END {
+                    if (startup_wm_class != "" && saw_startup_wm_class == 0) {
+                        print "StartupWMClass=" startup_wm_class
+                    }
+                }
             ' "${WORK_DIR}/desktop/xrat.desktop" > "$apps_dir/xrat.desktop"
         fi
         [[ -f "${WORK_DIR}/desktop/icons/xrat-48x48.png" ]] && { mkdir -p "$icon_48_dir"; cp "${WORK_DIR}/desktop/icons/xrat-48x48.png" "$icon_48_dir/xrat.png"; }
@@ -506,4 +632,6 @@ main() {
     show_guide
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

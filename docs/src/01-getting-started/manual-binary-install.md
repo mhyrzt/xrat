@@ -105,6 +105,29 @@ cp docs/src/media/icons/xrat-icon-256x256.png ~/.local/share/icons/hicolor/256x2
 update-desktop-database ~/.local/share/applications/
 ```
 
+The installer normally rewrites the desktop entry to use a detected terminal
+emulator with xrat's window identity. For manual installs, you can either use the
+static `desktop/xrat.desktop` entry, or generate a local wrapper such as:
+
+```bash
+cat > ~/.local/bin/xrat-desktop <<'EOF'
+#!/usr/bin/env sh
+exec kitty --class=xrat --title=XRAT "$HOME/.local/bin/xrat" tui "$@"
+EOF
+chmod +x ~/.local/bin/xrat-desktop
+sed -i \
+  -e 's|^Exec=.*|Exec='"$HOME"'/.local/bin/xrat-desktop|' \
+  -e 's|^Terminal=.*|Terminal=false|' \
+  ~/.local/share/applications/xrat.desktop
+grep -q '^StartupWMClass=' ~/.local/share/applications/xrat.desktop \
+  || printf '%s\n' 'StartupWMClass=xrat' >> ~/.local/share/applications/xrat.desktop
+```
+
+Use the terminal flag that matches your system: kitty `--class=xrat`, Alacritty
+`--class xrat,xrat`, WezTerm `--class xrat`, foot `--app-id=xrat`, Konsole
+`--desktopfile xrat`, GNOME Terminal `--class=xrat` on X11, or xterm
+`-class xrat` on X11.
+
 ## First-Time Setup
 
 ```bash
