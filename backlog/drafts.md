@@ -106,3 +106,13 @@ with its own icon in the taskbar — never the xrat icon.
 ---
 
 - xrat daemon restart reattach previous connection or connect to best connection
+- whenever showing anything in format of interval whether in cli or tui Format
+  it in human readable format unless it's --json
+
+- xrat rotate now is not working properly and selects invalid coonfigs that does
+  not have Delay
+
+## TUI Configd Cards
+
+- add TCP column for shoing ICMP Ping value
+- Same Goes for download and upload if they are enabled

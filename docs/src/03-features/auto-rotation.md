@@ -27,15 +27,15 @@ test_stages = ["icmp", "real_delay"]
 refresh_subscriptions = false
 ```
 
-| Field                    | Description                                       | Default                      |
-| ------------------------ | ------------------------------------------------- | ---------------------------- |
-| `enabled`                | Enable scheduled rotation                         | `false`                      |
-| `interval_secs`          | Rotation interval in seconds                      | `1800` (30 minutes)          |
-| `health_trigger_enabled` | Trigger rotation on health check failure          | `true`                       |
-| `cooldown_secs`          | Minimum time between rotations                    | `300` (5 minutes)            |
-| `test_concurrency`       | Concurrent test workers (`0` = auto)              | `0`                          |
+| Field                    | Description                                       | Default                  |
+| ------------------------ | ------------------------------------------------- | ------------------------ |
+| `enabled`                | Enable scheduled rotation                         | `false`                  |
+| `interval_secs`          | Rotation interval in seconds                      | `1800` (30 minutes)      |
+| `health_trigger_enabled` | Trigger rotation on health check failure          | `true`                   |
+| `cooldown_secs`          | Minimum time between rotations                    | `300` (5 minutes)        |
+| `test_concurrency`       | Concurrent test workers (`0` = auto)              | `0`                      |
 | `test_stages`            | Test stages to run for candidate selection        | `["icmp", "real_delay"]` |
-| `refresh_subscriptions`  | Refresh URL subscriptions before candidate select | `false`                      |
+| `refresh_subscriptions`  | Refresh URL subscriptions before candidate select | `false`                  |
 
 ### Refresh Before Rotation
 

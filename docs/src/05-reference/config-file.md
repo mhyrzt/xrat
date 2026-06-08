@@ -150,14 +150,14 @@ test_concurrency = 0
 test_stages = ["icmp", "real_delay"]
 ```
 
-| Field                    | Type     | Default                      | Description                        |
-| ------------------------ | -------- | ---------------------------- | ---------------------------------- |
-| `enabled`                | boolean  | `false`                      | Enable scheduled rotation          |
-| `interval_secs`          | integer  | `1800`                       | Rotation interval in seconds       |
-| `health_trigger_enabled` | boolean  | `true`                       | Trigger rotation on health failure |
-| `cooldown_secs`          | integer  | `300`                        | Minimum time between rotations     |
-| `test_concurrency`       | integer  | `0`                          | Test workers (0 = auto)            |
-| `test_stages`            | string[] | `["icmp", "real_delay"]`    | Candidate test stages              |
+| Field                    | Type     | Default                  | Description                        |
+| ------------------------ | -------- | ------------------------ | ---------------------------------- |
+| `enabled`                | boolean  | `false`                  | Enable scheduled rotation          |
+| `interval_secs`          | integer  | `1800`                   | Rotation interval in seconds       |
+| `health_trigger_enabled` | boolean  | `true`                   | Trigger rotation on health failure |
+| `cooldown_secs`          | integer  | `300`                    | Minimum time between rotations     |
+| `test_concurrency`       | integer  | `0`                      | Test workers (0 = auto)            |
+| `test_stages`            | string[] | `["icmp", "real_delay"]` | Candidate test stages              |
 
 ---
 
