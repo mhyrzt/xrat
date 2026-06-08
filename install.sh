@@ -283,8 +283,9 @@ build_from_source() {
     "$bin" completions zsh  > "${WORK_DIR}/completions/_xrat"
     "$bin" completions fish > "${WORK_DIR}/completions/xrat.fish"
 
-    if [[ -d "$repo_dir/packaging/desktop" ]]; then
-        cp -rL "$repo_dir/packaging/desktop" "${WORK_DIR}/desktop"
+    if [[ -f "$repo_dir/packaging/desktop/xrat.desktop" ]]; then
+        mkdir -p "${WORK_DIR}/desktop"
+        cp "$repo_dir/packaging/desktop/xrat.desktop" "${WORK_DIR}/desktop/xrat.desktop"
     fi
 
     if [[ -d "$repo_dir/docs/src/media/icons" ]]; then
