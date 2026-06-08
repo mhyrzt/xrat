@@ -1,8 +1,49 @@
+use super::fake_runtime::write_fake_runtime_script;
 use super::support::*;
 use super::*;
 
 #[tokio::test]
-async fn replace_rejects_without_running_session() {
+async fn replace_starts_runtime_without_running_session() {
+    let mut context = test_context().await;
+    let config = import_single_config(&context).await;
+
+    write_fake_runtime_script(&context);
+    context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
+
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::Manual,
+            candidate_id: None,
+        })
+        .await
+        .expect("replace should start a runtime when none is running");
+
+    assert_eq!(result.old_session_id, None);
+    assert_eq!(result.new_config_id, config.id);
+
+    let running = context
+        .db
+        .get_running_runtime_session()
+        .await
+        .expect("running session should load")
+        .expect("running session should exist");
+    assert_eq!(running.id, result.new_session_id);
+    assert_eq!(running.config_id, Some(config.id));
+    assert_eq!(
+        running.last_transition_reason_code.as_deref(),
+        Some("replace_commit_success")
+    );
+    assert_eq!(
+        running.last_transition_reason_detail.as_deref(),
+        Some("runtime rotation started new session")
+    );
+    assert_eq!(running.last_transition_origin.as_deref(), Some("daemon"));
+
+    let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
+}
+
+#[tokio::test]
+async fn replace_rejects_without_running_session_or_candidate() {
     let context = test_context().await;
     let result = RuntimeService::new(&context)
         .replace(ReplaceRequest {
@@ -12,7 +53,7 @@ async fn replace_rejects_without_running_session() {
         .await;
     match result {
         Err(AppError::InvalidArgument(message)) => {
-            assert!(message.contains("no running runtime session to replace"));
+            assert!(message.contains("no eligible replacement candidate"));
         }
         other => panic!("expected invalid argument, got {other:?}"),
     }

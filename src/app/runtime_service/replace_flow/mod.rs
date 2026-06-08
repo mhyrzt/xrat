@@ -9,9 +9,29 @@ impl<'a> RuntimeService<'a> {
         let active = match self.active_session_state().await? {
             ActiveSessionState::Running(session) => session,
             ActiveSessionState::Stale(_) | ActiveSessionState::None => {
-                return Err(AppError::InvalidArgument(
-                    "no running runtime session to replace".to_string(),
-                ));
+                let next_config_id = self.resolve_initial_rotation_candidate_id(&request).await?;
+                let connected = self
+                    .connect(ConnectRequest {
+                        config_id: next_config_id,
+                    })
+                    .await?;
+                self.context
+                    .db
+                    .update_runtime_session_transition_metadata(
+                        connected.session_id,
+                        None,
+                        None,
+                        Some("replace_commit_success"),
+                        Some("runtime rotation started new session"),
+                        Some("daemon"),
+                    )
+                    .await?;
+                return Ok(ReplaceResult {
+                    old_session_id: None,
+                    new_config_id: connected.config.id,
+                    new_session_id: connected.session_id,
+                    new_pid: connected.pid,
+                });
             }
         };
         let next_config_id = match self.resolve_replace_candidate_id(&active, &request).await {
@@ -72,7 +92,7 @@ impl<'a> RuntimeService<'a> {
             .await?;
 
         Ok(ReplaceResult {
-            old_session_id: active.id,
+            old_session_id: Some(active.id),
             new_config_id: next_config_id,
             new_session_id: session_id,
             new_pid,

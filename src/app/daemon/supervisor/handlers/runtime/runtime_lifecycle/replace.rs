@@ -74,7 +74,7 @@ pub(super) async fn handle_runtime_replace(
             .await;
             let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
                 trigger,
-                replaced: true,
+                replaced: result.old_session_id.is_some(),
                 old_session_id: result.old_session_id,
                 new_config_id: result.new_config_id,
                 new_session_id: result.new_session_id,

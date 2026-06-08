@@ -62,7 +62,7 @@ fn spawn_test_supervisor(mut rx: mpsc::Receiver<SupervisorEvent>) -> tokio::task
                     let _ = respond_to.send(RuntimeReplaceResult::Ok(RuntimeReplacePayload {
                         trigger,
                         replaced: true,
-                        old_session_id: 10,
+                        old_session_id: Some(10),
                         new_config_id: candidate_id.unwrap_or(20),
                         new_session_id: 30,
                         new_pid: 40,

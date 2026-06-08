@@ -4,7 +4,7 @@ use crate::app::commands::resolve::resolve_config_id;
 use crate::app::context::AppContext;
 use crate::app::daemon::ipc;
 use crate::cli::{RotateAction, RotateArgs};
-use crate::db::{EventFilter, EventRecord};
+use crate::db::{ConfigListFilter, EventFilter, EventRecord};
 use tokio::time::Duration;
 
 pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<()> {
@@ -224,6 +224,9 @@ async fn now(
         {
             Ok(response) => {
                 if !response.ok {
+                    if is_no_running_runtime_session_error(&response.message) {
+                        return connect_initial_runtime(context, socket_path, config_id).await;
+                    }
                     return Err(crate::app::AppError::InvalidArgument(rotate_error_message(
                         response.message,
                     )));
@@ -246,7 +249,13 @@ async fn now(
                         None,
                         &[
                             ("replaced", output::bool_label(payload.replaced).to_string()),
-                            ("old session", payload.old_session_id.to_string()),
+                            (
+                                "old session",
+                                payload
+                                    .old_session_id
+                                    .map(|id| id.to_string())
+                                    .unwrap_or_else(|| "-".to_string()),
+                            ),
                             ("new config", new_config_ref),
                             ("new session", payload.new_session_id.to_string()),
                             ("new pid", payload.new_pid.to_string()),
@@ -264,6 +273,72 @@ async fn now(
     stream_task.abort();
     let _ = stream_task.await;
     result
+}
+
+async fn connect_initial_runtime(
+    context: &AppContext,
+    socket_path: &std::path::Path,
+    config_id: Option<i64>,
+) -> crate::app::Result<()> {
+    let config_id = match config_id {
+        Some(config_id) => config_id,
+        None => initial_rotation_config_id(context).await?,
+    };
+    match ipc::runtime_connect_daemon(socket_path, config_id).await {
+        Ok(response) => {
+            if !response.ok {
+                return Err(crate::app::AppError::InvalidArgument(response.message));
+            }
+            let payload = response.payload.ok_or_else(|| {
+                crate::app::AppError::InvalidArgument(
+                    "daemon connect response missing payload".to_string(),
+                )
+            })?;
+            let new_config_ref = config_ref(context, Some(payload.config_id))
+                .await?
+                .unwrap_or_else(|| payload.config_id.to_string());
+            println!(
+                "{}",
+                output::success("Proxy rotation completed.", output::color_enabled())
+            );
+            println!(
+                "{}",
+                output::format_kv(
+                    None,
+                    &[
+                        ("replaced", output::bool_label(false).to_string()),
+                        ("old session", "-".to_string()),
+                        ("new config", new_config_ref),
+                        ("new session", payload.session_id.to_string()),
+                        ("new pid", payload.pid.to_string()),
+                    ],
+                    output::color_enabled(),
+                )
+            );
+            Ok(())
+        }
+        Err(err) if ipc::daemon_unreachable(&err) => Err(crate::app::AppError::InvalidArgument(
+            daemon_unreachable_message(socket_path),
+        )),
+        Err(err) => Err(err),
+    }
+}
+
+async fn initial_rotation_config_id(context: &AppContext) -> crate::app::Result<i64> {
+    let filter = ConfigListFilter {
+        only_enabled: true,
+        ..Default::default()
+    };
+    context
+        .db
+        .list_configs(&filter)
+        .await?
+        .into_iter()
+        .map(|config| config.id)
+        .min()
+        .ok_or_else(|| {
+            crate::app::AppError::InvalidArgument("no eligible replacement candidate".to_string())
+        })
 }
 
 async fn stream_rotation_events(context: AppContext) {
@@ -424,10 +499,11 @@ fn friendly_result(result: &str) -> String {
 }
 
 fn rotate_error_message(message: String) -> String {
-    if message.contains("no running runtime session to replace") {
-        return format!("{message}. Start a runtime first with `xrat connect <id>`");
-    }
     message
+}
+
+fn is_no_running_runtime_session_error(message: &str) -> bool {
+    message.contains("no running runtime session to replace")
 }
 
 #[cfg(test)]
@@ -444,9 +520,13 @@ mod tests {
     }
 
     #[test]
-    fn rotate_error_message_mentions_connect_when_no_runtime_is_running() {
-        let message = rotate_error_message("no running runtime session to replace".to_string());
-        assert!(message.contains("xrat connect <id>"));
+    fn no_running_runtime_session_error_is_detected_for_fallback() {
+        assert!(is_no_running_runtime_session_error(
+            "no running runtime session to replace"
+        ));
+        assert!(!is_no_running_runtime_session_error(
+            "no eligible replacement candidate"
+        ));
     }
 
     #[test]

@@ -23,7 +23,7 @@ async fn replace_success_stages_new_then_stops_old_runtime() {
         .await
         .expect("replace should succeed");
 
-    assert_eq!(result.old_session_id, old_session_id);
+    assert_eq!(result.old_session_id, Some(old_session_id));
     assert_ne!(result.new_session_id, old_session_id);
 
     let mut old_stopped = false;

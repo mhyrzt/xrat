@@ -51,7 +51,7 @@ pub struct DisconnectResult {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReplaceResult {
-    pub old_session_id: i64,
+    pub old_session_id: Option<i64>,
     pub new_config_id: i64,
     pub new_session_id: i64,
     pub new_pid: u32,

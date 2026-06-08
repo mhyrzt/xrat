@@ -30,7 +30,7 @@ async fn runtime_replace_request_returns_payload() {
     let payload = response.payload.expect("replace payload should exist");
     assert!(matches!(payload.trigger, RotationTrigger::Manual));
     assert!(payload.replaced);
-    assert_eq!(payload.old_session_id, 10);
+    assert_eq!(payload.old_session_id, Some(10));
     assert_eq!(payload.new_config_id, 99);
     assert_eq!(payload.new_session_id, 30);
     assert_eq!(payload.new_pid, 40);
