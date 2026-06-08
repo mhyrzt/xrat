@@ -123,3 +123,16 @@ tui:
 # Clean build artifacts
 clean:
     cargo clean
+
+
+# Render one explicit tape file.
+tape tape:
+    vhs --output {{ quote(trim_end_match(tape, ".tape") + ".gif") }} {{ quote(tape) }}
+
+# Render every .tape in docs/src/media/tapes except base.tape.
+tapes:
+    fd -e tape -E base.tape . docs/src/media/tapes -x just tape {}
+
+# Remove generated GIFs next to the tape files.
+tapes-clean:
+    fd -e gif . docs/src/media/gif -X rm -f {}

@@ -10,7 +10,7 @@ documentation = "https://mhyrzt.github.io/xrat/"
 readme = "README.md"
 keywords = ["xray", "sing-box", "ratatui", "tunnel", "cli"]
 categories = ["command-line-utilities", "network-programming"]
-exclude = ["testdata/", "docs/", "media/", "packaging/desktop/"]
+exclude = ["testdata/", "docs/", "packaging/desktop/"]
 
 [dependencies]
 async-trait = "0.1.89"

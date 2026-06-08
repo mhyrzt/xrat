@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/icons/xrat-icon-1024x1024.png" alt="xrat" width="256">
+  <img src="docs/src/media/icons/xrat-icon-1024x1024.png" alt="xrat" width="256">
 </p>
 
 <h1 align="center">XRAT</h1>
@@ -21,7 +21,7 @@ XRAT is a Rust CLI and TUI for importing, storing, testing, and running
 configurations.
 
 <p align="center">
-  <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
+  <img src="docs/src/media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
 </p>
 
 ## Installation
