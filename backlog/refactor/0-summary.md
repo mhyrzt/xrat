@@ -10,6 +10,13 @@ The highest-priority work is to extract shared application services with
 explicit inputs/results, keep CLI/TUI/Axum/daemon adapters thin, and add test
 seams around database, process, network, filesystem, and IPC dependencies.
 
+The codebase uses only 4 custom traits (see `13-trait-usage-gap-analysis.md`).
+`GeoIpLookup` is the only well-developed port pattern (with decorators, factory,
+and test doubles). Zero repository/port/use-case abstraction traits exist — the
+database layer, filesystem, IPC, process, and network calls are all concrete.
+This makes unit tests depend on real I/O and discourages testing failure
+scenarios.
+
 ## Items
 
 - `01-config-query-use-cases.md`
@@ -24,3 +31,13 @@ seams around database, process, network, filesystem, and IPC dependencies.
 - `10-export-subscription-rendering.md`
 - `11-tui-data-loading-boundaries.md`
 - `12-pac-domain-module.md`
+- `13-trait-usage-gap-analysis.md`
+- `14-http-client-port.md`
+- `15-process-spawner-port.md`
+- `16-port-waiter-abstraction.md`
+- `17-dns-resolver-port.md`
+- `18-local-ip-resolver-port.md`
+- `19-signal-handler-port.md`
+- `20-platform-detector-port.md`
+- `21-clipboard-port.md`
+- `22-env-vars-port.md`
