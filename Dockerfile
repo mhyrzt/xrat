@@ -1,3 +1,6 @@
+ARG XRAY_TAG=latest
+ARG SINGBOX_TAG=latest
+
 FROM rust:1-alpine AS builder
 
 WORKDIR /app
@@ -11,9 +14,6 @@ COPY src ./src
 
 RUN cargo build --release --locked
 
-
-ARG XRAY_TAG=latest
-ARG SINGBOX_TAG=latest
 
 FROM teddysun/xray:${XRAY_TAG} AS xray
 FROM ghcr.io/sagernet/sing-box:${SINGBOX_TAG} AS singbox
@@ -39,7 +39,7 @@ ENV XRAY_LOCATION_ASSET=/usr/local/share/xray
 USER xrat
 WORKDIR /data/xrat
 VOLUME ["/data/xrat"]
-EXPOSE 8080 1080
+EXPOSE 18200 18201 18202 18203
 
 ENTRYPOINT ["xrat"]
 CMD ["--help"]

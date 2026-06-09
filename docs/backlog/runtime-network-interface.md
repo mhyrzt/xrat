@@ -6,8 +6,8 @@ Draft
 
 ### Goal
 
-Add an explicit config option for choosing the network interface or outbound bind
-address used by xrat-managed runtime traffic.
+Add an explicit config option for choosing the network interface or outbound
+bind address used by xrat-managed runtime traffic.
 
 ### Motivation
 

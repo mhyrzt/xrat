@@ -30,12 +30,13 @@ Runtime lifecycle, rotation candidate selection, and event emission rate.
 
 - Define restart contract: restore prior session if valid, otherwise fallback to
   best candidate.
-- Tighten rotation preconditions to exclude configs without valid required
-  probe results.
+- Tighten rotation preconditions to exclude configs without valid required probe
+  results.
 - Review rotation scheduler/retry loops and event severity/aggregation policy.
 
 ### Verification
 
 - Regression tests for restart with/without persisted active session.
 - Rotation tests proving invalid/no-delay configs are excluded.
-- Runtime/log test ensuring bulk rotation emits expected bounded progress events.
+- Runtime/log test ensuring bulk rotation emits expected bounded progress
+  events.

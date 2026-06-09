@@ -6,7 +6,8 @@ Planned
 
 ### Goal
 
-Replace the static `docs/src/media/screenshot.png` preview with animated VHS demos.
+Replace the static `docs/src/media/screenshot.png` preview with animated VHS
+demos.
 
 ### Current assets
 
@@ -27,9 +28,10 @@ vhs docs/src/media/tapes/cli.tape
 
 ### Changes required
 
-- Generate and commit `docs/src/media/gif/tui.gif` and `docs/src/media/gif/cli.gif`.
-- Add a `Justfile` recipe, for example `just gifs`, that creates `docs/src/media/gif/`
-  and renders both VHS tapes.
+- Generate and commit `docs/src/media/gif/tui.gif` and
+  `docs/src/media/gif/cli.gif`.
+- Add a `Justfile` recipe, for example `just gifs`, that creates
+  `docs/src/media/gif/` and renders both VHS tapes.
 - Replace the screenshot image block in `README.md`.
 - Replace the screenshot image block in `docs/src/README.md`.
 - Verify mdBook asset paths resolve from `docs/src/media/...`.
