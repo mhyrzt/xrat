@@ -38,7 +38,7 @@ impl FromStr for MmdbEdition {
             "geolite2-city" | "city" => Ok(Self::City),
             "geolite2-asn" | "asn" => Ok(Self::Asn),
             _ => Err(AppError::InvalidArgument(format!(
-                "unsupported geoip edition '{value}'; valid values: GeoLite2-Country, GeoLite2-City, GeoLite2-ASN, country, city, asn"
+                "unsupported MMDB edition '{value}'; valid values: GeoLite2-Country, GeoLite2-City, GeoLite2-ASN, country, city, asn"
             ))),
         }
     }
@@ -64,6 +64,6 @@ mod tests {
     #[test]
     fn rejects_invalid_edition_name() {
         let error = MmdbEdition::from_str("geo").expect_err("edition should fail");
-        assert!(error.to_string().contains("unsupported geoip edition"));
+        assert!(error.to_string().contains("unsupported MMDB edition"));
     }
 }

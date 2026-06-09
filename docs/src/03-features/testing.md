@@ -318,7 +318,7 @@ city_path = "mmdb/GeoLite2-City.mmdb"
 asn_path = "mmdb/GeoLite2-ASN.mmdb"
 ```
 
-Download MMDB files with the [`geoip download`](../02-cli/geoip.md#download)
+Download MMDB files with the [`mmdb download`](../02-cli/mmdb.md#download)
 command.
 
 #### Remote backends (ipwhois / ip-api)
@@ -366,7 +366,7 @@ When GeoIP enrichment is enabled, test results include:
 
 ### Related
 
-- [`geoip` CLI](../02-cli/geoip.md) — manage MMDB assets, inspect backends, and
+- [`mmdb` CLI](../02-cli/mmdb.md) — manage MMDB assets, inspect backends, and
   run ad-hoc IP lookups
 - [`[mmdb]` config](../05-reference/config-file.md#mmdb) — MMDB asset
   configuration

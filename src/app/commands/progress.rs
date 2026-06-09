@@ -1,7 +1,7 @@
 use std::io::IsTerminal;
 use std::time::Duration;
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub(crate) struct CliProgress {
     bar: Option<ProgressBar>,
@@ -63,6 +63,27 @@ impl CliProgress {
         Self { bar: Some(bar) }
     }
 
+    pub(crate) fn bytes_bar_in_multi(
+        enabled: bool,
+        multi: &MultiProgress,
+        content_length: Option<u64>,
+        message: impl Into<String>,
+    ) -> Self {
+        if !should_enable(enabled, std::io::stderr().is_terminal()) {
+            return Self::disabled();
+        }
+
+        let bar = multi.add(ProgressBar::new(content_length.unwrap_or(0)));
+        let style = ProgressStyle::with_template(
+            "{spinner:.green} {msg} [{bar:32.cyan/blue}] {bytes}/{total_bytes}",
+        )
+        .unwrap_or_else(|_| ProgressStyle::default_bar())
+        .progress_chars("=>-");
+        bar.set_style(style);
+        bar.set_message(message.into());
+        Self { bar: Some(bar) }
+    }
+
     pub(crate) fn disabled() -> Self {
         Self { bar: None }
     }
@@ -76,6 +97,12 @@ impl CliProgress {
     pub(crate) fn set_position(&self, position: u64) {
         if let Some(bar) = &self.bar {
             bar.set_position(position);
+        }
+    }
+
+    pub(crate) fn set_length(&self, len: u64) {
+        if let Some(bar) = &self.bar {
+            bar.set_length(len);
         }
     }
 

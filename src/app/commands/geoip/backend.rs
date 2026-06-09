@@ -7,51 +7,107 @@ pub(crate) fn run(context: &AppContext, args: &GeoIpBackendArgs) -> crate::app::
     let config =
         override_backend_config(&context.app_config, args.backend.as_deref(), args.no_cache)?;
 
-    println!(
-        "{}",
-        output::format_kv(
-            Some("GeoIP backend"),
-            &[
-                (
-                    "backend",
-                    backend_label(config.testing.geoip.backend).to_string(),
-                ),
-                (
-                    "fallback",
-                    backend_label(config.testing.geoip.fallback).to_string(),
-                ),
-                (
-                    "cache",
-                    if config.testing.geoip.cache.enabled {
-                        format!(
-                            "enabled (ttl={}s, max={})",
-                            config.testing.geoip.cache.ttl_secs,
-                            config.testing.geoip.cache.max_entries
-                        )
-                    } else {
-                        "disabled".to_string()
-                    },
-                ),
-                (
-                    "remote",
-                    format!(
-                        "provider={} endpoint={} timeout_ms={} rate_limit_per_minute={}",
-                        remote_provider_label(config.testing.geoip.remote.provider),
-                        if config.testing.geoip.remote.endpoint.is_empty() {
-                            "<default>"
-                        } else {
-                            config.testing.geoip.remote.endpoint.as_str()
-                        },
-                        config.testing.geoip.remote.timeout_ms,
-                        config.testing.geoip.remote.rate_limit_per_minute,
-                    ),
-                ),
-            ],
-            output::color_enabled(),
-        )
-    );
+    if args.json {
+        println!("{}", format_backend_json(&config)?);
+    } else {
+        println!("{}", format_backend_human(&config, output::color_enabled()));
+    }
 
     Ok(())
+}
+
+fn format_backend_human(config: &AppConfig, color: bool) -> String {
+    let geoip = &config.testing.geoip;
+    let mut lines = Vec::new();
+    lines.push(output::format_kv(
+        Some("GeoIP lookup"),
+        &[
+            ("enabled", output::bool_label(geoip.enabled).to_string()),
+            ("backend", backend_label(geoip.backend).to_string()),
+            ("fallback", backend_label(geoip.fallback).to_string()),
+        ],
+        color,
+    ));
+    lines.push(String::new());
+    lines.push(output::format_kv(
+        Some("Cache"),
+        &[
+            (
+                "enabled",
+                output::bool_label(geoip.cache.enabled).to_string(),
+            ),
+            ("ttl", format!("{} seconds", geoip.cache.ttl_secs)),
+            ("max entries", geoip.cache.max_entries.to_string()),
+        ],
+        color,
+    ));
+    lines.push(String::new());
+    lines.push(output::format_kv(
+        Some("Remote provider"),
+        &[
+            (
+                "provider",
+                remote_provider_label(geoip.remote.provider).to_string(),
+            ),
+            ("endpoint", endpoint_label(&geoip.remote.endpoint)),
+            ("timeout", format!("{} ms", geoip.remote.timeout_ms)),
+            (
+                "rate limit",
+                format!("{} requests/minute", geoip.remote.rate_limit_per_minute),
+            ),
+        ],
+        color,
+    ));
+    lines.push(String::new());
+    lines.push(output::format_kv(
+        Some("Local MMDB"),
+        &[
+            ("country path", geoip.country_path.display().to_string()),
+            ("city path", geoip.city_path.display().to_string()),
+            ("asn path", geoip.asn_path.display().to_string()),
+        ],
+        color,
+    ));
+    lines.join("\n")
+}
+
+fn format_backend_json(config: &AppConfig) -> crate::app::Result<String> {
+    let geoip = &config.testing.geoip;
+    Ok(serde_json::to_string_pretty(&serde_json::json!({
+        "lookup": {
+            "enabled": geoip.enabled,
+            "backend": backend_label(geoip.backend),
+            "fallback": backend_label(geoip.fallback),
+        },
+        "cache": {
+            "enabled": geoip.cache.enabled,
+            "ttl_secs": geoip.cache.ttl_secs,
+            "max_entries": geoip.cache.max_entries,
+        },
+        "remote": {
+            "provider": remote_provider_label(geoip.remote.provider),
+            "endpoint": if geoip.remote.endpoint.is_empty() {
+                serde_json::Value::Null
+            } else {
+                serde_json::Value::String(geoip.remote.endpoint.clone())
+            },
+            "timeout_ms": geoip.remote.timeout_ms,
+            "rate_limit_per_minute": geoip.remote.rate_limit_per_minute,
+        },
+        "local_mmdb": {
+            "country_path": geoip.country_path,
+            "city_path": geoip.city_path,
+            "asn_path": geoip.asn_path,
+        },
+    }))?)
+}
+
+fn endpoint_label(endpoint: &str) -> String {
+    if endpoint.is_empty() {
+        "<default>".to_string()
+    } else {
+        endpoint.to_string()
+    }
 }
 
 pub(crate) fn override_backend_config(
@@ -113,5 +169,31 @@ mod tests {
 
         assert_eq!(config.testing.geoip.backend, GeoIpBackend::IpApi);
         assert!(!config.testing.geoip.cache.enabled);
+    }
+
+    #[test]
+    fn formats_backend_output_in_sections() {
+        let output = format_backend_human(&AppConfig::default(), false);
+
+        assert!(output.contains("GeoIP lookup"));
+        assert!(output.contains("Cache"));
+        assert!(output.contains("Remote provider"));
+        assert!(output.contains("Local MMDB"));
+        assert!(output.contains("ttl          86400 seconds"));
+        assert!(output.contains("timeout     5000 ms"));
+    }
+
+    #[test]
+    fn formats_backend_json() {
+        let output = format_backend_json(&AppConfig::default()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+        assert_eq!(json["lookup"]["backend"], "mmdb");
+        assert_eq!(json["cache"]["enabled"], true);
+        assert_eq!(json["remote"]["endpoint"], serde_json::Value::Null);
+        assert_eq!(
+            json["local_mmdb"]["country_path"],
+            "mmdb/GeoLite2-Country.mmdb"
+        );
     }
 }

@@ -8,7 +8,7 @@ use crate::app::AppError;
 
 use super::super::edition::MmdbEdition;
 use super::super::{ensure_mmdb_target_dir, mmdb_file_path};
-use super::progress::{create_progress_bar, ensure_non_empty_download};
+use super::progress::{DownloadProgressSet, create_progress_bar, ensure_non_empty_download};
 use super::request::DownloadRequest;
 use super::summary::{DownloadFailure, DownloadSummary};
 
@@ -30,13 +30,16 @@ pub(crate) async fn execute_downloads(request: &DownloadRequest) -> DownloadSumm
     }
 
     let request = std::sync::Arc::new(request.clone());
+    print_download_sources(&request);
+    let progress_set = DownloadProgressSet::new(request.quiet);
     let mut join_set = tokio::task::JoinSet::new();
 
     for edition in &request.editions {
         let request = std::sync::Arc::clone(&request);
         let edition = *edition;
+        let progress = progress_set.create_bar(edition);
         join_set.spawn(async move {
-            let result = download_one(&request, edition).await;
+            let result = download_one_with_progress(&request, edition, Some(progress)).await;
             (edition, result)
         });
     }
@@ -71,12 +74,24 @@ pub(crate) enum DownloadOutcome {
     Skipped,
 }
 
+#[cfg(test)]
 pub(crate) async fn download_one(
     request: &DownloadRequest,
     edition: MmdbEdition,
 ) -> crate::app::Result<DownloadOutcome> {
+    download_one_with_progress(request, edition, None).await
+}
+
+async fn download_one_with_progress(
+    request: &DownloadRequest,
+    edition: MmdbEdition,
+    progress: Option<crate::app::commands::progress::CliProgress>,
+) -> crate::app::Result<DownloadOutcome> {
     let destination = mmdb_file_path(&request.mmdb_dir, edition);
     if destination.exists() && !request.force {
+        if let Some(progress) = progress {
+            progress.finish_with_message("skipped");
+        }
         println!(
             "skipped: {} (already present, use --force to redownload)",
             edition.file_name()
@@ -84,20 +99,32 @@ pub(crate) async fn download_one(
         return Ok(DownloadOutcome::Skipped);
     }
 
-    let _url = build_download_url(&request.url_template, edition);
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(request.timeout_secs))
         .build()?;
-    download_one_with_client(&client, request, edition).await
+    download_one_with_client_and_progress(&client, request, edition, progress).await
 }
 
+#[cfg(test)]
 pub(crate) async fn download_one_with_client(
     client: &reqwest::Client,
     request: &DownloadRequest,
     edition: MmdbEdition,
 ) -> crate::app::Result<DownloadOutcome> {
+    download_one_with_client_and_progress(client, request, edition, None).await
+}
+
+async fn download_one_with_client_and_progress(
+    client: &reqwest::Client,
+    request: &DownloadRequest,
+    edition: MmdbEdition,
+    progress: Option<crate::app::commands::progress::CliProgress>,
+) -> crate::app::Result<DownloadOutcome> {
     let destination = mmdb_file_path(&request.mmdb_dir, edition);
     if destination.exists() && !request.force {
+        if let Some(progress) = progress {
+            progress.finish_with_message("skipped");
+        }
         println!(
             "skipped: {} (already present, use --force to redownload)",
             edition.file_name()
@@ -124,7 +151,16 @@ pub(crate) async fn download_one_with_client(
         });
     }
 
-    let progress = create_progress_bar(edition, request.quiet, response.content_length());
+    let content_length = response.content_length();
+    let progress = match progress {
+        Some(progress) => {
+            if let Some(content_length) = content_length {
+                progress.set_length(content_length);
+            }
+            progress
+        }
+        None => create_progress_bar(edition, request.quiet, content_length),
+    };
     let mut file = NamedTempFile::new_in(&request.mmdb_dir)?;
     let mut bytes_written = 0_u64;
     let mut response = response;
@@ -157,6 +193,20 @@ pub(crate) async fn download_one_with_client(
     );
 
     Ok(DownloadOutcome::Downloaded)
+}
+
+fn print_download_sources(request: &DownloadRequest) {
+    for edition in &request.editions {
+        println!("{}", download_source_line(&request.url_template, *edition));
+    }
+}
+
+pub(crate) fn download_source_line(template: &str, edition: MmdbEdition) -> String {
+    format!(
+        "source: {} <- {}",
+        edition.file_name(),
+        build_download_url(template, edition)
+    )
 }
 
 fn set_mmdb_permissions(path: &std::path::Path) -> crate::app::Result<()> {

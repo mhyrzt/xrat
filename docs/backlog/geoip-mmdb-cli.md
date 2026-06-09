@@ -1,8 +1,8 @@
-# Medium, P2: GeoIP/MMDB CLI naming and UX improvements
+# Done: GeoIP/MMDB CLI naming and UX improvements
 
 ### Status
 
-Draft
+Completed
 
 ### Scope
 
@@ -10,11 +10,11 @@ CLI naming clarity, backend visibility, and download progress rendering.
 
 ### Items
 
-- Consider renaming namespace from `xrat geoip ...` to `xrat mmdb ...` (or
-  another clearer term) to reduce confusion with Xray GeoIP semantics.
-- Improve `xrat geoip backend` output readability and structure.
-- During downloads, show source repository/URL being used.
-- Fix `xrat geoip download --all --force` progress rendering where lines flicker
+- Renamed namespace from `xrat geoip ...` to `xrat mmdb ...` without retaining
+  a `geoip` compatibility alias.
+- Improved `xrat mmdb backend` output readability and added `--json`.
+- During downloads, show source URL being used per edition.
+- Fixed `xrat mmdb download --all --force` progress rendering where lines flicker
   and swap between databases.
 
 ### Possible root causes
@@ -28,14 +28,16 @@ CLI naming clarity, backend visibility, and download progress rendering.
 
 ### Changes required
 
-- Decide final command vocabulary and compatibility strategy (aliases,
-  deprecation, docs).
-- Redesign backend output fields with consistent labels and clearer units.
-- Include source endpoint/provider in download logs/progress header.
-- Update progress display to stable multi-line or single-active-task format.
+- Done: `mmdb` is the final command vocabulary, and `geoip` is intentionally not
+  retained as an alias.
+- Done: backend output is grouped into lookup, cache, remote provider, and local
+  MMDB sections with clearer units.
+- Done: download output includes expanded source URLs.
+- Done: multi-edition downloads use stable progress rows.
 
 ### Verification
 
-- CLI snapshot tests for backend/help output.
-- Manual/automated progress test with concurrent multi-file downloads.
-- Confirm old command aliases (if retained) behave and warn correctly.
+- CLI parser tests cover `mmdb` and reject the old `geoip` namespace.
+- Backend output tests cover grouped human output and JSON output.
+- Download tests cover source URL formatting and concurrent multi-file downloads.
+- Verified with `just fmt ci`.

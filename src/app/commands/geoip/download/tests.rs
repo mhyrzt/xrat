@@ -3,7 +3,9 @@ use std::time::Duration;
 use axum::http::StatusCode;
 
 use super::super::edition::{MmdbEdition, SUPPORTED_EDITIONS};
-use super::executor::{DownloadOutcome, build_download_url, download_one_with_client};
+use super::executor::{
+    DownloadOutcome, build_download_url, download_one_with_client, download_source_line,
+};
 use super::progress::ensure_non_empty_download;
 use super::request::{DownloadRequest, resolve_requested_editions};
 use super::summary::{DownloadFailure, DownloadSummary};
@@ -26,6 +28,14 @@ fn builds_download_url_from_template() {
     assert_eq!(
         build_download_url("https://example.com/{edition}.mmdb", MmdbEdition::Asn),
         "https://example.com/GeoLite2-ASN.mmdb"
+    );
+}
+
+#[test]
+fn formats_download_source_line() {
+    assert_eq!(
+        download_source_line("https://example.com/{edition}.mmdb", MmdbEdition::City),
+        "source: GeoLite2-City.mmdb <- https://example.com/GeoLite2-City.mmdb"
     );
 }
 

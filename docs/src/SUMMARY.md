@@ -25,7 +25,7 @@
   - [db](02-cli/db.md)
   - [rotate](02-cli/rotate.md)
   - [proxy](02-cli/proxy.md)
-  - [geoip](02-cli/geoip.md)
+  - [mmdb](02-cli/mmdb.md)
   - [serve](02-cli/serve.md)
   - [tui](02-cli/tui.md)
   - [completions](02-cli/completions.md)

@@ -50,7 +50,7 @@ pub enum AppError {
     #[error("unsupported platform: {0}")]
     UnsupportedPlatform(String),
 
-    #[error("geoip download failed for {edition} from {url}: {reason}")]
+    #[error("MMDB download failed for {edition} from {url}: {reason}")]
     GeoipDownload {
         edition: String,
         url: String,

@@ -38,7 +38,7 @@ These flags apply to every command:
 | [`status`](runtime.md#status)             | Show the managed proxy runtime status                           |
 | [`daemon`](daemon.md)                     | Run or control the daemon supervisor process                    |
 | [`proxy`](proxy.md)                       | Control auto-rotating proxy scheduling via the daemon           |
-| [`geoip`](geoip.md)                       | Manage GeoLite2 MMDB assets and inspect GeoIP backend config    |
+| [`mmdb`](mmdb.md)                       | Manage GeoLite2 MMDB assets and inspect GeoIP backend config    |
 | [`serve`](serve.md)                       | Start the local HTTP API server                                 |
 | [`tui`](tui.md)                           | Start the interactive terminal UI                               |
 | [`upgrade`](upgrade.md)                   | Self-upgrade from the latest release or by building from source |

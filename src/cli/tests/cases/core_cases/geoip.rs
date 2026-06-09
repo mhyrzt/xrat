@@ -6,7 +6,7 @@ use crate::cli::{Cli, Command, GeoIpAction};
 fn parses_geoip_download_flags() {
     let cli = Cli::parse_from([
         "xrat",
-        "geoip",
+        "mmdb",
         "download",
         "--edition",
         "city",
@@ -16,7 +16,7 @@ fn parses_geoip_download_flags() {
     ]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Download(args) => {
                 assert_eq!(args.editions, vec!["city"]);
                 assert!(args.force);
@@ -30,10 +30,10 @@ fn parses_geoip_download_flags() {
 
 #[test]
 fn parses_geoip_update_flags() {
-    let cli = Cli::parse_from(["xrat", "geoip", "update", "--quiet"]);
+    let cli = Cli::parse_from(["xrat", "mmdb", "update", "--quiet"]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Update(args) => assert!(args.quiet),
             _ => panic!("expected geoip update command"),
         },
@@ -45,7 +45,7 @@ fn parses_geoip_update_flags() {
 fn parses_geoip_lookup_flags() {
     let cli = Cli::parse_from([
         "xrat",
-        "geoip",
+        "mmdb",
         "lookup",
         "8.8.8.8",
         "--backend",
@@ -55,7 +55,7 @@ fn parses_geoip_lookup_flags() {
     ]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Lookup(args) => {
                 assert_eq!(args.ip, "8.8.8.8");
                 assert_eq!(args.backend.as_deref(), Some("ipwhois"));
@@ -72,7 +72,7 @@ fn parses_geoip_lookup_flags() {
 fn parses_geoip_backend_flags() {
     let cli = Cli::parse_from([
         "xrat",
-        "geoip",
+        "mmdb",
         "backend",
         "--backend",
         "ip-api",
@@ -80,7 +80,7 @@ fn parses_geoip_backend_flags() {
     ]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Backend(args) => {
                 assert_eq!(args.backend.as_deref(), Some("ip-api"));
                 assert!(args.no_cache);
@@ -93,10 +93,10 @@ fn parses_geoip_backend_flags() {
 
 #[test]
 fn parses_geoip_path_subcommand() {
-    let cli = Cli::parse_from(["xrat", "geoip", "path"]);
+    let cli = Cli::parse_from(["xrat", "mmdb", "path"]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Path(args) => assert!(args.output.is_none()),
             _ => panic!("expected geoip path command"),
         },
@@ -108,7 +108,7 @@ fn parses_geoip_path_subcommand() {
 fn parses_geoip_status_flags() {
     let cli = Cli::parse_from([
         "xrat",
-        "geoip",
+        "mmdb",
         "status",
         "--strict",
         "--json",
@@ -117,7 +117,7 @@ fn parses_geoip_status_flags() {
     ]);
 
     match cli.command {
-        Command::GeoIp(args) => match args.action {
+        Command::Mmdb(args) => match args.action {
             GeoIpAction::Status(args) => {
                 assert!(args.strict);
                 assert!(args.json);
@@ -130,4 +130,9 @@ fn parses_geoip_status_flags() {
         },
         _ => panic!("expected geoip command"),
     }
+}
+
+#[test]
+fn rejects_old_geoip_namespace() {
+    assert!(Cli::try_parse_from(["xrat", "geoip", "status"]).is_err());
 }

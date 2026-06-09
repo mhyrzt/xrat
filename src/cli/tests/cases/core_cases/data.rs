@@ -68,7 +68,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Restore(_)
         | Command::Purge(_)
         | Command::Logs(_)
-        | Command::GeoIp(_)
+        | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
@@ -118,7 +118,7 @@ fn parses_add_subcommand() {
         | Command::Restore(_)
         | Command::Purge(_)
         | Command::Logs(_)
-        | Command::GeoIp(_)
+        | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
@@ -173,7 +173,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Restore(_)
         | Command::Purge(_)
         | Command::Logs(_)
-        | Command::GeoIp(_)
+        | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
@@ -236,7 +236,7 @@ fn parses_list_config_filters() {
         | Command::Restore(_)
         | Command::Purge(_)
         | Command::Logs(_)
-        | Command::GeoIp(_)
+        | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {

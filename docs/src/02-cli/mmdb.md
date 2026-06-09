@@ -1,9 +1,9 @@
-# geoip
+# mmdb
 
 Manage GeoLite2 MMDB assets and inspect GeoIP lookup configuration.
 
 ```bash
-xrat geoip <command> [flags]
+xrat mmdb <command> [flags]
 ```
 
 ## Subcommands
@@ -24,7 +24,7 @@ xrat geoip <command> [flags]
 Download one or more GeoLite2 MMDB editions.
 
 ```bash
-xrat geoip download [flags]
+xrat mmdb download [flags]
 ```
 
 | Flag               | Description                                                                                                      |
@@ -45,19 +45,19 @@ from `[mmdb]` are used.
 Download all editions to the default MMDB directory:
 
 ```bash
-xrat geoip download --all
+xrat mmdb download --all
 ```
 
 Download a single edition:
 
 ```bash
-xrat geoip download --edition city
+xrat mmdb download --edition city
 ```
 
 Download to a custom directory:
 
 ```bash
-xrat geoip download --all --output ./testdata/xrat/mmdb
+xrat mmdb download --all --output ./testdata/xrat/mmdb
 ```
 
 ---
@@ -68,7 +68,7 @@ Refresh all supported GeoLite2 MMDB editions. Equivalent to
 `download --all --force`.
 
 ```bash
-xrat geoip update [flags]
+xrat mmdb update [flags]
 ```
 
 | Flag               | Description                                                          |
@@ -81,7 +81,7 @@ xrat geoip update [flags]
 ### Example
 
 ```bash
-xrat geoip update
+xrat mmdb update
 ```
 
 ---
@@ -91,7 +91,7 @@ xrat geoip update
 Print the resolved MMDB directory.
 
 ```bash
-xrat geoip path [flags]
+xrat mmdb path [flags]
 ```
 
 | Flag             | Description                                         |
@@ -108,8 +108,8 @@ Resolution order:
 ### Examples
 
 ```bash
-xrat geoip path
-xrat geoip path --output /custom/path
+xrat mmdb path
+xrat mmdb path --output /custom/path
 ```
 
 ---
@@ -119,7 +119,7 @@ xrat geoip path --output /custom/path
 Show MMDB presence and size for each supported edition.
 
 ```bash
-xrat geoip status [flags]
+xrat mmdb status [flags]
 ```
 
 | Flag             | Description                                         |
@@ -131,8 +131,8 @@ xrat geoip status [flags]
 ### Example
 
 ```bash
-xrat geoip status --strict
-xrat geoip status --json
+xrat mmdb status --strict
+xrat mmdb status --json
 ```
 
 ---
@@ -142,7 +142,7 @@ xrat geoip status --json
 Look up a single IP address through the configured GeoIP backend.
 
 ```bash
-xrat geoip lookup <ip> [flags]
+xrat mmdb lookup <ip> [flags]
 ```
 
 | Argument | Description           |
@@ -161,9 +161,9 @@ available.
 ### Examples
 
 ```bash
-xrat geoip lookup 8.8.8.8
-xrat geoip lookup 8.8.8.8 --backend ipwhois
-xrat geoip lookup 2001:4860:4860::8888 --json
+xrat mmdb lookup 8.8.8.8
+xrat mmdb lookup 8.8.8.8 --backend ipwhois
+xrat mmdb lookup 2001:4860:4860::8888 --json
 ```
 
 ---
@@ -173,36 +173,38 @@ xrat geoip lookup 2001:4860:4860::8888 --json
 Print the active GeoIP backend configuration.
 
 ```bash
-xrat geoip backend [flags]
+xrat mmdb backend [flags]
 ```
 
 | Flag               | Description                                       |
 | ------------------ | ------------------------------------------------- |
 | `--backend <name>` | Override backend: `mmdb`, `ipwhois`, `ip-api`     |
 | `--no-cache`       | Describe the backend chain without cache wrapping |
+| `--json`           | Print the backend configuration as JSON           |
 
-Shows the backend type, configured fallback, rate limiting, and cache settings.
+Shows lookup backend, fallback, cache settings, remote provider settings, and
+local MMDB paths.
 
 ### Example
 
 ```bash
-xrat geoip backend
+xrat mmdb backend
 ```
 
 ## Troubleshooting
 
-If `geoip status --strict` reports missing files, download the supported MMDB
+If `mmdb status --strict` reports missing files, download the supported MMDB
 editions:
 
 ```bash
-xrat geoip download --all
+xrat mmdb download --all
 ```
 
 If MMDB lookup fails but remote lookup works, check the resolved directory:
 
 ```bash
-xrat geoip path
-xrat geoip lookup 8.8.8.8 --backend ipwhois
+xrat mmdb path
+xrat mmdb lookup 8.8.8.8 --backend ipwhois
 ```
 
 Remote backends can be rate-limited by the provider. Use the default cache

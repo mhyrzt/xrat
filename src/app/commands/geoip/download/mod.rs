@@ -20,7 +20,7 @@ pub(crate) async fn run(context: &AppContext, args: &GeoIpDownloadArgs) -> crate
 
     if !summary.failed.is_empty() {
         return Err(AppError::InvalidArgument(format!(
-            "one or more GeoIP downloads failed: {}",
+            "one or more MMDB downloads failed: {}",
             summary.format_failure_details()
         )));
     }

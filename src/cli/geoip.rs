@@ -109,6 +109,8 @@ pub struct GeoIpBackendArgs {
         help = "Describe the backend chain without cache wrapping."
     )]
     pub no_cache: bool,
+    #[arg(long = "json", help = "Print the backend configuration as JSON.")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args, Default)]

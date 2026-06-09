@@ -63,8 +63,8 @@ pub enum Command {
     Upgrade(UpgradeArgs),
     #[command(about = "Print the xrat version.")]
     Version(VersionArgs),
-    #[command(name = "geoip", about = "Inspect and manage GeoLite2 MMDB assets.")]
-    GeoIp(GeoIpArgs),
+    #[command(name = "mmdb", about = "Inspect and manage GeoLite2 MMDB assets.")]
+    Mmdb(GeoIpArgs),
     #[command(hide = true)]
     Manpage(ManpageArgs),
     #[command(hide = true)]

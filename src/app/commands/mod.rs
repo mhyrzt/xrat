@@ -62,7 +62,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Validate(args) => validate::run(args),
         Command::Upgrade(args) => upgrade::run(context, args).await,
         Command::Version(args) => version::run(context, args),
-        Command::GeoIp(args) => geoip::run(context, args).await,
+        Command::Mmdb(args) => geoip::run(context, args).await,
         Command::Manpage(args) => manpage::run(context, args),
         Command::Completions(args) => completions::run(context, args),
     }
