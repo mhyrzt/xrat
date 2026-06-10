@@ -96,6 +96,19 @@ fn metric_columns_follow_enabled_settings_when_available() {
 }
 
 #[test]
+fn metric_columns_follow_tui_test_stages() {
+    let stages = vec!["icmp".to_string(), "real_delay".to_string()];
+
+    let columns = super::TuiMetricColumns::from_test_stages(&[row(1, Some(100))], &stages);
+
+    assert!(columns.icmp);
+    assert!(!columns.tcp);
+    assert!(columns.real_delay);
+    assert!(!columns.download);
+    assert!(!columns.upload);
+}
+
+#[test]
 fn metric_columns_hide_location_when_geoip_disabled_and_no_location_data() {
     let mut settings = crate::app::config::TestingSettings::default();
     settings.geoip.enabled = false;

@@ -107,11 +107,11 @@ impl TuiData {
         data.server_enabled = server.enabled;
         data.daemon = load_daemon_info(context).await;
         data.logs = logs;
-        data.metric_columns =
-            TuiMetricColumns::from_configs(&data.configs, Some(&context.app_config.testing));
         data.test_stage_names =
             normalize_test_stage_names(&context.app_config.runtime.rotation.test_stages);
         data.test_stage_label = format_test_stage_label(&data.test_stage_names);
+        data.metric_columns =
+            TuiMetricColumns::from_test_stages(&data.configs, &data.test_stage_names);
         data.metric_columns_from_settings = true;
         Ok(data)
     }
@@ -217,6 +217,17 @@ impl TuiData {
 }
 
 impl TuiMetricColumns {
+    pub fn from_test_stages(configs: &[TuiConfigRow], stages: &[String]) -> Self {
+        Self {
+            icmp: stages.iter().any(|stage| stage == "icmp"),
+            tcp: false,
+            real_delay: stages.iter().any(|stage| stage == "real_delay"),
+            download: stages.iter().any(|stage| stage == "download"),
+            upload: false,
+            country: has_location_data(configs),
+        }
+    }
+
     pub fn from_configs(
         configs: &[TuiConfigRow],
         settings: Option<&crate::app::config::TestingSettings>,
