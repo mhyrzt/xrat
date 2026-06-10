@@ -1,3 +1,6 @@
-- having a RELEASE_NOTES.md (or any conventional filename) file that
-  automatically be added to gh notes after release
-- change ci required
+- better error outputing
+
+```
+❯ eval "$(xrat proxy shell toggle)"
+error: invalid argument: no active HTTP or SOCKS inbound; start a runtime with `xrat connect <id>`
+```
