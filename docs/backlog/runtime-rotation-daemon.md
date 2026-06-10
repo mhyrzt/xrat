@@ -14,8 +14,12 @@ Runtime lifecycle, rotation candidate selection, and event emission rate.
   best valid connection deterministically.
 - `xrat rotate now` sometimes selects invalid configs with missing/unusable
   delay results.
-- Rotation logs show very frequent `rotation_bulk_advanced` bursts; validate
-  whether scheduler/run-loop behavior is expected.
+- ~~Rotation logs show very frequent `rotation_bulk_advanced` bursts; validate
+  whether scheduler/run-loop behavior is expected.~~ Resolved: per-candidate
+  `rotation_bulk_advanced` events were a cross-process progress bus polled by
+  the `rotate` CLI but persisted as durable log rows. The per-candidate emit was
+  removed; only bounded `rotation_bulk_started`/`rotation_bulk_finished` events
+  and the `test_run` summary remain.
 
 ### Possible root causes
 

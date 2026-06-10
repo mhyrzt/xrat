@@ -112,19 +112,6 @@ pub(crate) async fn run_bulk_for_configs_cancellable(
                 let config_id = output.id;
                 outputs.push(output);
                 update_bulk_progress(&progress, completed, failed);
-                if run_kind == "rotation" {
-                    crate::app::events::record(
-                        &context.db,
-                        crate::app::events::LEVEL_INFO,
-                        crate::app::events::SOURCE_ROTATION,
-                        "rotation_bulk_progress",
-                        "rotation_bulk_advanced".to_string(),
-                        Some(config_id),
-                        None,
-                        Some(format!("{{\"done\":{completed},\"total\":{total}}}")),
-                    )
-                    .await;
-                }
                 if let Some(tx) = &progress_tx {
                     let _ = tx.send(TestProgressUpdate {
                         config_id,
