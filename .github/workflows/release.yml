@@ -186,11 +186,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            dist/xrat-*.tar.gz \
-            dist/SHASUMS256.txt \
-            --title "${{ github.ref_name }}" \
-            --generate-notes
+          NOTES_FILE=".github/RELEASE_NOTE.md"
+          if [ -f "$NOTES_FILE" ]; then
+            echo "Using release notes from $NOTES_FILE"
+            gh release create "${{ github.ref_name }}" \
+              dist/xrat-*.tar.gz \
+              dist/SHASUMS256.txt \
+              --title "${{ github.ref_name }}" \
+              --notes-file "$NOTES_FILE"
+          else
+            echo "No $NOTES_FILE found; generating notes from commits"
+            gh release create "${{ github.ref_name }}" \
+              dist/xrat-*.tar.gz \
+              dist/SHASUMS256.txt \
+              --title "${{ github.ref_name }}" \
+              --generate-notes
+          fi
 
   publish-crates:
     name: Publish to crates.io

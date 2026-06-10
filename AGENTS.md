@@ -153,6 +153,11 @@ matching `v*`.
 - Prepare or inspect release notes with `gh` when publishing or validating a
   release, keeping notes focused on user-visible changes, fixes, packaging
   changes, and upgrade notes.
+- Release notes come from `.github/RELEASE_NOTE.md` when that file is present:
+  the workflow passes it to `gh release create --notes-file`, and its Markdown
+  becomes the release body verbatim (replacing the auto-generated commit list).
+  Update it before tagging; if it is absent the workflow falls back to
+  `--generate-notes`.
 - If release automation changes, update docs under `docs/src/` and prefer a
   focused commit separate from feature work.
 
