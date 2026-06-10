@@ -109,7 +109,10 @@ impl TuiConfigRow {
     }
 
     pub fn needs_location_enrichment(&self) -> bool {
-        true
+        !self.address.trim().is_empty()
+            && self.endpoint_country.is_none()
+            && self.endpoint_location.is_none()
+            && self.endpoint_asn.is_none()
     }
 
     pub fn apply_location_meta(&mut self, meta: crate::support::geoip::EndpointGeoMeta) {

@@ -61,6 +61,7 @@ impl TuiTaskState {
                 self.progress_done = *done;
                 self.progress_total = *total;
             }
+            TuiTaskEvent::LocationsEnriched { .. } => {}
             TuiTaskEvent::Completed { kind, message, .. } => {
                 if self.running == Some(*kind) {
                     self.running = None;

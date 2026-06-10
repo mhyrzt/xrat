@@ -30,6 +30,9 @@ pub enum TuiTaskEvent {
         done: usize,
         total: usize,
     },
+    LocationsEnriched {
+        updates: Vec<(i64, crate::support::geoip::EndpointGeoMeta)>,
+    },
     Completed {
         kind: TuiTaskKind,
         message: String,

@@ -79,7 +79,6 @@ impl TuiData {
             .into_iter()
             .map(TuiConfigRow::from)
             .collect();
-        enrich_config_locations(context, &mut configs).await;
 
         configs.sort_by_key(|row| (row.real_delay_ms.unwrap_or(i64::MAX), row.id));
         let sources = context
@@ -180,6 +179,16 @@ impl TuiData {
         self.refresh_config_counts();
     }
 
+    pub fn apply_location_meta_for(
+        &mut self,
+        id: i64,
+        meta: crate::support::geoip::EndpointGeoMeta,
+    ) {
+        if let Some(config) = self.configs.iter_mut().find(|config| config.id == id) {
+            config.apply_location_meta(meta);
+        }
+    }
+
     pub fn clear_test_fields_for_configs(&mut self, config_ids: &[i64]) {
         for config in self
             .configs
@@ -262,60 +271,26 @@ fn has_location_data(configs: &[TuiConfigRow]) -> bool {
     })
 }
 
-/// Bound on concurrent address resolutions so boot does not fan out one DNS
-/// query per config serially.
-const ENRICH_CONCURRENCY: usize = 64;
+/// Time-to-live for in-session GeoIP lookups so repeated resolutions of the same
+/// IP reuse the decoded mmdb result instead of re-reading the database.
+const GEO_LOOKUP_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
 
-/// Per-address cap so an unresolvable or slow host cannot stall the whole load.
-const ENRICH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+/// Upper bound on cached IP lookups kept in memory for a single session.
+const GEO_LOOKUP_MAX_ENTRIES: usize = 8192;
 
-async fn enrich_config_locations(
-    context: &crate::app::context::AppContext,
-    configs: &mut [TuiConfigRow],
-) {
-    let targets: Vec<(usize, String)> = configs
-        .iter()
-        .enumerate()
-        .filter(|(_, config)| config.needs_location_enrichment())
-        .map(|(index, config)| (index, config.address.clone()))
-        .collect();
-    if targets.is_empty() {
-        return;
-    }
-
-    let lookup = std::sync::Arc::new(local_mmdb_lookup(
-        &context.app_config,
-        &context.runtime_paths,
-    ));
-
-    let mut join_set = tokio::task::JoinSet::new();
-    let mut pending = targets.into_iter();
-    let spawn_next = |join_set: &mut tokio::task::JoinSet<_>,
-                      pending: &mut std::vec::IntoIter<(usize, String)>| {
-        if let Some((index, address)) = pending.next() {
-            let lookup = lookup.clone();
-            join_set.spawn(async move {
-                let meta = tokio::time::timeout(
-                    ENRICH_TIMEOUT,
-                    crate::support::geoip::enrich_address(&address, lookup.as_ref()),
-                )
-                .await
-                .unwrap_or_default();
-                (index, meta)
-            });
-        }
-    };
-
-    for _ in 0..ENRICH_CONCURRENCY {
-        spawn_next(&mut join_set, &mut pending);
-    }
-
-    while let Some(joined) = join_set.join_next().await {
-        if let Ok((index, meta)) = joined {
-            configs[index].apply_location_meta(meta);
-        }
-        spawn_next(&mut join_set, &mut pending);
-    }
+/// Build the GeoIP lookup used for background location enrichment, wrapping the
+/// local mmdb backend in an in-session [`CachedLookup`] so the lookup is built
+/// once per session rather than rebuilt on every data load.
+pub fn build_geo_lookup(
+    app_config: &crate::app::config::AppConfig,
+    runtime_paths: &crate::app::context::RuntimePaths,
+) -> std::sync::Arc<crate::support::geoip::CachedLookup> {
+    let inner = std::sync::Arc::new(local_mmdb_lookup(app_config, runtime_paths));
+    std::sync::Arc::new(crate::support::geoip::CachedLookup::new(
+        inner,
+        GEO_LOOKUP_TTL,
+        GEO_LOOKUP_MAX_ENTRIES,
+    ))
 }
 
 fn local_mmdb_lookup(

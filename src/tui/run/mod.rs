@@ -25,11 +25,24 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let (version_tx, mut version_rx) = mpsc::unbounded_channel();
     let (logs_tx, mut logs_rx) = mpsc::unbounded_channel();
     tasks::spawn_version_check(version_tx);
+    let geo_lookup =
+        crate::tui::data::build_geo_lookup(&context.app_config, &context.runtime_paths);
+    tasks::spawn_enrich_locations(
+        geo_lookup.clone(),
+        tasks::enrichment_targets(&app.data),
+        &task_tx,
+    );
     let mut last_log_refresh = std::time::Instant::now();
     let mut log_refresh_pending = false;
 
     loop {
-        drain_task_events(&mut app, &mut task_rx);
+        if drain_task_events(&mut app, &mut task_rx) {
+            tasks::spawn_enrich_locations(
+                geo_lookup.clone(),
+                tasks::enrichment_targets(&app.data),
+                &task_tx,
+            );
+        }
         while let Ok(result) = logs_rx.try_recv() {
             log_refresh_pending = false;
             match result {
@@ -277,8 +290,21 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     Ok(())
 }
 
-fn drain_task_events(app: &mut TuiApp, task_rx: &mut mpsc::UnboundedReceiver<TuiTaskEvent>) {
+/// Drain queued task events into the app, returning `true` if any of them
+/// carried a full data reload (so the caller can re-trigger location
+/// enrichment for newly loaded rows).
+fn drain_task_events(
+    app: &mut TuiApp,
+    task_rx: &mut mpsc::UnboundedReceiver<TuiTaskEvent>,
+) -> bool {
+    let mut reloaded = false;
     while let Ok(event) = task_rx.try_recv() {
+        reloaded |= matches!(
+            event,
+            TuiTaskEvent::Completed { data: Some(_), .. }
+                | TuiTaskEvent::Failed { data: Some(_), .. }
+        );
         app.apply_task_event(event);
     }
+    reloaded
 }

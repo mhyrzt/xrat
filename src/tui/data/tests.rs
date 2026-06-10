@@ -45,6 +45,26 @@ fn summarizes_config_counts() {
 }
 
 #[test]
+fn needs_location_enrichment_only_when_geo_missing_and_address_present() {
+    let known = row(1, Some(100));
+    assert!(!known.needs_location_enrichment());
+
+    let mut missing_geo = row(2, Some(100));
+    missing_geo.endpoint_country = None;
+    missing_geo.endpoint_location = None;
+    missing_geo.endpoint_asn = None;
+    assert!(missing_geo.needs_location_enrichment());
+
+    let mut partial_geo = missing_geo.clone();
+    partial_geo.endpoint_asn = Some("AS60781 LeaseWeb".to_string());
+    assert!(!partial_geo.needs_location_enrichment());
+
+    let mut no_address = missing_geo.clone();
+    no_address.address = "   ".to_string();
+    assert!(!no_address.needs_location_enrichment());
+}
+
+#[test]
 fn formats_network_and_delay_labels() {
     let mut active = row(4, Some(88));
     active.is_active = true;
@@ -141,8 +161,6 @@ fn applies_location_meta_overwriting_stale_values() {
     row.endpoint_country = Some("NL".to_string());
     row.endpoint_location = Some("loopback_ipv4".to_string());
     row.endpoint_asn = None;
-
-    assert!(row.needs_location_enrichment());
 
     row.apply_location_meta(crate::support::geoip::EndpointGeoMeta {
         country: Some("US".to_string()),

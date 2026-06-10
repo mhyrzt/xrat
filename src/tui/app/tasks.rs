@@ -69,6 +69,11 @@ impl TuiApp {
                 self.testing_config_ids.retain(|id| *id != row.id);
                 self.replace_config_row(row);
             }
+            crate::tui::task::TuiTaskEvent::LocationsEnriched { updates } => {
+                for (id, meta) in updates {
+                    self.data.apply_location_meta_for(id, meta);
+                }
+            }
             event => {
                 self.task_state.apply(&event);
             }
