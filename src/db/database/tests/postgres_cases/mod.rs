@@ -10,6 +10,7 @@ pub(super) async fn verify_database_backend(db: &Database) {
     config_cases::verify_reconcile_state(db).await;
     connection_test_cases::verify_connection_test_state(db, second_id).await;
     runtime_session_cases::verify_runtime_session_state(db, second_id).await;
+    super::geoip_cache_cases::verify_geoip_cache_state(db).await;
 
     // Ensure earlier config delete path actually removed the original item.
     assert!(

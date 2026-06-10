@@ -2,6 +2,7 @@ mod cf_scan_results;
 mod configs;
 mod connection_tests;
 mod events;
+mod geoip_cache;
 mod import;
 mod refs;
 mod runtime_sessions;
@@ -12,6 +13,7 @@ pub use connection_tests::{
     ConnectionTestInsert, ConnectionTestRecord, ConnectionTestRunInsert, ConnectionTestRunRecord,
 };
 pub use events::{EventFilter, EventRecord, NewEvent};
+pub use geoip_cache::{GeoIpCacheRecord, GeoIpCacheUpsert};
 pub use import::{
     ImportSource, ImportSummary, RefreshableSubscription, SourceKind, SubscriptionRecord,
 };

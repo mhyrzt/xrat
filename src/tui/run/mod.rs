@@ -28,6 +28,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let geo_lookup =
         crate::tui::data::build_geo_lookup(&context.app_config, &context.runtime_paths);
     tasks::spawn_enrich_locations(
+        context.db.clone(),
         geo_lookup.clone(),
         tasks::enrichment_targets(&app.data),
         &task_tx,
@@ -38,6 +39,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     loop {
         if drain_task_events(&mut app, &mut task_rx) {
             tasks::spawn_enrich_locations(
+                context.db.clone(),
                 geo_lookup.clone(),
                 tasks::enrichment_targets(&app.data),
                 &task_tx,

@@ -50,6 +50,9 @@ pub struct TuiData {
     pub metric_columns: TuiMetricColumns,
     pub test_stage_label: String,
     pub test_stage_names: Vec<String>,
+    /// `(config_id, address)` rows still needing a network location lookup after
+    /// DB test geo and the persistent cache have been applied.
+    pub pending_enrichment: Vec<(i64, String)>,
     metric_columns_from_settings: bool,
 }
 
@@ -81,6 +84,7 @@ impl TuiData {
             .collect();
 
         configs.sort_by_key(|row| (row.real_delay_ms.unwrap_or(i64::MAX), row.id));
+        let pending_enrichment = apply_geo_cache(context, &mut configs).await;
         let sources = context
             .db
             .list_subscriptions()
@@ -112,6 +116,7 @@ impl TuiData {
         data.metric_columns =
             TuiMetricColumns::from_test_stages(&data.configs, &data.test_stage_names);
         data.metric_columns_from_settings = true;
+        data.pending_enrichment = pending_enrichment;
         Ok(data)
     }
 
@@ -166,6 +171,7 @@ impl TuiData {
             metric_columns,
             test_stage_label: "tcp + real-delay".to_string(),
             test_stage_names: vec!["tcp".to_string(), "real_delay".to_string()],
+            pending_enrichment: Vec::new(),
             metric_columns_from_settings: false,
         }
     }
@@ -269,6 +275,71 @@ fn has_location_data(configs: &[TuiConfigRow]) -> bool {
             || row.endpoint_location.is_some()
             || row.endpoint_asn.is_some()
     })
+}
+
+/// Persisted host -> geo entries older than this are treated as cache misses and
+/// re-resolved. Geo is stable, so a day keeps boots network-free while still
+/// letting dead hosts recover.
+const GEO_CACHE_TTL_SECS: i64 = 86_400;
+
+/// Apply persisted host -> geo to rows still missing location, returning the
+/// `(config_id, address)` rows that need a network lookup. A fresh cache entry
+/// (even an empty one) suppresses re-resolution so unresolvable hosts are not
+/// retried on every boot.
+async fn apply_geo_cache(
+    context: &crate::app::context::AppContext,
+    configs: &mut [TuiConfigRow],
+) -> Vec<(i64, String)> {
+    let targets: Vec<(usize, i64, String, String)> = configs
+        .iter()
+        .enumerate()
+        .filter(|(_, config)| config.needs_location_enrichment())
+        .filter_map(|(index, config)| {
+            crate::support::geoip::address_host(&config.address)
+                .map(|host| (index, config.id, config.address.clone(), host))
+        })
+        .collect();
+    if targets.is_empty() {
+        return Vec::new();
+    }
+
+    let mut hosts: Vec<String> = targets.iter().map(|(_, _, _, host)| host.clone()).collect();
+    hosts.sort();
+    hosts.dedup();
+
+    let now = unix_now_secs();
+    let cached: std::collections::HashMap<String, crate::db::GeoIpCacheRecord> = context
+        .db
+        .get_fresh_geoip_cache(&hosts, now - GEO_CACHE_TTL_SECS)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|record| (record.host.clone(), record))
+        .collect();
+
+    let mut pending = Vec::new();
+    for (index, id, address, host) in targets {
+        match cached.get(&host) {
+            Some(record) => {
+                if record.has_location() {
+                    configs[index].apply_location_meta(crate::support::geoip::EndpointGeoMeta {
+                        location: record.location.clone(),
+                        country: record.country.clone(),
+                        asn: record.asn.clone(),
+                    });
+                }
+            }
+            None => pending.push((id, address)),
+        }
+    }
+    pending
+}
+
+pub fn unix_now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 /// Time-to-live for in-session GeoIP lookups so repeated resolutions of the same

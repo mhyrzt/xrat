@@ -19,9 +19,12 @@ const ENRICH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 /// locations fill in progressively instead of all at once.
 const ENRICH_FLUSH_BATCH: usize = 16;
 
-/// Resolve missing endpoint locations off the critical path and feed results
-/// back through the task channel so the first frame never waits on DNS.
+/// Resolve missing endpoint locations off the critical path, feed results back
+/// through the task channel so the first frame never waits on DNS, and persist
+/// every resolution (including empty ones) so dead hosts stop re-resolving on
+/// later boots.
 pub fn spawn_enrich_locations(
+    db: crate::db::Database,
     lookup: Arc<CachedLookup>,
     targets: Vec<(i64, String)>,
     task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
@@ -40,13 +43,14 @@ pub fn spawn_enrich_locations(
                 if let Some((id, address)) = pending.next() {
                     let lookup = lookup.clone();
                     join_set.spawn(async move {
+                        let host = crate::support::geoip::address_host(&address);
                         let meta = tokio::time::timeout(
                             ENRICH_TIMEOUT,
                             crate::support::geoip::enrich_address(&address, lookup.as_ref()),
                         )
                         .await
                         .unwrap_or_default();
-                        (id, meta)
+                        (id, host, meta)
                     });
                 }
             };
@@ -56,15 +60,21 @@ pub fn spawn_enrich_locations(
         }
 
         let mut batch = Vec::new();
+        let mut persisted = std::collections::HashSet::new();
         while let Some(joined) = join_set.join_next().await {
-            if let Ok((id, meta)) = joined
-                && meta.has_lookup_metadata()
-            {
-                batch.push((id, meta));
-                if batch.len() >= ENRICH_FLUSH_BATCH {
-                    let _ = task_tx.send(TuiTaskEvent::LocationsEnriched {
-                        updates: std::mem::take(&mut batch),
-                    });
+            if let Ok((id, host, meta)) = joined {
+                if let Some(host) = host
+                    && persisted.insert(host.clone())
+                {
+                    persist_geo(&db, host, &meta).await;
+                }
+                if meta.has_lookup_metadata() {
+                    batch.push((id, meta));
+                    if batch.len() >= ENRICH_FLUSH_BATCH {
+                        let _ = task_tx.send(TuiTaskEvent::LocationsEnriched {
+                            updates: std::mem::take(&mut batch),
+                        });
+                    }
                 }
             }
             spawn_next(&mut join_set, &mut pending);
@@ -76,13 +86,28 @@ pub fn spawn_enrich_locations(
     });
 }
 
-/// Collect the `(id, address)` pairs that still need location enrichment.
+async fn persist_geo(
+    db: &crate::db::Database,
+    host: String,
+    meta: &crate::support::geoip::EndpointGeoMeta,
+) {
+    let entry = crate::db::GeoIpCacheUpsert {
+        host,
+        ip: None,
+        country: meta.country.clone(),
+        location: meta.location.clone(),
+        asn: meta.asn.clone(),
+        resolved_at: crate::tui::data::unix_now_secs(),
+    };
+    if let Err(error) = db.upsert_geoip_cache(&entry).await {
+        tracing::debug!("geoip cache upsert failed: {error}");
+    }
+}
+
+/// The `(config_id, address)` rows still needing a network location lookup after
+/// DB test geo and the persistent cache have been applied during load.
 pub fn enrichment_targets(data: &TuiData) -> Vec<(i64, String)> {
-    data.configs
-        .iter()
-        .filter(|config| config.needs_location_enrichment())
-        .map(|config| (config.id, config.address.clone()))
-        .collect()
+    data.pending_enrichment.clone()
 }
 
 pub fn spawn_reload_data(

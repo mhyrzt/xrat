@@ -59,7 +59,9 @@ pub async fn resolve_address_ip(address: &str) -> Option<IpAddr> {
         .next()
 }
 
-fn address_host(address: &str) -> Option<String> {
+/// Extract the resolvable host from a config address (`host:port`, a URL, a
+/// bracketed IPv6 literal, or a bare host). Used as the GeoIP cache key.
+pub fn address_host(address: &str) -> Option<String> {
     let address = address.trim();
     if address.is_empty() {
         return None;
