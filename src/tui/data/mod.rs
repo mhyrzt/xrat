@@ -185,6 +185,13 @@ impl TuiData {
         self.refresh_config_counts();
     }
 
+    pub fn set_config_enabled(&mut self, id: i64, enabled: bool) {
+        if let Some(config) = self.configs.iter_mut().find(|config| config.id == id) {
+            config.is_enabled = enabled;
+        }
+        self.refresh_config_counts();
+    }
+
     pub fn apply_location_meta_for(
         &mut self,
         id: i64,

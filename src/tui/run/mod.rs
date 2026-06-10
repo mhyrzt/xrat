@@ -211,7 +211,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
                     }
                     if let Some(op) = bulk_to_run {
-                        tasks::run_bulk_op(context, &mut app, op).await;
+                        tasks::run_bulk_op(context, &mut app, op, &task_tx).await;
                     }
                     if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
                         tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);
@@ -246,13 +246,14 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     }
                     if let Some((source_id, name)) = rename_submit {
                         app.rename_modal = None;
-                        tasks::run_source_rename(context, &mut app, source_id, name).await;
+                        tasks::run_source_rename(context, &mut app, source_id, name, &task_tx)
+                            .await;
                     }
                     if let Some(source_id) = confirmed_source_delete {
-                        tasks::run_source_delete(context, &mut app, source_id).await;
+                        tasks::run_source_delete(context, &mut app, source_id, &task_tx).await;
                     }
                     if confirmed_clear_events {
-                        tasks::run_clear_events(context, &mut app).await;
+                        tasks::run_clear_events(context, &mut app, &logs_tx).await;
                     }
                     if let Some((config_id, config_name)) = qr_config_id {
                         tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;
@@ -273,7 +274,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         tasks::copy_api_url(&mut app);
                     }
                     if let Some(command) = confirmed_command.or(direct_command) {
-                        tasks::run_config_command(context, &mut app, command).await;
+                        tasks::run_config_command(context, &mut app, command, &task_tx).await;
                     }
                     if let Some(config_id) = start_focused_id {
                         tasks::spawn_runtime_start_config(
