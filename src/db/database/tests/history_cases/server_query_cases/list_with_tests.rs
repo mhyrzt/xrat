@@ -28,8 +28,8 @@ async fn list_with_latest_tests_returns_config_and_test() {
     db.insert_connection_test(&ConnectionTestInsert {
         run_id: None,
         config_id: config.id,
-        icmp_ok: None,
-        icmp_ms: None,
+        icmp_ok: Some(true),
+        icmp_ms: Some(40),
         tcp_ok: Some(true),
         tcp_ms: Some(50),
         real_delay_ok: Some(true),
@@ -40,9 +40,9 @@ async fn list_with_latest_tests_returns_config_and_test() {
         ttfb_ms: None,
         http_status: None,
         endpoint_ip: None,
-        endpoint_location: None,
-        endpoint_country: None,
-        endpoint_asn: None,
+        endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
+        endpoint_country: Some("NL".to_string()),
+        endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
         failure_kind: None,
         failure_reason: None,
     })
@@ -56,8 +56,16 @@ async fn list_with_latest_tests_returns_config_and_test() {
 
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].config.id, config.id);
+    assert_eq!(rows[0].icmp_ok, Some(true));
+    assert_eq!(rows[0].icmp_ms, Some(40));
     assert_eq!(rows[0].tcp_ok, Some(true));
     assert_eq!(rows[0].real_delay_ms, Some(200));
+    assert_eq!(rows[0].endpoint_country.as_deref(), Some("NL"));
+    assert_eq!(
+        rows[0].endpoint_location.as_deref(),
+        Some("NL/North Holland/Amsterdam")
+    );
+    assert_eq!(rows[0].endpoint_asn.as_deref(), Some("AS60781 LeaseWeb"));
     assert!(rows[0].tested_at.is_some());
 
     let _ = std::fs::remove_file(db_path);

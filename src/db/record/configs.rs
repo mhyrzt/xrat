@@ -12,6 +12,8 @@ pub struct ConfigListFilter {
 pub struct ConfigWithLatestTest {
     pub config: ConfigRecord,
     pub test_id: Option<i64>,
+    pub icmp_ok: Option<bool>,
+    pub icmp_ms: Option<i64>,
     pub tcp_ok: Option<bool>,
     pub tcp_ms: Option<i64>,
     pub real_delay_ok: Option<bool>,
@@ -21,6 +23,9 @@ pub struct ConfigWithLatestTest {
     pub connect_ms: Option<i64>,
     pub ttfb_ms: Option<i64>,
     pub http_status: Option<i64>,
+    pub endpoint_location: Option<String>,
+    pub endpoint_country: Option<String>,
+    pub endpoint_asn: Option<String>,
     pub failure_kind: Option<String>,
     pub failure_reason: Option<String>,
     pub tested_at: Option<String>,

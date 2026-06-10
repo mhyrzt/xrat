@@ -2,7 +2,7 @@ use crate::app::commands::output::{self, Align, Cell, Column, Style};
 use crate::app::commands::resolve::resolve_subscription_id;
 use crate::app::context::AppContext;
 use crate::cli::{ListArgs, ListConfigsArgs, ListFormat, ListSubscriptionsArgs, ListTarget};
-use crate::db::{ConfigListFilter, ConfigRecord, SubscriptionRecord};
+use crate::db::{ConfigListFilter, ConfigRecord, ConfigWithLatestTest, SubscriptionRecord};
 use crate::support::refs::short_ref;
 use std::collections::HashMap;
 
@@ -17,7 +17,8 @@ pub async fn run(context: &AppContext, command: &ListArgs) -> crate::app::Result
 
 async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate::app::Result<()> {
     let filter = build_config_list_filter(context, filters).await?;
-    let configs = context.db.list_configs(&filter).await?;
+    let mut configs = context.db.list_configs_with_latest_tests(&filter).await?;
+    enrich_config_locations(context, &mut configs).await;
     let subscriptions = context.db.list_subscriptions().await?;
     let subscription_refs = subscriptions
         .iter()
@@ -31,7 +32,12 @@ async fn print_configs(context: &AppContext, filters: &ListConfigsArgs) -> crate
 
     println!(
         "{}",
-        format_configs(&configs, &subscription_refs, filters.format)?
+        format_configs(
+            &configs,
+            &subscription_refs,
+            filters.format,
+            Some(&context.app_config.testing),
+        )?
     );
 
     Ok(())
@@ -57,12 +63,13 @@ async fn print_subscriptions(
 }
 
 fn format_configs(
-    configs: &[ConfigRecord],
+    configs: &[ConfigWithLatestTest],
     subscription_refs: &HashMap<i64, &str>,
     format: ListFormat,
+    settings: Option<&crate::app::config::TestingSettings>,
 ) -> crate::app::Result<String> {
     match format {
-        ListFormat::Table => Ok(format_config_table(configs, subscription_refs)),
+        ListFormat::Table => Ok(format_config_table(configs, subscription_refs, settings)),
         ListFormat::Tsv => Ok(format_config_tsv(configs, subscription_refs)),
         ListFormat::Json => Ok(serde_json::to_string_pretty(
             &configs
@@ -73,8 +80,13 @@ fn format_configs(
     }
 }
 
-fn format_config_table(configs: &[ConfigRecord], subscription_refs: &HashMap<i64, &str>) -> String {
-    let columns = [
+fn format_config_table(
+    configs: &[ConfigWithLatestTest],
+    subscription_refs: &HashMap<i64, &str>,
+    settings: Option<&crate::app::config::TestingSettings>,
+) -> String {
+    let metric_columns = MetricColumns::for_configs(configs, settings);
+    let mut columns = vec![
         Column {
             header: "REF",
             align: Align::Left,
@@ -99,16 +111,18 @@ fn format_config_table(configs: &[ConfigRecord], subscription_refs: &HashMap<i64
             header: "PORT",
             align: Align::Right,
         },
-        Column {
-            header: "NAME",
-            align: Align::Left,
-        },
     ];
+    metric_columns.push_columns(&mut columns);
+    columns.extend([Column {
+        header: "NAME",
+        align: Align::Left,
+    }]);
     let rows = configs
         .iter()
-        .map(|config| {
-            vec![
-                Cell::plain(short_ref(&config.r#ref).to_string()),
+        .map(|row| {
+            let config = &row.config;
+            let mut cells = vec![
+                Cell::plain(short_ref(&config.r#ref)),
                 Cell::plain(subscription_ref_cell(
                     config.subscription_id,
                     subscription_refs,
@@ -120,26 +134,43 @@ fn format_config_table(configs: &[ConfigRecord], subscription_refs: &HashMap<i64
                 Cell::plain(config.protocol.clone()),
                 Cell::plain(output::truncate(&output::dash(Some(&config.address)), 36)),
                 Cell::plain(config.port.to_string()),
-                Cell::plain(output::truncate(config.name.as_deref().unwrap_or("-"), 32)),
-            ]
+            ];
+            metric_columns.push_cells(row, &mut cells);
+            cells.push(Cell::plain(output::truncate(
+                config.name.as_deref().unwrap_or("-"),
+                32,
+            )));
+            cells
         })
         .collect::<Vec<_>>();
 
     output::format_table(&columns, &rows, output::color_enabled())
 }
 
-fn format_config_tsv(configs: &[ConfigRecord], subscription_refs: &HashMap<i64, &str>) -> String {
+fn format_config_tsv(
+    configs: &[ConfigWithLatestTest],
+    subscription_refs: &HashMap<i64, &str>,
+) -> String {
     let mut lines = Vec::with_capacity(configs.len() + 1);
-    lines.push("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\tname".to_string());
-    for config in configs {
+    lines.push("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\ticmp_ms\ttcp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tendpoint_country\tendpoint_location\tendpoint_asn\tname".to_string());
+    for row in configs {
+        let config = &row.config;
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             config.r#ref,
             subscription_ref_tsv_cell(config.subscription_id, subscription_refs),
             format_config_flags(config.is_enabled, config.is_active, config.is_deleted),
             config.protocol,
             config.address,
             config.port,
+            optional_i64(row.icmp_ms),
+            optional_i64(row.tcp_ms),
+            optional_i64(row.real_delay_ms),
+            optional_f64(row.download_mbps),
+            optional_f64(row.upload_mbps),
+            tsv_cell(row.endpoint_country.as_deref()),
+            tsv_cell(row.endpoint_location.as_deref()),
+            tsv_cell(row.endpoint_asn.as_deref()),
             tsv_cell(config.name.as_deref()),
         ));
     }
@@ -259,7 +290,11 @@ fn config_style(config: &ConfigRecord) -> Style {
     }
 }
 
-fn config_json(config: &ConfigRecord, subscription_refs: &HashMap<i64, &str>) -> serde_json::Value {
+fn config_json(
+    row: &ConfigWithLatestTest,
+    subscription_refs: &HashMap<i64, &str>,
+) -> serde_json::Value {
+    let config = &row.config;
     serde_json::json!({
         "ref": &config.r#ref,
         "subscription_ref": config
@@ -274,6 +309,26 @@ fn config_json(config: &ConfigRecord, subscription_refs: &HashMap<i64, &str>) ->
         "is_active": config.is_active,
         "is_enabled": config.is_enabled,
         "is_deleted": config.is_deleted,
+        "latest_test": {
+            "id": row.test_id,
+            "icmp_ok": row.icmp_ok,
+            "icmp_ms": row.icmp_ms,
+            "tcp_ok": row.tcp_ok,
+            "tcp_ms": row.tcp_ms,
+            "real_delay_ok": row.real_delay_ok,
+            "real_delay_ms": row.real_delay_ms,
+            "download_mbps": row.download_mbps,
+            "upload_mbps": row.upload_mbps,
+            "connect_ms": row.connect_ms,
+            "ttfb_ms": row.ttfb_ms,
+            "http_status": row.http_status,
+            "endpoint_location": row.endpoint_location,
+            "endpoint_country": row.endpoint_country,
+            "endpoint_asn": row.endpoint_asn,
+            "failure_kind": row.failure_kind,
+            "failure_reason": row.failure_reason,
+            "tested_at": row.tested_at,
+        },
         "deleted_at": config.deleted_at,
         "imported_at": config.imported_at,
         "created_at": config.created_at,
@@ -295,6 +350,157 @@ pub(crate) fn subscription_json(subscription: &SubscriptionRecord) -> serde_json
 
 fn tsv_cell(value: Option<&str>) -> String {
     value.unwrap_or_default().replace(['\t', '\r', '\n'], " ")
+}
+
+fn optional_i64(value: Option<i64>) -> String {
+    value.map(|value| value.to_string()).unwrap_or_default()
+}
+
+fn optional_f64(value: Option<f64>) -> String {
+    value.map(|value| format!("{value:.2}")).unwrap_or_default()
+}
+
+fn ms_label(value: Option<i64>) -> String {
+    value
+        .map(|value| format!("{value}ms"))
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn mbps_label(value: Option<f64>) -> String {
+    value
+        .map(|value| format!("{value:.1}"))
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn location_cell(value: Option<&str>, max_width: usize) -> String {
+    output::truncate(value.unwrap_or("-"), max_width)
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct MetricColumns {
+    icmp: bool,
+    tcp: bool,
+    real_delay: bool,
+    download: bool,
+    upload: bool,
+    country: bool,
+    location: bool,
+    asn: bool,
+}
+
+impl MetricColumns {
+    fn for_configs(
+        configs: &[ConfigWithLatestTest],
+        settings: Option<&crate::app::config::TestingSettings>,
+    ) -> Self {
+        if let Some(settings) = settings {
+            return Self {
+                icmp: settings.icmp.enabled,
+                tcp: settings.tcp.enabled,
+                real_delay: settings.real_delay.enabled,
+                download: settings.download.enabled,
+                upload: false,
+                country: settings.geoip.enabled,
+                location: settings.geoip.enabled,
+                asn: settings.geoip.enabled,
+            };
+        }
+
+        Self {
+            icmp: configs.iter().any(|row| row.icmp_ms.is_some()),
+            tcp: configs.iter().any(|row| row.tcp_ms.is_some()),
+            real_delay: configs.iter().any(|row| row.real_delay_ms.is_some()),
+            download: configs.iter().any(|row| row.download_mbps.is_some()),
+            upload: configs.iter().any(|row| row.upload_mbps.is_some()),
+            country: configs.iter().any(|row| row.endpoint_country.is_some()),
+            location: configs.iter().any(|row| row.endpoint_location.is_some()),
+            asn: configs.iter().any(|row| row.endpoint_asn.is_some()),
+        }
+    }
+
+    fn push_columns(self, columns: &mut Vec<Column>) {
+        if self.icmp {
+            columns.push(Column {
+                header: "ICMP",
+                align: Align::Right,
+            });
+        }
+        if self.tcp {
+            columns.push(Column {
+                header: "TCP",
+                align: Align::Right,
+            });
+        }
+        if self.real_delay {
+            columns.push(Column {
+                header: "REAL",
+                align: Align::Right,
+            });
+        }
+        if self.download {
+            columns.push(Column {
+                header: "DOWN",
+                align: Align::Right,
+            });
+        }
+        if self.upload {
+            columns.push(Column {
+                header: "UP",
+                align: Align::Right,
+            });
+        }
+        if self.country {
+            columns.push(Column {
+                header: "COUNTRY",
+                align: Align::Left,
+            });
+        }
+        if self.location {
+            columns.push(Column {
+                header: "CITY",
+                align: Align::Left,
+            });
+        }
+        if self.asn {
+            columns.push(Column {
+                header: "ASN",
+                align: Align::Left,
+            });
+        }
+    }
+
+    fn push_cells(self, row: &ConfigWithLatestTest, cells: &mut Vec<Cell>) {
+        if self.icmp {
+            cells.push(Cell::plain(ms_label(row.icmp_ms)));
+        }
+        if self.tcp {
+            cells.push(Cell::plain(ms_label(row.tcp_ms)));
+        }
+        if self.real_delay {
+            cells.push(Cell::plain(ms_label(row.real_delay_ms)));
+        }
+        if self.download {
+            cells.push(Cell::plain(mbps_label(row.download_mbps)));
+        }
+        if self.upload {
+            cells.push(Cell::plain(mbps_label(row.upload_mbps)));
+        }
+        if self.country {
+            cells.push(Cell::plain(location_cell(
+                row.endpoint_country.as_deref(),
+                10,
+            )));
+        }
+        if self.location {
+            cells.push(Cell::plain(location_cell(
+                row.endpoint_location.as_deref(),
+                24,
+            )));
+        }
+        if self.asn {
+            cells.push(Cell::plain(location_cell(row.endpoint_asn.as_deref(), 24)));
+        }
+    }
 }
 
 fn subscription_ref_cell(
@@ -337,26 +543,81 @@ async fn build_config_list_filter(
     })
 }
 
+async fn enrich_config_locations(context: &AppContext, configs: &mut [ConfigWithLatestTest]) {
+    if !context.app_config.testing.geoip.enabled
+        || !configs.iter().any(|row| row.needs_location_enrichment())
+    {
+        return;
+    }
+
+    let Ok(lookup) =
+        crate::support::geoip::build_lookup_chain(&context.app_config, &context.runtime_paths)
+    else {
+        return;
+    };
+
+    for row in configs
+        .iter_mut()
+        .filter(|row| row.needs_location_enrichment())
+    {
+        let meta =
+            crate::support::geoip::enrich_address(&row.config.address, lookup.as_ref()).await;
+        if !meta.has_lookup_metadata() {
+            continue;
+        }
+        if let Some(location) = meta.location {
+            row.endpoint_location = Some(location);
+        }
+        if let Some(country) = meta.country {
+            row.endpoint_country = Some(country);
+        }
+        if let Some(asn) = meta.asn {
+            row.endpoint_asn = Some(asn);
+        }
+    }
+}
+
+trait ConfigLocationEnrichment {
+    fn needs_location_enrichment(&self) -> bool;
+}
+
+impl ConfigLocationEnrichment for ConfigWithLatestTest {
+    fn needs_location_enrichment(&self) -> bool {
+        self.endpoint_location.is_none()
+            || self.endpoint_country.is_none()
+            || self.endpoint_asn.is_none()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn config_outputs_include_refs() {
-        let config = config_record("abcdef123456");
+        let config = config_row("abcdef123456");
         let subscriptions = HashMap::from([(2, "123456abcdef")]);
 
-        let table = format_config_table(std::slice::from_ref(&config), &subscriptions);
+        let table = format_config_table(std::slice::from_ref(&config), &subscriptions, None);
         let tsv = format_config_tsv(std::slice::from_ref(&config), &subscriptions);
         let json = config_json(&config, &subscriptions);
 
         assert!(table.contains("REF"));
+        assert!(table.contains("ICMP"));
+        assert!(table.contains("42ms"));
+        assert!(table.contains("COUNTRY"));
+        assert!(table.contains("NL"));
         assert!(table.contains("abcdef12"));
         assert!(table.contains("123456ab"));
-        assert!(tsv.starts_with("ref\tsubscription_ref\t"));
+        assert!(
+            tsv.starts_with("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\ticmp_ms\t")
+        );
         assert!(!tsv.starts_with("ref\tid\t"));
+        assert!(tsv.contains("\t42\t20\t100\t25.50\t5.75\tNL\tNL/Amsterdam\tAS60781 LeaseWeb\t"));
         assert_eq!(json["ref"], "abcdef123456");
         assert_eq!(json["subscription_ref"], "123456abcdef");
+        assert_eq!(json["latest_test"]["icmp_ms"], 42);
+        assert_eq!(json["latest_test"]["endpoint_country"], "NL");
         assert!(json.get("id").is_none());
         assert!(json.get("subscription_id").is_none());
     }
@@ -387,33 +648,77 @@ mod tests {
         assert!(json.get("id").is_none());
     }
 
-    fn config_record(value_ref: &str) -> ConfigRecord {
-        ConfigRecord {
-            id: 1,
-            r#ref: value_ref.to_string(),
-            subscription_id: Some(2),
-            dedup_key: "key".to_string(),
-            protocol: "vless".to_string(),
-            address: "example.com".to_string(),
-            port: 443,
-            username: None,
-            uuid: Some("uuid".to_string()),
-            password: None,
-            method: None,
-            network: "tcp".to_string(),
-            tls: Some("tls".to_string()),
-            sni: None,
-            host: None,
-            path: None,
-            name: Some("main".to_string()),
-            raw_config: "vless://uuid@example.com:443#main".to_string(),
-            is_active: true,
-            is_enabled: true,
-            is_deleted: false,
-            deleted_at: None,
-            imported_at: "imported".to_string(),
-            created_at: "created".to_string(),
-            updated_at: "updated".to_string(),
+    #[test]
+    fn config_table_uses_enabled_settings_for_metric_columns() {
+        let config = config_row("abcdef123456");
+        let subscriptions = HashMap::from([(2, "123456abcdef")]);
+        let mut settings = crate::app::config::TestingSettings::default();
+        settings.icmp.enabled = false;
+        settings.tcp.enabled = true;
+        settings.real_delay.enabled = true;
+        settings.download.enabled = false;
+        settings.geoip.enabled = false;
+
+        let table = format_config_table(
+            std::slice::from_ref(&config),
+            &subscriptions,
+            Some(&settings),
+        );
+
+        assert!(!table.contains("ICMP"));
+        assert!(table.contains("TCP"));
+        assert!(table.contains("REAL"));
+        assert!(!table.contains("DOWN"));
+        assert!(!table.contains("COUNTRY"));
+    }
+
+    fn config_row(value_ref: &str) -> ConfigWithLatestTest {
+        ConfigWithLatestTest {
+            config: ConfigRecord {
+                id: 1,
+                r#ref: value_ref.to_string(),
+                subscription_id: Some(2),
+                dedup_key: "key".to_string(),
+                protocol: "vless".to_string(),
+                address: "example.com".to_string(),
+                port: 443,
+                username: None,
+                uuid: Some("uuid".to_string()),
+                password: None,
+                method: None,
+                network: "tcp".to_string(),
+                tls: Some("tls".to_string()),
+                sni: None,
+                host: None,
+                path: None,
+                name: Some("main".to_string()),
+                raw_config: "vless://uuid@example.com:443#main".to_string(),
+                is_active: true,
+                is_enabled: true,
+                is_deleted: false,
+                deleted_at: None,
+                imported_at: "imported".to_string(),
+                created_at: "created".to_string(),
+                updated_at: "updated".to_string(),
+            },
+            test_id: Some(9),
+            icmp_ok: Some(true),
+            icmp_ms: Some(42),
+            tcp_ok: Some(true),
+            tcp_ms: Some(20),
+            real_delay_ok: Some(true),
+            real_delay_ms: Some(100),
+            download_mbps: Some(25.5),
+            upload_mbps: Some(5.75),
+            connect_ms: Some(20),
+            ttfb_ms: Some(80),
+            http_status: Some(204),
+            endpoint_location: Some("NL/Amsterdam".to_string()),
+            endpoint_country: Some("NL".to_string()),
+            endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            failure_kind: None,
+            failure_reason: None,
+            tested_at: Some("tested".to_string()),
         }
     }
 }

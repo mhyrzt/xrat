@@ -43,6 +43,8 @@ where
     ConfigWithLatestTest {
         config,
         test_id: row.get("lt_id"),
+        icmp_ok: row.get::<Option<i64>, _>("lt_icmp_ok").map(|v| v != 0),
+        icmp_ms: row.get("lt_icmp_ms"),
         tcp_ok: row.get::<Option<i64>, _>("lt_tcp_ok").map(|v| v != 0),
         tcp_ms: row.get("lt_tcp_ms"),
         real_delay_ok: row
@@ -54,6 +56,9 @@ where
         connect_ms: row.get("lt_connect_ms"),
         ttfb_ms: row.get("lt_ttfb_ms"),
         http_status: row.get("lt_http_status"),
+        endpoint_location: row.get("lt_endpoint_location"),
+        endpoint_country: row.get("lt_endpoint_country"),
+        endpoint_asn: row.get("lt_endpoint_asn"),
         failure_kind: row.get("lt_failure_kind"),
         failure_reason: row.get("lt_failure_reason"),
         tested_at: row.get("lt_tested_at"),
