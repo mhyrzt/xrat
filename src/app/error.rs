@@ -44,7 +44,7 @@ pub enum AppError {
     #[error("unsupported protocol in database: {0}")]
     UnsupportedProtocol(String),
 
-    #[error("invalid argument: {0}")]
+    #[error("{0}")]
     InvalidArgument(String),
 
     #[error("unsupported platform: {0}")]
