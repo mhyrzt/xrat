@@ -10,8 +10,8 @@ mod version_check;
 pub use bulk::run_bulk_op;
 pub use commands::run_config_command;
 pub use data::{
-    enrichment_targets, run_clear_events, spawn_enrich_locations, spawn_reload_data,
-    spawn_reload_logs,
+    enrichment_targets, run_clear_events, spawn_enrich_locations, spawn_probe_engines,
+    spawn_reload_data, spawn_reload_logs,
 };
 pub use runtime::{spawn_runtime_restart, spawn_runtime_start_config, spawn_runtime_stop};
 pub use share::{

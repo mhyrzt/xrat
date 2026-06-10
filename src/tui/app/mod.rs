@@ -113,8 +113,11 @@ impl TuiApp {
         needs_clear
     }
 
-    pub fn tick(&mut self) {
+    /// Advance the spinner and expire chrome messages. Returns `true` if visible
+    /// state changed so the caller can drive dirty-flag rendering.
+    pub fn tick(&mut self) -> bool {
         use crate::tui::task::TuiTaskKind;
+        let mut changed = false;
         if matches!(
             self.task_state.running,
             Some(TuiTaskKind::TestBatch)
@@ -122,6 +125,7 @@ impl TuiApp {
                 | Some(TuiTaskKind::SourceRefresh)
         ) {
             self.spinner_tick = self.spinner_tick.wrapping_add(1);
+            changed = true;
         }
         if self
             .chrome_message
@@ -129,7 +133,9 @@ impl TuiApp {
             .is_some_and(|message| std::time::Instant::now() >= message.expires_at)
         {
             self.chrome_message = None;
+            changed = true;
         }
+        changed
     }
 
     /// Current Unicode spinner frame, advanced by [`TuiApp::tick`] while a task

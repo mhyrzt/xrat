@@ -20,11 +20,12 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let mut terminal = TerminalSession::enter()?;
     let data = TuiData::load(context, false).await?;
     let mut app = TuiApp::with_data(data);
-    app.engines = crate::tui::data::probe_engines(context).await;
     let (task_tx, mut task_rx) = mpsc::unbounded_channel();
     let (version_tx, mut version_rx) = mpsc::unbounded_channel();
     let (logs_tx, mut logs_rx) = mpsc::unbounded_channel();
+    let (engines_tx, mut engines_rx) = mpsc::unbounded_channel();
     tasks::spawn_version_check(version_tx);
+    tasks::spawn_probe_engines(context.clone(), &engines_tx);
     let geo_lookup =
         crate::tui::data::build_geo_lookup(&context.app_config, &context.runtime_paths);
     tasks::spawn_enrich_locations(
@@ -35,9 +36,12 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     );
     let mut last_log_refresh = std::time::Instant::now();
     let mut log_refresh_pending = false;
+    let mut needs_redraw = true;
 
     loop {
-        if drain_task_events(&mut app, &mut task_rx) {
+        let drain = drain_task_events(&mut app, &mut task_rx);
+        needs_redraw |= drain.any;
+        if drain.reloaded {
             tasks::spawn_enrich_locations(
                 context.db.clone(),
                 geo_lookup.clone(),
@@ -47,6 +51,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
         }
         while let Ok(result) = logs_rx.try_recv() {
             log_refresh_pending = false;
+            needs_redraw = true;
             match result {
                 Ok(logs) => app.reload_logs(logs),
                 Err(error) => app.push_log(format!("ERR log refresh failed: {error}")),
@@ -59,18 +64,28 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
         }
         while let Ok(tag) = version_rx.try_recv() {
             app.latest_version = Some(tag);
+            needs_redraw = true;
         }
-        app.tick();
+        while let Ok(engines) = engines_rx.try_recv() {
+            app.engines = engines;
+            needs_redraw = true;
+        }
+        needs_redraw |= app.tick();
         if app.take_needs_full_clear() {
             terminal.clear()?;
+            needs_redraw = true;
         }
-        terminal.draw(|frame| crate::tui::view::render(frame, &app))?;
+        if needs_redraw {
+            terminal.draw(|frame| crate::tui::view::render(frame, &app))?;
+            needs_redraw = false;
+        }
 
         if app.should_quit {
             break;
         }
 
         if event::poll(Duration::from_millis(100))? {
+            needs_redraw = true;
             match event::read()? {
                 Event::Resize(_, _) => {
                     app.needs_full_clear = true;
@@ -293,21 +308,28 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     Ok(())
 }
 
-/// Drain queued task events into the app, returning `true` if any of them
-/// carried a full data reload (so the caller can re-trigger location
-/// enrichment for newly loaded rows).
+#[derive(Default)]
+struct TaskDrain {
+    /// Any task event was applied, so the frame should be redrawn.
+    any: bool,
+    /// A full data reload landed, so location enrichment should re-run.
+    reloaded: bool,
+}
+
+/// Drain queued task events into the app.
 fn drain_task_events(
     app: &mut TuiApp,
     task_rx: &mut mpsc::UnboundedReceiver<TuiTaskEvent>,
-) -> bool {
-    let mut reloaded = false;
+) -> TaskDrain {
+    let mut drain = TaskDrain::default();
     while let Ok(event) = task_rx.try_recv() {
-        reloaded |= matches!(
+        drain.any = true;
+        drain.reloaded |= matches!(
             event,
             TuiTaskEvent::Completed { data: Some(_), .. }
                 | TuiTaskEvent::Failed { data: Some(_), .. }
         );
         app.apply_task_event(event);
     }
-    reloaded
+    drain
 }

@@ -146,6 +146,18 @@ pub fn spawn_reload_logs(
     });
 }
 
+/// Probe engine versions off the critical path so the first frame paints
+/// without waiting up to two seconds per engine.
+pub fn spawn_probe_engines(
+    context: AppContext,
+    engines_tx: &mpsc::UnboundedSender<Vec<crate::tui::data::EngineInfo>>,
+) {
+    let engines_tx = engines_tx.clone();
+    tokio::spawn(async move {
+        let _ = engines_tx.send(crate::tui::data::probe_engines(&context).await);
+    });
+}
+
 /// Clear all persisted events from the database, then refresh the logs card off
 /// the event loop. This is the destructive DB clear; engine log files are left
 /// untouched.
