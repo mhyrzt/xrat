@@ -1,4 +1,5 @@
 use super::*;
+use crate::db::ConnectionTestInsert;
 
 pub(super) async fn import_single_config(context: &AppContext) -> ConfigRecord {
     let summary = context
@@ -16,6 +17,62 @@ pub(super) async fn import_single_config(context: &AppContext) -> ConfigRecord {
         .into_iter()
         .next()
         .expect("config should exist")
+}
+
+pub(super) async fn insert_passing_test(context: &AppContext, config_id: i64, real_delay_ms: i64) {
+    context
+        .db
+        .insert_connection_test(&ConnectionTestInsert {
+            run_id: None,
+            config_id,
+            icmp_ok: None,
+            icmp_ms: None,
+            tcp_ok: None,
+            tcp_ms: None,
+            real_delay_ok: Some(true),
+            real_delay_ms: Some(real_delay_ms),
+            download_mbps: None,
+            upload_mbps: None,
+            connect_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            endpoint_ip: None,
+            endpoint_location: None,
+            endpoint_country: None,
+            endpoint_asn: None,
+            failure_kind: None,
+            failure_reason: None,
+        })
+        .await
+        .expect("connection test should insert");
+}
+
+pub(super) async fn insert_failing_test(context: &AppContext, config_id: i64) {
+    context
+        .db
+        .insert_connection_test(&ConnectionTestInsert {
+            run_id: None,
+            config_id,
+            icmp_ok: None,
+            icmp_ms: None,
+            tcp_ok: None,
+            tcp_ms: None,
+            real_delay_ok: Some(false),
+            real_delay_ms: None,
+            download_mbps: None,
+            upload_mbps: None,
+            connect_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            endpoint_ip: None,
+            endpoint_location: None,
+            endpoint_country: None,
+            endpoint_asn: None,
+            failure_kind: None,
+            failure_reason: Some("real delay failed".to_string()),
+        })
+        .await
+        .expect("connection test should insert");
 }
 
 pub(super) fn spawn_sleep(seconds: u64) -> Child {

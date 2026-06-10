@@ -6,6 +6,7 @@ use super::*;
 async fn replace_starts_runtime_without_running_session() {
     let mut context = test_context().await;
     let config = import_single_config(&context).await;
+    insert_passing_test(&context, config.id, 100).await;
 
     write_fake_runtime_script(&context);
     context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
@@ -57,6 +58,56 @@ async fn replace_rejects_without_running_session_or_candidate() {
         }
         other => panic!("expected invalid argument, got {other:?}"),
     }
+}
+
+#[tokio::test]
+async fn manual_rotate_excludes_config_without_passing_real_delay() {
+    let context = test_context().await;
+    let config = import_single_config(&context).await;
+    insert_failing_test(&context, config.id).await;
+
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::Manual,
+            candidate_id: None,
+        })
+        .await;
+
+    match result {
+        Err(AppError::InvalidArgument(message)) => {
+            assert!(
+                message.contains("no eligible replacement candidate"),
+                "expected no candidate without a passing real-delay, got: {message}"
+            );
+        }
+        other => panic!("expected invalid argument, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn manual_rotate_selects_tested_config_over_untested() {
+    let mut context = test_context().await;
+    let (untested, tested) = import_two_configs(&context, "a", "b").await;
+    insert_passing_test(&context, tested.id, 100).await;
+
+    write_fake_runtime_script(&context);
+    context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
+
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::Manual,
+            candidate_id: None,
+        })
+        .await
+        .expect("replace should select the tested config");
+
+    assert_ne!(
+        result.new_config_id, untested.id,
+        "must not fall back to the untested lower-id config"
+    );
+    assert_eq!(result.new_config_id, tested.id);
+
+    let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
 }
 
 #[tokio::test]

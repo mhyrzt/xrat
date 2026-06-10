@@ -63,15 +63,8 @@ impl<'a> RuntimeService<'a> {
         if let Some((config_id, _, _)) = passing.first().copied() {
             return Ok(config_id);
         }
-        if matches!(request.trigger, RotationTrigger::Manual)
-            && let Some(config_id) = eligible_ids.into_iter().min()
-        {
-            return Ok(config_id);
-        }
 
-        Err(AppError::InvalidArgument(
-            "no eligible replacement candidate".to_string(),
-        ))
+        Err(no_passing_candidate_error())
     }
 
     pub(super) async fn resolve_replace_candidate_id(
@@ -136,15 +129,8 @@ impl<'a> RuntimeService<'a> {
         if let Some((config_id, _, _)) = passing.first().copied() {
             return Ok(config_id);
         }
-        if matches!(request.trigger, RotationTrigger::Manual)
-            && let Some(config_id) = eligible_ids.into_iter().min()
-        {
-            return Ok(config_id);
-        }
 
-        Err(AppError::InvalidArgument(
-            "no eligible replacement candidate".to_string(),
-        ))
+        Err(no_passing_candidate_error())
     }
 
     async fn config_is_on_cooldown(&self, config_id: i64) -> crate::app::Result<bool> {
@@ -242,6 +228,14 @@ impl<'a> RuntimeService<'a> {
 
         Ok(())
     }
+}
+
+fn no_passing_candidate_error() -> AppError {
+    AppError::InvalidArgument(
+        "no eligible replacement candidate: no enabled config has a passing real-delay result; \
+         run `xrat test` or `xrat scan` first"
+            .to_string(),
+    )
 }
 
 fn compare_optional_f64_desc(left: Option<f64>, right: Option<f64>) -> std::cmp::Ordering {

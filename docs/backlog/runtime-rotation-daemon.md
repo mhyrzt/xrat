@@ -10,10 +10,18 @@ Runtime lifecycle, rotation candidate selection, and event emission rate.
 
 ### Items
 
-- `xrat daemon restart` should reattach previous connection session or select
-  best valid connection deterministically.
-- `xrat rotate now` sometimes selects invalid configs with missing/unusable
-  delay results.
+- ~~`xrat daemon restart` should reattach previous connection session or select
+  best valid connection deterministically.~~ Resolved: daemon start runs
+  `reconcile_reattach_on_daemon_start`, which validates the persisted session's
+  PID/exec/cmdline and either keeps it, relaunches the same config on a stale
+  PID (reboot case), or fails the session. Auto-selecting a _different_
+  best-valid config on restart was intentionally not added (surprising to
+  auto-connect a config the user did not pick).
+- ~~`xrat rotate now` sometimes selects invalid configs with missing/unusable
+  delay results.~~ Resolved: manual rotation no longer falls back to the
+  lowest-id eligible config. It selects only configs with a passing real-delay
+  result and otherwise fails with a clear message pointing at
+  `xrat test`/`xrat scan`.
 - ~~Rotation logs show very frequent `rotation_bulk_advanced` bursts; validate
   whether scheduler/run-loop behavior is expected.~~ Resolved: per-candidate
   `rotation_bulk_advanced` events were a cross-process progress bus polled by
