@@ -262,22 +262,59 @@ fn has_location_data(configs: &[TuiConfigRow]) -> bool {
     })
 }
 
+/// Bound on concurrent address resolutions so boot does not fan out one DNS
+/// query per config serially.
+const ENRICH_CONCURRENCY: usize = 64;
+
+/// Per-address cap so an unresolvable or slow host cannot stall the whole load.
+const ENRICH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+
 async fn enrich_config_locations(
     context: &crate::app::context::AppContext,
     configs: &mut [TuiConfigRow],
 ) {
-    if !configs.iter().any(TuiConfigRow::needs_location_enrichment) {
+    let targets: Vec<(usize, String)> = configs
+        .iter()
+        .enumerate()
+        .filter(|(_, config)| config.needs_location_enrichment())
+        .map(|(index, config)| (index, config.address.clone()))
+        .collect();
+    if targets.is_empty() {
         return;
     }
 
-    let lookup = local_mmdb_lookup(&context.app_config, &context.runtime_paths);
+    let lookup = std::sync::Arc::new(local_mmdb_lookup(
+        &context.app_config,
+        &context.runtime_paths,
+    ));
 
-    for config in configs
-        .iter_mut()
-        .filter(|config| config.needs_location_enrichment())
-    {
-        let meta = crate::support::geoip::enrich_address(&config.address, &lookup).await;
-        config.apply_location_meta(meta);
+    let mut join_set = tokio::task::JoinSet::new();
+    let mut pending = targets.into_iter();
+    let spawn_next = |join_set: &mut tokio::task::JoinSet<_>,
+                      pending: &mut std::vec::IntoIter<(usize, String)>| {
+        if let Some((index, address)) = pending.next() {
+            let lookup = lookup.clone();
+            join_set.spawn(async move {
+                let meta = tokio::time::timeout(
+                    ENRICH_TIMEOUT,
+                    crate::support::geoip::enrich_address(&address, lookup.as_ref()),
+                )
+                .await
+                .unwrap_or_default();
+                (index, meta)
+            });
+        }
+    };
+
+    for _ in 0..ENRICH_CONCURRENCY {
+        spawn_next(&mut join_set, &mut pending);
+    }
+
+    while let Some(joined) = join_set.join_next().await {
+        if let Ok((index, meta)) = joined {
+            configs[index].apply_location_meta(meta);
+        }
+        spawn_next(&mut join_set, &mut pending);
     }
 }
 
