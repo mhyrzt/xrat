@@ -36,30 +36,32 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
         return "No configs matched.".to_string();
     }
 
-    let headers = [
-        "REF", "STATUS", "ICMP", "REAL", "DOWN", "UP", "PROTO", "ADDRESS", "PORT", "NAME",
-    ];
-    let right_aligned = [
-        false, false, true, true, true, true, false, false, true, false,
-    ];
+    let metric_columns = TestMetricColumns::from_outputs(outputs);
+    let mut headers = vec!["REF", "STATUS"];
+    metric_columns.push_headers(&mut headers);
+    headers.extend(["PROTO", "ADDRESS", "PORT", "NAME"]);
+    let right_aligned = headers
+        .iter()
+        .map(|header| matches!(*header, "ICMP" | "REAL" | "DOWN" | "UP" | "PORT"))
+        .collect::<Vec<_>>();
 
-    let mut rows: Vec<[String; 10]> = Vec::with_capacity(outputs.len());
+    let mut rows: Vec<Vec<String>> = Vec::with_capacity(outputs.len());
     for output in outputs {
-        rows.push([
+        let mut row = vec![
             short_ref(&output.r#ref).to_string(),
             status_label(output.status),
-            ms_cell(output.icmp_ms),
-            ms_cell(output.real_delay_ms),
-            mbps_cell(output.download_mbps),
-            mbps_cell(output.upload_mbps),
+        ];
+        metric_columns.push_table_cells(output, &mut row);
+        row.extend([
             output.protocol.clone(),
             dash_cell(&output.address),
             output.port.to_string(),
             truncate_display(output.name.as_deref().unwrap_or("-"), MAX_NAME_WIDTH),
         ]);
+        rows.push(row);
     }
 
-    let mut widths = [0usize; 10];
+    let mut widths = vec![0usize; headers.len()];
     for (index, header) in headers.iter().enumerate() {
         widths[index] = header.width();
     }
@@ -146,11 +148,15 @@ fn dash_cell(value: &str) -> String {
 }
 
 fn ms_cell(value: Option<u32>) -> String {
-    value.map(|value| format!("{value}ms")).unwrap_or_default()
+    value
+        .map(|value| format!("{value}ms"))
+        .unwrap_or_else(|| "-".to_string())
 }
 
 fn mbps_cell(value: Option<f64>) -> String {
-    value.map(|value| format!("{value:.1}")).unwrap_or_default()
+    value
+        .map(|value| format!("{value:.1}"))
+        .unwrap_or_else(|| "-".to_string())
 }
 
 fn pad(text: &str, width: usize, right_aligned: bool) -> String {
@@ -182,56 +188,54 @@ fn truncate_display(text: &str, max_width: usize) -> String {
 }
 
 pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
+    let metric_columns = TestMetricColumns::from_outputs(outputs);
     let mut lines = Vec::with_capacity(outputs.len() + 1);
-    lines.push("ref\tname\tprotocol\taddress\tport\ticmp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tstatus\terror".to_string());
+    let mut headers = vec!["ref", "name", "protocol", "address", "port"];
+    metric_columns.push_raw_headers(&mut headers);
+    headers.extend(["status", "error"]);
+    lines.push(headers.join("\t"));
 
     for output in outputs {
-        lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-            output.r#ref,
+        let mut cells = vec![
+            output.r#ref.clone(),
             tsv_cell(output.name.as_deref()),
-            output.protocol,
-            output.address,
-            output.port,
-            optional_number(output.icmp_ms),
-            optional_number(output.real_delay_ms),
-            output
-                .download_mbps
-                .map(|value| format!("{value:.2}"))
-                .unwrap_or_default(),
-            output
-                .upload_mbps
-                .map(|value| format!("{value:.2}"))
-                .unwrap_or_default(),
-            output.status.as_str(),
+            output.protocol.clone(),
+            output.address.clone(),
+            output.port.to_string(),
+        ];
+        metric_columns.push_raw_cells(output, &mut cells);
+        cells.extend([
+            output.status.as_str().to_string(),
             tsv_cell(output.error.as_deref()),
-        ));
+        ]);
+        lines.push(cells.join("\t"));
     }
 
     lines.join("\n")
 }
 
 pub(crate) fn format_csv(outputs: &[TestOutputRow]) -> String {
+    let metric_columns = TestMetricColumns::from_outputs(outputs);
     let mut lines = Vec::with_capacity(outputs.len() + 1);
-    lines.push("ref,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error".to_string());
+    let mut headers = vec!["ref", "name", "protocol", "address", "port"];
+    metric_columns.push_raw_headers(&mut headers);
+    headers.extend(["status", "error"]);
+    lines.push(headers.join(","));
 
     for output in outputs {
-        lines.push(
-            [
-                csv_cell(Some(&output.r#ref)),
-                csv_cell(output.name.as_deref()),
-                csv_cell(Some(&output.protocol)),
-                csv_cell(Some(&output.address)),
-                output.port.to_string(),
-                optional_number(output.icmp_ms),
-                optional_number(output.real_delay_ms),
-                optional_float(output.download_mbps),
-                optional_float(output.upload_mbps),
-                output.status.as_str().to_string(),
-                csv_cell(output.error.as_deref()),
-            ]
-            .join(","),
-        );
+        let mut cells = vec![
+            csv_cell(Some(&output.r#ref)),
+            csv_cell(output.name.as_deref()),
+            csv_cell(Some(&output.protocol)),
+            csv_cell(Some(&output.address)),
+            output.port.to_string(),
+        ];
+        metric_columns.push_raw_cells(output, &mut cells);
+        cells.extend([
+            output.status.as_str().to_string(),
+            csv_cell(output.error.as_deref()),
+        ]);
+        lines.push(cells.join(","));
     }
 
     lines.join("\n")
@@ -256,4 +260,83 @@ pub(crate) fn optional_number(value: Option<u32>) -> String {
 
 pub(crate) fn optional_float(value: Option<f64>) -> String {
     value.map(|value| format!("{value:.2}")).unwrap_or_default()
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct TestMetricColumns {
+    icmp: bool,
+    real_delay: bool,
+    download: bool,
+    upload: bool,
+}
+
+impl TestMetricColumns {
+    fn from_outputs(outputs: &[TestOutputRow]) -> Self {
+        Self {
+            icmp: outputs.iter().any(|output| output.ran_icmp),
+            real_delay: outputs.iter().any(|output| output.ran_real_delay),
+            download: outputs.iter().any(|output| output.download_mbps.is_some()),
+            upload: outputs.iter().any(|output| output.upload_mbps.is_some()),
+        }
+    }
+
+    fn push_headers(self, headers: &mut Vec<&'static str>) {
+        if self.icmp {
+            headers.push("ICMP");
+        }
+        if self.real_delay {
+            headers.push("REAL");
+        }
+        if self.download {
+            headers.push("DOWN");
+        }
+        if self.upload {
+            headers.push("UP");
+        }
+    }
+
+    fn push_raw_headers(self, headers: &mut Vec<&'static str>) {
+        if self.icmp {
+            headers.push("icmp_ms");
+        }
+        if self.real_delay {
+            headers.push("real_delay_ms");
+        }
+        if self.download {
+            headers.push("download_mbps");
+        }
+        if self.upload {
+            headers.push("upload_mbps");
+        }
+    }
+
+    fn push_table_cells(self, output: &TestOutputRow, cells: &mut Vec<String>) {
+        if self.icmp {
+            cells.push(ms_cell(output.icmp_ms));
+        }
+        if self.real_delay {
+            cells.push(ms_cell(output.real_delay_ms));
+        }
+        if self.download {
+            cells.push(mbps_cell(output.download_mbps));
+        }
+        if self.upload {
+            cells.push(mbps_cell(output.upload_mbps));
+        }
+    }
+
+    fn push_raw_cells(self, output: &TestOutputRow, cells: &mut Vec<String>) {
+        if self.icmp {
+            cells.push(optional_number(output.icmp_ms));
+        }
+        if self.real_delay {
+            cells.push(optional_number(output.real_delay_ms));
+        }
+        if self.download {
+            cells.push(optional_float(output.download_mbps));
+        }
+        if self.upload {
+            cells.push(optional_float(output.upload_mbps));
+        }
+    }
 }

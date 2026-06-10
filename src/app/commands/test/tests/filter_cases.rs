@@ -42,6 +42,51 @@ fn formats_csv_results_with_download_speed() {
 }
 
 #[test]
+fn test_table_shows_only_ran_metrics_with_dashes_for_missing_values() {
+    let mut output = TestOutputRow {
+        id: 7,
+        r#ref: "abcdef123456".to_string(),
+        name: Some("node".to_string()),
+        protocol: "vless".to_string(),
+        address: "example.com".to_string(),
+        port: 443,
+        icmp_ms: Some(12),
+        real_delay_ms: None,
+        download_mbps: None,
+        upload_mbps: None,
+        status: TestStatus::Ok,
+        error: None,
+        tcp_ms: None,
+        ttfb_ms: None,
+        http_status: None,
+        endpoint_ip: None,
+        endpoint_location: None,
+        endpoint_country: None,
+        endpoint_asn: None,
+        ran_icmp: true,
+        ran_tcp: false,
+        ran_real_delay: true,
+        icmp_ok: true,
+        tcp_ok: false,
+        real_delay_ok: false,
+        failure_kind: None,
+        elapsed_secs: 1.0,
+    };
+
+    let table = format_table(&[output.clone()], false);
+    assert!(table.contains("ICMP"));
+    assert!(table.contains("REAL"));
+    assert!(!table.contains("DOWN"));
+    assert!(table.contains("12ms"));
+    assert!(table.contains(" - "));
+
+    output.ran_icmp = false;
+    let csv = format_csv(&[output]);
+    assert!(csv.starts_with("ref,name,protocol,address,port,real_delay_ms,status,error\n"));
+    assert!(!csv.contains("icmp_ms"));
+}
+
+#[test]
 fn resolves_configured_test_concurrency() {
     assert_eq!(resolve_concurrency(1).expect("positive concurrency"), 1);
     assert_eq!(resolve_concurrency(16).expect("positive concurrency"), 16);
