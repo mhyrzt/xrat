@@ -89,8 +89,8 @@ attempts = 3     # number of ping packets
 
 ### Implementation
 
-xrat spawns `ping -c <attempts> -W <timeout> <address>` and parses stdout for
-packet loss and round-trip times.
+xrat spawns the system `ping` command with platform-specific count and timeout
+flags, then parses stdout for packet loss and round-trip times.
 
 ## TCP Stage
 

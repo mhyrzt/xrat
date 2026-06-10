@@ -102,10 +102,12 @@ async fn ping_with_system_command(ip: &str, timeout: Duration) -> IcmpResult {
 }
 
 fn ping_flags() -> (&'static str, &'static str) {
-    if cfg!(target_os = "macos") {
+    if cfg!(any(target_os = "macos", target_os = "freebsd")) {
         ("-c", "-t")
     } else if cfg!(target_os = "linux") {
         ("-c", "-W")
+    } else if cfg!(target_os = "openbsd") {
+        ("-c", "-w")
     } else if cfg!(target_os = "windows") {
         ("-n", "-w")
     } else {

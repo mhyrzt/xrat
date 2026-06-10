@@ -207,7 +207,7 @@ fn had_var_name(name: &str) -> String {
 }
 
 /// Detect the target shell: explicit override, then `$SHELL`, then the parent
-/// process name via `/proc/<ppid>/comm`, defaulting to bash.
+/// process name, defaulting to bash.
 fn detect_shell(override_kind: Option<ProxyShellKind>) -> ProxyShellKind {
     if let Some(kind) = override_kind {
         return kind;
@@ -237,10 +237,22 @@ fn shell_from_name(name: &str) -> Option<ProxyShellKind> {
 }
 
 fn parent_process_name() -> Option<String> {
-    let ppid = std::os::unix::process::parent_id();
-    std::fs::read_to_string(format!("/proc/{ppid}/comm"))
-        .ok()
-        .map(|name| name.trim().to_string())
+    let ppid = sysinfo::Pid::from_u32(parent_process_id());
+    let mut system = sysinfo::System::new();
+    system.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[ppid]), false);
+    system
+        .process(ppid)
+        .map(|process| process.name().to_string_lossy().to_string())
+}
+
+#[cfg(unix)]
+fn parent_process_id() -> u32 {
+    std::os::unix::process::parent_id()
+}
+
+#[cfg(windows)]
+fn parent_process_id() -> u32 {
+    std::os::windows::process::parent_id()
 }
 
 fn print_status(active: &ActiveEndpoints) {

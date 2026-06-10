@@ -148,8 +148,8 @@ alias xrat-proxy-toggle='eval "$(xrat proxy shell toggle)"'
 
 ### Shell detection
 
-The shell is detected from `$SHELL`, then the parent process name via
-`/proc/$PPID/comm`, defaulting to bash. Override with `--shell bash|zsh|fish`.
+The shell is detected from `$SHELL`, then the parent process name, defaulting to
+bash. Override with `--shell bash|zsh|fish`.
 
 ### Shell toggle
 
