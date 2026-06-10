@@ -47,7 +47,7 @@ fn parses_geoip_lookup_flags() {
         "xrat",
         "mmdb",
         "lookup",
-        "8.8.8.8",
+        "google.com",
         "--backend",
         "ipwhois",
         "--no-cache",
@@ -57,7 +57,7 @@ fn parses_geoip_lookup_flags() {
     match cli.command {
         Command::Mmdb(args) => match args.action {
             GeoIpAction::Lookup(args) => {
-                assert_eq!(args.ip, "8.8.8.8");
+                assert_eq!(args.ip, "google.com");
                 assert_eq!(args.backend.as_deref(), Some("ipwhois"));
                 assert!(args.no_cache);
                 assert!(args.json);

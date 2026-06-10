@@ -81,7 +81,7 @@ pub struct GeoIpUpdateArgs {
 
 #[derive(Debug, Args)]
 pub struct GeoIpLookupArgs {
-    #[arg(help = "IP address to look up.")]
+    #[arg(help = "IP address or hostname to look up.")]
     pub ip: String,
     #[arg(
         long = "backend",

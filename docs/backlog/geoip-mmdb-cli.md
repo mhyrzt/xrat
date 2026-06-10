@@ -10,12 +10,12 @@ CLI naming clarity, backend visibility, and download progress rendering.
 
 ### Items
 
-- Renamed namespace from `xrat geoip ...` to `xrat mmdb ...` without retaining
-  a `geoip` compatibility alias.
+- Renamed namespace from `xrat geoip ...` to `xrat mmdb ...` without retaining a
+  `geoip` compatibility alias.
 - Improved `xrat mmdb backend` output readability and added `--json`.
 - During downloads, show source URL being used per edition.
-- Fixed `xrat mmdb download --all --force` progress rendering where lines flicker
-  and swap between databases.
+- Fixed `xrat mmdb download --all --force` progress rendering where lines
+  flicker and swap between databases.
 
 ### Possible root causes
 
@@ -39,5 +39,6 @@ CLI naming clarity, backend visibility, and download progress rendering.
 
 - CLI parser tests cover `mmdb` and reject the old `geoip` namespace.
 - Backend output tests cover grouped human output and JSON output.
-- Download tests cover source URL formatting and concurrent multi-file downloads.
+- Download tests cover source URL formatting and concurrent multi-file
+  downloads.
 - Verified with `just fmt ci`.

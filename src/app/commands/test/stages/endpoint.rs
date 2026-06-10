@@ -1,7 +1,6 @@
 use super::*;
-use std::net::IpAddr;
 
-use crate::support::geoip::GeoIpLookup;
+use crate::support::geoip::{EndpointGeoMeta, GeoIpLookup};
 
 pub(crate) fn classify_endpoint_location(endpoint_ip: Option<&str>) -> Option<String> {
     geoip::classify_endpoint_location(endpoint_ip)
@@ -18,27 +17,13 @@ pub(crate) async fn resolve_endpoint_meta(
     geoip_enabled: bool,
     geoip_lookup: &dyn GeoIpLookup,
 ) -> EndpointMeta {
-    if geoip_enabled && let Some(ip) = endpoint_ip.and_then(|value| value.parse::<IpAddr>().ok()) {
-        if let Some(city) = geoip_lookup.city(ip).await.ok().flatten() {
-            let country = city.split('/').next().map(str::to_string);
+    if geoip_enabled && let Some(endpoint_ip) = endpoint_ip {
+        let meta = geoip::enrich_address(endpoint_ip, geoip_lookup).await;
+        if meta != EndpointGeoMeta::default() {
             return EndpointMeta {
-                location: Some(city),
-                country,
-                asn: geoip_lookup.asn(ip).await.ok().flatten(),
-            };
-        }
-        if let Some(country) = geoip_lookup.country(ip).await.ok().flatten() {
-            return EndpointMeta {
-                location: Some(country.clone()),
-                country: Some(country),
-                asn: geoip_lookup.asn(ip).await.ok().flatten(),
-            };
-        }
-        if let Some(asn) = geoip_lookup.asn(ip).await.ok().flatten() {
-            return EndpointMeta {
-                location: Some(asn.clone()),
-                country: None,
-                asn: Some(asn),
+                location: meta.location,
+                country: meta.country,
+                asn: meta.asn,
             };
         }
     }
