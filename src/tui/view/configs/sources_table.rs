@@ -8,6 +8,7 @@ use crate::tui::app::TuiApp;
 use crate::tui::theme;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
+    app.panel_viewport.table.set(area.height.saturating_sub(3));
     let header = Row::new(["Ref", "Name", "Kind", "Configs", "Updated"])
         .style(theme::accent_style().add_modifier(Modifier::BOLD));
 

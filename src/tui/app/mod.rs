@@ -11,7 +11,7 @@ mod views;
 
 pub use types::{
     BulkKind, BulkOp, ChromeMessage, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind,
-    ConfirmState, PanelScroll, QrKind, QrModalState, RenameModalState, SourceFilter,
+    ConfirmState, PanelScroll, PanelViewport, QrKind, QrModalState, RenameModalState, SourceFilter,
     SourceListState, TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand,
     TuiLogTab, TuiPanel, TuiView,
 };
@@ -26,6 +26,10 @@ impl TuiApp {
             TuiAction::Back => self.back(),
             TuiAction::MoveDown => self.move_focus(1),
             TuiAction::MoveUp => self.move_focus(-1),
+            TuiAction::PageDown => self.page_focus(1),
+            TuiAction::PageUp => self.page_focus(-1),
+            TuiAction::MoveTop => self.move_to_top(),
+            TuiAction::MoveBottom => self.move_to_bottom(),
             TuiAction::BeginSearch => self.begin_search(),
             TuiAction::SearchInput(ch) => self.push_search_char(ch),
             TuiAction::SearchBackspace => self.pop_search_char(),

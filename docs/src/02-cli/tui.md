@@ -53,6 +53,8 @@ separate Tests view.
 | `4`           | Focus the runtime card                            |
 | `j`, `k`      | Move row / scroll the focused card down/up        |
 | arrow keys    | Move row / scroll the focused card down/up        |
+| `PgUp`, `PgDn`| Page the focused card up / down                   |
+| `Home`, `End` | Jump to the top / bottom of the focused card      |
 | `?`           | Open help                                         |
 | `Esc`         | Close modal, leave search, or go back             |
 | `q`, `Ctrl+C` | Quit                                              |
@@ -64,7 +66,12 @@ detail panel, and Runtime. Card titles show their direct focus shortcuts (`1:`,
 `2:`, `3:`, `4:`). `Tab` / `Shift+Tab` move focus between them; the focused card
 is drawn with an accent border. `j`/`k` (or the arrow keys) move the row
 selection when the table is focused, and scroll the focused card otherwise.
-Cards that overflow their height show a scrollbar.
+`PgUp`/`PgDn` step by a screenful and `Home`/`End` jump to the first/last row
+or top/bottom of the card. Cards that overflow their height show a scrollbar.
+
+In the Logs card, long messages wrap inside the message column and continuation
+lines stay indented under it, so the time, level, source, and kind columns stay
+aligned and one entry never blends into the next.
 
 ## Configs Tab
 

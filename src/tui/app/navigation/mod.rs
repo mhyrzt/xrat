@@ -22,6 +22,44 @@ impl TuiApp {
     pub(super) fn focus_panel(&mut self, panel: TuiPanel) {
         self.focused_panel = panel;
     }
+
+    pub(super) fn page_focus(&mut self, direction: isize) {
+        let page = self.focused_viewport_rows().max(1) as isize;
+        self.move_focus(direction * page);
+    }
+
+    pub(super) fn move_to_top(&mut self) {
+        match self.focused_panel {
+            TuiPanel::Table => match self.active_view {
+                TuiView::Configs => self.move_config_focus(isize::MIN),
+                TuiView::Sources => self.move_source_focus(isize::MIN),
+            },
+            TuiPanel::Detail => self.panel_scroll.detail.set(0),
+            TuiPanel::Log => self.panel_scroll.log.set(0),
+            TuiPanel::Runtime => self.panel_scroll.runtime.set(0),
+        }
+    }
+
+    pub(super) fn move_to_bottom(&mut self) {
+        match self.focused_panel {
+            TuiPanel::Table => match self.active_view {
+                TuiView::Configs => self.move_config_focus(isize::MAX),
+                TuiView::Sources => self.move_source_focus(isize::MAX),
+            },
+            TuiPanel::Detail => self.panel_scroll.detail.set(u16::MAX),
+            TuiPanel::Log => self.panel_scroll.log.set(u16::MAX),
+            TuiPanel::Runtime => self.panel_scroll.runtime.set(u16::MAX),
+        }
+    }
+
+    fn focused_viewport_rows(&self) -> u16 {
+        match self.focused_panel {
+            TuiPanel::Table => self.panel_viewport.table.get(),
+            TuiPanel::Detail => self.panel_viewport.detail.get(),
+            TuiPanel::Log => self.panel_viewport.log.get(),
+            TuiPanel::Runtime => self.panel_viewport.runtime.get(),
+        }
+    }
 }
 
 /// Adjust a scroll offset by `delta` rows, clamped at the top. The render pass

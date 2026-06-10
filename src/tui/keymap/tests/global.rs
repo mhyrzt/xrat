@@ -342,6 +342,54 @@ fn maps_navigation_and_help_keys() {
 }
 
 #[test]
+fn maps_page_and_jump_navigation_keys() {
+    assert_eq!(
+        act(
+            key(KeyCode::PageDown),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::PageDown
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::PageUp),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::PageUp
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::Home),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::MoveTop
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::End),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::MoveBottom
+    );
+}
+
+#[test]
 fn maps_enter_start_in_configs() {
     assert_eq!(
         act(

@@ -53,13 +53,14 @@ pub fn numbered_title(number: u8, title: &'static str) -> Line<'static> {
 /// Render a bordered, vertically scrollable card. The focused card gets an
 /// accent border. `scroll` is clamped here against the live content and
 /// viewport heights, and a scrollbar is drawn when the content overflows.
+/// Returns the inner viewport height in rows so callers can size paging.
 pub fn render_scroll_panel(
     frame: &mut Frame<'_>,
     area: Rect,
     lines: Vec<Line<'_>>,
     scroll: &Cell<u16>,
     style: PanelStyle,
-) {
+) -> u16 {
     let border_style = if style.focused {
         theme::accent_style()
     } else {
@@ -100,4 +101,6 @@ pub fn render_scroll_panel(
             &mut state,
         );
     }
+
+    viewport
 }

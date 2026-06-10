@@ -17,6 +17,57 @@ fn moves_config_focus_within_bounds() {
 }
 
 #[test]
+fn jumps_config_focus_to_top_and_bottom() {
+    let data = TuiData::from_configs((1..=6).map(row).collect());
+    let mut app = TuiApp::with_data(data);
+
+    app.apply(TuiAction::MoveBottom);
+    assert_eq!(app.config_list.focused, 5);
+
+    app.apply(TuiAction::MoveTop);
+    assert_eq!(app.config_list.focused, 0);
+}
+
+#[test]
+fn pages_config_focus_by_viewport_height() {
+    let data = TuiData::from_configs((1..=10).map(row).collect());
+    let mut app = TuiApp::with_data(data);
+    app.panel_viewport.table.set(3);
+
+    app.apply(TuiAction::PageDown);
+    assert_eq!(app.config_list.focused, 3);
+
+    app.apply(TuiAction::PageDown);
+    assert_eq!(app.config_list.focused, 6);
+
+    app.apply(TuiAction::PageUp);
+    assert_eq!(app.config_list.focused, 3);
+}
+
+#[test]
+fn paging_clamps_at_config_bounds() {
+    let data = TuiData::from_configs((1..=4).map(row).collect());
+    let mut app = TuiApp::with_data(data);
+    app.panel_viewport.table.set(10);
+
+    app.apply(TuiAction::PageDown);
+    assert_eq!(app.config_list.focused, 3);
+
+    app.apply(TuiAction::PageUp);
+    assert_eq!(app.config_list.focused, 0);
+}
+
+#[test]
+fn jumps_scroll_panel_to_top() {
+    let mut app = TuiApp::default();
+    app.apply(TuiAction::FocusPanel(TuiPanel::Log));
+    app.panel_scroll.log.set(7);
+
+    app.apply(TuiAction::MoveTop);
+    assert_eq!(app.panel_scroll.log.get(), 0);
+}
+
+#[test]
 fn focuses_panel_directly() {
     let mut app = TuiApp::default();
 

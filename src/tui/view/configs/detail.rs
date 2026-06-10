@@ -14,7 +14,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         .map(|config| source_label(app, config))
         .unwrap_or_default();
     let lines = detail_lines(area, config, &source_label, app.data.metric_columns);
-    render_scroll_panel(
+    let viewport = render_scroll_panel(
         frame,
         area,
         lines,
@@ -26,6 +26,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             wrap_trim: true,
         },
     );
+    app.panel_viewport.detail.set(viewport);
 }
 
 const LABEL_WIDTH: usize = crate::tui::theme::DETAIL_LABEL_WIDTH;

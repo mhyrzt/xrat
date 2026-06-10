@@ -13,7 +13,7 @@ const RIGHT_PAD: u16 = crate::tui::theme::DETAIL_RIGHT_PAD;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let lines = source_detail_lines(area, app.focused_source(), app.config_list.source_filter);
-    render_scroll_panel(
+    let viewport = render_scroll_panel(
         frame,
         area,
         lines,
@@ -25,6 +25,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             wrap_trim: true,
         },
     );
+    app.panel_viewport.detail.set(viewport);
 }
 
 fn source_detail_lines<'a>(

@@ -10,6 +10,7 @@ use crate::tui::theme;
 const MAX_NAME_CHARS: usize = 24;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
+    app.panel_viewport.table.set(area.height.saturating_sub(3));
     let metric_columns = app.data.metric_columns;
     let mut headers = vec!["St", "Ref", "Name", "Proto", "Address", "Port", "Net"];
     if metric_columns.icmp {

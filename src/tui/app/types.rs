@@ -74,6 +74,14 @@ pub struct PanelScroll {
     pub runtime: std::cell::Cell<u16>,
 }
 
+#[derive(Debug, Default)]
+pub struct PanelViewport {
+    pub table: std::cell::Cell<u16>,
+    pub detail: std::cell::Cell<u16>,
+    pub log: std::cell::Cell<u16>,
+    pub runtime: std::cell::Cell<u16>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiAction {
     Quit,
@@ -81,6 +89,10 @@ pub enum TuiAction {
     Back,
     MoveDown,
     MoveUp,
+    PageDown,
+    PageUp,
+    MoveTop,
+    MoveBottom,
     BeginSearch,
     SearchInput(char),
     SearchBackspace,
@@ -259,6 +271,7 @@ pub struct TuiApp {
     pub active_view: TuiView,
     pub focused_panel: TuiPanel,
     pub panel_scroll: PanelScroll,
+    pub panel_viewport: PanelViewport,
     pub show_help: bool,
     pub should_quit: bool,
     pub data: TuiData,

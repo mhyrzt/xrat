@@ -164,7 +164,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         push_detail(&mut lines, "Failure", reason, LABEL_WIDTH, content_width);
     }
 
-    render_scroll_panel(
+    let viewport = render_scroll_panel(
         frame,
         area,
         lines,
@@ -176,4 +176,5 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             wrap_trim: true,
         },
     );
+    app.panel_viewport.runtime.set(viewport);
 }
