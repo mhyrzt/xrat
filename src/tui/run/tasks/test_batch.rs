@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 
 use crate::app::context::AppContext;
-use crate::tui::app::{TestMode, TuiApp};
+use crate::tui::app::TuiApp;
 use crate::tui::data::TuiData;
 use crate::tui::task::{TuiTaskEvent, TuiTaskKind};
 
@@ -18,6 +18,7 @@ pub fn spawn_test_batch(
     if config_ids.is_empty() {
         return;
     }
+    app.data.clear_test_fields_for_configs(&config_ids);
     app.testing_config_ids = config_ids.clone();
 
     let kind = TuiTaskKind::TestBatch;
@@ -92,22 +93,33 @@ pub fn spawn_test_batch(
     });
 }
 
-fn test_args_for_app(app: &TuiApp) -> crate::cli::TestArgs {
-    let (skip_tcp, skip_real_delay, skip_download) = match app.test_state.mode {
-        TestMode::Tcp => (false, false, true),
-        TestMode::RealDelay => (true, false, true),
-        TestMode::Both => (false, false, true),
-    };
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn test_args_for_app(app: &TuiApp) -> crate::cli::TestArgs {
+    let run_icmp = app
+        .data
+        .test_stage_names
+        .iter()
+        .any(|stage| stage == "icmp");
+    let run_real_delay = app
+        .data
+        .test_stage_names
+        .iter()
+        .any(|stage| stage == "real_delay");
+    let run_download = app
+        .data
+        .test_stage_names
+        .iter()
+        .any(|stage| stage == "download");
 
     crate::cli::TestArgs {
         id: None,
         enabled_only: false,
         active_only: false,
         subscription: None,
-        skip_icmp: true,
-        skip_tcp,
-        skip_real_delay,
-        skip_download,
+        skip_icmp: !run_icmp,
+        skip_tcp: true,
+        skip_real_delay: !run_real_delay,
+        skip_download: !run_download,
         skip_upload: true,
         test_url: None,
         download_url: None,

@@ -10,10 +10,27 @@ use crate::tui::theme;
 const MAX_NAME_CHARS: usize = 24;
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
-    let header = Row::new([
-        "St", "Ref", "Name", "Proto", "Address", "Port", "Net", "Delay",
-    ])
-    .style(theme::accent_style().add_modifier(Modifier::BOLD));
+    let metric_columns = app.data.metric_columns;
+    let mut headers = vec!["St", "Ref", "Name", "Proto", "Address", "Port", "Net"];
+    if metric_columns.icmp {
+        headers.push("ICMP");
+    }
+    if metric_columns.tcp {
+        headers.push("TCP");
+    }
+    if metric_columns.real_delay {
+        headers.push("Real");
+    }
+    if metric_columns.download {
+        headers.push("Down");
+    }
+    if metric_columns.upload {
+        headers.push("Up");
+    }
+    if metric_columns.country {
+        headers.push("Country");
+    }
+    let header = Row::new(headers).style(theme::accent_style().add_modifier(Modifier::BOLD));
 
     let visible = app.visible_configs();
     let rows = visible.iter().enumerate().map(|(idx, config)| {
@@ -36,7 +53,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             theme::chrome_style()
         };
 
-        Row::new(vec![
+        let mut cells = vec![
             Cell::from(state_marker(config)),
             Cell::from(config.display_ref().to_string()),
             Cell::from(truncate_name(config.display_name())),
@@ -44,32 +61,75 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             Cell::from(config.address_label().to_string()),
             Cell::from(config.port_label()),
             Cell::from(config.network_label()),
-            Cell::from(delay_label(app, config)),
-        ])
-        .style(style)
+        ];
+        if metric_columns.icmp {
+            cells.push(Cell::from(test_metric_label(app, config, || {
+                config.icmp_label()
+            })));
+        }
+        if metric_columns.tcp {
+            cells.push(Cell::from(test_metric_label(app, config, || {
+                config.tcp_label()
+            })));
+        }
+        if metric_columns.real_delay {
+            cells.push(Cell::from(test_metric_label(app, config, || {
+                config.delay_label()
+            })));
+        }
+        if metric_columns.download {
+            cells.push(Cell::from(test_metric_label(app, config, || {
+                config.download_label()
+            })));
+        }
+        if metric_columns.upload {
+            cells.push(Cell::from(test_metric_label(app, config, || {
+                config.upload_label()
+            })));
+        }
+        if metric_columns.country {
+            cells.push(Cell::from(config.country_label().to_string()));
+        }
+        Row::new(cells).style(style)
     });
 
-    let table = Table::new(
-        rows,
-        [
-            Constraint::Length(2),
-            Constraint::Length(8),
-            Constraint::Max(MAX_NAME_CHARS as u16),
-            Constraint::Length(9),
-            Constraint::Percentage(30),
-            Constraint::Length(6),
-            Constraint::Length(10),
-            Constraint::Length(8),
-        ],
-    )
-    .header(header)
-    .block(
-        Block::default()
-            .title(tab_title(app))
-            .borders(Borders::ALL)
-            .border_style(border_style(focused)),
-    )
-    .column_spacing(1);
+    let mut constraints = vec![
+        Constraint::Length(2),
+        Constraint::Length(8),
+        Constraint::Max(MAX_NAME_CHARS as u16),
+        Constraint::Length(9),
+        Constraint::Percentage(30),
+        Constraint::Length(6),
+        Constraint::Length(10),
+    ];
+    if metric_columns.icmp {
+        constraints.push(Constraint::Length(8));
+    }
+    if metric_columns.tcp {
+        constraints.push(Constraint::Length(8));
+    }
+    if metric_columns.real_delay {
+        constraints.push(Constraint::Length(8));
+    }
+    if metric_columns.download {
+        constraints.push(Constraint::Length(10));
+    }
+    if metric_columns.upload {
+        constraints.push(Constraint::Length(10));
+    }
+    if metric_columns.country {
+        constraints.push(Constraint::Length(10));
+    }
+
+    let table = Table::new(rows, constraints)
+        .header(header)
+        .block(
+            Block::default()
+                .title(tab_title(app))
+                .borders(Borders::ALL)
+                .border_style(border_style(focused)),
+        )
+        .column_spacing(1);
 
     let mut state = TableState::default().with_selected(Some(app.config_list.focused));
     frame.render_widget(Clear, area);
@@ -152,11 +212,15 @@ fn state_marker(config: &crate::tui::data::TuiConfigRow) -> &'static str {
     }
 }
 
-fn delay_label(app: &TuiApp, config: &crate::tui::data::TuiConfigRow) -> String {
+fn test_metric_label(
+    app: &TuiApp,
+    config: &crate::tui::data::TuiConfigRow,
+    label: impl FnOnce() -> String,
+) -> String {
     if app.is_testing_config(config.id) {
         const SPINNER: [&str; 4] = ["|", "/", "-", "\\"];
         SPINNER[app.spinner_tick % SPINNER.len()].to_string()
     } else {
-        config.delay_label()
+        label()
     }
 }

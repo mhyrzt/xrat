@@ -47,6 +47,20 @@ pub struct TuiData {
     pub server_enabled: bool,
     pub daemon: TuiDaemonInfo,
     pub logs: TuiLogs,
+    pub metric_columns: TuiMetricColumns,
+    pub test_stage_label: String,
+    pub test_stage_names: Vec<String>,
+    metric_columns_from_settings: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct TuiMetricColumns {
+    pub icmp: bool,
+    pub tcp: bool,
+    pub real_delay: bool,
+    pub download: bool,
+    pub upload: bool,
+    pub country: bool,
 }
 
 impl TuiData {
@@ -65,6 +79,7 @@ impl TuiData {
             .into_iter()
             .map(TuiConfigRow::from)
             .collect();
+        enrich_config_locations(context, &mut configs).await;
 
         configs.sort_by_key(|row| (row.real_delay_ms.unwrap_or(i64::MAX), row.id));
         let sources = context
@@ -92,6 +107,12 @@ impl TuiData {
         data.server_enabled = server.enabled;
         data.daemon = load_daemon_info(context).await;
         data.logs = logs;
+        data.metric_columns =
+            TuiMetricColumns::from_configs(&data.configs, Some(&context.app_config.testing));
+        data.test_stage_names =
+            normalize_test_stage_names(&context.app_config.runtime.rotation.test_stages);
+        data.test_stage_label = format_test_stage_label(&data.test_stage_names);
+        data.metric_columns_from_settings = true;
         Ok(data)
     }
 
@@ -126,6 +147,7 @@ impl TuiData {
             .iter()
             .filter(|row| row.failure_reason.is_some())
             .count();
+        let metric_columns = TuiMetricColumns::from_configs(&configs, None);
 
         Self {
             configs,
@@ -142,6 +164,10 @@ impl TuiData {
             server_enabled: false,
             daemon: TuiDaemonInfo::default(),
             logs: TuiLogs::default(),
+            metric_columns,
+            test_stage_label: "tcp + real-delay".to_string(),
+            test_stage_names: vec!["tcp".to_string(), "real_delay".to_string()],
+            metric_columns_from_settings: false,
         }
     }
 
@@ -150,6 +176,17 @@ impl TuiData {
             *existing = row;
         } else {
             self.configs.push(row);
+        }
+        self.refresh_config_counts();
+    }
+
+    pub fn clear_test_fields_for_configs(&mut self, config_ids: &[i64]) {
+        for config in self
+            .configs
+            .iter_mut()
+            .filter(|config| config_ids.contains(&config.id))
+        {
+            config.clear_test_fields();
         }
         self.refresh_config_counts();
     }
@@ -173,6 +210,135 @@ impl TuiData {
             .iter()
             .filter(|config| config.failure_reason.is_some())
             .count();
+        if !self.metric_columns_from_settings {
+            self.metric_columns = TuiMetricColumns::from_configs(&self.configs, None);
+        }
+    }
+}
+
+impl TuiMetricColumns {
+    pub fn from_configs(
+        configs: &[TuiConfigRow],
+        settings: Option<&crate::app::config::TestingSettings>,
+    ) -> Self {
+        if let Some(settings) = settings {
+            return Self {
+                icmp: settings.icmp.enabled,
+                tcp: settings.tcp.enabled,
+                real_delay: settings.real_delay.enabled,
+                download: settings.download.enabled,
+                upload: false,
+                country: has_location_data(configs),
+            };
+        }
+
+        Self {
+            icmp: configs.iter().any(|row| row.icmp_ms.is_some()),
+            tcp: configs.iter().any(|row| row.tcp_ms.is_some()),
+            real_delay: configs.iter().any(|row| row.real_delay_ms.is_some()),
+            download: configs.iter().any(|row| row.download_mbps.is_some()),
+            upload: configs.iter().any(|row| row.upload_mbps.is_some()),
+            country: has_location_data(configs),
+        }
+    }
+}
+
+fn has_location_data(configs: &[TuiConfigRow]) -> bool {
+    configs.iter().any(|row| {
+        row.endpoint_country.is_some()
+            || row.endpoint_location.is_some()
+            || row.endpoint_asn.is_some()
+    })
+}
+
+async fn enrich_config_locations(
+    context: &crate::app::context::AppContext,
+    configs: &mut [TuiConfigRow],
+) {
+    if !configs.iter().any(TuiConfigRow::needs_location_enrichment) {
+        return;
+    }
+
+    let lookup = local_mmdb_lookup(&context.app_config, &context.runtime_paths);
+
+    for config in configs
+        .iter_mut()
+        .filter(|config| config.needs_location_enrichment())
+    {
+        let meta = crate::support::geoip::enrich_address(&config.address, &lookup).await;
+        config.apply_location_meta(meta);
+    }
+}
+
+fn local_mmdb_lookup(
+    app_config: &crate::app::config::AppConfig,
+    runtime_paths: &crate::app::context::RuntimePaths,
+) -> crate::support::geoip::LocalMmdbLookup {
+    crate::support::geoip::LocalMmdbLookup::new(
+        crate::app::paths::mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
+            &app_config.testing.geoip.country_path,
+            "GeoLite2-Country.mmdb",
+        ),
+        crate::app::paths::mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
+            &app_config.testing.geoip.city_path,
+            "GeoLite2-City.mmdb",
+        ),
+        crate::app::paths::mmdb::mmdb_path_for(
+            runtime_paths,
+            app_config,
+            &app_config.testing.geoip.asn_path,
+            "GeoLite2-ASN.mmdb",
+        ),
+    )
+}
+
+fn normalize_test_stage_names(stages: &[String]) -> Vec<String> {
+    let mut names = Vec::new();
+    for stage in stages {
+        let Some(stage) = crate::app::config::ConnectionTestStage::from_config_str(stage) else {
+            continue;
+        };
+        let name = stage.config_name().to_string();
+        if !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    names
+}
+
+fn format_test_stage_label(stages: &[String]) -> String {
+    if stages.is_empty() {
+        return "none".to_string();
+    }
+
+    stages
+        .iter()
+        .map(|stage| match stage.as_str() {
+            "real_delay" => "real-delay",
+            other => other,
+        })
+        .collect::<Vec<_>>()
+        .join(" + ")
+}
+
+#[cfg(test)]
+mod stage_tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_and_formats_tui_test_stages() {
+        let stages = normalize_test_stage_names(&[
+            "icmp".to_string(),
+            "real-delay".to_string(),
+            "icmp".to_string(),
+        ]);
+
+        assert_eq!(stages, vec!["icmp", "real_delay"]);
+        assert_eq!(format_test_stage_label(&stages), "icmp + real-delay");
     }
 }
 

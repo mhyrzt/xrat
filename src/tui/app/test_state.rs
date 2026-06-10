@@ -21,13 +21,3 @@ impl TestScope {
         }
     }
 }
-
-impl TestMode {
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Tcp => "tcp",
-            Self::RealDelay => "real-delay",
-            Self::Both => "tcp + real-delay",
-        }
-    }
-}

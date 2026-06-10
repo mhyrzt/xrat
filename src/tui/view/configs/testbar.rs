@@ -55,7 +55,7 @@ fn summary_label(app: &TuiApp) -> String {
         "{} ({})  ·  {}  ·  c{}",
         test.scope.label(),
         app.test_scope_count(),
-        test.mode.label(),
+        app.data.test_stage_label,
         test.concurrency,
     )
 }

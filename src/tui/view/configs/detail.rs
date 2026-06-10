@@ -4,7 +4,7 @@ use ratatui::style::Modifier;
 use ratatui::text::Line;
 
 use crate::tui::app::TuiApp;
-use crate::tui::data::TuiConfigRow;
+use crate::tui::data::{TuiConfigRow, TuiMetricColumns};
 use crate::tui::theme;
 use crate::tui::view::shared::{PanelStyle, numbered_title, push_detail, render_scroll_panel};
 
@@ -13,7 +13,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let source_label = config
         .map(|config| source_label(app, config))
         .unwrap_or_default();
-    let lines = detail_lines(area, config, &source_label);
+    let lines = detail_lines(area, config, &source_label, app.data.metric_columns);
     render_scroll_panel(
         frame,
         area,
@@ -48,6 +48,7 @@ fn detail_lines<'a>(
     area: Rect,
     config: Option<&'a TuiConfigRow>,
     source_label: &'a str,
+    metric_columns: TuiMetricColumns,
 ) -> Vec<Line<'a>> {
     let content_width = area.width.saturating_sub(2 + RIGHT_PAD) as usize;
     match config {
@@ -88,23 +89,74 @@ fn detail_lines<'a>(
                 LABEL_WIDTH,
                 content_width,
             );
-            push_detail(
-                &mut lines,
-                "Real Delay",
-                config.delay_label(),
-                LABEL_WIDTH,
-                content_width,
-            );
-            push_detail(
-                &mut lines,
-                "TCP",
-                config
-                    .tcp_ms
-                    .map(|tcp| format!("{tcp}ms"))
-                    .unwrap_or_else(|| "-".to_string()),
-                LABEL_WIDTH,
-                content_width,
-            );
+            if metric_columns.icmp {
+                push_detail(
+                    &mut lines,
+                    "ICMP",
+                    config.icmp_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
+            if metric_columns.tcp {
+                push_detail(
+                    &mut lines,
+                    "TCP",
+                    config.tcp_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
+            if metric_columns.real_delay {
+                push_detail(
+                    &mut lines,
+                    "Real Delay",
+                    config.delay_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
+            if metric_columns.download {
+                push_detail(
+                    &mut lines,
+                    "Download",
+                    config.download_detail_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
+            if metric_columns.upload {
+                push_detail(
+                    &mut lines,
+                    "Upload",
+                    config.upload_detail_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
+            if metric_columns.country {
+                push_detail(
+                    &mut lines,
+                    "Country",
+                    config.country_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+                push_detail(
+                    &mut lines,
+                    "City",
+                    config.location_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+                push_detail(
+                    &mut lines,
+                    "ASN",
+                    config.asn_label(),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
             push_detail(
                 &mut lines,
                 "Subscription",
@@ -157,4 +209,64 @@ fn detail_lines<'a>(
 
 fn yes_no(value: bool) -> &'static str {
     if value { "yes" } else { "no" }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui::layout::Rect;
+
+    use super::*;
+
+    fn row() -> TuiConfigRow {
+        TuiConfigRow {
+            id: 1,
+            r#ref: "abcdef123456".to_string(),
+            name: "main".to_string(),
+            protocol: "vless".to_string(),
+            address: "example.com".to_string(),
+            port: 443,
+            network: "tcp".to_string(),
+            tls: Some("tls".to_string()),
+            icmp_ms: Some(10),
+            real_delay_ms: Some(100),
+            tcp_ms: Some(20),
+            download_mbps: Some(42.0),
+            upload_mbps: Some(11.0),
+            endpoint_country: Some("NL".to_string()),
+            endpoint_location: Some("NL/Amsterdam".to_string()),
+            endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            failure_reason: None,
+            source_id: None,
+            tested_at: Some("tested".to_string()),
+            imported_at: "imported".to_string(),
+            is_active: false,
+            is_enabled: true,
+            is_deleted: false,
+        }
+    }
+
+    #[test]
+    fn detail_lines_hide_disabled_metric_fields() {
+        let metric_columns = TuiMetricColumns {
+            icmp: false,
+            tcp: true,
+            real_delay: true,
+            download: false,
+            upload: false,
+            country: false,
+        };
+        let row = row();
+        let lines = detail_lines(Rect::new(0, 0, 80, 24), Some(&row), "none", metric_columns);
+        let text = lines
+            .iter()
+            .map(|line| line.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(!text.contains("ICMP"));
+        assert!(text.contains("TCP"));
+        assert!(text.contains("Real Delay"));
+        assert!(!text.contains("Download"));
+        assert!(!text.contains("Country"));
+    }
 }

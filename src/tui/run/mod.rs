@@ -1,6 +1,9 @@
 mod tasks;
 mod terminal;
 
+#[cfg(test)]
+pub(crate) use tasks::test_args_for_app;
+
 use std::time::Duration;
 
 use crossterm::event::{self, Event};

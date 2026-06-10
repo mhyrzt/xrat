@@ -12,8 +12,14 @@ fn row(id: i64, delay: Option<i64>) -> TuiConfigRow {
         port: 443,
         network: "ws".to_string(),
         tls: Some("tls".to_string()),
+        icmp_ms: Some(10),
         real_delay_ms: delay,
         tcp_ms: Some(20),
+        download_mbps: Some(42.25),
+        upload_mbps: Some(11.5),
+        endpoint_country: Some("NL".to_string()),
+        endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
+        endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
         failure_reason: None,
         source_id: None,
         tested_at: Some("2026-01-01T00:00:00Z".to_string()),
@@ -45,6 +51,62 @@ fn formats_network_and_delay_labels() {
 
     assert_eq!(active.network_label(), "ws+tls");
     assert_eq!(active.delay_label(), "88ms");
+    assert_eq!(active.icmp_label(), "10ms");
+    assert_eq!(active.tcp_label(), "20ms");
+    assert_eq!(active.download_label(), "42.2 Mbps");
+    assert_eq!(active.upload_detail_label(), "11.50 Mbps");
+    assert_eq!(active.country_label(), "NL");
+}
+
+#[test]
+fn clears_test_fields_for_selected_configs() {
+    let mut data = TuiData::from_configs(vec![row(1, Some(100)), row(2, Some(200))]);
+
+    data.clear_test_fields_for_configs(&[2]);
+
+    let cleared = data.configs.iter().find(|config| config.id == 2).unwrap();
+    assert_eq!(cleared.delay_label(), "-");
+    assert_eq!(cleared.icmp_label(), "-");
+    assert_eq!(cleared.tcp_label(), "-");
+    assert_eq!(cleared.download_label(), "-");
+    assert_eq!(cleared.country_label(), "-");
+    assert!(cleared.tested_at.is_none());
+
+    let untouched = data.configs.iter().find(|config| config.id == 1).unwrap();
+    assert_eq!(untouched.delay_label(), "100ms");
+    assert_eq!(untouched.country_label(), "NL");
+}
+
+#[test]
+fn metric_columns_follow_enabled_settings_when_available() {
+    let mut settings = crate::app::config::TestingSettings::default();
+    settings.icmp.enabled = false;
+    settings.tcp.enabled = true;
+    settings.real_delay.enabled = true;
+    settings.download.enabled = false;
+    settings.geoip.enabled = false;
+
+    let columns = super::TuiMetricColumns::from_configs(&[row(1, Some(100))], Some(&settings));
+
+    assert!(!columns.icmp);
+    assert!(columns.tcp);
+    assert!(columns.real_delay);
+    assert!(!columns.download);
+    assert!(columns.country);
+}
+
+#[test]
+fn metric_columns_hide_location_when_geoip_disabled_and_no_location_data() {
+    let mut settings = crate::app::config::TestingSettings::default();
+    settings.geoip.enabled = false;
+    let mut config = row(1, Some(100));
+    config.endpoint_country = None;
+    config.endpoint_location = None;
+    config.endpoint_asn = None;
+
+    let columns = super::TuiMetricColumns::from_configs(&[config], Some(&settings));
+
+    assert!(!columns.country);
 }
 
 #[test]
@@ -55,7 +117,39 @@ fn matches_searchable_config_fields() {
     assert!(row.matches_search("ref000000004"));
     assert!(row.matches_search("vless"));
     assert!(row.matches_search("example"));
+    assert!(row.matches_search("amsterdam"));
+    assert!(row.matches_search("leaseweb"));
     assert!(!row.matches_search("missing"));
+}
+
+#[test]
+fn applies_location_meta_overwriting_stale_values() {
+    let mut row = row(5, Some(90));
+    row.endpoint_country = Some("NL".to_string());
+    row.endpoint_location = Some("loopback_ipv4".to_string());
+    row.endpoint_asn = None;
+
+    assert!(row.needs_location_enrichment());
+
+    row.apply_location_meta(crate::support::geoip::EndpointGeoMeta {
+        country: Some("US".to_string()),
+        location: Some("US/California/Los Angeles".to_string()),
+        asn: Some("AS15169 GOOGLE".to_string()),
+    });
+
+    assert_eq!(row.country_label(), "US");
+    assert_eq!(row.location_label(), "US/California/Los Angeles");
+    assert_eq!(row.asn_label(), "AS15169 GOOGLE");
+}
+
+#[test]
+fn ignores_empty_location_meta() {
+    let mut row = row(5, Some(90));
+    row.endpoint_location = Some("loopback_ipv4".to_string());
+
+    row.apply_location_meta(crate::support::geoip::EndpointGeoMeta::default());
+
+    assert_eq!(row.location_label(), "loopback_ipv4");
 }
 
 #[test]
