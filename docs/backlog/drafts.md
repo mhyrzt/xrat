@@ -1,2 +1,3 @@
-- having a RELEASE_NOTES.md (or any conventional filename) file that automatically be added to gh notes after release
+- having a RELEASE_NOTES.md (or any conventional filename) file that
+  automatically be added to gh notes after release
 - change ci required
