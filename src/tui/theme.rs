@@ -4,7 +4,7 @@ use ratatui::style::{Color, Style};
 pub const EDGE_MARGIN: usize = 2;
 
 /// Shared label-column width for the detail/runtime panels so their
-/// `Label: value` columns line up to the same offset.
+/// `Label value` columns line up to the same offset.
 pub const DETAIL_LABEL_WIDTH: usize = 13;
 
 /// Right padding for detail/runtime panels. Gives wrapped lines slack so

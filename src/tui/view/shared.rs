@@ -19,7 +19,7 @@ pub fn push_detail<'a>(
     content_width: usize,
 ) {
     let value = value.into();
-    let label_text = format!("{label}:");
+    let label_text = format!("{label} ");
 
     if label_width + value.chars().count() <= content_width {
         lines.push(Line::from(vec![
