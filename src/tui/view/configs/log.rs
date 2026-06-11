@@ -41,6 +41,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     let lines = match app.active_log_tab {
         TuiLogTab::XratEvents => event_lines(app, content_width),
         TuiLogTab::ProxyEngine => proxy_lines(app, content_width),
+        TuiLogTab::Api => api_lines(app, content_width),
         TuiLogTab::Stats => stats_lines(app),
     };
 
@@ -110,6 +111,69 @@ fn event_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
             &mut lines,
             prefix,
             EVENT_PREFIX_WIDTH,
+            &event.message,
+            content_width,
+        );
+    }
+    lines
+}
+
+fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
+    let events: Vec<_> = app
+        .data
+        .logs
+        .events
+        .iter()
+        .filter(|event| event.source == "api")
+        .collect();
+    if events.is_empty() {
+        return vec![Line::styled(
+            "No API requests recorded yet.",
+            theme::muted_style(),
+        )];
+    }
+
+    let mut lines = vec![Line::styled(
+        format!(
+            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
+            "TIME", "LEVEL", "METHOD", "MESSAGE"
+        ),
+        theme::muted_style(),
+    )];
+    let prefix_width = EVENT_TIME_WIDTH
+        + COLUMN_GAP
+        + EVENT_LEVEL_WIDTH
+        + COLUMN_GAP
+        + EVENT_KIND_WIDTH
+        + COLUMN_GAP;
+    for event in events {
+        let prefix = vec![
+            Span::styled(
+                format!("{:<EVENT_TIME_WIDTH$}", compact_time(&event.time)),
+                theme::muted_style(),
+            ),
+            Span::raw("  "),
+            Span::styled(
+                format!(
+                    "{:<EVENT_LEVEL_WIDTH$}",
+                    truncate(&event.level, EVENT_LEVEL_WIDTH)
+                ),
+                theme::severity_style(&event.level),
+            ),
+            Span::raw("  "),
+            Span::styled(
+                format!(
+                    "{:<EVENT_KIND_WIDTH$}",
+                    truncate(&event.kind, EVENT_KIND_WIDTH)
+                ),
+                theme::chrome_style(),
+            ),
+            Span::raw("  "),
+        ];
+        push_wrapped_row(
+            &mut lines,
+            prefix,
+            prefix_width,
             &event.message,
             content_width,
         );
@@ -380,6 +444,7 @@ fn log_title(tab: TuiLogTab) -> Line<'static> {
     for (index, (log_tab, label)) in [
         (TuiLogTab::XratEvents, "xrat events"),
         (TuiLogTab::ProxyEngine, "proxy engine"),
+        (TuiLogTab::Api, "api"),
         (TuiLogTab::Stats, "stats"),
     ]
     .into_iter()

@@ -15,6 +15,7 @@ pub const SOURCE_ROTATION: &str = "rotation";
 pub const SOURCE_HEALTH: &str = "health";
 pub const SOURCE_TEST: &str = "test";
 pub const SOURCE_SUBSCRIPTION: &str = "subscription";
+pub const SOURCE_API: &str = "api";
 
 /// Record an event, logging (but not propagating) any database failure.
 #[allow(clippy::too_many_arguments)]

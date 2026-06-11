@@ -27,11 +27,13 @@ fn switches_log_tabs_and_resets_log_scroll() {
 }
 
 #[test]
-fn cycles_through_all_three_log_tabs() {
+fn cycles_through_all_log_tabs() {
     let mut app = TuiApp::default();
 
     app.apply(TuiAction::NextLogTab);
     assert_eq!(app.active_log_tab, TuiLogTab::ProxyEngine);
+    app.apply(TuiAction::NextLogTab);
+    assert_eq!(app.active_log_tab, TuiLogTab::Api);
     app.apply(TuiAction::NextLogTab);
     assert_eq!(app.active_log_tab, TuiLogTab::Stats);
     app.apply(TuiAction::NextLogTab);

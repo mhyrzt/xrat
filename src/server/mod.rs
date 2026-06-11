@@ -10,9 +10,14 @@ mod tests;
 use std::net::{IpAddr, SocketAddr};
 
 use axum::Router;
+use axum::extract::{Request, State};
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::Response;
 use tokio::net::TcpListener;
 
 use crate::app::config::{RoutingSettings, ServerSettings};
+use crate::app::events;
 use crate::db::Database;
 
 pub use error::{ServerError, ServerResult};
@@ -20,7 +25,53 @@ pub use routes::pac::{PacEndpoints, PacRules, render_pac};
 pub use state::ServerState;
 
 pub fn build_router(state: ServerState) -> Router {
-    routes::router().with_state(state)
+    routes::router()
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            record_request,
+        ))
+        .with_state(state)
+}
+
+/// Record each handled HTTP request as a best-effort `api` event so the TUI API
+/// tab and `xrat logs` can show server activity. Recording happens on a detached
+/// task and never affects the response.
+async fn record_request(
+    State(state): State<ServerState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    let response = next.run(request).await;
+    let status = response.status();
+
+    let db = state.db.clone();
+    tokio::spawn(async move {
+        events::record(
+            &db,
+            level_for_status(status),
+            events::SOURCE_API,
+            method.as_str(),
+            format!("{method} {path} -> {}", status.as_u16()),
+            None,
+            None,
+            None,
+        )
+        .await;
+    });
+
+    response
+}
+
+fn level_for_status(status: StatusCode) -> &'static str {
+    if status.is_server_error() {
+        events::LEVEL_ERROR
+    } else if status.is_client_error() {
+        events::LEVEL_WARN
+    } else {
+        events::LEVEL_INFO
+    }
 }
 
 pub async fn serve(
