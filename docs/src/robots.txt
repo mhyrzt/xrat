@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mhyrzt.github.io/xrat/sitemap.xml

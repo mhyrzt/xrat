@@ -2,15 +2,19 @@
   <img src="media/icons/xrat-icon-1024x1024.png" alt="xrat — proxy manager for XTLS/Xray-core and SagerNet/sing-box" width="256">
 </p>
 
-# xrat 🐀
+# xrat - Xray-core and sing-box proxy manager
 
-**xrat** is a command-line proxy configuration manager for
-[**XTLS/Xray-core**](https://github.com/xtls/xray-core) and
-[**SagerNet/sing-box**](https://github.com/sagernet/sing-box). Import
-subscriptions, test latency, scan edge IPs, rotate proxies, and run a managed
-[XTLS/Xray-core](https://github.com/xtls/xray-core) or
-[V2Fly/V2Ray-core](https://github.com/v2fly/v2ray-core) proxy runtime — all from
-a single Rust binary.
+**xrat** is an open-source Rust CLI and TUI proxy configuration manager for
+[**XTLS/Xray-core**](https://github.com/xtls/xray-core),
+[**V2Ray-core**](https://github.com/v2fly/v2ray-core), and
+[**SagerNet/sing-box**](https://github.com/sagernet/sing-box). Import proxy
+subscriptions, test latency, scan Cloudflare/CDN edge IPs, rotate proxies, and
+run managed local proxy sessions from a single terminal application.
+
+xrat is built for VLESS, VMess, Trojan, Shadowsocks, SOCKS5, HTTP, and Hysteria2
+workflows. It can preview Xray and sing-box JSON, expose local
+SOCKS/HTTP/Shadowsocks inbounds, supervise runtime sessions with a daemon, and
+serve stored configs through an authenticated HTTP API.
 
 <p align="center">
   <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">

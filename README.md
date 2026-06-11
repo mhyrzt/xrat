@@ -2,10 +2,10 @@
   <img src="docs/src/media/icons/xrat-icon-1024x1024.png" alt="xrat" width="256">
 </p>
 
-<h1 align="center">XRAT</h1>
+<h1 align="center">XRAT - Xray-core and sing-box Proxy Manager</h1>
 
 <p align="center">
-  <em>A fast, polished CLI and TUI proxy manager for <a href="https://github.com/xtls/xray-core">XTLS/Xray-core</a> and <a href="https://github.com/sagernet/sing-box">SagerNet/sing-box</a></em>
+  <em>A Rust CLI and TUI proxy configuration manager for <a href="https://github.com/xtls/xray-core">XTLS/Xray-core</a>, <a href="https://github.com/v2fly/v2ray-core">V2Ray-core</a>, and <a href="https://github.com/sagernet/sing-box">SagerNet/sing-box</a></em>
 </p>
 
 <p align="center">
@@ -16,9 +16,16 @@
   <a href="https://crates.io/crates/xrat"><img src="https://img.shields.io/crates/v/xrat" alt="crates.io"></a>
 </p>
 
-XRAT is a Rust CLI and TUI for importing, storing, testing, and running
-[XTLS/Xray-core](https://github.com/xtls/xray-core)-compatible proxy
-configurations.
+XRAT is an open-source Rust proxy manager for importing, storing, testing,
+ranking, rotating, and running proxy configurations from the terminal. It works
+with [XTLS/Xray-core](https://github.com/xtls/xray-core),
+[V2Ray-core](https://github.com/v2fly/v2ray-core), and
+[SagerNet/sing-box](https://github.com/sagernet/sing-box), with support for
+VLESS, VMess, Trojan, Shadowsocks, SOCKS5, HTTP, and Hysteria2 workflows.
+
+Use xrat to manage subscription links, test proxy latency, scan Cloudflare/CDN
+edge IPs, run managed local SOCKS/HTTP/Shadowsocks inbounds, supervise runtime
+sessions with a daemon, and serve stored configs through a local HTTP API.
 
 <p align="center">
   <img src="docs/src/media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">

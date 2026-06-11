@@ -1,9 +1,9 @@
 [book]
-title = "xrat 🐀"
+title = "xrat - Xray-core and sing-box proxy manager"
 authors = ["xrat contributors"]
 language = "en"
 src = "src"
-description = "Manage proxy configs from one CLI. Import subscriptions, test latency, scan IPs, rotate proxies, preview Xray/sing-box configs, and run a managed Xray/V2Ray runtime."
+description = "xrat is a Rust CLI and TUI proxy manager for Xray-core and sing-box. Import VLESS, VMess, Trojan, Shadowsocks, and Hysteria2 configs, test latency, rotate proxies, scan edge IPs, and run managed local proxy sessions."
 
 [build]
 build-dir = "book"
