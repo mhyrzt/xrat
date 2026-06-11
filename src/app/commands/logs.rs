@@ -85,6 +85,7 @@ async fn one_time(
         if events.is_empty() {
             println!("{}", output::empty_message("No events recorded."));
         } else {
+            println!("xrat events (database)");
             println!("{}", render_events(&events, ListFormat::Table)?);
         }
     }
@@ -378,12 +379,24 @@ fn format_event_line(event: &EventRecord, color: bool) -> String {
         output::truncate(&event.kind, EVENT_KIND_WIDTH)
     );
     let message = output::truncate(&event.message, EVENT_MESSAGE_WIDTH);
-    format!("{time}  {level}  {source}  {kind}  {message}",)
+    format!(
+        "{}  {time}  {level}  {source}  {kind}  {message}",
+        feed_tag("xrat", color)
+    )
 }
 
 fn format_file_line(label: &str, line: &str, color: bool) -> String {
-    let tag = output::style_text(label, output::Style::Dim, color);
-    format!("{tag}  {line}")
+    format!("{}  {line}", feed_tag(label, color))
+}
+
+/// Width of the leading feed column shared by every followed line so the app
+/// (`xrat`) and engine/daemon feeds line up. Sized to the longest label.
+const FEED_WIDTH: usize = 7;
+
+/// Dim, fixed-width feed label (`xrat` / `xray` / `singbox` / `daemon`) marking
+/// which subsystem a followed line came from.
+fn feed_tag(label: &str, color: bool) -> String {
+    output::style_text(&format!("{label:<FEED_WIDTH$}"), output::Style::Dim, color)
 }
 
 const PROXY_TIME_WIDTH: usize = 19;
@@ -418,7 +431,7 @@ fn emit_file_line(label: &str, line: &str, color: bool) -> Option<String> {
 }
 
 fn format_engine_row(label: &str, row: &EngineLogRow, color: bool) -> String {
-    let tag = output::style_text(label, output::Style::Dim, color);
+    let tag = feed_tag(label, color);
     let time = format!(
         "{:<PROXY_TIME_WIDTH$}",
         compact_engine_time(row.time.as_deref().unwrap_or(""))
