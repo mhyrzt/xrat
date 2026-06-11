@@ -13,10 +13,10 @@ pub(super) use crate::db::{
 };
 pub(super) use crate::model::Protocol;
 pub(super) use crate::singbox::{
-    SingboxConfig, SingboxInbound, SingboxInboundUser, generate_singbox_runtime_config,
-    process_mgmt as singbox_runtime,
+    SingboxClashApi, SingboxConfig, SingboxInbound, SingboxInboundUser,
+    generate_singbox_runtime_config, process_mgmt as singbox_runtime,
 };
-pub(super) use crate::xray::config::Inbound;
+pub(super) use crate::xray::config::{Inbound, enable_stats_api};
 pub(super) use crate::xray::{generate_runtime_config_for_inbounds, process_mgmt as xray_runtime};
 
 pub(super) use crate::support::time::now_string;

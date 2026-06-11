@@ -31,6 +31,10 @@ pub const DEFAULT_SHADOWSOCKS_METHOD: &str = "aes-128-gcm";
 pub const DEFAULT_SHADOWSOCKS_PASSWORD: &str = "change-me";
 pub const DEFAULT_SHADOWSOCKS_NETWORK: &str = "tcp,udp";
 
+pub const DEFAULT_STATS_ENABLED: bool = true;
+pub const DEFAULT_STATS_HOST: &str = "127.0.0.1";
+pub const DEFAULT_STATS_PORT: u16 = 10085;
+
 pub const DEFAULT_SNIFFING_ENABLED: bool = true;
 pub const DEFAULT_SNIFFING_DEST_OVERRIDE: &[&str] = &["http", "tls", "quic"];
 pub const DEFAULT_SNIFFING_ROUTE_ONLY: bool = true;

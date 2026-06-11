@@ -41,3 +41,7 @@ pub fn generate_runtime_config_for_inbounds(
 ) -> Result<XrayConfig, String> {
     generator::generate_runtime_config_for_inbounds(node, socks, http)
 }
+
+pub fn enable_stats_api(config: &mut XrayConfig, host: &str, port: u16) {
+    generator::enable_stats_api(config, host, port);
+}

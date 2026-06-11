@@ -15,6 +15,15 @@ pub struct RuntimeSettings {
     pub http: HttpSettings,
     pub shadowsocks: ShadowsocksSettings,
     pub sniffing: SniffingSettings,
+    pub stats: StatsSettings,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct StatsSettings {
+    pub enabled: bool,
+    pub host: String,
+    pub port: u16,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]

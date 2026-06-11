@@ -53,6 +53,10 @@ impl<'a> RuntimeService<'a> {
             });
         }
 
+        if runtime.stats.enabled {
+            enable_stats_api(&mut xray_config, &runtime.stats.host, runtime.stats.port);
+        }
+
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)
         } else if let Some((host, port)) = http {
@@ -135,7 +139,12 @@ impl<'a> RuntimeService<'a> {
             });
         }
 
-        let config = generate_singbox_runtime_config(node, inbounds, None)
+        let stats = &self.context.app_config.runtime.stats;
+        let clash_api = stats.enabled.then(|| SingboxClashApi {
+            external_controller: format!("{}:{}", stats.host, stats.port),
+            secret: None,
+        });
+        let config = generate_singbox_runtime_config(node, inbounds, clash_api)
             .map_err(AppError::InvalidArgument)?;
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)

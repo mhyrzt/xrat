@@ -1,4 +1,7 @@
-use super::{generate_probe_config, generate_runtime_config, generate_runtime_config_for_inbounds};
+use super::{
+    enable_stats_api, generate_probe_config, generate_runtime_config,
+    generate_runtime_config_for_inbounds,
+};
 use crate::model::{Node, Protocol};
 
 #[test]
@@ -26,6 +29,45 @@ fn test_generate_vless_probe_config() {
     assert_eq!(config.inbounds[0].port, 10808);
     assert_eq!(config.outbounds.len(), 1);
     assert_eq!(config.outbounds[0].protocol, "vless");
+}
+
+#[test]
+fn enable_stats_api_adds_api_inbound_and_objects() {
+    let node = Node {
+        protocol: Protocol::Vless,
+        address: "example.com".to_string(),
+        port: 443,
+        username: None,
+        uuid: Some("test-uuid".to_string()),
+        password: None,
+        method: None,
+        network: "tcp".to_string(),
+        tls: Some("tls".to_string()),
+        sni: Some("example.com".to_string()),
+        host: None,
+        path: None,
+        name: Some("test".to_string()),
+        extensions: None,
+        raw_config: "".to_string(),
+    };
+
+    let mut config =
+        generate_runtime_config_for_inbounds(&node, Some(("127.0.0.1", 18200, true)), None)
+            .unwrap();
+    assert!(config.api.is_none());
+    enable_stats_api(&mut config, "127.0.0.1", 10085);
+
+    let api = config.inbounds.iter().find(|inbound| inbound.tag == "api");
+    assert!(api.is_some(), "api dokodemo inbound should be present");
+    assert_eq!(api.unwrap().port, 10085);
+    assert_eq!(api.unwrap().protocol, "dokodemo-door");
+    assert!(config.api.is_some());
+    assert!(config.stats.is_some());
+
+    let value = serde_json::to_value(&config).unwrap();
+    assert_eq!(value["api"]["services"][0], "StatsService");
+    assert_eq!(value["policy"]["system"]["statsInboundUplink"], true);
+    assert_eq!(value["routing"]["rules"][0]["outboundTag"], "api");
 }
 
 #[test]

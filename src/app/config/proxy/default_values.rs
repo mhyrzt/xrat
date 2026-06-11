@@ -4,7 +4,7 @@ use super::super::SecretString;
 use super::super::defaults;
 use super::types::{
     AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
-    ShadowsocksSettings, SniffingSettings, SocksSettings,
+    ShadowsocksSettings, SniffingSettings, SocksSettings, StatsSettings,
 };
 
 impl Default for RuntimeSettings {
@@ -18,6 +18,17 @@ impl Default for RuntimeSettings {
             http: HttpSettings::default(),
             shadowsocks: ShadowsocksSettings::default(),
             sniffing: SniffingSettings::default(),
+            stats: StatsSettings::default(),
+        }
+    }
+}
+
+impl Default for StatsSettings {
+    fn default() -> Self {
+        Self {
+            enabled: defaults::DEFAULT_STATS_ENABLED,
+            host: defaults::DEFAULT_STATS_HOST.to_string(),
+            port: defaults::DEFAULT_STATS_PORT,
         }
     }
 }

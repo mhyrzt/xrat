@@ -24,6 +24,10 @@ pub fn generate_probe_config(node: &Node, local_port: u16) -> Result<XrayConfig,
         },
         inbounds: vec![inbound],
         outbounds: vec![outbound],
+        api: None,
+        stats: None,
+        policy: None,
+        routing: None,
     })
 }
 
@@ -63,7 +67,49 @@ pub fn generate_runtime_config_for_inbounds(
         },
         inbounds,
         outbounds: vec![outbound],
+        api: None,
+        stats: None,
+        policy: None,
+        routing: None,
     })
+}
+
+/// Enable the xray gRPC StatsService on an already-built runtime config. Adds a
+/// `dokodemo-door` inbound tagged `api`, the `api`/`stats`/`policy` objects, and
+/// a routing rule that dispatches the api inbound to the api handler. Counters
+/// are enabled for system inbound/outbound traffic so totals are available.
+pub fn enable_stats_api(config: &mut XrayConfig, host: &str, port: u16) {
+    use crate::xray::parsing::core::{ApiObject, ApiServiceName, PolicyObject, SystemPolicyObject};
+
+    config.inbounds.push(Inbound {
+        tag: "api".to_string(),
+        port,
+        listen: host.to_string(),
+        protocol: "dokodemo-door".to_string(),
+        settings: Some(json!({ "address": host })),
+    });
+    config.api = Some(ApiObject {
+        tag: "api".to_string(),
+        listen: None,
+        services: vec![ApiServiceName::StatsService],
+    });
+    config.stats = Some(json!({}));
+    config.policy = Some(PolicyObject {
+        levels: None,
+        system: Some(SystemPolicyObject {
+            stats_inbound_uplink: Some(true),
+            stats_inbound_downlink: Some(true),
+            stats_outbound_uplink: Some(true),
+            stats_outbound_downlink: Some(true),
+        }),
+    });
+    config.routing = Some(json!({
+        "rules": [{
+            "type": "field",
+            "inboundTag": ["api"],
+            "outboundTag": "api",
+        }],
+    }));
 }
 
 fn build_inbounds(socks: Option<(&str, u16, bool)>, http: Option<(&str, u16)>) -> Vec<Inbound> {

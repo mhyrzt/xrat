@@ -31,6 +31,10 @@ async fn test_xray_process_lifecycle() {
             settings: serde_json::json!({}),
             stream_settings: None,
         }],
+        api: None,
+        stats: None,
+        policy: None,
+        routing: None,
     };
 
     let process = XrayProcess::spawn(&config, Duration::from_secs(5)).await;

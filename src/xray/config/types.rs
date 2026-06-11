@@ -1,11 +1,21 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::xray::parsing::core::{ApiObject, PolicyObject};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XrayConfig {
     pub log: LogConfig,
     pub inbounds: Vec<Inbound>,
     pub outbounds: Vec<Outbound>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api: Option<ApiObject>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stats: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<PolicyObject>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub routing: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
