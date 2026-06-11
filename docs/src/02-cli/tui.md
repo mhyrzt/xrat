@@ -221,17 +221,17 @@ tabs:
 | --------- | -------------------------------------------- |
 | `[` / `]` | Cycle to the previous / next log tab         |
 | `C l`     | Clear the active log view (view-only)        |
-| `C s`     | Clear the stats view / counters (view-only)  |
-| `C p`     | Clear all persisted events from the database |
+| `C s`     | Clear the traffic view / counters (view-only) |
+| `C p`     | Clear all persisted events from the database  |
 
-| Tab          | Shows                                                       |
-| ------------ | ----------------------------------------------------------- |
-| xrat events  | Structured app/runtime events (same data as `xrat logs`)    |
-| proxy engine | Parsed xray / sing-box engine logs for the latest session   |
-| stats        | Live traffic: total ↓/↑, current rate, delay, and sparkline |
-| api          | HTTP API requests recorded by the server (`source = api`)   |
+| Tab     | Shows                                                            |
+| ------- | --------------------------------------------------------------- |
+| Events  | Structured app/runtime events (same data as `xrat logs`)        |
+| Engine  | Parsed xray / sing-box engine logs for the latest session       |
+| Traffic | Live throughput + probe dashboard (charts, see below)           |
+| API     | HTTP API requests recorded by the server (`source = api`)       |
 
-The proxy engine and stats tab titles show the active engine and version.
+The Engine and Traffic tab titles show the active engine and version.
 
 The engine tab parses recognized xray **and** sing-box log lines into time,
 level, source/component, and message columns; the active engine and version are
@@ -243,17 +243,28 @@ kept as raw messages with severity inferred from keywords. Access logs from
 xrat's own stats polling (`[api -> api]`) are hidden as instrumentation noise,
 the same as `xrat logs`.
 
-Severity colors are shared across the events, api, and engine tabs:
+The API tab splits each recorded request into `TIME`, `LEVEL`, `METHOD`, `PATH`,
+`CODE`, and `MESSAGE` columns. The server records requests as the synthetic line
+`<METHOD> <path> -> <code>`, which is not a real handler message, so `MESSAGE`
+shows `-`; any recorded line that is not a request line is shown verbatim.
+
+Severity colors are shared across the Events, API, and Engine tabs:
 critical/fatal/panic/error are red, warn/warning are yellow, and
 info/debug/trace are neutral/accent.
 
-The stats tab samples the active engine once per second — the xray gRPC
+The Traffic tab samples the active engine once per second — the xray gRPC
 `StatsService` or the sing-box Clash API `/connections` endpoint — and resets
 its history on each new runtime session. It is enabled by `[runtime.stats]`
-(see [config reference](../05-reference/config-file.md)).
+(see [config reference](../05-reference/config-file.md)). The top row shows a
+throughput summary (total ↓/↑ and current rate) next to a probe table
+(`Name | Value | mean ± std | n | last update`) built from the active config's
+recent `connection_tests`. The lower row pairs a bidirectional traffic chart
+(upload bars up, download bars down, with independent scales and failure
+markers) with a probe-latency graph plotting each activated latency test as its
+own colored series.
 
 Clears come in two kinds. `C l` and `C s` are **view-only**: they hide the
-current log/stats buffer in the TUI without deleting anything, and a periodic
+current log/traffic buffer in the TUI without deleting anything, and a periodic
 reload does not resurrect the cleared rows. `C p` is a **database** clear — it
 removes the persisted `events` rows, the same data cleared by
 [`xrat logs clear`](logs.md#clearing-persisted-events). Engine log files are not
