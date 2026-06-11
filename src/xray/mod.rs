@@ -2,6 +2,7 @@ pub mod config;
 pub mod parsing;
 pub mod process;
 pub mod process_mgmt;
+pub mod stats;
 
 pub use config::{
     XrayConfig, generate_probe_config, generate_runtime_config,

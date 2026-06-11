@@ -29,6 +29,12 @@ reqwest = { version = "0.13.4", default-features = false, features = [
 ] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
+prost = "0.13"
+tonic = { version = "0.12", default-features = false, features = [
+    "transport",
+    "codegen",
+    "prost",
+] }
 percent-encoding = "2.3.2"
 sqlx = { version = "0.8.6", features = [
     "sqlite",
