@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 use ratatui::Frame;
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
@@ -37,6 +37,9 @@ pub struct PanelStyle {
     pub focused: bool,
     pub right_pad: u16,
     pub wrap_trim: bool,
+    /// Optional column header pinned at the top of the inner area; it stays
+    /// visible while the body scrolls beneath it.
+    pub header: Option<Line<'static>>,
 }
 
 pub fn numbered_title(number: u8, title: &'static str) -> Line<'static> {
@@ -72,21 +75,42 @@ pub fn render_scroll_panel(
         .border_style(border_style)
         .padding(Padding::new(0, style.right_pad, 0, 0));
 
-    let viewport = block.inner(area).height;
+    let inner = block.inner(area);
+
+    frame.render_widget(Clear, area);
+    frame.render_widget(block, area);
+
+    // Pin the header row (if any) and scroll only the body beneath it.
+    let mut body_area = inner;
+    if let Some(header) = style.header {
+        let header_area = Rect {
+            height: inner.height.min(1),
+            ..inner
+        };
+        frame.render_widget(
+            Paragraph::new(header).style(theme::chrome_style()),
+            header_area,
+        );
+        body_area = Rect {
+            y: inner.y.saturating_add(1),
+            height: inner.height.saturating_sub(1),
+            ..inner
+        };
+    }
+
+    let viewport = body_area.height;
     let content_len = lines.len() as u16;
     let offset = scroll.get().min(content_len.saturating_sub(viewport));
     scroll.set(offset);
 
-    frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(lines)
-            .block(block)
             .style(theme::chrome_style())
             .wrap(Wrap {
                 trim: style.wrap_trim,
             })
             .scroll((offset, 0)),
-        area,
+        body_area,
     );
 
     if content_len > viewport {
@@ -97,7 +121,7 @@ pub fn render_scroll_panel(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(None)
                 .end_symbol(None),
-            area.inner(Margin::new(0, 1)),
+            body_area,
             &mut state,
         );
     }

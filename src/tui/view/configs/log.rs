@@ -55,6 +55,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             focused,
             right_pad: 0,
             wrap_trim: false,
+            header: log_header(app.active_log_tab),
         },
     );
     app.panel_viewport.log.set(viewport);
@@ -75,13 +76,7 @@ fn event_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         )];
     }
 
-    let mut lines = vec![Line::styled(
-        format!(
-            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_SOURCE_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
-            "TIME", "LEVEL", "SOURCE", "KIND", "MESSAGE"
-        ),
-        theme::muted_style(),
-    )];
+    let mut lines = Vec::new();
     for event in events {
         let prefix = vec![
             Span::styled(
@@ -140,13 +135,7 @@ fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         )];
     }
 
-    let mut lines = vec![Line::styled(
-        format!(
-            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
-            "TIME", "LEVEL", "METHOD", "MESSAGE"
-        ),
-        theme::muted_style(),
-    )];
+    let mut lines = Vec::new();
     let prefix_width = EVENT_TIME_WIDTH
         + COLUMN_GAP
         + EVENT_LEVEL_WIDTH
@@ -199,13 +188,7 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         )];
     }
 
-    let mut lines = vec![Line::styled(
-        format!(
-            "{:<PROXY_TIME_WIDTH$}  {:<PROXY_LEVEL_WIDTH$}  {:<PROXY_FEED_WIDTH$}  {:<PROXY_SOURCE_WIDTH$}  {}",
-            "TIME", "LEVEL", "FEED", "SOURCE", "MESSAGE"
-        ),
-        theme::muted_style(),
-    )];
+    let mut lines = Vec::new();
     for row in visible.iter().rev() {
         let feed_style = if row.stream == ProxyStream::Stderr {
             theme::warning_style()
@@ -458,6 +441,27 @@ fn format_bytes(bytes: u64) -> String {
     } else {
         format!("{value:.1} {}", UNITS[unit])
     }
+}
+
+/// Column header pinned above the scrolling body for the tabular tabs. The
+/// stats tab has no columns, so it returns `None`.
+fn log_header(tab: TuiLogTab) -> Option<Line<'static>> {
+    let text = match tab {
+        TuiLogTab::XratEvents => format!(
+            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_SOURCE_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
+            "TIME", "LEVEL", "SOURCE", "KIND", "MESSAGE"
+        ),
+        TuiLogTab::ProxyEngine => format!(
+            "{:<PROXY_TIME_WIDTH$}  {:<PROXY_LEVEL_WIDTH$}  {:<PROXY_FEED_WIDTH$}  {:<PROXY_SOURCE_WIDTH$}  {}",
+            "TIME", "LEVEL", "FEED", "SOURCE", "MESSAGE"
+        ),
+        TuiLogTab::Api => format!(
+            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
+            "TIME", "LEVEL", "METHOD", "MESSAGE"
+        ),
+        TuiLogTab::Stats => return None,
+    };
+    Some(Line::styled(text, theme::muted_style()))
 }
 
 fn log_title(tab: TuiLogTab) -> Line<'static> {

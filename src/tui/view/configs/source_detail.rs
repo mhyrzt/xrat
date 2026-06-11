@@ -23,6 +23,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
             focused,
             right_pad: RIGHT_PAD,
             wrap_trim: true,
+            header: None,
         },
     );
     app.panel_viewport.detail.set(viewport);
