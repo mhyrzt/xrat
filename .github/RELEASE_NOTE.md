@@ -1,35 +1,19 @@
-## xrat v0.5.2
+## xrat v0.5.3
 
-### TUI traffic dashboard
+### GeoIP fixes
 
-- **TUI**: the traffic tab is now a widget dashboard with a live stats tab —
-  total download/upload, current throughput, delay, and failed-request counts
-  fed through a ring buffer and rendered with a sparkline.
-- **TUI**: engine-neutral traffic stats sources back the dashboard, plumbed for
-  both engines (xray StatsService over gRPC, sing-box Clash API).
-
-### API request logging
-
-- **Server**: the HTTP API now records each request as a structured event.
-- **TUI**: a dedicated API logs tab (moved last) splits requests into method,
-  path, and status columns; stats-poll self-traffic is hidden from the engine
-  and API views everywhere.
-
-### Engine logs
-
-- **TUI**: sing-box engine log lines are parsed into structured time/level/feed/
-  source/message columns with severity colors unified across engines.
-- **TUI**: the engine feed is deduped, access-log columns are filled, and the
-  log card column header stays pinned while scrolling.
-- **logs**: `xrat logs` output now labels the feed origin.
-
-### View-only clears
-
-- **TUI**: view-only log and stats clears (`C l`, `C s`) wipe the visible buffer
-  without deleting persisted records, kept distinct from the DB clear (`C p`).
+- **geoip**: endpoint location is now derived from the server address instead of
+  the proxy connection. Tested configs previously stored `loopback_ipv4` because
+  the real-delay stage read the local proxy address (`127.0.0.1`); the TUI table
+  Country column showed `-` while the detail card showed `loopback_ipv4`.
+- **TUI**: placeholder locations are treated as missing geo, so existing
+  poisoned rows self-heal from the config address off the critical path without
+  affecting first-paint time.
 
 ### Upgrade notes
 
 - No new database migrations in this release.
+- Re-run `xrat test` (or let the TUI re-enrich in the background) to replace any
+  `loopback_ipv4` locations stored by earlier versions with real geo.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.5.1...v0.5.2
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.5.2...v0.5.3
