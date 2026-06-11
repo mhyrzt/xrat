@@ -278,6 +278,27 @@ ips_excluded = []
 | `domains_excluded` | string[] | `[]`                      | Excluded domains                   |
 | `ips_excluded`     | string[] | `[]`                      | Excluded IPs                       |
 
+### [runtime.stats]
+
+Traffic-stats endpoint exposed by the managed runtime and sampled by the TUI
+stats tab. For xray/v2ray this enables the gRPC `StatsService` behind an `api`
+inbound; for managed sing-box it binds the Clash API controller
+(`experimental.clash_api`). Both bind an extra localhost port, gated by
+`enabled`. Probe and stats-disabled runtime configs are unchanged.
+
+```toml
+[runtime.stats]
+enabled = true
+host = "127.0.0.1"
+port = 10085
+```
+
+| Field     | Type    | Default       | Description                                   |
+| --------- | ------- | ------------- | --------------------------------------------- |
+| `enabled` | boolean | `true`        | Enable the stats endpoint and TUI stats poller |
+| `host`    | string  | `"127.0.0.1"` | Listen host for the stats controller          |
+| `port`    | integer | `10085`       | Listen port for the stats controller          |
+
 ---
 
 ## [routing]

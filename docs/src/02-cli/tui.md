@@ -220,22 +220,38 @@ tabs:
 | Key       | Action                                       |
 | --------- | -------------------------------------------- |
 | `[` / `]` | Cycle to the previous / next log tab         |
+| `C l`     | Clear the active log view (view-only)        |
+| `C s`     | Clear the stats view / counters (view-only)  |
 | `C p`     | Clear all persisted events from the database |
 
-| Tab          | Shows                                                         |
-| ------------ | ------------------------------------------------------------- |
-| xrat events  | Structured app/runtime events (same data as `xrat logs`)      |
-| proxy engine | Parsed xray / sing-box engine logs for the latest session     |
-| stats        | Live traffic stats (placeholder until the stats poller lands) |
+| Tab          | Shows                                                       |
+| ------------ | ----------------------------------------------------------- |
+| xrat events  | Structured app/runtime events (same data as `xrat logs`)    |
+| proxy engine | Parsed xray / sing-box engine logs for the latest session   |
+| api          | HTTP API requests recorded by the server (`source = api`)   |
+| stats        | Live traffic: total ↓/↑, current rate, delay, and sparkline |
 
-The engine tab parses recognized xray log lines into time, level, feed (engine
-name), source/component, and message columns; stderr is feed-styled as a
-warning, and unrecognized lines are kept as raw messages.
+The engine tab parses recognized xray **and** sing-box log lines into time,
+level, feed (engine name), source/component, and message columns. Generated
+sing-box configs enable `log.timestamp` so its lines carry a timestamp. stderr
+is feed-styled as a warning, and unrecognized lines are kept as raw messages
+with severity inferred from keywords.
 
-The `C p` clear chord is a database clear — it removes the persisted `events`
-rows, the same data cleared by
+Severity colors are shared across the events, api, and engine tabs:
+critical/fatal/panic/error are red, warn/warning are yellow, and
+info/debug/trace are neutral/accent.
+
+The stats tab samples the active engine once per second — the xray gRPC
+`StatsService` or the sing-box Clash API `/connections` endpoint — and resets
+its history on each new runtime session. It is enabled by `[runtime.stats]`
+(see [config reference](../05-reference/config-file.md)).
+
+Clears come in two kinds. `C l` and `C s` are **view-only**: they hide the
+current log/stats buffer in the TUI without deleting anything, and a periodic
+reload does not resurrect the cleared rows. `C p` is a **database** clear — it
+removes the persisted `events` rows, the same data cleared by
 [`xrat logs clear`](logs.md#clearing-persisted-events). Engine log files are not
-touched.
+touched by any of them.
 
 Press `?` from either tab to open the help modal. Press `Esc` to close it.
 

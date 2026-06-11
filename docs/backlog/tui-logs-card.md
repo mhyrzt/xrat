@@ -2,7 +2,7 @@
 
 ### Status
 
-In progress
+Done
 
 ### Progress
 
@@ -18,8 +18,12 @@ In progress
 
 ### Remaining plan
 
-The remaining heavy pieces (live stats, API tab, view-only clears, and log
-severity polish) are sequenced as focused commits A–F.
+All pieces below are implemented: sing-box engine log parsing with enforced
+`log.timestamp` and shared severity colors (commit G), plus the A–F arc (stats
+config plumbing, engine-neutral stats sources, the live stats tab with ring
+buffer and sparkline, the API request tab, and the `C l`/`C s` view-only
+clears). Docs updated; see `docs/src/02-cli/tui.md` and the `[runtime.stats]`
+config reference.
 
 - **A — runtime config emits stats plumbing for both engines.** Add optional
   `api`/`stats`/`policy`/`routing` fields to `XrayConfig`
