@@ -15,7 +15,7 @@ use std::fmt::Debug;
 pub use backend::build_lookup_chain;
 pub use cache::CachedLookup;
 pub use chain::ChainedLookup;
-pub use classify::classify_endpoint_location;
+pub use classify::{classify_endpoint_location, is_classified_placeholder};
 pub use enrich::{EndpointGeoMeta, address_host, enrich_address, resolve_address_ip};
 pub use local::{LocalMmdbLookup, lookup_asn_label, lookup_city_label, lookup_country_iso};
 pub use rate_limit::RateLimitedLookup;

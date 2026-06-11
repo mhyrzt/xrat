@@ -62,6 +62,14 @@ fn needs_location_enrichment_only_when_geo_missing_and_address_present() {
     let mut no_address = missing_geo.clone();
     no_address.address = "   ".to_string();
     assert!(!no_address.needs_location_enrichment());
+
+    let mut placeholder_geo = missing_geo.clone();
+    placeholder_geo.endpoint_location = Some("loopback_ipv4".to_string());
+    assert!(placeholder_geo.needs_location_enrichment());
+
+    let mut real_geo = missing_geo.clone();
+    real_geo.endpoint_location = Some("US/California/Los Angeles".to_string());
+    assert!(!real_geo.needs_location_enrichment());
 }
 
 #[test]

@@ -83,7 +83,7 @@ pub(crate) async fn run_real_delay_stage(
     result.http_status = real_delay_result.http_status;
     result.endpoint_ip = real_delay_result.endpoint_ip;
     let endpoint_meta = resolve_endpoint_meta(
-        result.endpoint_ip.as_deref(),
+        Some(node.address.as_str()),
         settings.geoip_enabled,
         settings.geoip_lookup.as_ref(),
     )

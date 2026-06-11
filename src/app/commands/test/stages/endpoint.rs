@@ -13,12 +13,12 @@ pub(crate) struct EndpointMeta {
 }
 
 pub(crate) async fn resolve_endpoint_meta(
-    endpoint_ip: Option<&str>,
+    endpoint_address: Option<&str>,
     geoip_enabled: bool,
     geoip_lookup: &dyn GeoIpLookup,
 ) -> EndpointMeta {
-    if geoip_enabled && let Some(endpoint_ip) = endpoint_ip {
-        let meta = geoip::enrich_address(endpoint_ip, geoip_lookup).await;
+    if geoip_enabled && let Some(endpoint_address) = endpoint_address {
+        let meta = geoip::enrich_address(endpoint_address, geoip_lookup).await;
         if meta != EndpointGeoMeta::default() {
             return EndpointMeta {
                 location: meta.location,
@@ -28,7 +28,7 @@ pub(crate) async fn resolve_endpoint_meta(
         }
     }
     EndpointMeta {
-        location: classify_endpoint_location(endpoint_ip),
+        location: classify_endpoint_location(endpoint_address),
         country: None,
         asn: None,
     }

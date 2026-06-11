@@ -109,10 +109,16 @@ impl TuiConfigRow {
     }
 
     pub fn needs_location_enrichment(&self) -> bool {
-        !self.address.trim().is_empty()
-            && self.endpoint_country.is_none()
-            && self.endpoint_location.is_none()
-            && self.endpoint_asn.is_none()
+        if self.address.trim().is_empty() {
+            return false;
+        }
+        let has_real_geo = self.endpoint_country.is_some()
+            || self.endpoint_asn.is_some()
+            || self
+                .endpoint_location
+                .as_deref()
+                .is_some_and(|label| !crate::support::geoip::is_classified_placeholder(label));
+        !has_real_geo
     }
 
     pub fn apply_location_meta(&mut self, meta: crate::support::geoip::EndpointGeoMeta) {
