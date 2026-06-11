@@ -87,12 +87,36 @@ fn parse_xray_line(line: &str) -> Option<ParsedLine> {
     let (level, after_level) = split_level(rest);
     let (component, message) = split_component(after_level);
 
+    // xray access logs carry no level or component; they end with the routing
+    // path `[inbound >> outbound]`. Default their level to Info and lift the
+    // routing tags into the source column so neither stays blank.
+    let (routing_source, message) = if component.is_none() {
+        extract_routing(message)
+    } else {
+        (None, message.to_string())
+    };
+
     Some(ParsedLine {
         time: Some(timestamp),
-        level,
-        component,
-        message: message.to_string(),
+        level: level.or_else(|| Some("Info".to_string())),
+        component: component.or(routing_source),
+        message,
     })
+}
+
+/// Pull a trailing xray routing path `[inbound >> outbound]` out of a message,
+/// returning it as `inbound→outbound` plus the message with the tag removed.
+fn extract_routing(message: &str) -> (Option<String>, String) {
+    let trimmed = message.trim_end();
+    if let Some(stripped) = trimmed.strip_suffix(']')
+        && let Some(open) = stripped.rfind('[')
+        && let Some((inbound, outbound)) = stripped[open + 1..].split_once(">>")
+    {
+        let source = format!("{}→{}", inbound.trim(), outbound.trim());
+        let rest = stripped[..open].trim_end().to_string();
+        return (Some(source), rest);
+    }
+    (None, message.to_string())
 }
 
 /// Parse a sing-box log line. With `log.timestamp` enabled (which generated
@@ -257,6 +281,21 @@ mod tests {
         assert_eq!(row.component, None);
         assert_eq!(row.message, "panic: nil map access");
         assert_eq!(row.stream, ProxyStream::Stderr);
+    }
+
+    #[test]
+    fn parses_xray_access_log_into_level_and_routing_source() {
+        let row = TuiProxyLogRow::parse(
+            "xray",
+            ProxyStream::Stdout,
+            "2026/06/11 03:09:13.163233 from tcp:127.0.0.1:35092 accepted tcp:push.services.mozilla.com:443 [socks-in >> proxy]",
+        );
+        assert_eq!(row.level.as_deref(), Some("Info"));
+        assert_eq!(row.component.as_deref(), Some("socks-in→proxy"));
+        assert_eq!(
+            row.message,
+            "from tcp:127.0.0.1:35092 accepted tcp:push.services.mozilla.com:443"
+        );
     }
 
     #[test]

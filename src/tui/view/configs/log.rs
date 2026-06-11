@@ -25,13 +25,10 @@ const EVENT_PREFIX_WIDTH: usize = EVENT_TIME_WIDTH
 
 const PROXY_TIME_WIDTH: usize = 19;
 const PROXY_LEVEL_WIDTH: usize = 7;
-const PROXY_FEED_WIDTH: usize = 8;
-const PROXY_SOURCE_WIDTH: usize = 10;
+const PROXY_SOURCE_WIDTH: usize = 16;
 const PROXY_PREFIX_WIDTH: usize = PROXY_TIME_WIDTH
     + COLUMN_GAP
     + PROXY_LEVEL_WIDTH
-    + COLUMN_GAP
-    + PROXY_FEED_WIDTH
     + COLUMN_GAP
     + PROXY_SOURCE_WIDTH
     + COLUMN_GAP;
@@ -51,7 +48,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         lines,
         &app.panel_scroll.log,
         PanelStyle {
-            title: log_title(app.active_log_tab),
+            title: log_title(app.active_log_tab, active_engine_label(app)),
             focused,
             right_pad: 0,
             wrap_trim: false,
@@ -190,7 +187,7 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
 
     let mut lines = Vec::new();
     for row in visible.iter().rev() {
-        let feed_style = if row.stream == ProxyStream::Stderr {
+        let source_style = if row.stream == ProxyStream::Stderr {
             theme::warning_style()
         } else {
             theme::muted_style()
@@ -209,14 +206,12 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
                 proxy_severity_style(row),
             ),
             Span::raw("  "),
-            Span::styled(format!("{:<PROXY_FEED_WIDTH$}", row.engine), feed_style),
-            Span::raw("  "),
             Span::styled(
                 format!(
                     "{:<PROXY_SOURCE_WIDTH$}",
-                    row.component.as_deref().unwrap_or("")
+                    truncate(row.component.as_deref().unwrap_or(""), PROXY_SOURCE_WIDTH)
                 ),
-                theme::muted_style(),
+                source_style,
             ),
             Span::raw("  "),
         ];
@@ -452,8 +447,8 @@ fn log_header(tab: TuiLogTab) -> Option<Line<'static>> {
             "TIME", "LEVEL", "SOURCE", "KIND", "MESSAGE"
         ),
         TuiLogTab::ProxyEngine => format!(
-            "{:<PROXY_TIME_WIDTH$}  {:<PROXY_LEVEL_WIDTH$}  {:<PROXY_FEED_WIDTH$}  {:<PROXY_SOURCE_WIDTH$}  {}",
-            "TIME", "LEVEL", "FEED", "SOURCE", "MESSAGE"
+            "{:<PROXY_TIME_WIDTH$}  {:<PROXY_LEVEL_WIDTH$}  {:<PROXY_SOURCE_WIDTH$}  {}",
+            "TIME", "LEVEL", "SOURCE", "MESSAGE"
         ),
         TuiLogTab::Api => format!(
             "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
@@ -464,7 +459,7 @@ fn log_header(tab: TuiLogTab) -> Option<Line<'static>> {
     Some(Line::styled(text, theme::muted_style()))
 }
 
-fn log_title(tab: TuiLogTab) -> Line<'static> {
+fn log_title(tab: TuiLogTab, engine_label: Option<String>) -> Line<'static> {
     let mut spans = vec![
         Span::raw(" "),
         Span::styled("2:", theme::accent_style().add_modifier(Modifier::BOLD)),
@@ -491,8 +486,32 @@ fn log_title(tab: TuiLogTab) -> Line<'static> {
             spans.push(Span::styled(label.to_string(), theme::muted_style()));
         }
     }
+    if tab == TuiLogTab::ProxyEngine
+        && let Some(engine_label) = engine_label
+    {
+        spans.push(Span::raw("  "));
+        spans.push(Span::styled(
+            format!("· {engine_label}"),
+            theme::accent_style(),
+        ));
+    }
     spans.push(Span::raw(" "));
     Line::from(spans)
+}
+
+/// Engine name (and version, if probed) currently writing to the engine tab,
+/// taken from the most recent proxy row. `None` when no engine logs are loaded.
+fn active_engine_label(app: &TuiApp) -> Option<String> {
+    let engine = app.data.logs.proxy.last().map(|row| row.engine.clone())?;
+    let version = app
+        .engines
+        .iter()
+        .find(|info| info.name == engine)
+        .and_then(|info| info.version.clone());
+    Some(match version {
+        Some(version) => format!("{engine} {version}"),
+        None => engine,
+    })
 }
 
 /// Normalize a timestamp to `YYYY-MM-DD HH:MM:SS` (19 chars): drop a trailing
