@@ -240,7 +240,8 @@ configs enable `log.timestamp` so its lines carry a timestamp. xray access logs
 get an inferred `Info` level and their `[inbound >> outbound]` routing path in
 the source column. stderr is styled as a warning, and unrecognized lines are
 kept as raw messages with severity inferred from keywords. Access logs from
-xrat's own stats polling (`[api >> api]`) are hidden as instrumentation noise.
+xrat's own stats polling (`[api -> api]`) are hidden as instrumentation noise,
+the same as `xrat logs`.
 
 Severity colors are shared across the events, api, and engine tabs:
 critical/fatal/panic/error are red, warn/warning are yellow, and

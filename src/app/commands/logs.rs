@@ -8,6 +8,7 @@ use crate::app::commands::output::{self, Align, Cell, Column};
 use crate::app::context::AppContext;
 use crate::cli::{ListFormat, LogLevel, LogSource, LogsArgs, LogsClearArgs, LogsCommand};
 use crate::db::{EventFilter, EventRecord};
+use crate::support::engine_log::{EngineLogRow, ProxyStream};
 
 pub async fn run(context: &AppContext, args: &LogsArgs) -> crate::app::Result<()> {
     if let Some(LogsCommand::Clear(clear_args)) = &args.command {
@@ -88,19 +89,23 @@ async fn one_time(
         }
     }
 
+    let color = output::color_enabled();
     for file in &feeds.files {
         let lines = tail_lines(&file.path, args.lines).await?;
         if lines.is_empty() {
             continue;
         }
-        println!(
-            "\n{}",
-            output::format_list(
-                &format!("{} ({})", file.label, file.path.display()),
-                &lines,
-                output::color_enabled()
-            )
-        );
+        let header = format!("{} ({})", file.label, file.path.display());
+        if is_engine_label(&file.label) {
+            let rows = engine_rows(&file.label, &lines);
+            if rows.is_empty() {
+                continue;
+            }
+            println!("\n{header}");
+            println!("{}", format_engine_table(&rows));
+        } else {
+            println!("\n{}", output::format_list(&header, &lines, color));
+        }
     }
 
     Ok(())
@@ -128,7 +133,9 @@ async fn follow(
     for file in &feeds.files {
         let lines = tail_lines(&file.path, args.lines).await?;
         for line in &lines {
-            println!("{}", format_file_line(&file.label, line, color));
+            if let Some(rendered) = emit_file_line(&file.label, line, color) {
+                println!("{rendered}");
+            }
         }
         offsets.push(current_len(&file.path));
     }
@@ -157,7 +164,9 @@ async fn follow(
                     let offset = offsets[index];
                     let (lines, new_offset) = read_from(&file.path, offset).await?;
                     for line in lines {
-                        println!("{}", format_file_line(&file.label, &line, color));
+                        if let Some(rendered) = emit_file_line(&file.label, &line, color) {
+                            println!("{rendered}");
+                        }
                     }
                     offsets[index] = new_offset;
                 }
@@ -375,6 +384,118 @@ fn format_event_line(event: &EventRecord, color: bool) -> String {
 fn format_file_line(label: &str, line: &str, color: bool) -> String {
     let tag = output::style_text(label, output::Style::Dim, color);
     format!("{tag}  {line}")
+}
+
+const PROXY_TIME_WIDTH: usize = 19;
+const PROXY_LEVEL_WIDTH: usize = 7;
+const PROXY_SOURCE_WIDTH: usize = 16;
+
+fn is_engine_label(label: &str) -> bool {
+    matches!(label, "xray" | "singbox")
+}
+
+/// Parse engine log lines into structured rows and drop xrat's own stats-poll
+/// `[api -> api]` access traffic, mirroring the TUI engine tab.
+fn engine_rows(engine: &str, lines: &[String]) -> Vec<EngineLogRow> {
+    lines
+        .iter()
+        .map(|line| EngineLogRow::parse(engine, ProxyStream::Stdout, line))
+        .filter(|row| !row.is_self_api_traffic())
+        .collect()
+}
+
+/// Render a single engine log line for follow mode, returning `None` when the
+/// line is self-api traffic to be hidden. Non-engine feeds pass through raw.
+fn emit_file_line(label: &str, line: &str, color: bool) -> Option<String> {
+    if !is_engine_label(label) {
+        return Some(format_file_line(label, line, color));
+    }
+    let row = EngineLogRow::parse(label, ProxyStream::Stdout, line);
+    if row.is_self_api_traffic() {
+        return None;
+    }
+    Some(format_engine_row(label, &row, color))
+}
+
+fn format_engine_row(label: &str, row: &EngineLogRow, color: bool) -> String {
+    let tag = output::style_text(label, output::Style::Dim, color);
+    let time = format!(
+        "{:<PROXY_TIME_WIDTH$}",
+        compact_engine_time(row.time.as_deref().unwrap_or(""))
+    );
+    let level_text = format!(
+        "{:<PROXY_LEVEL_WIDTH$}",
+        output::truncate(row.level.as_deref().unwrap_or(""), PROXY_LEVEL_WIDTH)
+    );
+    let level = output::style_text(&level_text, proxy_level_style(row.level.as_deref()), color);
+    let source = format!(
+        "{:<PROXY_SOURCE_WIDTH$}",
+        output::truncate(row.component.as_deref().unwrap_or(""), PROXY_SOURCE_WIDTH)
+    );
+    format!("{tag}  {time}  {level}  {source}  {}", row.message)
+}
+
+fn format_engine_table(rows: &[EngineLogRow]) -> String {
+    let columns = [
+        Column {
+            header: "TIME",
+            align: Align::Left,
+        },
+        Column {
+            header: "LEVEL",
+            align: Align::Left,
+        },
+        Column {
+            header: "SOURCE",
+            align: Align::Left,
+        },
+        Column {
+            header: "MESSAGE",
+            align: Align::Left,
+        },
+    ];
+    let table_rows = rows
+        .iter()
+        .map(|row| {
+            vec![
+                Cell::plain(format!(
+                    "{:<PROXY_TIME_WIDTH$}",
+                    compact_engine_time(row.time.as_deref().unwrap_or(""))
+                )),
+                Cell::styled(
+                    format!(
+                        "{:<PROXY_LEVEL_WIDTH$}",
+                        output::truncate(row.level.as_deref().unwrap_or(""), PROXY_LEVEL_WIDTH)
+                    ),
+                    proxy_level_style(row.level.as_deref()),
+                ),
+                Cell::plain(format!(
+                    "{:<PROXY_SOURCE_WIDTH$}",
+                    output::truncate(row.component.as_deref().unwrap_or(""), PROXY_SOURCE_WIDTH)
+                )),
+                Cell::plain(output::truncate(&row.message, EVENT_MESSAGE_WIDTH)),
+            ]
+        })
+        .collect::<Vec<_>>();
+    output::format_table(&columns, &table_rows, output::color_enabled())
+}
+
+/// Normalize an engine timestamp to `YYYY-MM-DD HH:MM:SS`: map xray `/` dates to
+/// `-` and trim any sub-second fraction, matching the TUI engine tab.
+fn compact_engine_time(value: &str) -> String {
+    value
+        .replace('/', "-")
+        .chars()
+        .take(PROXY_TIME_WIDTH)
+        .collect()
+}
+
+fn proxy_level_style(level: Option<&str>) -> output::Style {
+    match level.map(str::to_ascii_lowercase).as_deref() {
+        Some("error") | Some("fatal") | Some("panic") | Some("critical") => output::Style::Red,
+        Some("warn") | Some("warning") => output::Style::Yellow,
+        _ => output::Style::Cyan,
+    }
 }
 
 async fn tail_lines(path: &Path, max_lines: usize) -> crate::app::Result<Vec<String>> {

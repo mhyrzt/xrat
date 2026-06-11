@@ -1,5 +1,6 @@
 pub mod cancel;
 pub mod decode;
+pub mod engine_log;
 pub mod geoip;
 pub mod net;
 pub mod refs;

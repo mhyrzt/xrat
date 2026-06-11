@@ -4,7 +4,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::app::context::AppContext;
 use crate::db::{EventFilter, EventRecord};
-use crate::tui::data::proxy_log::{ProxyStream, TuiProxyLogRow};
+use crate::tui::data::{ProxyStream, TuiProxyLogRow};
 
 const EVENT_LIMIT: i64 = 200;
 const PROXY_LOG_LIMIT: usize = 200;

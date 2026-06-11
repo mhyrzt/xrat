@@ -36,6 +36,10 @@ Notes:
 - `--source xray` / `--source singbox` tail the engine log files for the active
   or last session; `--source daemon` tails `daemon.log`; `--source app` shows
   only structured events.
+- Engine logs are parsed into TIME / LEVEL / SOURCE / MESSAGE columns (xray and
+  sing-box), matching the TUI engine tab. Access logs from xrat's own stats
+  polling of the `api` inbound (`[api -> api]`) are filtered out as
+  instrumentation noise.
 
 ## Examples
 

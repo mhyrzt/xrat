@@ -1,8 +1,9 @@
-//! Proxy engine (xray / sing-box) log parsing for the TUI logs card. Raw
-//! process stdout/stderr lines are parsed into structured fields where the
-//! format is recognized, and kept as raw messages otherwise.
+//! Proxy engine (xray / sing-box) log parsing shared by the TUI logs card and
+//! the `xrat logs` command. Raw process stdout/stderr lines are parsed into
+//! structured fields where the format is recognized, and kept as raw messages
+//! otherwise.
 
-/// Which process stream a proxy log line came from. Recorded so stderr can be
+/// Which process stream a log line came from. Recorded so stderr can be
 /// surfaced only when it materially helps diagnose an issue; the feed label
 /// itself stays the engine name (e.g. `xray`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,11 +12,11 @@ pub enum ProxyStream {
     Stderr,
 }
 
-/// A single parsed proxy engine log row. `time`, `level`, and `component` are
-/// `None` when the source line does not match a known format; `message` then
-/// holds the raw line.
+/// A single parsed engine log row. `time`, `level`, and `component` are `None`
+/// when the source line does not match a known format; `message` then holds the
+/// raw line.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TuiProxyLogRow {
+pub struct EngineLogRow {
     pub engine: String,
     pub stream: ProxyStream,
     pub time: Option<String>,
@@ -24,7 +25,7 @@ pub struct TuiProxyLogRow {
     pub message: String,
 }
 
-impl TuiProxyLogRow {
+impl EngineLogRow {
     /// Parse one raw line emitted by `engine` on `stream`. Both the xray and
     /// sing-box log formats are parsed into fields; anything else is preserved as
     /// a raw message so nothing is hidden.
@@ -57,6 +58,13 @@ impl TuiProxyLogRow {
             ProxyStream::Stderr => "e",
         };
         format!("{}|{stream}|{}", self.engine, self.message)
+    }
+
+    /// True for xray access logs produced by xrat's own stats polling of the
+    /// `api` inbound (`[api -> api]` / `[api >> api]`). These are instrumentation
+    /// noise rather than runtime connection traffic, so log views hide them.
+    pub fn is_self_api_traffic(&self) -> bool {
+        self.component.as_deref() == Some("api→api") || self.message.contains("[api ")
     }
 }
 
@@ -104,17 +112,21 @@ fn parse_xray_line(line: &str) -> Option<ParsedLine> {
     })
 }
 
-/// Pull a trailing xray routing path `[inbound >> outbound]` out of a message,
-/// returning it as `inbound→outbound` plus the message with the tag removed.
+/// Pull a trailing xray routing path `[inbound >> outbound]` (or `->`) out of a
+/// message, returning it as `inbound→outbound` plus the message with the tag
+/// removed. xray builds vary in the separator, so both are accepted.
 fn extract_routing(message: &str) -> (Option<String>, String) {
     let trimmed = message.trim_end();
     if let Some(stripped) = trimmed.strip_suffix(']')
         && let Some(open) = stripped.rfind('[')
-        && let Some((inbound, outbound)) = stripped[open + 1..].split_once(">>")
     {
-        let source = format!("{}→{}", inbound.trim(), outbound.trim());
-        let rest = stripped[..open].trim_end().to_string();
-        return (Some(source), rest);
+        let inside = &stripped[open + 1..];
+        let split = inside.split_once(">>").or_else(|| inside.split_once("->"));
+        if let Some((inbound, outbound)) = split {
+            let source = format!("{}→{}", inbound.trim(), outbound.trim());
+            let rest = stripped[..open].trim_end().to_string();
+            return (Some(source), rest);
+        }
     }
     (None, message.to_string())
 }
@@ -249,7 +261,7 @@ mod tests {
 
     #[test]
     fn parses_xray_warning_line_with_component() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "xray",
             ProxyStream::Stdout,
             "2026/06/06 15:10:29.760343 [Warning] core: Xray 26.3.27 started",
@@ -262,7 +274,7 @@ mod tests {
 
     #[test]
     fn parses_xray_line_without_component() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "xray",
             ProxyStream::Stdout,
             "2026/06/06 15:10:30 [Info] connection established",
@@ -275,7 +287,7 @@ mod tests {
 
     #[test]
     fn keeps_unparseable_line_as_raw_message() {
-        let row = TuiProxyLogRow::parse("sing-box", ProxyStream::Stderr, "panic: nil map access");
+        let row = EngineLogRow::parse("sing-box", ProxyStream::Stderr, "panic: nil map access");
         assert_eq!(row.time, None);
         assert_eq!(row.level, None);
         assert_eq!(row.component, None);
@@ -285,7 +297,7 @@ mod tests {
 
     #[test]
     fn parses_xray_access_log_into_level_and_routing_source() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "xray",
             ProxyStream::Stdout,
             "2026/06/11 03:09:13.163233 from tcp:127.0.0.1:35092 accepted tcp:push.services.mozilla.com:443 [socks-in >> proxy]",
@@ -299,8 +311,29 @@ mod tests {
     }
 
     #[test]
+    fn flags_api_self_traffic_with_arrow_separator() {
+        let row = EngineLogRow::parse(
+            "xray",
+            ProxyStream::Stdout,
+            "2026/06/11 15:36:13.086076 from 127.0.0.1:43618 accepted tcp:127.0.0.1:10085 [api -> api]",
+        );
+        assert_eq!(row.component.as_deref(), Some("api→api"));
+        assert!(row.is_self_api_traffic());
+    }
+
+    #[test]
+    fn does_not_flag_real_traffic_as_self_api() {
+        let row = EngineLogRow::parse(
+            "xray",
+            ProxyStream::Stdout,
+            "2026/06/11 03:09:13.163233 from tcp:127.0.0.1:35092 accepted tcp:github.com:443 [socks-in >> proxy]",
+        );
+        assert!(!row.is_self_api_traffic());
+    }
+
+    #[test]
     fn parses_singbox_info_line_with_component() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "sing-box",
             ProxyStream::Stdout,
             "2026-06-06 15:10:29 INFO router: sniffed protocol: tls",
@@ -313,7 +346,7 @@ mod tests {
 
     #[test]
     fn parses_singbox_line_with_tz_offset() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "sing-box",
             ProxyStream::Stderr,
             "+0330 2026-06-06 15:10:29 WARN inbound/socks: listen error",
@@ -326,7 +359,7 @@ mod tests {
 
     #[test]
     fn keeps_singbox_panic_without_level_as_raw() {
-        let row = TuiProxyLogRow::parse("sing-box", ProxyStream::Stderr, "panic: nil map access");
+        let row = EngineLogRow::parse("sing-box", ProxyStream::Stderr, "panic: nil map access");
         assert_eq!(row.time, None);
         assert_eq!(row.level, None);
         assert_eq!(row.component, None);
@@ -335,7 +368,7 @@ mod tests {
 
     #[test]
     fn does_not_treat_multiword_prefix_as_component() {
-        let row = TuiProxyLogRow::parse(
+        let row = EngineLogRow::parse(
             "xray",
             ProxyStream::Stdout,
             "2026/06/06 15:10:31 [Info] rejected: bad request",
