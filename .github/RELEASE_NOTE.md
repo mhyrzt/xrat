@@ -1,23 +1,35 @@
-## xrat v0.5.1
+## xrat v0.5.2
 
-### Performance
+### TUI traffic dashboard
 
-- **TUI**: instant first paint. GeoIP location enrichment no longer blocks the
-  initial frame — known locations render immediately from the database and
-  missing ones fill in progressively in the background.
-- **TUI**: resolved host geo is now persisted in a database cache, so locations
-  survive restarts and unresolvable or untested hosts stop re-resolving on every
-  launch.
-- **TUI**: mutating actions (enable/disable/delete/purge/restore) no longer
-  freeze the UI. The reload runs off the event loop, and single-config toggles
-  patch the affected row in place instead of reloading everything.
-- **TUI**: dirty-flag rendering eliminates the constant idle redraw, and the
-  engine version probe now runs asynchronously instead of delaying first paint.
+- **TUI**: the traffic tab is now a widget dashboard with a live stats tab —
+  total download/upload, current throughput, delay, and failed-request counts
+  fed through a ring buffer and rendered with a sparkline.
+- **TUI**: engine-neutral traffic stats sources back the dashboard, plumbed for
+  both engines (xray StatsService over gRPC, sing-box Clash API).
+
+### API request logging
+
+- **Server**: the HTTP API now records each request as a structured event.
+- **TUI**: a dedicated API logs tab (moved last) splits requests into method,
+  path, and status columns; stats-poll self-traffic is hidden from the engine
+  and API views everywhere.
+
+### Engine logs
+
+- **TUI**: sing-box engine log lines are parsed into structured time/level/feed/
+  source/message columns with severity colors unified across engines.
+- **TUI**: the engine feed is deduped, access-log columns are filled, and the
+  log card column header stays pinned while scrolling.
+- **logs**: `xrat logs` output now labels the feed origin.
+
+### View-only clears
+
+- **TUI**: view-only log and stats clears (`C l`, `C s`) wipe the visible buffer
+  without deleting persisted records, kept distinct from the DB clear (`C p`).
 
 ### Upgrade notes
 
-- This release adds one database migration (`0020_add_geoip_cache`) that creates
-  the `geoip_cache` table. It is applied automatically on first run; no manual
-  action is required.
+- No new database migrations in this release.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.5.0...v0.5.1
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.5.1...v0.5.2
