@@ -122,6 +122,8 @@ pub enum TuiAction {
     NextLogTab,
     PrevLogTab,
     RequestClearEvents,
+    ClearLogView,
+    ClearStatsView,
     RefreshFocusedSource,
     RefreshAllSources,
     OpenRenameModal,
@@ -299,6 +301,12 @@ pub struct TuiApp {
     pub engines: Vec<crate::tui::data::EngineInfo>,
     /// Live traffic-stats ring buffer for the stats tab, reset per session.
     pub stats: crate::tui::data::StatsHistory,
+    /// View-only watermark: events with id at or below this are hidden in the
+    /// events/api tabs. Set by `C l`; never deletes persisted rows.
+    pub events_clear_before_id: i64,
+    /// View-only watermark for the proxy engine tab: a signature of the last
+    /// visible row at clear time. Rows up to and including it stay hidden.
+    pub proxy_clear_signature: Option<String>,
 }
 
 #[derive(Debug, Default)]

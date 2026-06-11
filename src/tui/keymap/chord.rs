@@ -41,6 +41,8 @@ pub fn resolve_chord(leader: char, code: KeyCode) -> TuiAction {
         ('r', KeyCode::Char('v')) => TuiAction::RequestBulk(BulkOp::RestoreFilteredDeleted),
         ('r', KeyCode::Char('a')) => TuiAction::RequestBulk(BulkOp::RestoreAllDeleted),
 
+        ('C', KeyCode::Char('l')) => TuiAction::ClearLogView,
+        ('C', KeyCode::Char('s')) => TuiAction::ClearStatsView,
         ('C', KeyCode::Char('p')) => TuiAction::RequestClearEvents,
 
         _ => TuiAction::None,
@@ -84,7 +86,7 @@ pub fn chord_entries(leader: char) -> &'static [(&'static str, &'static str)] {
             ("a", "trash"),
         ],
         'r' => &[("r", "focused"), ("v", "filtered"), ("a", "trash")],
-        'C' => &[("p", "events (db)")],
+        'C' => &[("l", "log view"), ("s", "stats view"), ("p", "events (db)")],
         _ => &[],
     }
 }

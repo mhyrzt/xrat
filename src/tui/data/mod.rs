@@ -1,5 +1,5 @@
 mod configs;
-mod logs;
+pub(crate) mod logs;
 mod proxy_log;
 mod runtime;
 mod sources;

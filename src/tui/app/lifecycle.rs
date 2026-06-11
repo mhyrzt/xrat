@@ -1,8 +1,35 @@
 use crate::tui::data::{TuiConfigRow, TuiData};
 
-use super::{TuiApp, TuiView};
+use super::{TuiApp, TuiLogTab, TuiView};
 
 impl TuiApp {
+    /// Clear the visible buffer of the active log tab without touching persisted
+    /// records. Events/api tabs advance an id watermark; the engine tab records
+    /// the last visible row signature; the stats tab empties the ring buffer.
+    pub(crate) fn clear_log_view(&mut self) {
+        match self.active_log_tab {
+            TuiLogTab::XratEvents | TuiLogTab::Api => {
+                self.events_clear_before_id = self
+                    .data
+                    .logs
+                    .events
+                    .iter()
+                    .map(|event| event.id)
+                    .max()
+                    .unwrap_or(self.events_clear_before_id);
+            }
+            TuiLogTab::ProxyEngine => {
+                self.proxy_clear_signature = self.data.logs.proxy.last().map(|row| row.signature());
+            }
+            TuiLogTab::Stats => self.stats.clear(),
+        }
+    }
+
+    /// True when an event row should be shown given the events view watermark.
+    pub fn event_visible(&self, id: i64) -> bool {
+        id > self.events_clear_before_id
+    }
+
     pub fn reload_data(&mut self, data: TuiData) {
         self.data = data;
         self.clamp_config_focus();

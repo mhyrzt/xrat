@@ -64,6 +64,8 @@ impl TuiApp {
                 self.panel_scroll.log.set(0);
             }
             TuiAction::RequestClearEvents => self.request_clear_events(),
+            TuiAction::ClearLogView => self.clear_log_view(),
+            TuiAction::ClearStatsView => self.stats.clear(),
             TuiAction::StartTest(scope) => {
                 self.test_state.scope = scope;
             }

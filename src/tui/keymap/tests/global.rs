@@ -478,6 +478,14 @@ fn delete_purge_restore_chords_resolve() {
         chord(KeyCode::Char('C'), KeyCode::Char('p'), TuiView::Configs),
         TuiAction::RequestClearEvents
     );
+    assert_eq!(
+        chord(KeyCode::Char('C'), KeyCode::Char('l'), TuiView::Configs),
+        TuiAction::ClearLogView
+    );
+    assert_eq!(
+        chord(KeyCode::Char('C'), KeyCode::Char('s'), TuiView::Configs),
+        TuiAction::ClearStatsView
+    );
 }
 
 #[test]

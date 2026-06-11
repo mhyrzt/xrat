@@ -61,7 +61,14 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
 }
 
 fn event_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
-    if app.data.logs.events.is_empty() {
+    let events: Vec<_> = app
+        .data
+        .logs
+        .events
+        .iter()
+        .filter(|event| app.event_visible(event.id))
+        .collect();
+    if events.is_empty() {
         return vec![Line::styled(
             "No xrat events recorded yet.",
             theme::muted_style(),
@@ -75,7 +82,7 @@ fn event_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         ),
         theme::muted_style(),
     )];
-    for event in &app.data.logs.events {
+    for event in events {
         let prefix = vec![
             Span::styled(
                 format!("{:<EVENT_TIME_WIDTH$}", compact_time(&event.time)),
@@ -124,7 +131,7 @@ fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         .logs
         .events
         .iter()
-        .filter(|event| event.source == "api")
+        .filter(|event| event.source == "api" && app.event_visible(event.id))
         .collect();
     if events.is_empty() {
         return vec![Line::styled(
@@ -184,7 +191,8 @@ fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
 fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
     use crate::tui::data::ProxyStream;
 
-    if app.data.logs.proxy.is_empty() {
+    let visible = visible_proxy_rows(app);
+    if visible.is_empty() {
         return vec![Line::styled(
             "No proxy engine logs found for the latest runtime session.",
             theme::muted_style(),
@@ -198,7 +206,7 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         ),
         theme::muted_style(),
     )];
-    for row in app.data.logs.proxy.iter().rev() {
+    for row in visible.iter().rev() {
         let feed_style = if row.stream == ProxyStream::Stderr {
             theme::warning_style()
         } else {
@@ -235,6 +243,20 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         );
     }
     lines
+}
+
+/// Proxy rows after the view-only clear boundary. With a clear signature set,
+/// rows up to and including its most recent occurrence stay hidden; a rotated
+/// log whose signature is gone shows everything again.
+fn visible_proxy_rows(app: &TuiApp) -> &[crate::tui::data::TuiProxyLogRow] {
+    let rows = &app.data.logs.proxy;
+    let Some(signature) = &app.proxy_clear_signature else {
+        return rows;
+    };
+    match rows.iter().rposition(|row| &row.signature() == signature) {
+        Some(index) => &rows[index + 1..],
+        None => rows,
+    }
 }
 
 fn push_wrapped_row<'a>(

@@ -47,6 +47,17 @@ impl TuiProxyLogRow {
 
         row
     }
+
+    /// Stable identity of a row used to mark a view-only clear boundary in the
+    /// engine tab. Rows reload fully each tick, so the signature lets the view
+    /// hide everything up to the row visible at clear time.
+    pub fn signature(&self) -> String {
+        let stream = match self.stream {
+            ProxyStream::Stdout => "o",
+            ProxyStream::Stderr => "e",
+        };
+        format!("{}|{stream}|{}", self.engine, self.message)
+    }
 }
 
 struct ParsedLine {
