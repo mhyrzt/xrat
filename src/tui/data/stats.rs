@@ -36,6 +36,17 @@ impl StatsHistory {
             self.session_id = session_id;
         }
 
+        // Within a session xray counters are monotonic, so a sample whose totals
+        // dropped is a partial/short read. Recording it would briefly show a tiny
+        // "total" and produce a bogus throughput spike on the next sample, so keep
+        // the previous reading instead.
+        if let Some(last) = self.last
+            && (sample.uplink_total < last.uplink_total
+                || sample.downlink_total < last.downlink_total)
+        {
+            return;
+        }
+
         let up_rate = self
             .last
             .map(|last| sample.uplink_total.saturating_sub(last.uplink_total))
@@ -108,6 +119,24 @@ mod tests {
         let latest = history.latest().unwrap();
         assert_eq!(latest.up_rate, 0);
         assert_eq!(latest.downlink_total, 5);
+    }
+
+    #[test]
+    fn ignores_partial_reads_that_drop_totals() {
+        let mut history = StatsHistory::default();
+        history.record(Some(1), sample(100, 1000));
+        history.record(Some(1), sample(150, 1900));
+        // A short read reports lower totals; it must be skipped, not recorded.
+        history.record(Some(1), sample(5, 5));
+        let latest = history.latest().unwrap();
+        assert_eq!(latest.uplink_total, 150);
+        assert_eq!(latest.downlink_total, 1900);
+        assert_eq!(history.down_rates().len(), 2);
+        // A later valid sample still differences against the last good reading.
+        history.record(Some(1), sample(170, 2100));
+        let latest = history.latest().unwrap();
+        assert_eq!(latest.up_rate, 20);
+        assert_eq!(latest.down_rate, 200);
     }
 
     #[test]

@@ -1,5 +1,6 @@
 mod configs;
 pub(crate) mod logs;
+mod probe_stats;
 mod runtime;
 mod sources;
 mod stats;
@@ -8,6 +9,7 @@ mod tests_view;
 pub use crate::support::engine_log::{EngineLogRow as TuiProxyLogRow, ProxyStream};
 pub use configs::TuiConfigRow;
 pub use logs::TuiLogs;
+pub use probe_stats::{MetricSummary, TuiProbeHistory};
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
 pub use stats::StatsHistory;
@@ -48,6 +50,8 @@ pub struct TuiData {
     pub server_enabled: bool,
     pub daemon: TuiDaemonInfo,
     pub logs: TuiLogs,
+    /// Probe/test history for the active config, empty when nothing is active.
+    pub probe_history: TuiProbeHistory,
     pub metric_columns: TuiMetricColumns,
     pub test_stage_label: String,
     pub test_stage_names: Vec<String>,
@@ -111,6 +115,10 @@ impl TuiData {
         data.server_enabled = server.enabled;
         data.daemon = load_daemon_info(context).await;
         data.logs = logs;
+        if let Some(active_id) = data.runtime.active_config_id {
+            let records = context.db.list_connection_tests(active_id).await?;
+            data.probe_history = TuiProbeHistory::from_records(&records);
+        }
         data.test_stage_names =
             normalize_test_stage_names(&context.app_config.runtime.rotation.test_stages);
         data.test_stage_label = format_test_stage_label(&data.test_stage_names);
@@ -169,6 +177,7 @@ impl TuiData {
             server_enabled: false,
             daemon: TuiDaemonInfo::default(),
             logs: TuiLogs::default(),
+            probe_history: TuiProbeHistory::default(),
             metric_columns,
             test_stage_label: "tcp + real-delay".to_string(),
             test_stage_names: vec!["tcp".to_string(), "real_delay".to_string()],

@@ -122,7 +122,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                 vec![
                     help_line("[ ]", "Cycle log tabs"),
                     help_line("C l", "Clear log view"),
-                    help_line("C s", "Clear stats view"),
+                    help_line("C s", "Clear traffic view"),
                     help_line("C p", "Clear events (db)"),
                 ],
             ),

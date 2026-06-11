@@ -86,7 +86,11 @@ pub fn chord_entries(leader: char) -> &'static [(&'static str, &'static str)] {
             ("a", "trash"),
         ],
         'r' => &[("r", "focused"), ("v", "filtered"), ("a", "trash")],
-        'C' => &[("l", "log view"), ("s", "stats view"), ("p", "events (db)")],
+        'C' => &[
+            ("l", "log view"),
+            ("s", "traffic view"),
+            ("p", "events (db)"),
+        ],
         _ => &[],
     }
 }

@@ -4,6 +4,7 @@ mod log;
 mod runtime;
 mod source_detail;
 mod sources_table;
+mod stats;
 mod table;
 mod testbar;
 
