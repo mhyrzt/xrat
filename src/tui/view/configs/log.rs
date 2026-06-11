@@ -214,7 +214,10 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
         };
         let prefix = vec![
             Span::styled(
-                format!("{:<PROXY_TIME_WIDTH$}", row.time.as_deref().unwrap_or("")),
+                format!(
+                    "{:<PROXY_TIME_WIDTH$}",
+                    row.time.as_deref().map(compact_time).unwrap_or_default()
+                ),
                 theme::muted_style(),
             ),
             Span::raw("  "),
@@ -488,10 +491,14 @@ fn log_title(tab: TuiLogTab) -> Line<'static> {
     Line::from(spans)
 }
 
+/// Normalize a timestamp to `YYYY-MM-DD HH:MM:SS` (19 chars): drop a trailing
+/// `Z`, swap the ISO `T`, map xray's `/` date separators to `-`, and trim any
+/// sub-second fraction. Shared by every log tab so columns line up identically.
 fn compact_time(value: &str) -> String {
     value
         .trim_end_matches('Z')
         .replace('T', " ")
+        .replace('/', "-")
         .chars()
         .take(19)
         .collect()
