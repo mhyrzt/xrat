@@ -23,6 +23,20 @@ const EVENT_PREFIX_WIDTH: usize = EVENT_TIME_WIDTH
     + EVENT_KIND_WIDTH
     + COLUMN_GAP;
 
+const API_METHOD_WIDTH: usize = 7;
+const API_PATH_WIDTH: usize = 24;
+const API_CODE_WIDTH: usize = 4;
+const API_PREFIX_WIDTH: usize = EVENT_TIME_WIDTH
+    + COLUMN_GAP
+    + EVENT_LEVEL_WIDTH
+    + COLUMN_GAP
+    + API_METHOD_WIDTH
+    + COLUMN_GAP
+    + API_PATH_WIDTH
+    + COLUMN_GAP
+    + API_CODE_WIDTH
+    + COLUMN_GAP;
+
 const PROXY_TIME_WIDTH: usize = 19;
 const PROXY_LEVEL_WIDTH: usize = 7;
 const PROXY_SOURCE_WIDTH: usize = 16;
@@ -145,13 +159,8 @@ fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
     }
 
     let mut lines = Vec::new();
-    let prefix_width = EVENT_TIME_WIDTH
-        + COLUMN_GAP
-        + EVENT_LEVEL_WIDTH
-        + COLUMN_GAP
-        + EVENT_KIND_WIDTH
-        + COLUMN_GAP;
     for event in events {
+        let (method, path, code, message) = parse_api_request(&event.kind, &event.message);
         let prefix = vec![
             Span::styled(
                 format!("{:<EVENT_TIME_WIDTH$}", compact_time(&event.time)),
@@ -167,23 +176,54 @@ fn api_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
             ),
             Span::raw("  "),
             Span::styled(
-                format!(
-                    "{:<EVENT_KIND_WIDTH$}",
-                    truncate(&event.kind, EVENT_KIND_WIDTH)
-                ),
+                format!("{:<API_METHOD_WIDTH$}", truncate(&method, API_METHOD_WIDTH)),
                 theme::chrome_style(),
+            ),
+            Span::raw("  "),
+            Span::styled(
+                format!("{:<API_PATH_WIDTH$}", truncate(&path, API_PATH_WIDTH)),
+                theme::chrome_style(),
+            ),
+            Span::raw("  "),
+            Span::styled(
+                format!("{:<API_CODE_WIDTH$}", truncate(&code, API_CODE_WIDTH)),
+                theme::severity_style(&event.level),
             ),
             Span::raw("  "),
         ];
         push_wrapped_row(
             &mut lines,
             prefix,
-            prefix_width,
-            &event.message,
+            API_PREFIX_WIDTH,
+            &message,
             content_width,
         );
     }
     lines
+}
+
+/// Split a recorded API event into table columns. The server middleware records
+/// each request as the synthetic line `"{method} {path} -> {code}"`, which is not
+/// a real axum/handler message, so its MESSAGE column shows `-`. Anything that
+/// does not match that shape is treated as an actual message and shown verbatim.
+fn parse_api_request(kind: &str, message: &str) -> (String, String, String, String) {
+    if let Some((request, code)) = message.rsplit_once(" -> ")
+        && code.chars().all(|ch| ch.is_ascii_digit())
+        && let Some((method, path)) = request.split_once(' ')
+    {
+        return (
+            method.to_string(),
+            path.to_string(),
+            code.to_string(),
+            "-".to_string(),
+        );
+    }
+    (
+        kind.to_string(),
+        "-".to_string(),
+        "-".to_string(),
+        message.to_string(),
+    )
 }
 
 fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
@@ -366,8 +406,8 @@ fn log_header(tab: TuiLogTab) -> Option<Line<'static>> {
             "TIME", "LEVEL", "SOURCE", "MESSAGE"
         ),
         TuiLogTab::Api => format!(
-            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<EVENT_KIND_WIDTH$}  {}",
-            "TIME", "LEVEL", "METHOD", "MESSAGE"
+            "{:<EVENT_TIME_WIDTH$}  {:<EVENT_LEVEL_WIDTH$}  {:<API_METHOD_WIDTH$}  {:<API_PATH_WIDTH$}  {:<API_CODE_WIDTH$}  {}",
+            "TIME", "LEVEL", "METHOD", "PATH", "CODE", "MESSAGE"
         ),
         TuiLogTab::Stats => return None,
     };
@@ -384,7 +424,7 @@ fn log_title(tab: TuiLogTab, engine_label: Option<String>) -> Line<'static> {
         (TuiLogTab::XratEvents, "Events"),
         (TuiLogTab::ProxyEngine, "Engine"),
         (TuiLogTab::Stats, "Traffic"),
-        (TuiLogTab::Api, "api"),
+        (TuiLogTab::Api, "API"),
     ]
     .into_iter()
     .enumerate()
