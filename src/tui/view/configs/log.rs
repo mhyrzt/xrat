@@ -478,8 +478,8 @@ fn log_title(tab: TuiLogTab, engine_label: Option<String>) -> Line<'static> {
     for (index, (log_tab, label)) in [
         (TuiLogTab::XratEvents, "xrat events"),
         (TuiLogTab::ProxyEngine, "proxy engine"),
-        (TuiLogTab::Api, "api"),
         (TuiLogTab::Stats, "stats"),
+        (TuiLogTab::Api, "api"),
     ]
     .into_iter()
     .enumerate()
@@ -496,7 +496,7 @@ fn log_title(tab: TuiLogTab, engine_label: Option<String>) -> Line<'static> {
             spans.push(Span::styled(label.to_string(), theme::muted_style()));
         }
     }
-    if tab == TuiLogTab::ProxyEngine
+    if matches!(tab, TuiLogTab::ProxyEngine | TuiLogTab::Stats)
         && let Some(engine_label) = engine_label
     {
         spans.push(Span::raw("  "));

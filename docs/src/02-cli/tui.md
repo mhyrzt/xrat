@@ -228,8 +228,10 @@ tabs:
 | ------------ | ----------------------------------------------------------- |
 | xrat events  | Structured app/runtime events (same data as `xrat logs`)    |
 | proxy engine | Parsed xray / sing-box engine logs for the latest session   |
-| api          | HTTP API requests recorded by the server (`source = api`)   |
 | stats        | Live traffic: total ↓/↑, current rate, delay, and sparkline |
+| api          | HTTP API requests recorded by the server (`source = api`)   |
+
+The proxy engine and stats tab titles show the active engine and version.
 
 The engine tab parses recognized xray **and** sing-box log lines into time,
 level, source/component, and message columns; the active engine and version are

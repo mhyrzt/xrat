@@ -49,7 +49,7 @@ pub enum TuiLogTab {
 
 impl TuiLogTab {
     /// Tabs in their bar/cycle order.
-    pub const ORDER: [Self; 4] = [Self::XratEvents, Self::ProxyEngine, Self::Api, Self::Stats];
+    pub const ORDER: [Self; 4] = [Self::XratEvents, Self::ProxyEngine, Self::Stats, Self::Api];
 
     fn position(self) -> usize {
         Self::ORDER.iter().position(|tab| *tab == self).unwrap_or(0)

@@ -33,13 +33,13 @@ fn cycles_through_all_log_tabs() {
     app.apply(TuiAction::NextLogTab);
     assert_eq!(app.active_log_tab, TuiLogTab::ProxyEngine);
     app.apply(TuiAction::NextLogTab);
-    assert_eq!(app.active_log_tab, TuiLogTab::Api);
-    app.apply(TuiAction::NextLogTab);
     assert_eq!(app.active_log_tab, TuiLogTab::Stats);
+    app.apply(TuiAction::NextLogTab);
+    assert_eq!(app.active_log_tab, TuiLogTab::Api);
     app.apply(TuiAction::NextLogTab);
     assert_eq!(app.active_log_tab, TuiLogTab::XratEvents);
     app.apply(TuiAction::PrevLogTab);
-    assert_eq!(app.active_log_tab, TuiLogTab::Stats);
+    assert_eq!(app.active_log_tab, TuiLogTab::Api);
 }
 
 #[test]
