@@ -65,22 +65,24 @@ The installer will:
 
 Useful flags:
 
-| Flag            | Purpose                                                  |
-| --------------- | -------------------------------------------------------- |
-| `--from-source` | Build from the current checkout instead of downloading   |
-| `-y`, `--yes`   | Skip prompts and answer yes to setup, daemon, and linger |
-| `-h`, `--help`  | Show installer help                                      |
+| Flag                | Purpose                                                  |
+| ------------------- | -------------------------------------------------------- |
+| `--from-source`     | Build from the current checkout instead of downloading   |
+| `--install-dir DIR` | Binary install directory                                |
+| `--no-desktop`      | Skip installing desktop launcher and icon assets         |
+| `-y`, `--yes`       | Skip prompts and answer yes to setup, daemon, and linger |
+| `-h`, `--help`      | Show installer help                                      |
 
 To install to a different directory:
 
 ```bash
-INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash -s -- --install-dir /usr/local/bin
 ```
 
 To skip the desktop launcher:
 
 ```bash
-INSTALL_DESKTOP=0 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash -s -- --no-desktop
 ```
 
 The desktop launcher starts the TUI in a detected terminal emulator. When the
@@ -127,7 +129,7 @@ bash install.sh --from-source
 To install to a different directory:
 
 ```bash
-INSTALL_DIR=/usr/local/bin bash install.sh --from-source
+bash install.sh --from-source --install-dir /usr/local/bin
 ```
 
 To skip prompts:

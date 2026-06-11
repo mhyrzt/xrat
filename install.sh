@@ -2,9 +2,9 @@
 set -euo pipefail
 
 REPO="mhyrzt/xrat"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
-BUILD_FROM_SOURCE="${BUILD_FROM_SOURCE:-}"
-INSTALL_DESKTOP="${INSTALL_DESKTOP:-1}"
+INSTALL_DIR="$HOME/.local/bin"
+BUILD_FROM_SOURCE=""
+INSTALL_DESKTOP=1
 ASSUME_YES=0
 WORK_DIR="$(mktemp -d)"
 
@@ -49,13 +49,12 @@ usage() {
 Usage: install.sh [OPTIONS]
 
 Options:
-  --from-source    Build xrat from this checkout instead of downloading a release
-  -y, --yes        Skip prompts and answer yes to setup, daemon, and linger
-  -h, --help       Show this help
+  --from-source       Build xrat from this checkout instead of downloading a release
+  --install-dir DIR   Binary install directory (default: $HOME/.local/bin)
+  --no-desktop        Skip installing the desktop launcher and icons
+  -y, --yes           Skip prompts and answer yes to setup, daemon, and linger
+  -h, --help          Show this help
 
-Environment:
-  INSTALL_DIR      Binary install directory (default: $HOME/.local/bin)
-  INSTALL_DESKTOP  Install desktop launcher and icons (default: 1, set 0 to skip)
 EOF
 }
 
@@ -64,6 +63,24 @@ parse_args() {
         case "$1" in
             --from-source)
                 BUILD_FROM_SOURCE=1
+                ;;
+            --install-dir)
+                if [[ $# -lt 2 || -z "$2" ]]; then
+                    error "--install-dir requires a directory argument"
+                    exit 1
+                fi
+                INSTALL_DIR="$2"
+                shift
+                ;;
+            --install-dir=*)
+                INSTALL_DIR="${1#*=}"
+                if [[ -z "$INSTALL_DIR" ]]; then
+                    error "--install-dir requires a directory argument"
+                    exit 1
+                fi
+                ;;
+            --no-desktop)
+                INSTALL_DESKTOP=0
                 ;;
             -y|--yes)
                 ASSUME_YES=1
@@ -100,6 +117,7 @@ detect_os() {
 
     if [[ -r /etc/os-release ]]; then
         local pretty_name=""
+        # shellcheck disable=SC1091
         . /etc/os-release
         pretty_name="${PRETTY_NAME:-${NAME:-}}"
 
@@ -164,9 +182,9 @@ print_detection() {
     arch="$(detect_arch)"
     shell_info="$(detect_shell)"
 
-    info "OS: ${os_info}"
-    info "CPU architecture: ${machine} (${arch})"
-    info "Shell: ${shell_info}"
+    info "Sniffed OS (^_^): ${os_info}"
+    info "Sniffed CPU architecture (O_o): ${machine} (${arch})"
+    info "Sniffed shell (^.^): ${shell_info}"
     echo
 }
 
@@ -274,7 +292,7 @@ check_xray() {
     if check_cmd xray; then
         local xray_path
         xray_path="$(command -v xray)"
-        info "xray: ${xray_path} ($(binary_version "$xray_path"))"
+        info "Found xray in the tunnel kit (^_^): ${xray_path} ($(binary_version "$xray_path"))"
         return 0
     fi
 
@@ -292,11 +310,11 @@ check_singbox() {
     if check_cmd sing-box; then
         local singbox_path
         singbox_path="$(command -v sing-box)"
-        info "sing-box: ${singbox_path} ($(binary_version "$singbox_path"))"
+        info "Found sing-box in the tunnel kit (^_^): ${singbox_path} ($(binary_version "$singbox_path"))"
         return 0
     fi
 
-    warn "sing-box is not installed (optional — needed for sing-box config support)."
+    warn "No sing-box in the nest (._.) optional - needed for sing-box config support."
     echo
     echo "  Install sing-box:"
     echo -e "  ${DIM}curl -fsSL https://sing-box.app/install.sh | sh${NC}"
@@ -322,10 +340,10 @@ download_and_verify() {
     local filename="xrat-${version}-${arch}.tar.gz"
     local base_url="https://github.com/${REPO}/releases/download/${version}"
 
-    step "Downloading ${filename}..."
+    step "Scurrying to GitHub for ${filename} (^-^)/"
     curl -fsSL --progress-bar -o "${WORK_DIR}/${filename}" "${base_url}/${filename}"
 
-    step "Verifying checksum..."
+    step "Nibbling the checksum to make sure the archive is clean (o_o)"
     curl -fsSL -o "${WORK_DIR}/SHASUMS256.txt" "${base_url}/SHASUMS256.txt"
     if ! grep -F "${filename}" "${WORK_DIR}/SHASUMS256.txt" > "${WORK_DIR}/checksum.txt"; then
         error "No checksum entry found for ${filename}."
@@ -333,7 +351,7 @@ download_and_verify() {
     fi
     (cd "${WORK_DIR}" && sha256sum -c checksum.txt)
 
-    step "Extracting binary and extras..."
+    step "Unpacking the tunnel gear (^_^)"
     tar -xzf "${WORK_DIR}/${filename}" -C "${WORK_DIR}"
 }
 
@@ -346,8 +364,8 @@ install_binary() {
 exec "$INSTALL_DIR/xrat" tui "\$@"
 EOF
     chmod +x "$INSTALL_DIR/xratui"
-    info "Installed to ${INSTALL_DIR}/xrat"
-    info "Installed TUI shortcut to ${INSTALL_DIR}/xratui"
+    info "Stashed xrat at ${INSTALL_DIR}/xrat (^_^)"
+    info "Stashed TUI shortcut at ${INSTALL_DIR}/xratui (^.^)"
 }
 
 build_from_source() {
@@ -361,10 +379,10 @@ build_from_source() {
         exit 1
     fi
 
-    step "Building xrat from ${repo_dir}..."
+    step "Chewing through Rust crates in ${repo_dir} (o_o)"
     (cd "$repo_dir" && cargo build --release)
 
-    step "Generating man pages and completions..."
+    step "Scribbling man pages and shell completions (^_^)"
     local bin="$repo_dir/target/release/xrat"
     mkdir -p "${WORK_DIR}/man/man1" "${WORK_DIR}/completions"
     "$bin" manpage --output "${WORK_DIR}/man/man1" >/dev/null
@@ -394,7 +412,7 @@ install_extras() {
         mkdir -p "$man_dir"
         rm -f "$man_dir/xrat.1" "$man_dir"/xrat-*.1
         cp "${WORK_DIR}"/man/man1/*.1 "$man_dir/" 2>/dev/null || true
-        info "Man pages installed to ${man_dir}"
+        info "Tucked man pages into ${man_dir} (^_^)"
     fi
 
     if [[ -d "${WORK_DIR}/completions" ]]; then
@@ -405,7 +423,7 @@ install_extras() {
         [[ -f "${WORK_DIR}/completions/xrat.bash" ]] && { mkdir -p "$bash_dir"; cp "${WORK_DIR}/completions/xrat.bash" "$bash_dir/xrat"; }
         [[ -f "${WORK_DIR}/completions/_xrat" ]]      && { mkdir -p "$zsh_dir";  cp "${WORK_DIR}/completions/_xrat" "$zsh_dir/_xrat"; }
         [[ -f "${WORK_DIR}/completions/xrat.fish" ]] && { mkdir -p "$fish_dir"; cp "${WORK_DIR}/completions/xrat.fish" "$fish_dir/xrat.fish"; }
-        info "Shell completions installed"
+        info "Shell completions tucked into place (^.^)"
     fi
 
     if [[ "$INSTALL_DESKTOP" != "0" && -d "${WORK_DIR}/desktop" ]]; then
@@ -426,9 +444,9 @@ install_extras() {
                 exec_path="${INSTALL_DIR}/xrat-desktop"
                 terminal_value="false"
                 startup_wm_class="xrat"
-                info "Desktop launcher will use ${desktop_terminal} with xrat window identity"
+                info "Desktop launcher picked ${desktop_terminal}; this rat gets its own window identity (^_^)"
             else
-                warn "No supported terminal found for desktop window identity; taskbar may show the terminal icon."
+                warn "Could not find a favorite terminal for window identity (._.); the taskbar may show the terminal icon."
             fi
 
             awk -v exec_path="$exec_path" -v terminal_value="$terminal_value" -v startup_wm_class="$startup_wm_class" '
@@ -462,44 +480,53 @@ install_extras() {
         [[ -f "${WORK_DIR}/desktop/icons/xrat-256x256.png" ]] && { mkdir -p "$icon_256_dir"; cp "${WORK_DIR}/desktop/icons/xrat-256x256.png" "$icon_256_dir/xrat.png"; }
         check_cmd update-desktop-database && update-desktop-database "$apps_dir" >/dev/null 2>&1 || true
         check_cmd gtk-update-icon-cache && gtk-update-icon-cache -f -t "$icon_root" >/dev/null 2>&1 || true
-        info "Desktop launcher installed"
+        info "Desktop launcher dropped into the menu (^_^)"
     fi
 }
 
-check_path() {
-    if ! echo ":${PATH}:" | grep -q ":${INSTALL_DIR}:"; then
+install_dir_in_path() {
+    echo ":${PATH}:" | grep -q ":${INSTALL_DIR}:"
+}
+
+show_completion_note() {
+    echo
+    echo -e "${GRN}Tunnel nest ready (^_^).${NC} Make sure ${INSTALL_DIR} is in PATH before running xrat from a new shell."
+
+    if ! install_dir_in_path; then
         warn "${INSTALL_DIR} is not in PATH."
         echo
         echo "  Add to ~/.bashrc or ~/.zshrc:"
-        echo -e "  ${DIM}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
-        echo
+        echo -e "  ${DIM}export PATH=\"${INSTALL_DIR}:\$PATH\"${NC}"
     fi
+
+    echo
+    echo -e "${GRN}Happy tunneling - may your routes stay fast and your exits stay clean (^_^).${NC}"
 }
 
 run_init() {
-    step "Initializing xrat config directory..."
+    step "Digging the config burrow (^_^)"
     "$INSTALL_DIR/xrat" init
 }
 
 run_daemon_install() {
-    step "Installing xrat-daemon systemd user service..."
+    step "Teaching xrat-daemon to patrol as a systemd user service (o_o)"
     "$INSTALL_DIR/xrat" daemon install --start
-    info "Daemon installed and started."
+    info "Daemon is awake and patrolling (^_^)"
 }
 
 run_linger_enable() {
     local user_name="${USER:-$(id -un)}"
     if ! check_cmd loginctl; then
-        warn "loginctl not found; cannot enable boot startup before login automatically."
+        warn "loginctl not found (._.); cannot teach the daemon to wake before login automatically."
         echo
         echo "  The daemon will still auto-start when your user session starts."
         echo
         return 0
     fi
 
-    step "Enabling systemd user lingering for ${user_name}..."
+    step "Leaving a daemon trail for ${user_name} with systemd lingering (^_^)"
     loginctl enable-linger "$user_name"
-    info "User lingering enabled. xrat-daemon can start at boot before login."
+    info "User lingering enabled. xrat-daemon can wake at boot before login (^_^)"
     echo
     echo "  To disable later:"
     echo -e "  ${DIM}loginctl disable-linger \"${user_name}\"${NC}"
@@ -592,9 +619,9 @@ main() {
         local arch
         arch=$(detect_arch)
 
-        step "Fetching latest release..."
+        step "Sniffing out the latest release (^_^)"
         version=$(get_latest_version)
-        info "Latest version: ${version}"
+        info "Freshest cheese on GitHub: ${version} (^.^)"
         echo
 
         download_and_verify "$version" "$arch"
@@ -602,9 +629,7 @@ main() {
         install_extras
     fi
 
-    check_path
-    echo
-    info "xrat ${version} installed successfully."
+    info "xrat ${version} scampered into place successfully (^_^)"
     echo
 
     do_setup=$(prompt_yes_no "Automatically set up xrat? (init config + optional systemd daemon) [Y/n]" "y")
@@ -622,7 +647,7 @@ main() {
             else
                 user_name="${USER:-$(id -un)}"
                 echo
-                echo "  The daemon will auto-start when your user session starts."
+                echo "  The daemon will auto-start when your user session starts. (^_^)"
                 echo "  For boot startup before login, run:"
                 echo -e "  ${DIM}loginctl enable-linger \"${user_name}\"${NC}"
             fi
@@ -630,6 +655,7 @@ main() {
     fi
 
     show_guide
+    show_completion_note
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

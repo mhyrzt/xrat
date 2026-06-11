@@ -78,10 +78,16 @@ just install --yes
 
 By default, this installs to `~/.local/bin/xrat`, plus generated man pages,
 shell completions, and desktop launcher assets. Override the binary directory
-with `INSTALL_DIR`:
+with the installer flag:
 
 ```bash
-INSTALL_DIR=/usr/local/bin just install --yes
+just install --install-dir /usr/local/bin --yes
+```
+
+Skip desktop launcher assets with the installer flag:
+
+```bash
+just install --no-desktop --yes
 ```
 
 Replace an existing Cargo-installed binary directly with Cargo:

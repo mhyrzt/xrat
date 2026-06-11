@@ -30,9 +30,9 @@ check:
 release:
     cargo build --release --locked
 
-# Build from this checkout and install via install.sh
-install *args:
-    bash install.sh --from-source {{args}}
+# Build from this checkout and install via install.sh; pass installer flags after the recipe
+install *installer_args:
+    bash install.sh --from-source {{installer_args}}
 
 # Run tests quietly
 test:
