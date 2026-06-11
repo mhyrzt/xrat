@@ -296,6 +296,8 @@ pub struct TuiApp {
     pub latest_version: Option<String>,
     /// Proxy engines probed once at startup (availability + version).
     pub engines: Vec<crate::tui::data::EngineInfo>,
+    /// Live traffic-stats ring buffer for the stats tab, reset per session.
+    pub stats: crate::tui::data::StatsHistory,
 }
 
 #[derive(Debug, Default)]

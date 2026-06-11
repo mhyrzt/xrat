@@ -3,6 +3,7 @@ mod logs;
 mod proxy_log;
 mod runtime;
 mod sources;
+mod stats;
 mod tests_view;
 
 pub use configs::TuiConfigRow;
@@ -10,6 +11,7 @@ pub use logs::TuiLogs;
 pub use proxy_log::{ProxyStream, TuiProxyLogRow};
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
+pub use stats::StatsHistory;
 pub use tests_view::TuiTestStatus;
 
 use crate::app::runtime_service::RuntimeService;

@@ -32,6 +32,7 @@ impl Default for TuiApp {
             spinner_tick: 0,
             latest_version: None,
             engines: Vec::new(),
+            stats: crate::tui::data::StatsHistory::default(),
         }
     }
 }

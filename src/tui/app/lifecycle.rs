@@ -12,6 +12,14 @@ impl TuiApp {
         self.panel_scroll.runtime.set(0);
     }
 
+    pub fn record_stats(
+        &mut self,
+        session_id: Option<i64>,
+        sample: crate::xray::stats::StatsSample,
+    ) {
+        self.stats.record(session_id, sample);
+    }
+
     pub fn replace_config_row(&mut self, row: TuiConfigRow) {
         let focused_id = self.focused_config().map(|config| config.id);
         self.data.replace_config_row(row);

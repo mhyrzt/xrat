@@ -24,6 +24,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let (version_tx, mut version_rx) = mpsc::unbounded_channel();
     let (logs_tx, mut logs_rx) = mpsc::unbounded_channel();
     let (engines_tx, mut engines_rx) = mpsc::unbounded_channel();
+    let (stats_tx, mut stats_rx) = mpsc::unbounded_channel();
     tasks::spawn_version_check(version_tx);
     tasks::spawn_probe_engines(context.clone(), &engines_tx);
     let geo_lookup =
@@ -36,6 +37,8 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     );
     let mut last_log_refresh = std::time::Instant::now();
     let mut log_refresh_pending = false;
+    let mut last_stats_poll = std::time::Instant::now();
+    let mut stats_poll_pending = false;
     let mut needs_redraw = true;
 
     loop {
@@ -61,6 +64,28 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
             tasks::spawn_reload_logs(context.clone(), &logs_tx);
             log_refresh_pending = true;
             last_log_refresh = std::time::Instant::now();
+        }
+        while let Ok((session_id, sample)) = stats_rx.try_recv() {
+            stats_poll_pending = false;
+            needs_redraw = true;
+            app.record_stats(session_id, sample);
+        }
+        let stats_settings = &context.app_config.runtime.stats;
+        if stats_settings.enabled && app.data.runtime.pid_running {
+            let poll_due = (!stats_poll_pending
+                && last_stats_poll.elapsed() >= Duration::from_secs(1))
+                || last_stats_poll.elapsed() >= Duration::from_secs(5);
+            if poll_due {
+                tasks::spawn_poll_stats(
+                    stats_engine_for(&app, &context.app_config.runtime.engine),
+                    stats_settings.host.clone(),
+                    stats_settings.port,
+                    app.data.runtime.session_id,
+                    &stats_tx,
+                );
+                stats_poll_pending = true;
+                last_stats_poll = std::time::Instant::now();
+            }
         }
         while let Ok(tag) = version_rx.try_recv() {
             app.latest_version = Some(tag);
@@ -306,6 +331,25 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     }
 
     Ok(())
+}
+
+/// Resolve which stats backend to sample. Hy2 always runs on managed sing-box;
+/// otherwise the configured runtime engine decides. Mirrors the engine
+/// selection in `resolve_runtime_engine`.
+fn stats_engine_for(app: &TuiApp, configured_engine: &str) -> tasks::StatsEngine {
+    let active_protocol = app
+        .data
+        .runtime
+        .active_config_id
+        .and_then(|id| app.data.configs.iter().find(|config| config.id == id))
+        .map(|config| config.protocol.to_ascii_lowercase());
+    if active_protocol.as_deref() == Some("hy2") {
+        return tasks::StatsEngine::Singbox;
+    }
+    match configured_engine {
+        "sing-box" => tasks::StatsEngine::Singbox,
+        _ => tasks::StatsEngine::Xray,
+    }
 }
 
 #[derive(Default)]

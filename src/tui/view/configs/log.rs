@@ -271,11 +271,104 @@ fn proxy_severity_style(row: &crate::tui::data::TuiProxyLogRow) -> ratatui::styl
     }
 }
 
-fn stats_lines(_app: &TuiApp) -> Vec<Line<'static>> {
-    vec![Line::styled(
-        "Live traffic stats are not wired up yet.",
+fn stats_lines(app: &TuiApp) -> Vec<Line<'static>> {
+    if !app.data.runtime.pid_running {
+        return vec![Line::styled(
+            "Runtime is not active; no live traffic stats.",
+            theme::muted_style(),
+        )];
+    }
+    let Some(latest) = app.stats.latest() else {
+        return vec![Line::styled(
+            "Waiting for traffic stats from the engine…",
+            theme::muted_style(),
+        )];
+    };
+
+    let delay = app
+        .data
+        .runtime
+        .active_config_id
+        .and_then(|id| app.data.configs.iter().find(|config| config.id == id))
+        .and_then(|config| config.real_delay_ms)
+        .map(|ms| format!("{ms} ms"))
+        .unwrap_or_else(|| "-".to_string());
+
+    let mut lines = vec![
+        stat_row(
+            "total",
+            &format_bytes(latest.downlink_total),
+            &format_bytes(latest.uplink_total),
+        ),
+        stat_row(
+            "rate",
+            &format!("{}/s", format_bytes(latest.down_rate)),
+            &format!("{}/s", format_bytes(latest.up_rate)),
+        ),
+        Line::from(vec![
+            Span::styled(format!("{:<7}", "delay"), theme::muted_style()),
+            Span::styled(delay, theme::chrome_style()),
+        ]),
+        Line::raw(""),
+        sparkline_row("↓ graph", &app.stats.down_rates()),
+        sparkline_row("↑ graph", &app.stats.up_rates()),
+    ];
+    lines.push(Line::styled(
+        "  (cumulative since current runtime session)",
         theme::muted_style(),
-    )]
+    ));
+    lines
+}
+
+/// `label   ↓ <down>   ↑ <up>` row used for totals and throughput.
+fn stat_row(label: &str, down: &str, up: &str) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("{label:<7}"), theme::muted_style()),
+        Span::styled("↓ ", theme::accent_style()),
+        Span::styled(format!("{down:<12}"), theme::chrome_style()),
+        Span::styled("↑ ", theme::accent_style()),
+        Span::styled(up.to_string(), theme::chrome_style()),
+    ])
+}
+
+fn sparkline_row(label: &str, rates: &[u64]) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("{label:<7} "), theme::muted_style()),
+        Span::styled(sparkline(rates), theme::accent_style()),
+    ])
+}
+
+/// Render byte rates as a unicode block sparkline scaled to the window max. Kept
+/// text-based so it composes with the scroll-panel line model like every other
+/// tab rather than needing a separate widget area.
+fn sparkline(rates: &[u64]) -> String {
+    const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+    let max = rates.iter().copied().max().unwrap_or(0);
+    if max == 0 {
+        return BLOCKS[0].to_string().repeat(rates.len().max(1));
+    }
+    rates
+        .iter()
+        .map(|value| {
+            let index = ((value * (BLOCKS.len() as u64 - 1)) / max) as usize;
+            BLOCKS[index]
+        })
+        .collect()
+}
+
+fn format_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+    let mut value = bytes as f64;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{bytes} {}", UNITS[unit])
+    } else {
+        format!("{value:.1} {}", UNITS[unit])
+    }
 }
 
 fn log_title(tab: TuiLogTab) -> Line<'static> {

@@ -4,6 +4,7 @@ mod data;
 mod runtime;
 mod share;
 mod source;
+mod stats;
 mod test_batch;
 mod version_check;
 
@@ -21,6 +22,7 @@ pub use share::{
 pub use source::{
     run_source_delete, run_source_rename, spawn_source_refresh, spawn_source_refresh_all,
 };
+pub use stats::{StatsEngine, spawn_poll_stats};
 pub use test_batch::spawn_test_batch;
 #[cfg(test)]
 pub(crate) use test_batch::test_args_for_app;
