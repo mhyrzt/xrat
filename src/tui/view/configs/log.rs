@@ -86,7 +86,7 @@ fn event_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
                     "{:<EVENT_LEVEL_WIDTH$}",
                     truncate(&event.level, EVENT_LEVEL_WIDTH)
                 ),
-                level_style(&event.level),
+                theme::severity_style(&event.level),
             ),
             Span::raw("  "),
             Span::styled(
@@ -148,7 +148,7 @@ fn proxy_lines(app: &TuiApp, content_width: usize) -> Vec<Line<'_>> {
             Span::raw("  "),
             Span::styled(
                 format!("{:<PROXY_LEVEL_WIDTH$}", row.level.as_deref().unwrap_or("")),
-                proxy_level_style(row.level.as_deref()),
+                proxy_severity_style(row),
             ),
             Span::raw("  "),
             Span::styled(format!("{:<PROXY_FEED_WIDTH$}", row.engine), feed_style),
@@ -251,12 +251,23 @@ fn hard_break(word: &str, width: usize) -> Vec<String> {
     chunks
 }
 
-fn proxy_level_style(level: Option<&str>) -> ratatui::style::Style {
-    match level.map(str::to_ascii_lowercase).as_deref() {
-        Some("error") => theme::failure_style(),
-        Some("warning") | Some("warn") => theme::warning_style(),
-        Some(_) => theme::accent_style(),
-        None => theme::muted_style(),
+/// Severity color for a proxy engine row. Uses the parsed level when present;
+/// otherwise infers severity from message keywords and stderr context so
+/// unparseable lines still get a sensible color without hiding the raw text.
+fn proxy_severity_style(row: &crate::tui::data::TuiProxyLogRow) -> ratatui::style::Style {
+    use crate::tui::data::ProxyStream;
+
+    if let Some(level) = row.level.as_deref().filter(|level| !level.is_empty()) {
+        return theme::severity_style(level);
+    }
+
+    let message = row.message.to_ascii_lowercase();
+    if message.contains("panic") || message.contains("fatal") || message.contains("error") {
+        theme::failure_style()
+    } else if message.contains("warn") || row.stream == ProxyStream::Stderr {
+        theme::warning_style()
+    } else {
+        theme::muted_style()
     }
 }
 
@@ -304,14 +315,6 @@ fn compact_time(value: &str) -> String {
         .chars()
         .take(19)
         .collect()
-}
-
-fn level_style(level: &str) -> ratatui::style::Style {
-    match level {
-        "error" => theme::failure_style(),
-        "warn" => theme::warning_style(),
-        _ => theme::accent_style(),
-    }
 }
 
 fn truncate(value: &str, width: usize) -> String {

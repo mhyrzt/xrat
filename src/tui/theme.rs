@@ -35,3 +35,17 @@ pub fn failure_style() -> Style {
 pub fn warning_style() -> Style {
     Style::default().fg(Color::Rgb(204, 170, 80))
 }
+
+/// Shared severity color for app events and proxy engine logs. Maps
+/// critical/fatal/panic/error to red, warn/warning to yellow, and
+/// info/debug/trace (or any other recognized level) to the accent color. An
+/// empty or unknown level falls back to the muted style.
+pub fn severity_style(level: &str) -> Style {
+    match level.trim().to_ascii_lowercase().as_str() {
+        "critical" | "fatal" | "panic" | "error" | "err" => failure_style(),
+        "warn" | "warning" => warning_style(),
+        "info" | "debug" | "trace" | "notice" => accent_style(),
+        "" => muted_style(),
+        _ => accent_style(),
+    }
+}

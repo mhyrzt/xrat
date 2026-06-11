@@ -65,6 +65,7 @@ fn generates_hy2_runtime_config_with_multiple_local_inbounds() {
     .expect("hy2 runtime config should generate");
 
     let value = serde_json::to_value(config).expect("config should serialize");
+    assert_eq!(value["log"]["timestamp"], true);
     assert_eq!(value["inbounds"][0]["type"], "socks");
     assert_eq!(value["inbounds"][0]["listen_port"], 1080);
     assert_eq!(value["inbounds"][0]["network"], "udp");

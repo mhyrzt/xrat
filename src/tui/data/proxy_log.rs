@@ -25,9 +25,9 @@ pub struct TuiProxyLogRow {
 }
 
 impl TuiProxyLogRow {
-    /// Parse one raw line emitted by `engine` on `stream`. Currently only the
-    /// xray log format is parsed into fields; everything else is preserved as a
-    /// raw message so nothing is hidden.
+    /// Parse one raw line emitted by `engine` on `stream`. Both the xray and
+    /// sing-box log formats are parsed into fields; anything else is preserved as
+    /// a raw message so nothing is hidden.
     pub fn parse(engine: &str, stream: ProxyStream, line: &str) -> Self {
         let mut row = Self {
             engine: engine.to_string(),
@@ -38,8 +38,8 @@ impl TuiProxyLogRow {
             message: line.trim_end().to_string(),
         };
 
-        if let Some(parsed) = parse_xray_line(line) {
-            row.time = Some(parsed.time);
+        if let Some(parsed) = parse_xray_line(line).or_else(|| parse_singbox_line(line)) {
+            row.time = parsed.time;
             row.level = parsed.level;
             row.component = parsed.component;
             row.message = parsed.message;
@@ -49,8 +49,8 @@ impl TuiProxyLogRow {
     }
 }
 
-struct ParsedXray {
-    time: String,
+struct ParsedLine {
+    time: Option<String>,
     level: Option<String>,
     component: Option<String>,
     message: String,
@@ -59,7 +59,7 @@ struct ParsedXray {
 /// Parse an xray log line of the form
 /// `2026/06/06 15:10:29.760343 [Warning] core: Xray 26.3.27 started`.
 /// Returns `None` when the leading `DATE TIME` timestamp is absent.
-fn parse_xray_line(line: &str) -> Option<ParsedXray> {
+fn parse_xray_line(line: &str) -> Option<ParsedLine> {
     let trimmed = line.trim_end();
     let mut tokens = trimmed.splitn(3, ' ');
     let date = tokens.next()?;
@@ -76,12 +76,85 @@ fn parse_xray_line(line: &str) -> Option<ParsedXray> {
     let (level, after_level) = split_level(rest);
     let (component, message) = split_component(after_level);
 
-    Some(ParsedXray {
-        time: timestamp,
+    Some(ParsedLine {
+        time: Some(timestamp),
         level,
         component,
         message: message.to_string(),
     })
+}
+
+/// Parse a sing-box log line. With `log.timestamp` enabled (which generated
+/// configs set) sing-box emits
+/// `2026-06-06 15:10:29 INFO router: ...`, optionally prefixed with a timezone
+/// offset token such as `+0330`. Returns `None` unless a known sing-box level
+/// word is present, so xray lines and unrelated output fall through to raw.
+fn parse_singbox_line(line: &str) -> Option<ParsedLine> {
+    let trimmed = line.trim_end();
+    let mut rest = trimmed.trim_start();
+
+    if let Some(offset) = rest.split_whitespace().next()
+        && looks_like_tz_offset(offset)
+    {
+        rest = rest[offset.len()..].trim_start();
+    }
+
+    let mut date = None;
+    if let Some(token) = rest.split_whitespace().next()
+        && looks_like_singbox_date(token)
+    {
+        date = Some(token.to_string());
+        rest = rest[token.len()..].trim_start();
+        if let Some(token) = rest.split_whitespace().next()
+            && looks_like_singbox_time(token)
+        {
+            date = Some(format!("{} {token}", date.take().unwrap()));
+            rest = rest[token.len()..].trim_start();
+        }
+    }
+
+    let level_token = rest.split_whitespace().next()?;
+    if !is_singbox_level(level_token) {
+        return None;
+    }
+    rest = rest[level_token.len()..].trim_start();
+
+    let (component, message) = split_component(rest);
+    Some(ParsedLine {
+        time: date,
+        level: Some(level_token.to_string()),
+        component,
+        message: message.to_string(),
+    })
+}
+
+fn looks_like_tz_offset(token: &str) -> bool {
+    // +HHMM / -HHMM
+    token.len() == 5
+        && matches!(token.as_bytes()[0], b'+' | b'-')
+        && token.as_bytes()[1..].iter().all(u8::is_ascii_digit)
+}
+
+fn looks_like_singbox_date(token: &str) -> bool {
+    // YYYY-MM-DD
+    token.len() == 10
+        && token.as_bytes()[4] == b'-'
+        && token.as_bytes()[7] == b'-'
+        && token
+            .bytes()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+}
+
+fn looks_like_singbox_time(token: &str) -> bool {
+    looks_like_xray_time(token)
+}
+
+fn is_singbox_level(token: &str) -> bool {
+    matches!(
+        token.to_ascii_lowercase().as_str(),
+        "trace" | "debug" | "info" | "warn" | "warning" | "error" | "fatal" | "panic"
+    )
 }
 
 /// `[Warning] rest` -> (`Some("Warning")`, `rest`). Returns the input unchanged
@@ -173,6 +246,41 @@ mod tests {
         assert_eq!(row.component, None);
         assert_eq!(row.message, "panic: nil map access");
         assert_eq!(row.stream, ProxyStream::Stderr);
+    }
+
+    #[test]
+    fn parses_singbox_info_line_with_component() {
+        let row = TuiProxyLogRow::parse(
+            "sing-box",
+            ProxyStream::Stdout,
+            "2026-06-06 15:10:29 INFO router: sniffed protocol: tls",
+        );
+        assert_eq!(row.time.as_deref(), Some("2026-06-06 15:10:29"));
+        assert_eq!(row.level.as_deref(), Some("INFO"));
+        assert_eq!(row.component.as_deref(), Some("router"));
+        assert_eq!(row.message, "sniffed protocol: tls");
+    }
+
+    #[test]
+    fn parses_singbox_line_with_tz_offset() {
+        let row = TuiProxyLogRow::parse(
+            "sing-box",
+            ProxyStream::Stderr,
+            "+0330 2026-06-06 15:10:29 WARN inbound/socks: listen error",
+        );
+        assert_eq!(row.time.as_deref(), Some("2026-06-06 15:10:29"));
+        assert_eq!(row.level.as_deref(), Some("WARN"));
+        assert_eq!(row.component.as_deref(), Some("inbound/socks"));
+        assert_eq!(row.message, "listen error");
+    }
+
+    #[test]
+    fn keeps_singbox_panic_without_level_as_raw() {
+        let row = TuiProxyLogRow::parse("sing-box", ProxyStream::Stderr, "panic: nil map access");
+        assert_eq!(row.time, None);
+        assert_eq!(row.level, None);
+        assert_eq!(row.component, None);
+        assert_eq!(row.message, "panic: nil map access");
     }
 
     #[test]

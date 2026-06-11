@@ -7,7 +7,7 @@ mod tests_view;
 
 pub use configs::TuiConfigRow;
 pub use logs::TuiLogs;
-pub use proxy_log::ProxyStream;
+pub use proxy_log::{ProxyStream, TuiProxyLogRow};
 pub use runtime::TuiRuntimeStatus;
 pub use sources::TuiSourceRow;
 pub use tests_view::TuiTestStatus;

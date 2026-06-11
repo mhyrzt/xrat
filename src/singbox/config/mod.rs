@@ -19,6 +19,9 @@ pub struct SingboxConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SingboxLogConfig {
     pub level: String,
+    /// sing-box omits timestamps by default. Enable them in generated configs so
+    /// the TUI engine tab can parse a real time column for sing-box log lines.
+    pub timestamp: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +76,7 @@ pub fn generate_singbox_probe_config(
     Ok(SingboxConfig {
         log: SingboxLogConfig {
             level: "warn".to_string(),
+            timestamp: true,
         },
         inbounds: vec![SingboxInbound {
             kind: "socks".to_string(),
@@ -110,6 +114,7 @@ pub fn generate_singbox_runtime_config(
     Ok(SingboxConfig {
         log: SingboxLogConfig {
             level: "warn".to_string(),
+            timestamp: true,
         },
         inbounds,
         outbounds: vec![
