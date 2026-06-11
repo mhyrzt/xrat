@@ -232,10 +232,13 @@ tabs:
 | stats        | Live traffic: total ↓/↑, current rate, delay, and sparkline |
 
 The engine tab parses recognized xray **and** sing-box log lines into time,
-level, feed (engine name), source/component, and message columns. Generated
-sing-box configs enable `log.timestamp` so its lines carry a timestamp. stderr
-is feed-styled as a warning, and unrecognized lines are kept as raw messages
-with severity inferred from keywords.
+level, source/component, and message columns; the active engine and version are
+shown once in the card title instead of repeating per row. Generated sing-box
+configs enable `log.timestamp` so its lines carry a timestamp. xray access logs
+get an inferred `Info` level and their `[inbound >> outbound]` routing path in
+the source column. stderr is styled as a warning, and unrecognized lines are
+kept as raw messages with severity inferred from keywords. Access logs from
+xrat's own stats polling (`[api >> api]`) are hidden as instrumentation noise.
 
 Severity colors are shared across the events, api, and engine tabs:
 critical/fatal/panic/error are red, warn/warning are yellow, and
