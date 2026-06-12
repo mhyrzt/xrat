@@ -1,8 +1,8 @@
 # Installation Script
 
-Use the installer script for a normal Linux install. It downloads the matching
-release archive, verifies the checksum, installs `xrat`, and can run first-time
-setup for you.
+Use the installer script for a normal Linux or macOS install. It downloads the
+matching release archive, verifies the checksum, installs `xrat`, and can run
+first-time setup for you.
 
 For other install paths, see [Docker Install](docker-install.md),
 [Manual Binary Install](manual-binary-install.md), or
@@ -33,11 +33,30 @@ curl -fsSL https://sing-box.app/install.sh | sh
 
 | Requirement | Details                                           |
 | ----------- | ------------------------------------------------- |
-| OS          | Linux x86_64 or aarch64                           |
-| libc        | None -- release binaries are statically linked    |
+| OS          | Linux x86_64/aarch64, or macOS x86_64/arm64       |
+| libc        | None -- Linux release binaries are statically linked |
 | SQLite      | Bundled -- no system SQLite needed                |
 | PostgreSQL  | Optional -- version 14+ if used instead of SQLite |
 | Network     | Outbound HTTPS for imports and release downloads  |
+
+## Platform Support
+
+Core CLI, config import, parsing, testing, and the TUI work on any Unix-like
+platform xrat compiles for. Platform integrations vary:
+
+| Feature                | Linux          | macOS            | FreeBSD          | OpenBSD          |
+| ---------------------- | -------------- | ---------------- | ---------------- | ---------------- |
+| CLI / config / import  | yes            | yes              | expected         | expected         |
+| daemon runtime IPC     | Unix socket    | Unix socket      | Unix socket      | Unix socket      |
+| daemon install         | systemd user   | launchd agent    | rc.d (root)      | rc.d (root)      |
+| runtime reattach       | sysinfo        | sysinfo          | sysinfo          | sysinfo (cmd)    |
+| desktop proxy          | GNOME/gsettings| networksetup     | unsupported      | unsupported      |
+| release upgrade        | musl tarball   | darwin tarball   | source/manual    | source/manual    |
+| clipboard (TUI)        | X11/Wayland    | native           | X11              | X11              |
+
+macOS and BSD integrations are newer; the FreeBSD/OpenBSD rows are expected to
+work but are not yet verified on hardware. Windows is tracked separately and not
+yet supported.
 
 ## Install
 
@@ -54,14 +73,17 @@ curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bas
 The installer will:
 
 1. Check for `xray` and warn if optional `sing-box` is missing.
-2. Detect `x86_64` or `aarch64`.
+2. Detect the OS and architecture and pick the release target triple.
 3. Download the latest GitHub release archive.
-4. Verify the archive against `SHASUMS256.txt`.
+4. Verify the archive against `SHASUMS256.txt` (`sha256sum` or `shasum`).
 5. Install `xrat` to `~/.local/bin/xrat`.
-6. Install bundled man pages, shell completions, and desktop launcher assets.
+6. Install bundled man pages and shell completions; desktop launcher assets are
+   installed on Linux only.
 7. Offer to run `xrat init` when the script has an interactive terminal.
-8. Offer to install and start the systemd user daemon by default.
-9. Offer to enable systemd user lingering for boot startup before login.
+8. Offer to install and start the background daemon by default (systemd user
+   service on Linux, launchd agent on macOS).
+9. On Linux, offer to enable systemd user lingering for boot startup before
+   login (skipped on macOS; launchd handles boot startup).
 
 Useful flags:
 

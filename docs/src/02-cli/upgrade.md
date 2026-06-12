@@ -38,8 +38,9 @@ xrat upgrade
    unrelated command. If migrations fail, see [`db migrate`](db.md) for recovery
    details.
 
-Prebuilt archives are Linux-only (`x86_64` and `aarch64`, musl). On other
-platforms or architectures, use `--source`.
+Prebuilt archives are available for Linux (`x86_64` and `aarch64`, musl) and
+macOS (`x86_64` and `aarch64`, darwin). On other platforms or architectures
+(including FreeBSD/OpenBSD), use `--source`.
 
 ```bash
 xrat upgrade --version v0.2.1 --force

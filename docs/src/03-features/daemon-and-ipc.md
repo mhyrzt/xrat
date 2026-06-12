@@ -198,26 +198,29 @@ Query for sessions with:
 For each stale session:
 
 1. **Check PID liveness** — Is the process still running?
-2. **Verify process identity** — Does `/proc/<pid>/cmdline` match the expected
-   binary?
+2. **Verify process identity** — Does the process executable and command line
+   match the expected runtime engine and session config?
 3. **Decision**:
-   - PID alive + cmdline matches → **reattach** (keep as `running`)
-   - PID alive + cmdline mismatch → **mark failed** (different process reused
-     PID)
+   - PID alive + match → **reattach** (keep as `running`)
+   - PID alive + mismatch → **mark failed** (different process reused PID)
    - PID dead → **mark failed**
 
 ### Reattach Validation
 
+Process identity is queried through `sysinfo` rather than reading `/proc`
+directly, so reattach works on Linux, macOS, and BSD:
+
 ```rust
 fn validate_reattach(pid: i64, expected_binary: &Path) -> bool {
-    let cmdline_path = format!("/proc/{}/cmdline", pid);
-    let cmdline = std::fs::read_to_string(cmdline_path).ok()?;
-    cmdline.contains(expected_binary.to_str()?)
+    let exe = process_exe_path(pid);   // sysinfo Process::exe()
+    let cmd = process_cmd_args(pid);   // sysinfo Process::cmd()
+    exe_matches(exe, expected_binary) && cmd_contains_session_config(cmd)
 }
 ```
 
 This prevents reattaching to a different process that happens to have the same
-PID.
+PID. On OpenBSD `exe()` may be unavailable; the command-line check still
+applies.
 
 ## IPC Client
 

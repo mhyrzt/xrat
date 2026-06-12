@@ -1,5 +1,11 @@
 # systemd Services
 
+This page covers the **Linux** systemd deployment. `xrat daemon install` also
+supports other platforms: **launchd** user agents on macOS
+(`~/Library/LaunchAgents/`, templates in `packaging/launchd/`) and **rc.d**
+scripts on FreeBSD/OpenBSD (`packaging/rc.d/`, enabled with `sysrc`+`service` or
+`rcctl`, root required). The sections below are systemd-specific.
+
 Run xrat as a systemd user service for persistent operation and automatic
 startup on login. To start at boot before login, enable systemd user lingering
 as shown below.

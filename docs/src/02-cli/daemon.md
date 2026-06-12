@@ -14,8 +14,8 @@ xrat daemon <action>
 | `status`    | Show daemon IPC reachability and protocol information |
 | `stop`      | Request daemon shutdown via local IPC                 |
 | `restart`   | Restart the daemon, reloading config and runtime      |
-| `install`   | Install xrat-daemon.service as a systemd user service |
-| `uninstall` | Remove the installed systemd user service             |
+| `install`   | Install xrat-daemon as a background service (per OS)  |
+| `uninstall` | Remove the installed background service              |
 
 The hidden internal `run-server` action is used by the daemon launcher and is
 not a user-facing command.
@@ -134,7 +134,17 @@ daemons.
 
 ## daemon install
 
-Install xrat as a systemd user service. Linux only.
+Install xrat as a background service. The service manager is selected by
+operating system:
+
+| OS              | Service manager      | Location                                  |
+| --------------- | -------------------- | ----------------------------------------- |
+| Linux           | systemd user service | `~/.config/systemd/user/`                 |
+| macOS           | launchd user agent   | `~/Library/LaunchAgents/`                 |
+| FreeBSD/OpenBSD | rc.d script          | `/usr/local/etc/rc.d` or `/etc/rc.d`      |
+
+On FreeBSD/OpenBSD the rc.d script is system-wide and enabling/starting it
+requires root (run under `sudo`), unlike the per-user systemd and launchd paths.
 
 ```bash
 xrat daemon install [--start] [--with-api] [--dry-run]
@@ -145,10 +155,10 @@ xrat daemon install [--start] [--with-api] [--dry-run]
 | Flag         | Description                                                           |
 | ------------ | --------------------------------------------------------------------- |
 | `--start`    | Start the daemon immediately after enabling the service               |
-| `--with-api` | Also install `xrat-api.service` (standalone HTTP API)                 |
+| `--with-api` | Also install the standalone HTTP API service                          |
 | `--dry-run`  | Print the generated unit and planned actions without writing anything |
 
-### Behavior
+### Behavior (Linux/systemd)
 
 1. Resolves the current binary path via `std::env::current_exe()`
 2. Generates `xrat-daemon.service` from the template in `packaging/systemd/`
@@ -159,6 +169,11 @@ xrat daemon install [--start] [--with-api] [--dry-run]
 5. Runs `systemctl --user enable xrat-daemon.service`
 6. If `--start`: runs `systemctl --user start xrat-daemon.service`
 7. If `--with-api`: generates and installs `xrat-api.service` as well
+
+macOS and BSD follow the same shape with their templates
+(`packaging/launchd/`, `packaging/rc.d/`): generate the unit, write it to the
+service location, register it (`launchctl bootstrap` / `sysrc`+`service` /
+`rcctl enable`), and start it when `--start` is passed.
 
 ### Example
 
@@ -188,7 +203,8 @@ without writing any files or calling systemctl.
 
 ## daemon uninstall
 
-Remove the installed xrat-daemon.service systemd user service.
+Remove the installed xrat-daemon background service (systemd/launchd/rc.d
+depending on the OS).
 
 ```bash
 xrat daemon uninstall [--dry-run]
@@ -200,13 +216,16 @@ xrat daemon uninstall [--dry-run]
 | ----------- | ----------------------------------------------- |
 | `--dry-run` | Print planned actions without removing anything |
 
-### Behavior
+### Behavior (Linux/systemd)
 
 1. Stops `xrat-daemon.service` (non-fatal if not running)
 2. Disables `xrat-daemon.service`
 3. Removes `~/.config/systemd/user/xrat-daemon.service`
 4. Repeats for `xrat-api.service` if present
 5. Runs `systemctl --user daemon-reload`
+
+macOS and BSD perform the equivalent stop/disable/remove with their service
+managers (`launchctl bootout` / `service stop`+`sysrc` / `rcctl`).
 
 User config, database, logs, and all application state are **preserved**.
 

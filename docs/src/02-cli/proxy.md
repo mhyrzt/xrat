@@ -165,8 +165,15 @@ toggle restores the captured values or unsets variables that were absent.
 
 ## proxy desktop
 
-Linux-only desktop proxy integration. This changes desktop environment proxy
-settings, not every process on the system.
+Desktop/system proxy integration. This changes the desktop environment (Linux)
+or system network service (macOS) proxy settings, not every process on the
+system. The backend is selected by operating system:
+
+| OS      | Backend                         |
+| ------- | ------------------------------- |
+| Linux   | GNOME via `gsettings`           |
+| macOS   | `networksetup`                  |
+| BSD     | unsupported (use `proxy shell`) |
 
 ```bash
 xrat proxy desktop enable [--desktop gnome|kde|xfce] [--pac]
@@ -175,8 +182,9 @@ xrat proxy desktop toggle [--desktop gnome|kde|xfce] [--pac]
 xrat proxy desktop status [--desktop gnome|kde|xfce]
 ```
 
-The desktop is auto-detected from `$XDG_CURRENT_DESKTOP` / `$DESKTOP_SESSION`;
-override with `--desktop`. **GNOME** is supported first through `gsettings`:
+On **Linux** the desktop is auto-detected from `$XDG_CURRENT_DESKTOP` /
+`$DESKTOP_SESSION`; override with `--desktop`. **GNOME** is supported through
+`gsettings`:
 
 - `enable` sets manual HTTP/HTTPS/SOCKS proxies from the active runtime by
   default and does not require PAC. With `--pac`, it switches to automatic mode
@@ -189,9 +197,17 @@ override with `--desktop`. **GNOME** is supported first through `gsettings`:
 - `status` prints the current proxy mode.
 
 KDE and XFCE are not supported yet and return a clear error suggesting
-`xrat proxy shell enable` for terminal-only proxying. On non-Linux platforms the
-command errors. `desktop` is used rather than `system` because Linux has no
-single universal system proxy authority.
+`xrat proxy shell enable` for terminal-only proxying. The `--desktop` flag is
+ignored on macOS.
+
+On **macOS** the same verbs apply to every enabled network service (Wi-Fi,
+Ethernet, …) via `networksetup`: `enable` sets the web, secure, and SOCKS
+proxies (or the PAC URL with `--pac`), `disable` turns all of them off, `status`
+reports the per-service web/socks proxy state, and `toggle` flips based on the
+current state.
+
+`desktop` is used rather than `system` because there is no single universal
+system proxy authority across platforms.
 
 ## Related
 

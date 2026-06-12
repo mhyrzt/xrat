@@ -36,10 +36,10 @@ exercised on real macOS/FreeBSD/OpenBSD hosts.
   systemd/loginctl/desktop steps to Linux.
 - `9-clipboard-bsd.md` — Confirmed `arboard`'s unix (non-mac) backend covers
   FreeBSD/OpenBSD via X11 with no change needed.
+- `11-unix-platform-docs.md` — Scoped Linux-only/systemd/`/proc` language in the
+  user docs and added a platform support matrix.
 
 ## Remaining
 
-- `11-unix-platform-docs.md` — Update user docs and add the support matrix once
-  the above is verified on hardware.
 - `12-windows-support.md` — Windows track (reattach, daemon, desktop proxy,
   installer, release upgrades).

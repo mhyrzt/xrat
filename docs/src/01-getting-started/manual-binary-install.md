@@ -10,22 +10,25 @@ from this repository, see [Build From Source](source-install.md).
 
 Go to the latest
 [GitHub release](https://github.com/mhyrzt/xrat/releases/latest) and download
-the archive for your architecture:
+the archive for your platform:
 
-| File                                            | Architecture             |
+| File                                            | Platform                 |
 | ----------------------------------------------- | ------------------------ |
-| `xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz`  | x86_64 (most PCs)        |
-| `xrat-vX.Y.Z-aarch64-unknown-linux-musl.tar.gz` | ARM64 (Pi 4/5, Graviton) |
+| `xrat-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz`  | Linux x86_64 (most PCs)  |
+| `xrat-vX.Y.Z-aarch64-unknown-linux-musl.tar.gz` | Linux ARM64 (Pi, Graviton) |
+| `xrat-vX.Y.Z-x86_64-apple-darwin.tar.gz`        | macOS Intel              |
+| `xrat-vX.Y.Z-aarch64-apple-darwin.tar.gz`       | macOS Apple Silicon      |
 
 Download `SHASUMS256.txt` from the same release.
 
 ## Verify
 
 Run the checksum verification from the directory containing the archive and
-`SHASUMS256.txt`:
+`SHASUMS256.txt`. On Linux use `sha256sum`; on macOS use `shasum -a 256`:
 
 ```bash
-sha256sum -c SHASUMS256.txt --ignore-missing
+sha256sum -c SHASUMS256.txt --ignore-missing   # Linux
+shasum -a 256 -c SHASUMS256.txt --ignore-missing  # macOS
 ```
 
 The command should report `OK` for the archive you downloaded.

@@ -119,4 +119,5 @@ See [Config File](../05-reference/config-file.md) for full reference.
 
 - [Quickstart](../01-getting-started/quickstart.md)
 - [Configuration](../01-getting-started/configuration.md)
-- [daemon install](daemon.md#daemon-install) — install as a systemd user service
+- [daemon install](daemon.md#daemon-install) — install as a background service
+  (systemd/launchd/rc.d)

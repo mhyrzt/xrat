@@ -196,8 +196,9 @@ When the daemon starts, it reconciles stale sessions:
 1. **Find stale sessions** — Query for `running` sessions with no `stopped_at`
 2. **Check PID liveness** — For each stale session, check if PID is still
    running
-3. **Verify process identity** — Compare `/proc/<pid>/cmdline` with expected
-   binary path
+3. **Verify process identity** — Compare the process executable and command
+   line (queried via `sysinfo`, so it works across Linux/macOS/BSD) with the
+   expected runtime engine and session config
 4. **Reattach or mark failed**:
    - PID alive + cmdline matches → reattach (keep as `running`)
    - PID alive + cmdline mismatch → mark as `failed` (different process reused
