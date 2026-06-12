@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xrat.api</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{EXE}}</string>
+        <string>serve</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>XRAT_PATH</key>
+        <string>{{XRAT_PATH}}</string>
+        <key>RUST_LOG</key>
+        <string>info</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{{XRAT_PATH}}/api.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{XRAT_PATH}}/api.log</string>
+</dict>
+</plist>

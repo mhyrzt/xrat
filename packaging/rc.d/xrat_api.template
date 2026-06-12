@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# PROVIDE: xrat_api
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+#
+# Add xrat_api_enable="YES" to /etc/rc.conf (or use sysrc/rcctl) to enable.
+
+. /etc/rc.subr
+
+name="xrat_api"
+rcvar="xrat_api_enable"
+
+pidfile="{{XRAT_PATH}}/api.pid"
+command="/usr/sbin/daemon"
+command_args="-p ${pidfile} {{EXE}} serve"
+
+xrat_api_env="XRAT_PATH={{XRAT_PATH}} RUST_LOG=info"
+
+load_rc_config $name
+run_rc_command "$1"

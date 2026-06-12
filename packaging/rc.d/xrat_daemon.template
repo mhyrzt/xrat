@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# PROVIDE: xrat_daemon
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+#
+# Add xrat_daemon_enable="YES" to /etc/rc.conf (or use sysrc/rcctl) to enable.
+
+. /etc/rc.subr
+
+name="xrat_daemon"
+rcvar="xrat_daemon_enable"
+
+pidfile="{{XRAT_PATH}}/daemon.pid"
+command="/usr/sbin/daemon"
+command_args="-p ${pidfile} {{EXE}} daemon run-server"
+
+xrat_daemon_env="XRAT_PATH={{XRAT_PATH}} RUST_LOG=info"
+
+load_rc_config $name
+run_rc_command "$1"
