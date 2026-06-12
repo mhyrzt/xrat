@@ -100,15 +100,29 @@ parse_args() {
     done
 }
 
-detect_arch() {
-    case "$(uname -m)" in
-        x86_64)  echo "x86_64-unknown-linux-musl" ;;
-        aarch64) echo "aarch64-unknown-linux-musl" ;;
+detect_target() {
+    case "$(uname -s):$(uname -m)" in
+        Linux:x86_64)                 echo "x86_64-unknown-linux-musl" ;;
+        Linux:aarch64)                echo "aarch64-unknown-linux-musl" ;;
+        Darwin:x86_64)                echo "x86_64-apple-darwin" ;;
+        Darwin:arm64|Darwin:aarch64)  echo "aarch64-apple-darwin" ;;
         *)
-            error "Unsupported architecture: $(uname -m)"
+            error "Unsupported platform: $(uname -s) $(uname -m)"
             exit 1
             ;;
     esac
+}
+
+verify_checksum() {
+    local dir="$1" file="$2"
+    if check_cmd sha256sum; then
+        (cd "$dir" && sha256sum -c "$file")
+    elif check_cmd shasum; then
+        (cd "$dir" && shasum -a 256 -c "$file")
+    else
+        error "Need sha256sum or shasum to verify the download."
+        exit 1
+    fi
 }
 
 detect_os() {
@@ -349,7 +363,7 @@ download_and_verify() {
         error "No checksum entry found for ${filename}."
         exit 1
     fi
-    (cd "${WORK_DIR}" && sha256sum -c checksum.txt)
+    verify_checksum "${WORK_DIR}" checksum.txt
 
     step "Unpacking the tunnel gear (^_^)"
     tar -xzf "${WORK_DIR}/${filename}" -C "${WORK_DIR}"
@@ -426,7 +440,7 @@ install_extras() {
         info "Shell completions tucked into place (^.^)"
     fi
 
-    if [[ "$INSTALL_DESKTOP" != "0" && -d "${WORK_DIR}/desktop" ]]; then
+    if [[ "$INSTALL_DESKTOP" != "0" && "${OS:-Linux}" == "Linux" && -d "${WORK_DIR}/desktop" ]]; then
         local apps_dir="${data_dir}/applications"
         local icon_root="${data_dir}/icons/hicolor"
         local icon_48_dir="${icon_root}/48x48/apps"
@@ -509,7 +523,7 @@ run_init() {
 }
 
 run_daemon_install() {
-    step "Teaching xrat-daemon to patrol as a systemd user service (o_o)"
+    step "Teaching xrat-daemon to patrol as a background service (o_o)"
     "$INSTALL_DIR/xrat" daemon install --start
     info "Daemon is awake and patrolling (^_^)"
 }
@@ -596,10 +610,14 @@ main() {
 
     print_ascii
 
-    if [[ "$(uname -s)" != "Linux" ]]; then
-        error "This installer supports Linux only."
-        exit 1
-    fi
+    OS="$(uname -s)"
+    case "$OS" in
+        Linux|Darwin) ;;
+        *)
+            error "This installer supports Linux and macOS only."
+            exit 1
+            ;;
+    esac
 
     print_detection
     check_xray
@@ -614,17 +632,16 @@ main() {
     else
         require_cmd curl
         require_cmd tar
-        require_cmd sha256sum
 
-        local arch
-        arch=$(detect_arch)
+        local target
+        target=$(detect_target)
 
         step "Sniffing out the latest release (^_^)"
         version=$(get_latest_version)
         info "Freshest cheese on GitHub: ${version} (^.^)"
         echo
 
-        download_and_verify "$version" "$arch"
+        download_and_verify "$version" "$target"
         install_binary
         install_extras
     fi
@@ -632,24 +649,26 @@ main() {
     info "xrat ${version} scampered into place successfully (^_^)"
     echo
 
-    do_setup=$(prompt_yes_no "Automatically set up xrat? (init config + optional systemd daemon) [Y/n]" "y")
+    do_setup=$(prompt_yes_no "Automatically set up xrat? (init config + optional background daemon) [Y/n]" "y")
     if [[ "${do_setup,,}" != "n" ]]; then
         echo
         run_init
         echo
-        do_daemon=$(prompt_yes_no "Install and start xrat-daemon as a systemd user service? [Y/n]" "y")
+        do_daemon=$(prompt_yes_no "Install and start xrat-daemon as a background service? [Y/n]" "y")
         if [[ "${do_daemon,,}" != "n" ]]; then
             run_daemon_install
             echo
-            do_linger=$(prompt_yes_no "Start xrat-daemon at boot before login / keep it after logout? [y/N]" "n")
-            if [[ "${do_linger,,}" == "y" ]]; then
-                run_linger_enable
-            else
-                user_name="${USER:-$(id -un)}"
-                echo
-                echo "  The daemon will auto-start when your user session starts. (^_^)"
-                echo "  For boot startup before login, run:"
-                echo -e "  ${DIM}loginctl enable-linger \"${user_name}\"${NC}"
+            if [[ "${OS:-Linux}" == "Linux" ]]; then
+                do_linger=$(prompt_yes_no "Start xrat-daemon at boot before login / keep it after logout? [y/N]" "n")
+                if [[ "${do_linger,,}" == "y" ]]; then
+                    run_linger_enable
+                else
+                    user_name="${USER:-$(id -un)}"
+                    echo
+                    echo "  The daemon will auto-start when your user session starts. (^_^)"
+                    echo "  For boot startup before login, run:"
+                    echo -e "  ${DIM}loginctl enable-linger \"${user_name}\"${NC}"
+                fi
             fi
         fi
     fi
