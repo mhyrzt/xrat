@@ -12,12 +12,25 @@ pub(super) async fn run(
     context: &AppContext,
     action: &ProxyDesktopAction,
 ) -> crate::app::Result<()> {
-    if !cfg!(target_os = "linux") {
-        return Err(AppError::UnsupportedPlatform(
-            "desktop proxy integration is Linux-only; use `xrat proxy shell enable` for terminal-only proxying".to_string(),
-        ));
+    #[cfg(target_os = "linux")]
+    {
+        run_linux(context, action).await
     }
+    #[cfg(target_os = "macos")]
+    {
+        run_macos(context, action).await
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        let _ = (context, action);
+        Err(AppError::UnsupportedPlatform(
+            "desktop proxy integration is not supported on this platform; use `xrat proxy shell enable` for terminal-only proxying".to_string(),
+        ))
+    }
+}
 
+#[cfg(target_os = "linux")]
+async fn run_linux(context: &AppContext, action: &ProxyDesktopAction) -> crate::app::Result<()> {
     let desktop = match action {
         ProxyDesktopAction::Enable(args) => resolve_desktop(args.desktop)?,
         ProxyDesktopAction::Disable(args) => resolve_desktop(args.desktop)?,
@@ -280,6 +293,201 @@ fn desktop_from_hint(hint: &str) -> Option<ProxyDesktopKind> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// macOS: networksetup
+// ---------------------------------------------------------------------------
+
+/// Parse `networksetup -listallnetworkservices` output into enabled service
+/// names. The first line is a header, and disabled services are prefixed `*`.
+#[cfg(any(target_os = "macos", test))]
+fn parse_network_services(output: &str) -> Vec<String> {
+    output
+        .lines()
+        .skip(1)
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('*'))
+        .map(str::to_string)
+        .collect()
+}
+
+#[cfg(target_os = "macos")]
+async fn run_macos(context: &AppContext, action: &ProxyDesktopAction) -> crate::app::Result<()> {
+    match action {
+        ProxyDesktopAction::Enable(args) => {
+            macos_apply_enable(context, args.pac).await?;
+            println!(
+                "{}",
+                output::success("Desktop proxy enabled (macOS).", output::color_enabled())
+            );
+            Ok(())
+        }
+        ProxyDesktopAction::Disable(_) => {
+            for service in &active_network_services()? {
+                networksetup_disable(service)?;
+            }
+            println!(
+                "{}",
+                output::success("Desktop proxy disabled (macOS).", output::color_enabled())
+            );
+            Ok(())
+        }
+        ProxyDesktopAction::Status(_) => {
+            for service in &active_network_services()? {
+                let web = networksetup_output(&["-getwebproxy", service])?;
+                let socks = networksetup_output(&["-getsocksfirewallproxy", service])?;
+                println!(
+                    "{}",
+                    output::format_kv(
+                        Some(&format!("Desktop proxy ({service})")),
+                        &[
+                            ("web proxy", proxy_enabled_label(&web)),
+                            ("socks proxy", proxy_enabled_label(&socks)),
+                        ],
+                        output::color_enabled(),
+                    )
+                );
+            }
+            Ok(())
+        }
+        ProxyDesktopAction::Toggle(args) => {
+            let services = active_network_services()?;
+            let currently_on = services
+                .iter()
+                .any(|service| macos_service_proxy_on(service));
+            if currently_on {
+                for service in &services {
+                    networksetup_disable(service)?;
+                }
+                println!(
+                    "{}",
+                    output::success("Desktop proxy disabled (macOS).", output::color_enabled())
+                );
+            } else {
+                macos_apply_enable(context, args.pac).await?;
+                println!(
+                    "{}",
+                    output::success("Desktop proxy enabled (macOS).", output::color_enabled())
+                );
+            }
+            Ok(())
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_apply_enable(context: &AppContext, pac: bool) -> crate::app::Result<()> {
+    let services = active_network_services()?;
+    if pac {
+        let url = pac_url(context)?;
+        for service in &services {
+            networksetup_set_pac(service, &url)?;
+        }
+        return Ok(());
+    }
+
+    let active = resolve_active_endpoints(context).await?;
+    if active.http.is_none() && active.socks.is_none() {
+        return Err(AppError::InvalidArgument(
+            "no active HTTP or SOCKS inbound; start a runtime with `xrat connect <id>`".to_string(),
+        ));
+    }
+    for service in &services {
+        networksetup_enable(service, &active)?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn macos_service_proxy_on(service: &str) -> bool {
+    let web = networksetup_output(&["-getwebproxy", service]).unwrap_or_default();
+    let socks = networksetup_output(&["-getsocksfirewallproxy", service]).unwrap_or_default();
+    proxy_enabled_label(&web) == "Yes" || proxy_enabled_label(&socks) == "Yes"
+}
+
+#[cfg(target_os = "macos")]
+fn proxy_enabled_label(output: &str) -> String {
+    output
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("Enabled: "))
+        .unwrap_or("?")
+        .trim()
+        .to_string()
+}
+
+#[cfg(target_os = "macos")]
+fn active_network_services() -> crate::app::Result<Vec<String>> {
+    let out = networksetup_output(&["-listallnetworkservices"])?;
+    let services = parse_network_services(&out);
+    if services.is_empty() {
+        return Err(AppError::InvalidArgument(
+            "no active network services found via networksetup".to_string(),
+        ));
+    }
+    Ok(services)
+}
+
+#[cfg(target_os = "macos")]
+fn networksetup_enable(service: &str, active: &ActiveEndpoints) -> crate::app::Result<()> {
+    if let Some((host, port)) = &active.http {
+        let host = loopback(host);
+        let port = port.to_string();
+        run_networksetup(&["-setwebproxy", service, host, &port])?;
+        run_networksetup(&["-setsecurewebproxy", service, host, &port])?;
+    }
+    if let Some((host, port)) = &active.socks {
+        let host = loopback(host);
+        let port = port.to_string();
+        run_networksetup(&["-setsocksfirewallproxy", service, host, &port])?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn networksetup_disable(service: &str) -> crate::app::Result<()> {
+    run_networksetup(&["-setwebproxystate", service, "off"])?;
+    run_networksetup(&["-setsecurewebproxystate", service, "off"])?;
+    run_networksetup(&["-setsocksfirewallproxystate", service, "off"])?;
+    run_networksetup(&["-setautoproxystate", service, "off"])?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn networksetup_set_pac(service: &str, url: &str) -> crate::app::Result<()> {
+    run_networksetup(&["-setautoproxyurl", service, url])?;
+    run_networksetup(&["-setautoproxystate", service, "on"])?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn run_networksetup(args: &[&str]) -> crate::app::Result<()> {
+    let status = Command::new("networksetup")
+        .args(args)
+        .status()
+        .map_err(|err| AppError::InvalidArgument(format!("could not run networksetup: {err}")))?;
+    if !status.success() {
+        return Err(AppError::InvalidArgument(format!(
+            "networksetup {} failed ({status})",
+            args.join(" ")
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn networksetup_output(args: &[&str]) -> crate::app::Result<String> {
+    let output = Command::new("networksetup")
+        .args(args)
+        .output()
+        .map_err(|err| AppError::InvalidArgument(format!("could not run networksetup: {err}")))?;
+    if !output.status.success() {
+        return Err(AppError::InvalidArgument(format!(
+            "networksetup {} failed",
+            args.join(" ")
+        )));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -384,6 +592,15 @@ mod tests {
         assert_eq!(
             commands[0],
             vec!["set", "org.gnome.system.proxy", "mode", "auto"]
+        );
+    }
+
+    #[test]
+    fn parses_enabled_network_services() {
+        let output = "An asterisk (*) denotes that a network service is disabled.\nWi-Fi\nThunderbolt Bridge\n*Disabled Service\n";
+        assert_eq!(
+            parse_network_services(output),
+            vec!["Wi-Fi".to_string(), "Thunderbolt Bridge".to_string()]
         );
     }
 
