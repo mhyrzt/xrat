@@ -100,17 +100,13 @@ pub(crate) async fn upgrade(
 }
 
 fn detect_arch() -> crate::app::Result<&'static str> {
-    if !cfg!(target_os = "linux") {
-        return Err(AppError::UnsupportedPlatform(
-            "release upgrade is only available on Linux; use --source to build from source"
-                .to_string(),
-        ));
-    }
-    match std::env::consts::ARCH {
-        "x86_64" => Ok("x86_64-unknown-linux-musl"),
-        "aarch64" => Ok("aarch64-unknown-linux-musl"),
-        other => Err(AppError::UnsupportedPlatform(format!(
-            "no prebuilt release for architecture {other}; use --source to build from source"
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("linux", "x86_64") => Ok("x86_64-unknown-linux-musl"),
+        ("linux", "aarch64") => Ok("aarch64-unknown-linux-musl"),
+        ("macos", "x86_64") => Ok("x86_64-apple-darwin"),
+        ("macos", "aarch64") => Ok("aarch64-apple-darwin"),
+        (os, arch) => Err(AppError::UnsupportedPlatform(format!(
+            "no prebuilt release for {os}/{arch}; use --source to build from source"
         ))),
     }
 }

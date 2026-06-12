@@ -30,16 +30,24 @@ jobs:
 
   build:
     name: Build ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: version-check
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
             cross: false
           - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
             cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            cross: false
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            cross: false
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -50,7 +58,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Install musl-tools
-        if: ${{ !matrix.cross }}
+        if: ${{ !matrix.cross && runner.os == 'Linux' }}
         run: sudo apt-get install -y musl-tools
 
       - name: Install cross
@@ -170,11 +178,17 @@ jobs:
             tar -xzf "$archive" -C "$tmpdir"
             cp -r extras/man "$tmpdir/man"
             cp -r extras/completions "$tmpdir/completions"
-            mkdir -p "$tmpdir/desktop"
-            cp packaging/desktop/xrat.desktop "$tmpdir/desktop/xrat.desktop"
-            mkdir -p "$tmpdir/desktop/icons"
-            cp docs/src/media/icons/xrat-icon-48x48.png "$tmpdir/desktop/icons/xrat-48x48.png"
-            cp docs/src/media/icons/xrat-icon-256x256.png "$tmpdir/desktop/icons/xrat-256x256.png"
+            # Desktop entry and hicolor icons are Linux/XDG-only; skip for darwin.
+            case "$archive" in
+              *apple-darwin*) ;;
+              *)
+                mkdir -p "$tmpdir/desktop"
+                cp packaging/desktop/xrat.desktop "$tmpdir/desktop/xrat.desktop"
+                mkdir -p "$tmpdir/desktop/icons"
+                cp docs/src/media/icons/xrat-icon-48x48.png "$tmpdir/desktop/icons/xrat-48x48.png"
+                cp docs/src/media/icons/xrat-icon-256x256.png "$tmpdir/desktop/icons/xrat-256x256.png"
+                ;;
+            esac
             tar -czf "$archive" -C "$tmpdir" .
             rm -rf "$tmpdir"
           done
