@@ -21,7 +21,7 @@ are ~123 production `unwrap()`/`expect()` panics that no test exercises.
 
 ## Folder layout
 
-Items are grouped into three numbered folders that indicate the recommended
+Items are grouped into four numbered folders that indicate the recommended
 order of attack. Each folder has its own `summary.md`.
 
 1. **`1-foundation/`** — cross-cutting structure and quality. Contains the
@@ -33,13 +33,16 @@ order of attack. Each folder has its own `summary.md`.
    High-priority core work.
 3. **`3-ports/`** — trait seams around external I/O (HTTP, process, TCP, DNS,
    env, …) so use-cases become testable with fakes.
+4. **`4-sdk/`** — turn the reusable proxy domain logic into a curated,
+   feature-gated SDK an external app can depend on. Builds on the foundation,
+   use-case, and port work above.
 
 ## Item numbering
 
-File-number prefixes (`1`–`27`) are **stable identifiers**, not a global ranking,
+File-number prefixes (`1`–`28`) are **stable identifiers**, not a global ranking,
 and are cross-referenced between items (e.g. `15` references `16`, `13`
-references `#1`–`#12`). Folder-number prefixes (`1`/`2`/`3`) indicate phase order.
-Do not renumber files; use the order below to choose what to work on.
+references `#1`–`#12`). Folder-number prefixes (`1`/`2`/`3`/`4`) indicate phase
+order. Do not renumber files; use the order below to choose what to work on.
 
 ## Recommended order
 
@@ -87,6 +90,12 @@ Do not renumber files; use the order below to choose what to work on.
 - `3-ports/22-env-vars-port.md`
 - `1-foundation/27-split-large-command-files.md` — verification step after the
   use-case extraction.
+
+### Phase 4 — SDK extraction (Medium, after foundation/use-cases/ports)
+
+- `4-sdk/28-extract-reusable-sdk-crate.md` — feature-gate frontends/heavy deps,
+  add a non-CLI `AppContext` constructor, curate the public surface, then
+  optionally split into an `xrat-core` workspace crate.
 
 ### Reference
 
