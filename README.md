@@ -44,6 +44,7 @@ Or with Cargo from [crates.io](https://crates.io/crates/xrat):
 ```bash
 cargo install xrat
 xrat setup
+alias xratui="xrat tui"   # optional: shortcut to launch the TUI
 ```
 
 Requires `xray` on your system. `cargo install` only places the binary; run
