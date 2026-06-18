@@ -72,27 +72,29 @@ curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bas
 
 The installer will:
 
-1. Check for `xray` and warn if optional `sing-box` is missing.
-2. Detect the OS and architecture and pick the release target triple.
-3. Download the latest GitHub release archive.
-4. Verify the archive against `SHASUMS256.txt` (`sha256sum` or `shasum`).
-5. Install `xrat` to `~/.local/bin/xrat`.
-6. Install bundled man pages and shell completions; desktop launcher assets are
-   installed on Linux only.
-7. Offer to run `xrat init` when the script has an interactive terminal.
-8. Offer to install and start the background daemon by default (systemd user
-   service on Linux, launchd agent on macOS).
-9. On Linux, offer to enable systemd user lingering for boot startup before
-   login (skipped on macOS; launchd handles boot startup).
+1. Detect the OS and architecture and pick the release target triple.
+2. Download the latest GitHub release archive.
+3. Verify the archive against `SHASUMS256.txt` (`sha256sum` or `shasum`).
+4. Install `xrat` to `~/.local/bin/xrat`.
+5. Hand off to [`xrat setup`](../02-cli/setup.md) for post-install setup:
+   dependency checks (`xray` required, `sing-box` optional), `xrat init`, the
+   background daemon, shell completions, man pages, and (Linux/XDG) the desktop
+   launcher and icons.
 
-Useful flags:
+Setup runs in the binary, so it works the same regardless of how xrat was
+installed and can be re-run any time with `xrat setup`. See the
+[setup reference](../02-cli/setup.md) for the full step list and `--check`
+diagnostics.
+
+Useful flags (passed through to `xrat setup`):
 
 | Flag                | Purpose                                                  |
 | ------------------- | -------------------------------------------------------- |
 | `--from-source`     | Build from the current checkout instead of downloading   |
 | `--install-dir DIR` | Binary install directory                                |
 | `--no-desktop`      | Skip installing desktop launcher and icon assets         |
-| `-y`, `--yes`       | Skip prompts and answer yes to setup, daemon, and linger |
+| `--linger`          | Enable boot-before-login daemon start (Linux)            |
+| `-y`, `--yes`       | Skip prompts and accept setup defaults                   |
 | `-h`, `--help`      | Show installer help                                      |
 
 To install to a different directory:
@@ -163,27 +165,31 @@ bash install.sh --from-source --yes
 The script will:
 
 1. Run `cargo build --release` inside the checkout.
-2. Generate man pages and shell completions from the built binary.
-3. Install `xrat`, man pages, completions, and desktop launcher assets the same
-   way as the release path.
-4. Offer first-time setup prompts.
+2. Install `xrat` to the install directory.
+3. Hand off to `xrat setup`, which generates man pages, completions, and desktop
+   assets from the built binary the same way as the release path.
 
 For a pure Cargo-managed install or a development workflow, see
 [Build From Source](source-install.md).
 
 ## First-Time Setup
 
-If you skipped the installer's setup prompts, initialize xrat manually:
+If you installed xrat another way (e.g. `cargo install`, a package manager, or a
+manual copy), or skipped the installer's setup, run setup yourself:
 
 ```bash
-xrat init
+xrat setup
 ```
 
-To install the daemon later:
+This is idempotent and re-runnable, so it also works to finish or repair an
+install. Check what is and isn't configured without changing anything:
 
 ```bash
-xrat daemon install --start
+xrat setup --check
 ```
+
+To do just the individual pieces instead: `xrat init` for the config directory
+and database, or `xrat daemon install --start` for the background daemon.
 
 Then follow the [Quickstart](quickstart.md) to import configs and connect.
 

@@ -20,6 +20,7 @@ These flags apply to every command:
 
 | Command                                   | Description                                                     |
 | ----------------------------------------- | --------------------------------------------------------------- |
+| [`setup`](setup.md)                       | Run post-install setup (init, daemon, completions, desktop)     |
 | [`import`](import.md)                     | Import a subscription URL, file, or raw text into the database  |
 | [`update`](update.md)                     | Refresh stored subscriptions by ref or all at once              |
 | [`add`](config-management.md#add)         | Add a single config URI directly to the database                |

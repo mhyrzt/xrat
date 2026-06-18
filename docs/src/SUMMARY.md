@@ -10,6 +10,7 @@
   - [Configuration](01-getting-started/configuration.md)
 - [CLI Reference](02-cli/README.md)
   - [init](02-cli/init.md)
+  - [setup](02-cli/setup.md)
   - [import](02-cli/import.md)
   - [update](02-cli/update.md)
   - [config management](02-cli/config-management.md)
