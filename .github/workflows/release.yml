@@ -85,31 +85,10 @@ jobs:
           ARCHIVE="xrat-${VERSION}-${TARGET}.tar.gz"
           tar -czf "$ARCHIVE" -C stage .
 
-      - name: Generate man pages
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: |
-          mkdir -p extras/man/man1
-          ./target/${{ matrix.target }}/release/xrat manpage --output extras/man/man1/
-
-      - name: Generate completions
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: |
-          mkdir -p extras/completions
-          ./target/${{ matrix.target }}/release/xrat completions bash > extras/completions/xrat.bash
-          ./target/${{ matrix.target }}/release/xrat completions zsh > extras/completions/_xrat
-          ./target/${{ matrix.target }}/release/xrat completions fish > extras/completions/xrat.fish
-
       - uses: actions/upload-artifact@v4
         with:
           name: xrat-${{ matrix.target }}
           path: xrat-*.tar.gz
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v4
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        with:
-          name: extras
-          path: extras/
           if-no-files-found: error
 
   publish-docker:
@@ -164,34 +143,6 @@ jobs:
           pattern: xrat-*
           merge-multiple: true
           path: dist/
-
-      - name: Download extras
-        uses: actions/download-artifact@v4
-        with:
-          name: extras
-          path: extras/
-
-      - name: Bundle extras into archives
-        run: |
-          for archive in dist/xrat-*.tar.gz; do
-            tmpdir=$(mktemp -d)
-            tar -xzf "$archive" -C "$tmpdir"
-            cp -r extras/man "$tmpdir/man"
-            cp -r extras/completions "$tmpdir/completions"
-            # Desktop entry and hicolor icons are Linux/XDG-only; skip for darwin.
-            case "$archive" in
-              *apple-darwin*) ;;
-              *)
-                mkdir -p "$tmpdir/desktop"
-                cp packaging/desktop/xrat.desktop "$tmpdir/desktop/xrat.desktop"
-                mkdir -p "$tmpdir/desktop/icons"
-                cp docs/src/media/icons/xrat-icon-48x48.png "$tmpdir/desktop/icons/xrat-48x48.png"
-                cp docs/src/media/icons/xrat-icon-256x256.png "$tmpdir/desktop/icons/xrat-256x256.png"
-                ;;
-            esac
-            tar -czf "$archive" -C "$tmpdir" .
-            rm -rf "$tmpdir"
-          done
 
       - name: Generate checksums
         run: cd dist && sha256sum xrat-*.tar.gz > SHASUMS256.txt
