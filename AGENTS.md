@@ -127,10 +127,6 @@ Keep commits focused and descriptive. PRs should summarize behavior changes,
 mention schema or CLI changes, and include example commands/output when
 relevant.
 
-Commit frequently with proper conventional commit messages. If a task creates
-too many changes for one readable commit, split the work into several focused
-commits.
-
 ## Release Guidelines
 
 Releases are driven by `.github/workflows/release.yml` and run on pushed tags
