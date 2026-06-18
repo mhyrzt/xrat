@@ -3,6 +3,7 @@ pub mod decode;
 pub mod engine_log;
 pub mod geoip;
 pub mod net;
+pub mod platform;
 pub mod refs;
 pub mod time;
 pub mod url;

@@ -206,53 +206,17 @@ fn had_var_name(name: &str) -> String {
     format!("XRAT_PROXY_HAD_{name}")
 }
 
-/// Detect the target shell: explicit override, then `$SHELL`, then the parent
-/// process name, defaulting to bash.
+/// Detect the target shell: explicit override, otherwise shared platform
+/// detection ($SHELL, then parent process, defaulting to bash).
 fn detect_shell(override_kind: Option<ProxyShellKind>) -> ProxyShellKind {
     if let Some(kind) = override_kind {
         return kind;
     }
-    if let Some(kind) = std::env::var("SHELL")
-        .ok()
-        .as_deref()
-        .and_then(shell_from_name)
-    {
-        return kind;
+    match crate::support::platform::detect_shell() {
+        crate::support::platform::Shell::Bash => ProxyShellKind::Bash,
+        crate::support::platform::Shell::Zsh => ProxyShellKind::Zsh,
+        crate::support::platform::Shell::Fish => ProxyShellKind::Fish,
     }
-    if let Some(kind) = parent_process_name().as_deref().and_then(shell_from_name) {
-        return kind;
-    }
-    ProxyShellKind::Bash
-}
-
-fn shell_from_name(name: &str) -> Option<ProxyShellKind> {
-    let base = name.rsplit('/').next().unwrap_or(name).trim();
-    let base = base.strip_suffix(".exe").unwrap_or(base);
-    match base {
-        b if b.contains("fish") => Some(ProxyShellKind::Fish),
-        b if b.contains("zsh") => Some(ProxyShellKind::Zsh),
-        b if b.contains("bash") => Some(ProxyShellKind::Bash),
-        _ => None,
-    }
-}
-
-fn parent_process_name() -> Option<String> {
-    let ppid = sysinfo::Pid::from_u32(parent_process_id());
-    let mut system = sysinfo::System::new();
-    system.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[ppid]), false);
-    system
-        .process(ppid)
-        .map(|process| process.name().to_string_lossy().to_string())
-}
-
-#[cfg(unix)]
-fn parent_process_id() -> u32 {
-    std::os::unix::process::parent_id()
-}
-
-#[cfg(windows)]
-fn parent_process_id() -> u32 {
-    std::os::windows::process::parent_id()
 }
 
 fn print_status(active: &ActiveEndpoints) {
@@ -418,14 +382,6 @@ mod tests {
         let fish = disable_script(ProxyShellKind::Fish);
         assert!(fish.contains("set -e http_proxy"));
         assert!(fish.contains("set -e ALL_PROXY"));
-    }
-
-    #[test]
-    fn shell_detection_reads_names() {
-        assert_eq!(shell_from_name("/usr/bin/fish"), Some(ProxyShellKind::Fish));
-        assert_eq!(shell_from_name("/bin/zsh"), Some(ProxyShellKind::Zsh));
-        assert_eq!(shell_from_name("bash"), Some(ProxyShellKind::Bash));
-        assert_eq!(shell_from_name("/usr/bin/dash"), None);
     }
 
     #[test]
