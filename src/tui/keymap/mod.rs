@@ -56,8 +56,12 @@ pub fn action_for_key(
         return chord::resolve_chord(leader, key.code);
     }
 
-    if active_view == TuiView::Configs
-        && let Some(leader) = chord::leader_char(key.code)
+    if key.code == KeyCode::Char('u') {
+        return TuiAction::RefreshAllSources;
+    }
+
+    if let Some(leader) = chord::leader_char(key.code)
+        && (active_view == TuiView::Configs || leader == 'a')
     {
         *pending_chord = Some(leader);
         return TuiAction::None;

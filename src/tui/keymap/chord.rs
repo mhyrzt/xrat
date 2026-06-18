@@ -2,11 +2,12 @@ use crossterm::event::KeyCode;
 
 use crate::tui::app::{BulkOp, TestScope, TuiAction};
 
-/// Chord leader keys, active only in the Configs view: `t` (test), `d`
-/// (soft-delete), `D` (purge), `r` (restore), `C` (clear logs). Pressing one
-/// arms a chord that resolves on the next key.
+/// Chord leader keys. Config-management leaders are active in the Configs view;
+/// `a` (API sharing) is active in all main TUI views. Pressing one arms a chord
+/// that resolves on the next key.
 pub fn leader_char(code: KeyCode) -> Option<char> {
     match code {
+        KeyCode::Char('a') => Some('a'),
         KeyCode::Char('t') => Some('t'),
         KeyCode::Char('d') => Some('d'),
         KeyCode::Char('D') => Some('D'),
@@ -20,6 +21,9 @@ pub fn leader_char(code: KeyCode) -> Option<char> {
 /// `Esc`) resolve to `None`, which simply clears the armed chord.
 pub fn resolve_chord(leader: char, code: KeyCode) -> TuiAction {
     match (leader, code) {
+        ('a', KeyCode::Char('q')) => TuiAction::OpenQrApiUrl,
+        ('a', KeyCode::Char('c')) => TuiAction::CopyApiUrl,
+
         ('t', KeyCode::Char('t')) => TuiAction::StartTest(TestScope::Focused),
         ('t', KeyCode::Char('a')) => TuiAction::StartTest(TestScope::AllEnabled),
         ('t', KeyCode::Char('v')) => TuiAction::StartTest(TestScope::Filtered),
@@ -52,6 +56,7 @@ pub fn resolve_chord(leader: char, code: KeyCode) -> TuiAction {
 /// Human label for an armed chord leader, shown before its second-key hints.
 pub fn chord_title(leader: char) -> &'static str {
     match leader {
+        'a' => "API",
         't' => "TEST",
         'd' => "DELETE",
         'D' => "PURGE",
@@ -65,6 +70,7 @@ pub fn chord_title(leader: char) -> &'static str {
 /// key bar so each key can be styled independently from its description.
 pub fn chord_entries(leader: char) -> &'static [(&'static str, &'static str)] {
     match leader {
+        'a' => &[("q", "QR"), ("c", "copy")],
         't' => &[
             ("t", "focused"),
             ("a", "all"),

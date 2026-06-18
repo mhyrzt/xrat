@@ -59,6 +59,12 @@ fn chord(leader: KeyCode, second: KeyCode, view: TuiView) -> TuiAction {
     )
 }
 
+fn act_with_panel(key: KeyEvent, view: TuiView, panel: TuiPanel) -> TuiAction {
+    action_for_key(
+        key, view, panel, &mut None, false, false, false, false, false,
+    )
+}
+
 #[test]
 fn maps_global_quit_keys() {
     assert_eq!(
@@ -342,6 +348,32 @@ fn maps_navigation_and_help_keys() {
 }
 
 #[test]
+fn search_mode_esc_exits_and_ctrl_u_clears() {
+    assert_eq!(
+        act(
+            key(KeyCode::Esc),
+            TuiView::Configs,
+            true,
+            false,
+            false,
+            false
+        ),
+        TuiAction::Back
+    );
+    assert_eq!(
+        act(
+            KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
+            TuiView::Configs,
+            true,
+            false,
+            false,
+            false
+        ),
+        TuiAction::ClearSearch
+    );
+}
+
+#[test]
 fn maps_page_and_jump_navigation_keys() {
     assert_eq!(
         act(
@@ -430,6 +462,26 @@ fn test_chords_resolve_to_scopes() {
     assert_eq!(
         chord(KeyCode::Char('t'), KeyCode::Char('c'), TuiView::Configs),
         TuiAction::CancelTestBatch
+    );
+}
+
+#[test]
+fn api_chord_resolves_in_all_views() {
+    assert_eq!(
+        chord(KeyCode::Char('a'), KeyCode::Char('q'), TuiView::Configs),
+        TuiAction::OpenQrApiUrl
+    );
+    assert_eq!(
+        chord(KeyCode::Char('a'), KeyCode::Char('c'), TuiView::Configs),
+        TuiAction::CopyApiUrl
+    );
+    assert_eq!(
+        chord(KeyCode::Char('a'), KeyCode::Char('q'), TuiView::Sources),
+        TuiAction::OpenQrApiUrl
+    );
+    assert_eq!(
+        chord(KeyCode::Char('a'), KeyCode::Char('c'), TuiView::Sources),
+        TuiAction::CopyApiUrl
     );
 }
 
@@ -537,6 +589,24 @@ fn chord_leaders_inert_in_sources() {
 }
 
 #[test]
+fn non_api_chord_leaders_are_inert_in_sources() {
+    let mut pending = None;
+    let action = action_for_key(
+        key(KeyCode::Char('t')),
+        TuiView::Sources,
+        TuiPanel::Table,
+        &mut pending,
+        false,
+        false,
+        false,
+        false,
+        false,
+    );
+    assert_eq!(action, TuiAction::None);
+    assert!(pending.is_none());
+}
+
+#[test]
 fn maps_config_action_keys() {
     assert_eq!(
         act(
@@ -581,6 +651,48 @@ fn maps_config_action_keys() {
             false
         ),
         TuiAction::ToggleDeletedFilter
+    );
+}
+
+#[test]
+fn refresh_all_sources_is_global() {
+    for (view, panel) in [
+        (TuiView::Configs, TuiPanel::Table),
+        (TuiView::Sources, TuiPanel::Table),
+        (TuiView::Configs, TuiPanel::Log),
+        (TuiView::Configs, TuiPanel::Detail),
+        (TuiView::Configs, TuiPanel::Runtime),
+    ] {
+        assert_eq!(
+            act_with_panel(key(KeyCode::Char('u')), view, panel),
+            TuiAction::RefreshAllSources
+        );
+    }
+}
+
+#[test]
+fn runtime_restart_stays_configs_only() {
+    assert_eq!(
+        act(
+            key(KeyCode::Char('R')),
+            TuiView::Configs,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::RuntimeRestart
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::Char('R')),
+            TuiView::Sources,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::None
     );
 }
 
@@ -675,9 +787,13 @@ fn maps_sources_view_actions() {
         ),
         TuiAction::RefreshFocusedSource
     );
+}
+
+#[test]
+fn old_api_shortcuts_do_not_trigger_api_actions() {
     assert_eq!(
         act(
-            key(KeyCode::Char('R')),
+            key(KeyCode::Char('u')),
             TuiView::Sources,
             false,
             false,
@@ -685,5 +801,16 @@ fn maps_sources_view_actions() {
             false
         ),
         TuiAction::RefreshAllSources
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::Char('U')),
+            TuiView::Sources,
+            false,
+            false,
+            false,
+            false
+        ),
+        TuiAction::None
     );
 }

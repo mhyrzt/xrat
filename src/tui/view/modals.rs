@@ -24,12 +24,9 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                     help_line("]", "Next tab"),
                     help_line("⇥", "Focus next card"),
                     help_line("⇤", "Focus prev card"),
-                    help_line("j, ↓", "Move row / scroll down"),
-                    help_line("k, ↑", "Move row / scroll up"),
-                    help_line("PgUp", "Page up"),
-                    help_line("PgDn", "Page down"),
-                    help_line("Home", "Jump to top"),
-                    help_line("End", "Jump to bottom"),
+                    help_line("j, ↓ / k, ↑", "Scroll down/up"),
+                    help_line("PgUp / PgDn", "Page up/down"),
+                    help_line("Home / End", "Jump top/bottom"),
                     help_line("Esc", "Close modal / back"),
                     help_line("q", "Quit"),
                 ],
@@ -61,7 +58,8 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                 "Search",
                 vec![
                     help_line("/", "Search configs"),
-                    help_line("⌃U", "Clear search"),
+                    help_line("Esc", "Cancel search"),
+                    help_line("⌃U", "Clear search input"),
                 ],
             ),
             section(
@@ -91,8 +89,8 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
             section(
                 "Subscriptions",
                 vec![
+                    help_line("u", "Update all"),
                     help_line("r", "Refresh focused"),
-                    help_line("R", "Refresh all"),
                     help_line("n", "Rename"),
                     help_line("d", "Delete"),
                     help_line("y", "Show QR"),
@@ -113,14 +111,13 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
             section(
                 "API",
                 vec![
-                    help_line("u", "Show API QR"),
-                    help_line("U", "Copy API link"),
+                    help_line("a q", "Show API QR"),
+                    help_line("a c", "Copy API link"),
                 ],
             ),
             section(
                 "Log",
                 vec![
-                    help_line("[ ]", "Cycle log tabs"),
                     help_line("C l", "Clear log view"),
                     help_line("C s", "Clear traffic view"),
                     help_line("C p", "Clear events (db)"),
