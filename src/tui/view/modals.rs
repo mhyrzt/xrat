@@ -2,6 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use unicode_width::UnicodeWidthStr;
 
 use crate::tui::app::TuiApp;
 use crate::tui::theme;
@@ -20,10 +21,8 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
             section(
                 "Navigation",
                 vec![
-                    help_line("[", "Previous tab"),
-                    help_line("]", "Next tab"),
-                    help_line("⇥", "Focus next card"),
-                    help_line("⇤", "Focus prev card"),
+                    help_line("[ / ]", "Previous / Next tab"),
+                    help_line("⇥ / ⇤", "Focus next / prev card"),
                     help_line("j, ↓ / k, ↑", "Scroll down/up"),
                     help_line("PgUp / PgDn", "Page up/down"),
                     help_line("Home / End", "Jump top/bottom"),
@@ -232,9 +231,16 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
 }
 
 fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
+    // Pad by display width (not byte/char count) so keys containing wide or
+    // multi-byte glyphs (arrows, combined `a / b`) still align their columns.
+    const KEY_WIDTH: usize = 14;
+    let pad = KEY_WIDTH.saturating_sub(UnicodeWidthStr::width(key));
     Line::from(vec![
         Span::raw("  "),
-        Span::styled(format!("{key:<10}"), theme::accent_style().bold()),
+        Span::styled(
+            format!("{key}{}", " ".repeat(pad)),
+            theme::accent_style().bold(),
+        ),
         Span::raw(description),
     ])
 }
