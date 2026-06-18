@@ -1,44 +1,45 @@
-## xrat v0.6.0
+## xrat v0.7.0
 
-Cross-platform support: xrat now installs and runs on macOS and BSD in addition
-to Linux.
-
-### Platform support
-
-- **macOS**: full first-class support — Apple Silicon and Intel release archives
-  (`aarch64-apple-darwin`, `x86_64-apple-darwin`), `launchd` user agents for the
-  daemon and API services, and desktop proxy control via `networksetup` (web,
-  secure, SOCKS, and PAC).
-- **FreeBSD/OpenBSD**: daemon install via `rc.d` scripts (enable/start requires
-  root).
-- **Linux**: unchanged — `systemd` user services, GNOME/`gsettings` desktop
-  proxy, and `.desktop`/icon assets continue to ship as before.
+Post-install setup now lives in the binary: a new `xrat setup` command owns
+init, daemon, completions, man pages, and desktop integration, so setup works
+the same regardless of how xrat was installed and can be re-run any time.
 
 ### Features
 
-- **daemon**: `daemon install`/`uninstall` dispatch per-OS — `systemd` on Linux,
-  `launchd` on macOS, `rc.d` on FreeBSD/OpenBSD.
-- **proxy**: `proxy desktop` adds a macOS `networksetup` backend alongside the
-  existing Linux GNOME path (enable/disable/status/toggle).
-- **upgrade**: `detect_arch()` now resolves `apple-darwin` triples on macOS, and
-  the release workflow builds darwin archives on `macos-latest`.
-- **installer**: `install.sh` detects the release target triple per OS/arch,
-  verifies with `sha256sum` or `shasum`, and gates `systemd`/`loginctl`/desktop
-  steps to Linux so macOS installs cleanly.
+- **setup**: new `xrat setup` command runs idempotent post-install setup —
+  dependency checks (`xray` required, `sing-box` optional, with versions),
+  `init`, background daemon (prompted, or `--yes`), shell completions, man
+  pages, and (Linux/XDG) a terminal-aware desktop launcher with icons. Flags:
+  `-y/--yes`, `--no-daemon`, `--no-desktop`, `--no-completions`, `--no-manpages`,
+  `--linger`.
+- **setup --check**: read-only diagnostics reporting each step's status as a
+  table or JSON (`--format table|json`); exits non-zero when a required step is
+  missing.
+- **setup output**: grouped Environment / Dependencies / Setup sections with
+  status glyphs, tool versions, detected OS pretty-name, and detected desktop
+  terminal.
+- **linger**: interactive Linux runs prompt to enable boot-before-login start
+  (systemd lingering); `--linger` forces it.
+- **cargo install**: documented installing from crates.io (`cargo install xrat`
+  then `xrat setup`).
 
-### Fixes
+### Changes
 
-- **reattach**: process inspection now uses `sysinfo` instead of reading
-  `/proc/{pid}/exe` and `/proc/{pid}/cmdline`, which do not exist on macOS/BSD.
-  Runtime reattach previously failed silently on those targets despite being
-  `cfg(unix)`.
+- **install.sh**: shrunk to download/verify/place the binary, then hand off to
+  `xrat setup` (passing through `-y`, `--no-desktop`, `--linger`). ASCII banner
+  removed.
+- **release archives**: now contain just the binary, `LICENSE`, and `README`.
+  Man pages, completions, and the desktop launcher/icons are generated from the
+  binary via `xrat setup` (icons are embedded in the binary), so they are no
+  longer bundled in the archive.
 
 ### Upgrade notes
 
 - No new database migrations in this release.
-- Linux behavior and on-disk layout are unchanged; no action needed when
-  upgrading an existing Linux install.
-- macOS desktop archives intentionally omit the Linux/XDG `.desktop` entry and
-  hicolor icons.
+- If you consumed `man/`, `completions/`, or `desktop/` directories from the
+  release archive directly, run `xrat setup` (or `xrat manpage` /
+  `xrat completions`) to generate them from the binary instead.
+- Existing installs are otherwise unaffected; `xrat setup` is safe to run on an
+  already-configured install and reports steps as already done.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.5.3...v0.6.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.6.0...v0.7.0
