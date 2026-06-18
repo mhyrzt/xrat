@@ -33,12 +33,23 @@ sessions with a daemon, and serve stored configs through a local HTTP API.
 
 ## Installation
 
+Install script (Linux/macOS):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
-Requires `xray` on your system. For other installation methods (manual binary
-download, Docker, build from source, shell completions, man pages) see the
+Or with Cargo from [crates.io](https://crates.io/crates/xrat):
+
+```bash
+cargo install xrat
+xrat setup
+```
+
+Requires `xray` on your system. `cargo install` only places the binary; run
+`xrat setup` to finish setup (init, daemon, completions, man pages, desktop).
+For other installation methods (manual binary download, Docker, build from
+source) see the
 [installation docs](https://mhyrzt.github.io/xrat/01-getting-started/installation.html).
 
 ## Current Features

@@ -5,6 +5,7 @@
   - [Installation Script](01-getting-started/installation.md)
   - [Docker Install](01-getting-started/docker-install.md)
   - [Manual Binary Install](01-getting-started/manual-binary-install.md)
+  - [Cargo Install](01-getting-started/cargo-install.md)
   - [Build From Source](01-getting-started/source-install.md)
   - [Quickstart](01-getting-started/quickstart.md)
   - [Configuration](01-getting-started/configuration.md)

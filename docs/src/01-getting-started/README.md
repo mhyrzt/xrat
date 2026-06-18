@@ -22,6 +22,7 @@ Choose one install path:
   bundled Xray-core
 - [Manual Binary Install](manual-binary-install.md) — download, verify, and
   place release files yourself
+- [Cargo Install](cargo-install.md) — `cargo install xrat` from crates.io
 - [Build From Source](source-install.md) — Justfile-oriented workflow for local
   development builds and source installs
 
