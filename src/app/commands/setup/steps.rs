@@ -2,13 +2,12 @@
 //! `--check`) and a mutating `apply_*` (used by the guided flow). Mutating
 //! steps are idempotent: re-running reports `AlreadyDone` instead of failing.
 
-use std::io::Write;
 use std::path::PathBuf;
 
 use super::report::{StepOutcome, StepStatus};
 use crate::app::commands::{completions, daemon_install, init, manpage};
 use crate::app::context::AppContext;
-use crate::cli::{DaemonInstallArgs, InitArgs};
+use crate::cli::DaemonInstallArgs;
 use crate::support::platform;
 
 pub const STEP_XRAY: &str = "xray";
@@ -31,10 +30,40 @@ const SINGBOX_HINT: &str =
 
 pub fn probe_dependency(name: &'static str, required: bool, hint: &str) -> StepOutcome {
     match platform::binary_on_path(name) {
-        Some(path) => StepOutcome::new(name, StepStatus::Done, required)
-            .with_detail(path.display().to_string()),
+        Some(path) => {
+            let detail = match binary_version(&path) {
+                Some(version) => format!("{} ({version})", path.display()),
+                None => path.display().to_string(),
+            };
+            StepOutcome::new(name, StepStatus::Done, required).with_detail(detail)
+        }
         None => StepOutcome::new(name, StepStatus::Missing, required).with_detail(hint.to_string()),
     }
+}
+
+/// Run `<binary> version` and extract the first semantic version it prints,
+/// mirroring how `install.sh` reported tool versions.
+fn binary_version(path: &std::path::Path) -> Option<String> {
+    let output = std::process::Command::new(path)
+        .arg("version")
+        .output()
+        .ok()?;
+    let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
+    text.push_str(&String::from_utf8_lossy(&output.stderr));
+    extract_semver(&text)
+}
+
+fn extract_semver(text: &str) -> Option<String> {
+    for token in text.split(|ch: char| !(ch.is_ascii_digit() || ch == '.')) {
+        let mut parts = token.split('.');
+        let has_two_numeric_parts = token.contains('.')
+            && parts.clone().count() >= 2
+            && parts.all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit()));
+        if has_two_numeric_parts {
+            return Some(format!("v{token}"));
+        }
+    }
+    None
 }
 
 pub fn probe_xray() -> StepOutcome {
@@ -60,13 +89,12 @@ pub fn probe_init(context: &AppContext) -> StepOutcome {
 }
 
 pub fn apply_init(context: &AppContext) -> StepOutcome {
-    let existed = context.runtime_paths.config_path.exists();
-    match init::run(context, &InitArgs { dry_run: false }) {
-        Ok(()) => {
-            let status = if existed {
-                StepStatus::AlreadyDone
-            } else {
+    match init::initialize(context) {
+        Ok(report) => {
+            let status = if report.created_anything() {
                 StepStatus::Done
+            } else {
+                StepStatus::AlreadyDone
             };
             StepOutcome::new(STEP_INIT, status, true)
                 .with_detail(context.runtime_paths.root_dir.display().to_string())
@@ -119,14 +147,15 @@ pub fn apply_daemon(context: &AppContext) -> StepOutcome {
         dry_run: false,
         with_api: false,
     };
-    match daemon_install::install(context, &args) {
+    match daemon_install::install(context, &args, true) {
         Ok(()) => {
-            let status = if existed {
-                StepStatus::AlreadyDone
+            if existed {
+                StepOutcome::new(STEP_DAEMON, StepStatus::AlreadyDone, false)
+                    .with_detail("reloaded and started".to_string())
             } else {
-                StepStatus::Done
-            };
-            StepOutcome::new(STEP_DAEMON, status, false)
+                StepOutcome::new(STEP_DAEMON, StepStatus::Done, false)
+                    .with_detail("installed and started".to_string())
+            }
         }
         Err(error) => {
             StepOutcome::new(STEP_DAEMON, StepStatus::Failed, false).with_detail(error.to_string())
@@ -340,33 +369,5 @@ pub fn probe_path() -> StepOutcome {
         )),
         None => StepOutcome::new(STEP_PATH, StepStatus::Skipped, false)
             .with_detail("could not resolve executable directory".to_string()),
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Progress printing helper used by the apply flow.
-// ---------------------------------------------------------------------------
-
-pub fn print_step(label: &str) {
-    print!("  {label} ... ");
-    let _ = std::io::stdout().flush();
-}
-
-pub fn print_step_result(outcome: &StepOutcome) {
-    let detail = outcome
-        .detail
-        .as_deref()
-        .map(|value| format!(" ({value})"))
-        .unwrap_or_default();
-    println!("{}{}", status_word(outcome.status), detail);
-}
-
-fn status_word(status: StepStatus) -> &'static str {
-    match status {
-        StepStatus::Done => "done",
-        StepStatus::AlreadyDone => "already done",
-        StepStatus::Skipped => "skipped",
-        StepStatus::Missing => "missing",
-        StepStatus::Failed => "failed",
     }
 }

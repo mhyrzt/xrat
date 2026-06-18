@@ -33,12 +33,45 @@ impl StepStatus {
     fn style(self) -> Style {
         match self {
             StepStatus::Done => Style::Green,
-            StepStatus::AlreadyDone => Style::Dim,
+            StepStatus::AlreadyDone => Style::Green,
             StepStatus::Skipped => Style::Dim,
             StepStatus::Missing => Style::Yellow,
             StepStatus::Failed => Style::Red,
         }
     }
+
+    fn glyph(self) -> &'static str {
+        match self {
+            StepStatus::Done => "✔",
+            StepStatus::AlreadyDone => "✔",
+            StepStatus::Skipped => "‧",
+            StepStatus::Missing => "✖",
+            StepStatus::Failed => "✖",
+        }
+    }
+}
+
+/// Width to pad step names to so detail columns line up in the live output.
+pub const NAME_WIDTH: usize = 11;
+
+/// Print one step as a glyphed, aligned line for the guided flow.
+pub fn print_outcome(outcome: &StepOutcome) {
+    let color = output::color_enabled();
+    let glyph = output::style_text(outcome.status.glyph(), outcome.status.style(), color);
+    let name = format!("{:<width$}", outcome.name, width = NAME_WIDTH);
+    let detail = match outcome.detail.as_deref() {
+        Some(detail) => format!("  {}", output::style_text(detail, Style::Dim, color)),
+        None => String::new(),
+    };
+    println!("  {glyph} {name}{detail}");
+}
+
+/// Print a dim section heading.
+pub fn print_section(title: &str) {
+    println!(
+        "{}",
+        output::style_text(title, Style::Dim, output::color_enabled())
+    );
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -77,6 +110,10 @@ pub fn render_table(outcomes: &[StepOutcome]) -> String {
     let color = output::color_enabled();
     let columns = [
         Column {
+            header: "",
+            align: Align::Left,
+        },
+        Column {
             header: "STEP",
             align: Align::Left,
         },
@@ -93,6 +130,7 @@ pub fn render_table(outcomes: &[StepOutcome]) -> String {
         .iter()
         .map(|outcome| {
             vec![
+                Cell::styled(outcome.status.glyph(), outcome.status.style()),
                 Cell::plain(outcome.name),
                 Cell::styled(outcome.status.label(), outcome.status.style()),
                 Cell::plain(outcome.detail.clone().unwrap_or_else(|| "-".to_string())),

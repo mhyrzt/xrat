@@ -36,8 +36,9 @@ combined with `--no-daemon` (linger implies the daemon).
    config).
 3. **daemon** — installs and starts the background daemon (systemd user service
    on Linux, launchd agent on macOS, rc.d on BSD). Prompted unless `--yes`.
-4. **linger** — *(Linux, `--linger` only)* runs `loginctl enable-linger` so the
-   daemon can start at boot before login.
+4. **linger** — *(Linux)* runs `loginctl enable-linger` so the daemon can start
+   at boot before login. Forced with `--linger`; otherwise prompted (default no)
+   in interactive runs, and skipped with `--yes`.
 5. **completions** — generates and installs bash/zsh/fish completions into the
    standard XDG locations.
 6. **man pages** — generates and installs man pages under
@@ -58,19 +59,23 @@ xrat setup -y
 ```
 
 ```
-Detected
-os     linux
-arch   x86_64
-shell  zsh
+Environment
+  os           linux
+  arch         x86_64
+  shell        fish
+  terminal     kitty
 
-  xray ... done (/usr/local/bin/xray)
-  sing-box ... done (/usr/bin/sing-box)
-  init ... done (/home/user/.config/xrat)
-  daemon ... done
-  completions ... done (3 shells)
-  man pages ... done (68 pages)
-  desktop ... done (/home/user/.local/share/applications/xrat.desktop)
-  PATH ... done (/home/user/.local/bin)
+Dependencies
+  ✔ xray         /usr/local/bin/xray (v26.3.27)
+  ✔ sing-box     /usr/bin/sing-box (v1.13.13)
+
+Setup
+  ✔ init         /home/user/.config/xrat
+  ✔ daemon       installed and started
+  ✔ completions  3 shells
+  ✔ man pages    68 pages
+  ✔ desktop      /home/user/.local/share/applications/xrat.desktop
+  ✔ PATH         /home/user/.local/bin
 
 OK Setup complete.
 ```
@@ -82,15 +87,15 @@ xrat setup --check
 ```
 
 ```
-STEP         STATUS        DETAIL
-xray         done          /usr/local/bin/xray
-sing-box     done          /usr/bin/sing-box
-init         already done  /home/user/.config/xrat
-daemon       missing       background daemon not installed
-completions  already done  -
-man pages    already done  -
-desktop      missing       desktop launcher not installed
-PATH         done          /home/user/.local/bin
+  STEP         STATUS        DETAIL
+✔ xray         done          /usr/local/bin/xray (v26.3.27)
+✔ sing-box     done          /usr/bin/sing-box (v1.13.13)
+✔ init         already done  /home/user/.config/xrat
+✖ daemon       missing       background daemon not installed
+✔ completions  already done  -
+✔ man pages    already done  -
+✖ desktop      missing       desktop launcher not installed
+✔ PATH         done          /home/user/.local/bin
 ```
 
 `--check` exits non-zero when a required step (xray, init) is missing. Use

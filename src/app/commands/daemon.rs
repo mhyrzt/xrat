@@ -243,7 +243,7 @@ pub async fn run(context: &AppContext, args: &DaemonArgs) -> crate::app::Result<
             }
             Err(err) => return Err(err),
         },
-        DaemonAction::Install(args) => daemon_install::install(context, args)?,
+        DaemonAction::Install(args) => daemon_install::install(context, args, false)?,
         DaemonAction::Uninstall(args) => daemon_install::uninstall(context, args)?,
     }
 

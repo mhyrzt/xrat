@@ -13,6 +13,18 @@ const ICON_48: &[u8] = include_bytes!("../../../../docs/src/media/icons/xrat-ico
 #[cfg(target_os = "linux")]
 const ICON_256: &[u8] = include_bytes!("../../../../docs/src/media/icons/xrat-icon-256x256.png");
 
+/// The terminal emulator setup would use for the desktop launcher, if any.
+/// `None` off Linux or when no known terminal is on PATH.
+#[cfg(target_os = "linux")]
+pub fn detected_terminal() -> Option<String> {
+    select_terminal().map(|terminal| terminal.to_string())
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn detected_terminal() -> Option<String> {
+    None
+}
+
 #[cfg(not(target_os = "linux"))]
 pub fn probe() -> StepOutcome {
     StepOutcome::new(STEP_DESKTOP, StepStatus::Skipped, false)

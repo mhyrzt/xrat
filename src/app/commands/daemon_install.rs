@@ -14,6 +14,15 @@ fn render_service(template: &str, exe: &Path, xrat_path: &str) -> String {
         .replace("{{XRAT_PATH}}", xrat_path)
 }
 
+/// Print a progress line unless `quiet` (used when `setup` drives the install
+/// and renders its own step summary).
+#[allow(dead_code)]
+fn say(quiet: bool, line: String) {
+    if !quiet {
+        println!("{line}");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Linux: systemd user services
 // ---------------------------------------------------------------------------
@@ -76,7 +85,11 @@ fn systemctl_available() -> bool {
 }
 
 #[cfg(target_os = "linux")]
-pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Result<()> {
+pub fn install(
+    context: &AppContext,
+    args: &DaemonInstallArgs,
+    quiet: bool,
+) -> crate::app::Result<()> {
     if !args.dry_run && !systemctl_available() {
         return Err(AppError::InvalidArgument(
             "systemd is not available; ensure `systemctl --user status` works".to_string(),
@@ -119,33 +132,35 @@ pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Re
     std::fs::create_dir_all(&service_dir)?;
 
     std::fs::write(&daemon_path, &daemon_content)?;
-    println!("Written: {}", daemon_path.display());
+    say(quiet, format!("Written: {}", daemon_path.display()));
 
     if args.with_api {
         std::fs::write(&api_path, &api_content)?;
-        println!("Written: {}", api_path.display());
+        say(quiet, format!("Written: {}", api_path.display()));
     }
 
     run_systemctl(&["daemon-reload"])?;
-    println!("Reloaded systemd user daemon.");
+    say(quiet, "Reloaded systemd user daemon.".to_string());
 
     run_systemctl(&["enable", DAEMON_SERVICE_NAME])?;
-    println!("Enabled: {DAEMON_SERVICE_NAME}");
+    say(quiet, format!("Enabled: {DAEMON_SERVICE_NAME}"));
 
     if args.with_api {
         run_systemctl(&["enable", API_SERVICE_NAME])?;
-        println!("Enabled: {API_SERVICE_NAME}");
+        say(quiet, format!("Enabled: {API_SERVICE_NAME}"));
     }
 
     if args.start {
         run_systemctl(&["start", DAEMON_SERVICE_NAME])?;
-        println!("Started: {DAEMON_SERVICE_NAME}");
+        say(quiet, format!("Started: {DAEMON_SERVICE_NAME}"));
     }
 
-    println!();
-    println!("Daemon installed successfully.");
-    if !args.start {
-        println!("Start with: xrat daemon start");
+    if !quiet {
+        println!();
+        println!("Daemon installed successfully.");
+        if !args.start {
+            println!("Start with: xrat daemon start");
+        }
     }
 
     Ok(())
@@ -290,7 +305,11 @@ fn generate_api_plist(exe: &Path, xrat_path: &str) -> String {
 }
 
 #[cfg(target_os = "macos")]
-pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Result<()> {
+pub fn install(
+    context: &AppContext,
+    args: &DaemonInstallArgs,
+    quiet: bool,
+) -> crate::app::Result<()> {
     if !args.dry_run && !launchctl_available() {
         return Err(AppError::InvalidArgument(
             "launchd is not available; this requires macOS with launchctl".to_string(),
@@ -335,33 +354,35 @@ pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Re
     std::fs::create_dir_all(&agents_dir)?;
 
     std::fs::write(&daemon_path, &daemon_content)?;
-    println!("Written: {}", daemon_path.display());
+    say(quiet, format!("Written: {}", daemon_path.display()));
 
     if args.with_api {
         std::fs::write(&api_path, &api_content)?;
-        println!("Written: {}", api_path.display());
+        say(quiet, format!("Written: {}", api_path.display()));
     }
 
     let uid = current_uid()?;
     let domain = format!("gui/{uid}");
 
     run_launchctl(&["bootstrap", &domain, &daemon_path.display().to_string()])?;
-    println!("Bootstrapped: {DAEMON_LABEL}");
+    say(quiet, format!("Bootstrapped: {DAEMON_LABEL}"));
 
     if args.with_api {
         run_launchctl(&["bootstrap", &domain, &api_path.display().to_string()])?;
-        println!("Bootstrapped: {API_LABEL}");
+        say(quiet, format!("Bootstrapped: {API_LABEL}"));
     }
 
     if args.start {
         run_launchctl(&["kickstart", "-k", &format!("{domain}/{DAEMON_LABEL}")])?;
-        println!("Started: {DAEMON_LABEL}");
+        say(quiet, format!("Started: {DAEMON_LABEL}"));
     }
 
-    println!();
-    println!("Daemon installed successfully.");
-    if !args.start {
-        println!("Start with: xrat daemon start");
+    if !quiet {
+        println!();
+        println!("Daemon installed successfully.");
+        if !args.start {
+            println!("Start with: xrat daemon start");
+        }
     }
 
     Ok(())
@@ -509,7 +530,11 @@ fn write_rc_script(path: &Path, content: &str) -> std::io::Result<()> {
 }
 
 #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
-pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Result<()> {
+pub fn install(
+    context: &AppContext,
+    args: &DaemonInstallArgs,
+    quiet: bool,
+) -> crate::app::Result<()> {
     let exe = resolve_exe();
     let xrat_path = context.runtime_paths.root_dir.display().to_string();
     let dir = rc_d_dir();
@@ -545,30 +570,32 @@ pub fn install(context: &AppContext, args: &DaemonInstallArgs) -> crate::app::Re
     std::fs::create_dir_all(&dir)?;
 
     write_rc_script(&daemon_path, &daemon_content)?;
-    println!("Written: {}", daemon_path.display());
+    say(quiet, format!("Written: {}", daemon_path.display()));
 
     if args.with_api {
         write_rc_script(&api_path, &api_content)?;
-        println!("Written: {}", api_path.display());
+        say(quiet, format!("Written: {}", api_path.display()));
     }
 
     enable_service(DAEMON_RC_NAME)?;
-    println!("Enabled: {DAEMON_RC_NAME}");
+    say(quiet, format!("Enabled: {DAEMON_RC_NAME}"));
 
     if args.with_api {
         enable_service(API_RC_NAME)?;
-        println!("Enabled: {API_RC_NAME}");
+        say(quiet, format!("Enabled: {API_RC_NAME}"));
     }
 
     if args.start {
         start_service(DAEMON_RC_NAME)?;
-        println!("Started: {DAEMON_RC_NAME}");
+        say(quiet, format!("Started: {DAEMON_RC_NAME}"));
     }
 
-    println!();
-    println!("Daemon installed successfully.");
-    if !args.start {
-        println!("Start with: xrat daemon start");
+    if !quiet {
+        println!();
+        println!("Daemon installed successfully.");
+        if !args.start {
+            println!("Start with: xrat daemon start");
+        }
     }
 
     Ok(())
@@ -625,7 +652,11 @@ pub fn uninstall(_context: &AppContext, args: &DaemonUninstallArgs) -> crate::ap
     target_os = "freebsd",
     target_os = "openbsd"
 )))]
-pub fn install(_context: &AppContext, _args: &DaemonInstallArgs) -> crate::app::Result<()> {
+pub fn install(
+    _context: &AppContext,
+    _args: &DaemonInstallArgs,
+    _quiet: bool,
+) -> crate::app::Result<()> {
     Err(AppError::UnsupportedPlatform(
         "daemon install is not supported on this platform".to_string(),
     ))

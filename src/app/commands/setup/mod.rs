@@ -49,64 +49,59 @@ fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
 
 async fn apply(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
     let color = output::color_enabled();
-    print_detection(color);
+    print_detection();
 
     let mut outcomes = Vec::new();
 
     // Dependencies: xray is required, sing-box is optional.
-    let xray = steps::probe_xray();
-    print_inline(&xray);
+    report::print_section("Dependencies");
+    let xray = emit(steps::probe_xray());
     let xray_missing = xray.status == StepStatus::Missing;
     outcomes.push(xray);
-    let singbox = steps::probe_singbox();
-    print_inline(&singbox);
-    outcomes.push(singbox);
+    outcomes.push(emit(steps::probe_singbox()));
 
     if xray_missing {
-        return Err(crate::app::AppError::InvalidArgument(format!(
-            "xray-core is required and was not found on PATH; {}",
-            steps::probe_xray()
-                .detail
-                .unwrap_or_else(|| "install xray-core".to_string())
-        )));
+        return Err(crate::app::AppError::InvalidArgument(
+            "xray-core is required but was not found on PATH; install xray-core and re-run `xrat setup`"
+                .to_string(),
+        ));
     }
 
-    outcomes.push(run_step("init", || steps::apply_init(context)));
+    println!();
+    report::print_section("Setup");
+
+    outcomes.push(emit(steps::apply_init(context)));
 
     if args.no_daemon {
-        outcomes.push(skipped(steps::STEP_DAEMON, "--no-daemon"));
+        outcomes.push(emit(skipped(steps::STEP_DAEMON, "--no-daemon")));
     } else if want_daemon(args) {
-        outcomes.push(run_step(steps::STEP_DAEMON, || {
-            steps::apply_daemon(context)
-        }));
-        if args.linger {
-            outcomes.push(run_step(steps::STEP_LINGER, steps::apply_linger));
+        outcomes.push(emit(steps::apply_daemon(context)));
+        if want_linger(args) {
+            outcomes.push(emit(steps::apply_linger()));
         }
     } else {
-        outcomes.push(skipped(steps::STEP_DAEMON, "declined"));
+        outcomes.push(emit(skipped(steps::STEP_DAEMON, "declined")));
     }
 
     if args.no_completions {
-        outcomes.push(skipped(steps::STEP_COMPLETIONS, "--no-completions"));
+        outcomes.push(emit(skipped(steps::STEP_COMPLETIONS, "--no-completions")));
     } else {
-        outcomes.push(run_step(steps::STEP_COMPLETIONS, steps::apply_completions));
+        outcomes.push(emit(steps::apply_completions()));
     }
 
     if args.no_manpages {
-        outcomes.push(skipped(steps::STEP_MANPAGES, "--no-manpages"));
+        outcomes.push(emit(skipped(steps::STEP_MANPAGES, "--no-manpages")));
     } else {
-        outcomes.push(run_step(steps::STEP_MANPAGES, steps::apply_manpages));
+        outcomes.push(emit(steps::apply_manpages()));
     }
 
     if args.no_desktop {
-        outcomes.push(skipped(steps::STEP_DESKTOP, "--no-desktop"));
+        outcomes.push(emit(skipped(steps::STEP_DESKTOP, "--no-desktop")));
     } else {
-        outcomes.push(run_step(steps::STEP_DESKTOP, desktop::apply));
+        outcomes.push(emit(desktop::apply()));
     }
 
-    let path = steps::probe_path();
-    print_inline(&path);
-    outcomes.push(path);
+    outcomes.push(emit(steps::probe_path()));
 
     println!();
     println!("{}", output::success("Setup complete.", color));
@@ -122,39 +117,48 @@ fn want_daemon(args: &SetupArgs) -> bool {
     output::confirm("Install and start the background daemon?").unwrap_or(false)
 }
 
-fn run_step(_name: &str, step: impl FnOnce() -> StepOutcome) -> StepOutcome {
-    let outcome = step();
-    steps::print_step(outcome.name);
-    steps::print_step_result(&outcome);
+/// Whether to enable boot-before-login start. `--linger` forces it; otherwise
+/// (Linux, interactive only) prompt, defaulting to no.
+fn want_linger(args: &SetupArgs) -> bool {
+    if args.linger {
+        return true;
+    }
+    if args.yes || platform::os() != "linux" {
+        return false;
+    }
+    output::confirm("Enable boot-before-login start (systemd lingering)?").unwrap_or(false)
+}
+
+fn emit(outcome: StepOutcome) -> StepOutcome {
+    report::print_outcome(&outcome);
     outcome
 }
 
 fn skipped(name: &'static str, reason: &str) -> StepOutcome {
-    let outcome =
-        StepOutcome::new(name, StepStatus::Skipped, false).with_detail(reason.to_string());
-    steps::print_step(name);
-    steps::print_step_result(&outcome);
-    outcome
+    StepOutcome::new(name, StepStatus::Skipped, false).with_detail(reason.to_string())
 }
 
-fn print_inline(outcome: &StepOutcome) {
-    steps::print_step(outcome.name);
-    steps::print_step_result(outcome);
-}
+fn print_detection() {
+    let color = output::color_enabled();
+    report::print_section("Environment");
 
-fn print_detection(color: bool) {
-    println!(
-        "{}",
-        output::format_kv(
-            Some("Detected"),
-            &[
-                ("os", platform::os().to_string()),
-                ("arch", platform::arch().to_string()),
-                ("shell", platform::detect_shell().name().to_string()),
-            ],
-            color,
-        )
-    );
+    let mut rows = vec![
+        ("os", platform::os().to_string()),
+        ("arch", platform::arch().to_string()),
+        ("shell", platform::detect_shell().name().to_string()),
+    ];
+    if let Some(terminal) = desktop::detected_terminal() {
+        rows.push(("terminal", terminal));
+    }
+
+    for (key, value) in rows {
+        println!(
+            "  {:<width$}  {}",
+            key,
+            output::style_text(&value, output::Style::Dim, color),
+            width = report::NAME_WIDTH,
+        );
+    }
     println!();
 }
 

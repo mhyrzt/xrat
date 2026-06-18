@@ -6,7 +6,22 @@ const DEFAULT_CONFIG_CONTENTS: &str = "# XRAT configuration\n\n";
 
 const DEFAULT_CONFIG_TEMPLATE: &str = include_str!("init_default_config.toml");
 
-pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
+/// Result of an initialization run: paths created versus already present.
+pub struct InitReport {
+    pub created: Vec<String>,
+    pub present: Vec<String>,
+}
+
+impl InitReport {
+    /// Whether any path was created (false means everything already existed).
+    pub fn created_anything(&self) -> bool {
+        !self.created.is_empty()
+    }
+}
+
+/// Perform the filesystem initialization quietly and return what changed.
+/// Callers that want user-facing output use [`run`]; `setup` uses this directly.
+pub fn initialize(context: &AppContext) -> crate::app::Result<InitReport> {
     let root = &context.runtime_paths.root_dir;
     let config_path = &context.runtime_paths.config_path;
     let db_path = &context.runtime_paths.database_path;
@@ -16,29 +31,6 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
 
     let mut created = Vec::new();
     let mut present = Vec::new();
-
-    if args.dry_run {
-        println!(
-            "{}",
-            output::notice("Dry run: no files written.", output::color_enabled())
-        );
-        println!(
-            "{}",
-            output::format_kv(
-                Some("Would create if absent"),
-                &[
-                    ("root", format!("{}/", root.display())),
-                    ("config", config_path.display().to_string()),
-                    ("database", db_path.display().to_string()),
-                    ("runtime", format!("{}/", runtime_dir.display())),
-                    ("logs", format!("{}/", logs_dir.display())),
-                    ("mmdb", format!("{}/", mmdb_dir.display())),
-                ],
-                output::color_enabled(),
-            )
-        );
-        return Ok(());
-    }
 
     if root.exists() {
         present.push(format!("{}/", root.display()));
@@ -65,11 +57,7 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
 
     present.push(format!("{} (database ready)", db_path.display()));
 
-    for (dir, _label) in [
-        (&runtime_dir, "runtime/"),
-        (&logs_dir, "logs/"),
-        (&mmdb_dir, "mmdb/"),
-    ] {
+    for dir in [&runtime_dir, &logs_dir, &mmdb_dir] {
         if dir.exists() {
             present.push(format!("{}/", dir.display()));
         } else {
@@ -77,6 +65,42 @@ pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
             created.push(format!("{}/", dir.display()));
         }
     }
+
+    Ok(InitReport { created, present })
+}
+
+pub fn run(context: &AppContext, args: &InitArgs) -> crate::app::Result<()> {
+    let root = &context.runtime_paths.root_dir;
+    let config_path = &context.runtime_paths.config_path;
+    let db_path = &context.runtime_paths.database_path;
+    let runtime_dir = root.join("runtime");
+    let logs_dir = root.join("logs");
+    let mmdb_dir = root.join("mmdb");
+
+    if args.dry_run {
+        println!(
+            "{}",
+            output::notice("Dry run: no files written.", output::color_enabled())
+        );
+        println!(
+            "{}",
+            output::format_kv(
+                Some("Would create if absent"),
+                &[
+                    ("root", format!("{}/", root.display())),
+                    ("config", config_path.display().to_string()),
+                    ("database", db_path.display().to_string()),
+                    ("runtime", format!("{}/", runtime_dir.display())),
+                    ("logs", format!("{}/", logs_dir.display())),
+                    ("mmdb", format!("{}/", mmdb_dir.display())),
+                ],
+                output::color_enabled(),
+            )
+        );
+        return Ok(());
+    }
+
+    let InitReport { created, present } = initialize(context)?;
 
     println!(
         "{}",
