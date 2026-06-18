@@ -6,12 +6,14 @@
 use super::report::{StepOutcome, StepStatus};
 use super::steps::STEP_DESKTOP;
 
+// Assets are vendored under the module (not referenced from packaging/ or docs/)
+// so they ship in the published crate tarball, which excludes those directories.
 #[cfg(target_os = "linux")]
-const DESKTOP_TEMPLATE: &str = include_str!("../../../../packaging/desktop/xrat.desktop");
+const DESKTOP_TEMPLATE: &str = include_str!("assets/xrat.desktop");
 #[cfg(target_os = "linux")]
-const ICON_48: &[u8] = include_bytes!("../../../../docs/src/media/icons/xrat-icon-48x48.png");
+const ICON_48: &[u8] = include_bytes!("assets/xrat-48x48.png");
 #[cfg(target_os = "linux")]
-const ICON_256: &[u8] = include_bytes!("../../../../docs/src/media/icons/xrat-icon-256x256.png");
+const ICON_256: &[u8] = include_bytes!("assets/xrat-256x256.png");
 
 /// The terminal emulator setup would use for the desktop launcher, if any.
 /// `None` off Linux or when no known terminal is on PATH.
