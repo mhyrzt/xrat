@@ -3,14 +3,18 @@ use clap::Subcommand;
 use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DbArgs, DeleteArgs, DisableArgs,
     DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs,
-    ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs, ShowArgs,
-    StatusArgs, TestArgs, TuiArgs, UpdateArgs, UpgradeArgs, ValidateArgs, VersionArgs,
+    ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs, SetupArgs,
+    ShowArgs, StatusArgs, TestArgs, TuiArgs, UpdateArgs, UpgradeArgs, ValidateArgs, VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
     #[command(about = "Initialize config directory, config file, and database.")]
     Init(InitArgs),
+    #[command(
+        about = "Run post-install setup: init, daemon, completions, man pages, and desktop integration."
+    )]
+    Setup(SetupArgs),
     #[command(about = "Import a subscription URL, file, or raw text into SQLite.")]
     Import(ImportArgs),
     #[command(about = "Add a single config URI directly to SQLite.")]

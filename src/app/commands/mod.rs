@@ -22,6 +22,7 @@ mod rotate;
 mod runtime_output;
 mod scan;
 mod serve;
+mod setup;
 mod status;
 pub(crate) mod test;
 mod tui;
@@ -36,6 +37,7 @@ use crate::cli::Command;
 pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<()> {
     match command {
         Command::Init(args) => init::run(context, args),
+        Command::Setup(args) => setup::run(context, args).await,
         Command::Import(args) => import::run(context, &args.input).await,
         Command::Add(args) => add::run(context, &args.input).await,
         Command::List(args) => list::run(context, args).await,

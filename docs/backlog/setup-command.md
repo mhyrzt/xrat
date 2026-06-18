@@ -41,9 +41,11 @@ instead of shell.
 4. Optional `xrat daemon install --start` (`run_daemon_install`).
 5. Optional systemd lingering via `loginctl enable-linger` on Linux
    (`run_linger_enable`).
-6. PATH check for the install dir (`install_dir_in_path`, `show_completion_note`).
+6. PATH check for the install dir (`install_dir_in_path`,
+   `show_completion_note`).
 7. Man pages, shell completions, and (Linux/XDG only) desktop launcher + icons
-   install (`install_extras`, `write_desktop_launcher`, `select_desktop_terminal`).
+   install (`install_extras`, `write_desktop_launcher`,
+   `select_desktop_terminal`).
 8. Quick-start guide (`show_guide`).
 
 Steps 1-6 and 8 are pure setup orchestration that belong in the binary. Step 7
@@ -72,8 +74,8 @@ offered no, desktop on (Linux). `--yes` mirrors `install.sh -y`.
 
 ### Changes required
 
-- New CLI command file `src/cli/setup.rs` wired through `src/cli/command.rs`
-  and `src/cli/root.rs`; add parser tests under `src/cli/tests/`.
+- New CLI command file `src/cli/setup.rs` wired through `src/cli/command.rs` and
+  `src/cli/root.rs`; add parser tests under `src/cli/tests/`.
 - New handler `src/app/commands/setup.rs` (or a `setup/` module if it grows)
   that orchestrates existing services rather than duplicating them:
   - reuse the init flow behind `src/app/commands/init.rs`
@@ -83,8 +85,8 @@ offered no, desktop on (Linux). `--yes` mirrors `install.sh -y`.
     `src/app/commands/completions.rs` and `src/app/commands/manpage.rs`
 - Add reusable environment-detection helpers (OS, arch, shell, PATH membership)
   under `src/support/` so both `--check` and the guided flow share them. Avoid
-  re-shelling `uname`; prefer existing detection already used by upgrade/reattach
-  (`sysinfo`, target triple detection in upgrade).
+  re-shelling `uname`; prefer existing detection already used by
+  upgrade/reattach (`sysinfo`, target triple detection in upgrade).
 - Per-OS behavior:
   - Linux: systemd user daemon, optional `loginctl enable-linger`, XDG desktop
     launcher + hicolor icons, completion/man dirs under `$XDG_DATA_HOME`.
