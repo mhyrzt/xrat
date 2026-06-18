@@ -15,29 +15,6 @@ GRN='\033[0;32m'
 BLU='\033[0;34m'
 NC='\033[0m'
 
-print_ascii() {
-    echo -e "${BLU}"
-    cat <<'EOF'
-██╗  ██╗██████╗  █████╗ ████████╗
-╚██╗██╔╝██╔══██╗██╔══██╗╚══██╔══╝
- ╚███╔╝ ██████╔╝███████║   ██║
- ██╔██╗ ██╔══██╗██╔══██║   ██║
-██╔╝ ██╗██║  ██║██║  ██║   ██║
-╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
-EOF
-    echo -e "${YLW}"
-    cat <<'EOF'
-        /\___/\
-       ( o   ^ )   ~
-        > ._. <   /
-       /       \_/
-      (  )   (  )
-EOF
-    echo -e "${NC}  installing xrat - the rat that tunnels for you"
-    echo -e "  Proxy config manager for Xray and sing-box"
-    echo
-}
-
 info()  { echo -e "${GRN}[+]${NC} $*"; }
 warn()  { echo -e "${YLW}[!]${NC} $*"; }
 error() { echo -e "${RED}[✗]${NC} $*" >&2; }
@@ -222,7 +199,8 @@ main() {
     trap 'rm -rf "${WORK_DIR}"' EXIT
     parse_args "$@"
 
-    print_ascii
+    info "Installing xrat - proxy config manager for Xray and sing-box"
+    echo
 
     local os
     os="$(uname -s)"

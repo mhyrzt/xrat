@@ -99,6 +99,33 @@ pub fn os() -> &'static str {
     std::env::consts::OS
 }
 
+/// Human-friendly OS name. On Linux this is the `PRETTY_NAME` from
+/// `/etc/os-release` (e.g. "Fedora Linux 43"); otherwise the bare OS name.
+pub fn os_pretty() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(content) = std::fs::read_to_string("/etc/os-release")
+            && let Some(name) = parse_os_release_pretty(&content)
+        {
+            return name;
+        }
+    }
+    os().to_string()
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn parse_os_release_pretty(content: &str) -> Option<String> {
+    for line in content.lines() {
+        if let Some(value) = line.strip_prefix("PRETTY_NAME=") {
+            let value = value.trim().trim_matches('"');
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Current CPU architecture (`std::env::consts::ARCH`).
 pub fn arch() -> &'static str {
     std::env::consts::ARCH
@@ -128,6 +155,16 @@ pub fn xdg_config_home() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_pretty_name_from_os_release() {
+        let content = "NAME=\"Fedora Linux\"\nPRETTY_NAME=\"Fedora Linux 43 (Workstation Edition)\"\nID=fedora\n";
+        assert_eq!(
+            parse_os_release_pretty(content),
+            Some("Fedora Linux 43 (Workstation Edition)".to_string())
+        );
+        assert_eq!(parse_os_release_pretty("ID=void\n"), None);
+    }
 
     #[test]
     fn shell_from_name_handles_paths_and_suffixes() {

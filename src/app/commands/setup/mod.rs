@@ -143,7 +143,7 @@ fn print_detection() {
     report::print_section("Environment");
 
     let mut rows = vec![
-        ("os", platform::os().to_string()),
+        ("os", platform::os_pretty()),
         ("arch", platform::arch().to_string()),
         ("shell", platform::detect_shell().name().to_string()),
     ];
