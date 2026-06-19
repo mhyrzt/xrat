@@ -1,22 +1,24 @@
-# SDK — Reusable Library Surface
+# SDK — Workspace And Reusable Library Surface
 
-This folder collects work to turn the crate's reusable proxy domain logic into a
-real, distributable SDK that another app can depend on without inheriting the
-CLI/TUI/server frontends.
+This folder collects work to turn the current single-crate application into a
+modular Cargo workspace while preserving the installed product as one `xrat`
+binary. The reusable proxy-management logic should live behind stable library
+crates, and the CLI, TUI, and HTTP surfaces should become thin adapters over the
+shared engine/runtime layers.
 
 The crate already builds as a library (`src/lib.rs` re-exports every module as
 `pub mod`), so the pure layers — `config` (link/subscription parsing), `xray` /
 `singbox` (runtime config generation), `model`, `prober`, `support` — are
-usable today. What is missing is a curated public API, feature-gated heavy
-dependencies, and a non-CLI way to construct stateful context.
+usable today. What is missing is a curated public SDK facade, crate boundaries
+that keep frontend dependencies out of reusable logic, and a non-CLI way to
+construct stateful engine/runtime services.
 
 ## Items
 
-- `28-extract-reusable-sdk-crate.md` — Medium. Tiered reusability analysis
-  (pure core vs `AppContext`/DB-bound vs frontends) and a staged plan:
-  feature-gate frontends/heavy deps, add a non-CLI `AppContext` constructor,
-  curate the public surface, then optionally split into an `xrat-core` workspace
-  crate.
+- `28-extract-reusable-sdk-crate.md` — Medium. Workspace architecture roadmap:
+  split reusable config/model/prober/runtime/engine logic into library crates,
+  expose a stable `xrat-sdk` facade, keep `xrat-cli`, `xrat-tui`, and
+  `xrat-http` as adapters, and preserve one installed `xrat` binary.
 
 ## Dependencies
 

@@ -1,8 +1,8 @@
-# Extract A Reusable SDK / Library Crate
+# Extract A Reusable SDK And Workspace Architecture
 
 ## Finding
 
-### [Priority: Medium] Carve a curated `xrat-core` SDK out of the binary crate
+### [Priority: Medium] Split reusable proxy management into workspace crates
 
 **Files involved:**
 
@@ -16,12 +16,13 @@
 - `src/app/context/mod.rs` (`AppContext::build(args: &cli::Cli)`)
 - `src/app/` (stateful command/services layer)
 - `src/cli/`, `src/tui/`, `src/server/` (frontends)
+- future `crates/` workspace members
 
 **Problem:** The crate already builds as a library (`src/lib.rs` re-exports every
 module as `pub mod`), so an external app can technically `use xrat::config::...`
-today. But there is no curated public surface and no separation between the pure,
-reusable core and the application/frontend layers. Three concrete blockers stop
-this from being a real SDK:
+today. But there is no curated public surface, no crate-level separation between
+reusable proxy-management logic and frontends, and no stable SDK facade. Three
+concrete blockers stop this from being a real workspace architecture:
 
 1. **Everything is `pub mod` with no curated API.** There is no public/internal
    boundary, so any internal refactor is a potential breaking change for an SDK
@@ -38,11 +39,46 @@ this from being a real SDK:
    resolution, so it cannot be used as a library without standing up a database
    and faking CLI args.
 
-**Why this change is needed:** Consumers (other Rust apps, a future FFI/WASM
-binding, or internal reuse) want the proxy domain logic — parse a subscription,
-generate an Xray/sing-box runtime config, probe a node — without inheriting the
-entire CLI/TUI/server application. Without a curated, feature-gated core, every
-such consumer pays full compile cost and rides an unstable, undocumented API.
+**Target architecture:** XRAT should become a Cargo workspace whose installed
+product remains a single `xrat` binary. Reusable proxy-management logic moves
+into stable library crates, while frontend crates become adapters over shared
+engine and runtime crates:
+
+- `xrat-sdk` — stable public facade for external Rust consumers. Exposes curated
+  proxy-management types and operations without leaking CLI/TUI/HTTP details.
+- `xrat-engine` — interface-neutral use-cases and orchestration for import,
+  list/detail, lifecycle, test, scan, connect/disconnect, status, and logs.
+- `xrat-runtime` — Xray/sing-box runtime config generation, process lifecycle,
+  runtime sessions, reattach/replace/status flows, and daemon-facing runtime
+  control.
+- `xrat-config` — subscription import, protocol link parsing, normalization, and
+  runtime-neutral config types.
+- `xrat-db` — database connection setup, records, repositories, migrations, and
+  persistence mapping.
+- `xrat-prober` — TCP, ICMP, download, upload, and real-delay probing.
+- `xrat-model` — shared domain types and newtype identifiers.
+- `xrat-cli`, `xrat-tui`, `xrat-http` — thin adapters that translate inputs,
+  render outputs, and call engine/runtime services.
+- `xrat-bin` or the existing root binary — composition crate that enables the
+  adapters and still installs the executable as `xrat`.
+
+**Dependency direction:** Shared crates must not depend on frontend adapters.
+The intended direction is:
+
+```text
+xrat-bin -> xrat-cli + xrat-tui + xrat-http
+xrat-cli/xrat-tui/xrat-http -> xrat-engine
+xrat-sdk -> xrat-engine
+xrat-engine -> xrat-runtime + xrat-config + xrat-db + xrat-prober + xrat-model
+xrat-runtime -> xrat-config + xrat-db + xrat-model
+```
+
+**Why this change is needed:** Consumers (other Rust apps, future FFI/WASM
+bindings, or internal frontends) need proxy domain logic — parse subscriptions,
+generate Xray/sing-box runtime config, probe nodes, and drive managed runtime
+operations — without inheriting the entire CLI/TUI/server application. Without a
+workspace split and curated SDK facade, every consumer pays full compile cost
+and depends on unstable internal modules.
 
 **Current reusability tiers (extract boundary):**
 
@@ -60,41 +96,52 @@ such consumer pays full compile cost and rides an unstable, undocumented API.
 - **Tier 3 — frontends, not SDK.** `src/cli`, `src/tui`, `src/server`. These are
   entry points; pulling them yields the whole app, not a library.
 
-**How to implement it:** Stage it, smallest-risk first.
+**How to implement it:** Stage it so each move preserves the binary and limits
+churn.
 
-1. **Feature-gate the frontends and heavy deps.** Add cargo features (e.g.
-   `tui`, `server`, `cli`, `clipboard`, `geoip`) that gate `src/tui`,
-   `src/server`, `src/cli`, `arboard`, and `maxminddb`. Make `ratatui`,
-   `crossterm`, `axum`, `tonic`/`prost`, `clap*` optional and tied to those
-   features. The binary enables them all; a library consumer enables only what
-   it needs. This alone makes Tier 1 cheap to depend on without restructuring.
-2. **Add a non-CLI `AppContext` constructor.** Introduce a plain config/builder
-   input (no `cli::Cli`) so `AppContext` can be created programmatically. Keep
-   `build(args: &cli::Cli)` as a thin adapter over it. Unblocks Tier 2 library
-   use and pairs with `1-foundation/8-application-factories-test-setup.md`.
-3. **Curate the public surface.** Replace blanket `pub mod` in `src/lib.rs` with
-   an explicit `pub use` facade (e.g. an `sdk` or `prelude` module) that
-   re-exports the Tier 1 entry points and the domain types, and make internals
-   `pub(crate)` or `#[doc(hidden)]`. This is the API contract to version against.
-4. **(Optional, larger) Split into a workspace.** `xrat-core` (Tier 1 + model,
-   no frontends) plus `xrat` (binary depending on core, owning `cli`/`tui`/
-   `server`/`app`). Cleanest long-term boundary; do it only after steps 1–3
-   prove the seam.
+1. **Prepare the single crate for extraction.** Feature-gate frontends/heavy deps
+   (`cli`, `tui`, `server`, `clipboard`, `geoip`, database/runtime features) and
+   add a non-CLI `AppContext` or engine context constructor. Keep
+   `AppContext::build(args: &cli::Cli)` as an adapter over the programmatic
+   constructor.
+2. **Extract pure/shared crates first.** Move `model`, `config`, and `prober`
+   into workspace crates before stateful runtime/database code. These are the
+   lowest-risk boundaries because they already have relatively clear inputs and
+   outputs.
+3. **Extract persistence and runtime crates.** Move database records/
+   repositories/migration wiring into `xrat-db`, and move Xray/sing-box runtime
+   config generation plus process/session lifecycle into `xrat-runtime`.
+4. **Create `xrat-engine`.** Move interface-neutral application use-cases from
+   command/TUI/server code into engine services with typed request/result
+   structs. CLI/TUI/HTTP/daemon code should translate inputs and render outputs,
+   not own business rules.
+5. **Create `xrat-sdk`.** Expose a conservative public facade over selected
+   model/config/prober/engine/runtime APIs. Prefer stable types such as
+   `ProxyManager`, `ImportRequest`, `ImportResult`, `ConfigSummary`,
+   `ConnectionStatus`, `TestOptions`, `TestResult`, and `RuntimeStatus`; do not
+   expose raw repository rows, CLI structs, Axum DTOs, or process internals.
+6. **Split adapters and binary composition.** Move frontend code into
+   `xrat-cli`, `xrat-tui`, and `xrat-http` crates. Keep the final binary as a
+   small composition layer that wires config, storage, runtime, adapters, and
+   tracing, and still builds/releases an executable named `xrat`.
 
-**Positive effect on the codebase:** A consumer wanting only link parsing or
-config generation compiles a small dependency tree against a documented, stable
-API. The pure/stateful boundary becomes explicit and enforced by the crate
-graph, which also pays back into testability and faster builds for the core.
+**Compatibility constraints:** The installed product, command names, release
+artifacts, Docker image, systemd/launchd/rc.d templates, generated man pages,
+completions, desktop assets, and `install.sh` flow must continue to target a
+single `xrat` binary. Workspace crate names are internal packaging details unless
+and until `xrat-sdk` is published as a public crate.
 
-**Suggested target architecture:** `xrat-core` exposes pure domain capabilities
-(parse, normalize, generate runtime config, probe) with a curated facade and no
-frontend deps; the `xrat` binary keeps CLI/TUI/server/daemon and the stateful
-`AppContext`/`Database` orchestration on top of core.
+**Positive effect on the codebase:** A consumer wanting only link parsing,
+config generation, probing, or managed proxy operations can depend on a stable
+SDK instead of the full application. The crate graph enforces frontend/core
+boundaries, reduces accidental coupling, and makes adapter behavior easier to
+test against shared engine services.
 
-**Risk / migration notes:** Steps 1–3 are incremental and non-breaking for the
-binary if the binary enables all features by default. The workspace split (step
-4) is the only large move and should follow, not precede, the feature-gating and
-API curation. This item depends on and reinforces:
+**Risk / migration notes:** Do not start with a large file move if the use-case
+and port seams are not ready. Feature-gating, programmatic context construction,
+and use-case extraction should precede crate extraction for stateful code. Move
+one boundary at a time and keep the root binary compiling with all features
+enabled after each step. This item depends on and reinforces:
 
 - `1-foundation/23-split-apperror-by-layer.md` — a layered error type is needed
   before the core can expose errors without leaking `reqwest`/`sqlx`/`toml`.
@@ -107,6 +154,7 @@ API curation. This item depends on and reinforces:
 - `3-ports/*` — port traits (HTTP, process, DNS, …) let SDK consumers inject
   their own I/O instead of the binary's concrete implementations.
 
-Recommendation: if only parsing / config-generation / probing reuse is needed,
-Tier 1 is usable now and step 1 (feature-gating) is the highest-value, lowest-
-risk work. Defer the workspace split until a real Tier 2 consumer exists.
+Recommendation: keep this as a deliberate roadmap, not a one-shot refactor. If
+only parsing/config-generation/probing reuse is needed first, extract
+`xrat-model`, `xrat-config`, and `xrat-prober` before moving the stateful engine
+and adapter crates.

@@ -33,9 +33,10 @@ order of attack. Each folder has its own `summary.md`.
    High-priority core work.
 3. **`3-ports/`** — trait seams around external I/O (HTTP, process, TCP, DNS,
    env, …) so use-cases become testable with fakes.
-4. **`4-sdk/`** — turn the reusable proxy domain logic into a curated,
-   feature-gated SDK an external app can depend on. Builds on the foundation,
-   use-case, and port work above.
+4. **`4-sdk/`** — evolve the project into a modular workspace with a stable
+   `xrat-sdk` facade, shared engine/runtime crates, thin CLI/TUI/HTTP adapters,
+   and one installed `xrat` binary. Builds on the foundation, use-case, and port
+   work above.
 
 ## Item numbering
 
@@ -91,11 +92,11 @@ order. Do not renumber files; use the order below to choose what to work on.
 - `1-foundation/27-split-large-command-files.md` — verification step after the
   use-case extraction.
 
-### Phase 4 — SDK extraction (Medium, after foundation/use-cases/ports)
+### Phase 4 — workspace and SDK extraction (Medium, after foundation/use-cases/ports)
 
-- `4-sdk/28-extract-reusable-sdk-crate.md` — feature-gate frontends/heavy deps,
-  add a non-CLI `AppContext` constructor, curate the public surface, then
-  optionally split into an `xrat-core` workspace crate.
+- `4-sdk/28-extract-reusable-sdk-crate.md` — split reusable logic into workspace
+  crates, expose a stable `xrat-sdk` facade, keep CLI/TUI/HTTP as thin adapters,
+  and preserve the installed `xrat` binary.
 
 ### Reference
 
