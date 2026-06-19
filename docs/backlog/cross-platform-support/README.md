@@ -1,8 +1,8 @@
 # Cross-Platform Support Backlog
 
 This folder tracks follow-up work needed to make xrat behave consistently
-across Linux, macOS, FreeBSD, and OpenBSD. Windows is deferred and tracked
-separately in `12-windows-support.md`.
+across Linux, macOS, FreeBSD, OpenBSD, and Windows. Windows is still deferred
+from the supported platform matrix and is tracked as a focused workstream.
 
 ## Done
 
@@ -21,10 +21,16 @@ detail. Implemented so far:
 10. `install.sh` portable Unix paths and checksum tools.
 11. User docs scoped per-OS + platform support matrix.
 
-Items 3–10 are code complete and compile clean on Linux but still need runtime
+Items 3-10 are code complete and compile clean on Linux but still need runtime
 verification on real macOS/FreeBSD/OpenBSD hosts.
 
 ## Remaining
 
-- `12-windows-support.md` — Windows track (reattach, daemon, desktop proxy,
-  installer, release upgrades).
+- `12-windows-support.md` - Windows support overview.
+- `12-01-windows-ipc-and-daemon-runtime.md` - Windows daemon IPC and runtime
+  control.
+- `12-02-windows-service-install.md` - Windows service install/uninstall.
+- `12-03-windows-desktop-proxy.md` - Windows desktop proxy integration.
+- `12-04-windows-installer.md` - PowerShell installer.
+- `12-05-windows-release-and-upgrade.md` - release archives and self-upgrade.
+- `12-06-windows-runtime-verification.md` - Windows runtime acceptance checks.

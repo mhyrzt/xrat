@@ -1,63 +1,45 @@
-# 12.12 Large, P3: Windows support
+# 12. Windows support
 
-**Difficulty:** Large — spans several subsystems; treat as its own track.
+**Difficulty:** Large, P3 - spans daemon IPC, service management, desktop
+proxy integration, installer/release packaging, and runtime verification.
 
-xrat compiles for Windows but several platform integrations silently no-op or
-return errors there. This file tracks the gaps so Windows can be promoted from
-"compiles" to "supported" later. None of this is implemented yet.
+xrat currently compiles for Windows, but Windows is not a supported runtime
+target. Several platform integrations either use Unix-only code paths or return
+`UnsupportedPlatform`. Promote Windows only after the focused tasks below are
+implemented and verified on a Windows host or `windows-latest` CI runner.
 
-## Gaps
+## Task set
 
-### Process reattach
-**File:** `src/app/runtime_service/reattach/process.rs`
+1. `12-01-windows-ipc-and-daemon-runtime.md` - add a Windows daemon transport
+   so CLI commands can control `xrat daemon run-server`.
+2. `12-02-windows-service-install.md` - install and uninstall the daemon as a
+   Windows Service.
+3. `12-03-windows-desktop-proxy.md` - support `xrat proxy desktop` through the
+   per-user WinINET proxy settings.
+4. `12-04-windows-installer.md` - add a PowerShell installer for release
+   archives.
+5. `12-05-windows-release-and-upgrade.md` - publish Windows archives and make
+   `xrat upgrade` handle Windows safely.
+6. `12-06-windows-runtime-verification.md` - verify reattach, clipboard, engine
+   spawning, setup behavior, and end-to-end workflows on Windows.
 
-The reattach inspector now uses `sysinfo`, which works on Windows, so this is
-likely already functional. Confirm `Process::exe()` and `Process::cmd()` return
-useful values for the spawned xray/sing-box engine on Windows, and that
-`xray_runtime::process_is_running` behaves. Add a Windows runtime check.
+## Current blockers
 
-### Daemon install
-**File:** `src/app/commands/daemon_install.rs`
+- Daemon IPC is Unix-socket based. `src/app/daemon/ipc/client/mod.rs` selects
+  `unsupported_impl` on non-Unix, and the server path in
+  `src/app/daemon/ipc/handler/mod.rs` only binds `UnixListener`.
+- `src/app/commands/daemon_install.rs` falls through to the unsupported stub
+  outside Linux, macOS, FreeBSD, and OpenBSD.
+- `src/app/commands/proxy/desktop.rs` only has Linux and macOS implementations.
+- `src/app/commands/upgrade/release.rs` assumes `.tar.gz`, `tar`, and
+  `sha256sum`; Windows release archives should be `.zip`.
+- `.github/workflows/release.yml` does not build or publish Windows artifacts.
 
-`install`/`uninstall` fall through to the `#[cfg(not(any(linux, macos, freebsd,
-openbsd)))]` stub returning `UnsupportedPlatform`. A Windows path needs either a
-Windows Service (via `sc.exe` / SCM) or a Scheduled Task. A service is the
-better fit for `daemon run-server`. New `packaging/windows/` assets and a
-`#[cfg(windows)]` install/uninstall using `sc create` / `sc delete` (or the
-`windows-service` crate) are required.
+## Completion criteria
 
-### Desktop proxy
-**File:** `src/app/commands/proxy/desktop.rs`
-
-`run` returns `UnsupportedPlatform` on Windows. Implement a `#[cfg(windows)]`
-path setting the WinINET proxy via the registry
-(`HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings`:
-`ProxyEnable`, `ProxyServer`, `AutoConfigURL`) plus an `InternetSetOption`
-refresh, or shell out to `netsh winhttp set proxy`.
-
-### Installer
-**File:** `install.sh` (POSIX only)
-
-`install.sh` is bash and rejects non-Unix. Windows needs a separate
-`install.ps1` (PowerShell): detect arch, download the
-`*-pc-windows-msvc` release archive, verify the checksum
-(`Get-FileHash -Algorithm SHA256`), unpack, place `xrat.exe` on `PATH`, and
-optionally register the service.
-
-### Release upgrades
-**File:** `src/app/commands/upgrade/release.rs`, `.github/workflows/release.yml`
-
-`detect_arch()` has no Windows arm. Add `("windows", "x86_64") =>
-"x86_64-pc-windows-msvc"` (and `aarch64`) once the release workflow builds and
-uploads Windows archives (add a `windows-latest` matrix entry; package a `.zip`
-rather than `.tar.gz`, and adjust `install_binary` for the
-running-executable-replacement constraint on Windows — a running `.exe` cannot
-be overwritten in place, so stage-and-rename-on-restart is needed).
-
-### Clipboard
-`arboard` already has a Windows backend (`platform/windows.rs`), so the TUI
-clipboard should work. Confirm.
-
-## Verification
-Requires a Windows host or CI runner. Out of scope until the items above are
-scheduled.
+- Windows has a documented supported behavior in the user docs and platform
+  matrix.
+- `cargo test --locked` passes on `windows-latest`.
+- A Windows runtime smoke pass covers install, setup, daemon control, service
+  install/uninstall, desktop proxy enable/status/disable, release install, and
+  self-upgrade.
