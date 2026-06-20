@@ -7,15 +7,16 @@ Reference (no work item; supports `config-roundtrip-fidelity.md`)
 ### What this is
 
 [`xray-knife`](https://github.com/lilendian0x00/xray-knife) (Go, dual xray-core
-+ sing-box) solves the same link → runtime-config problem xrat does. This
-records exactly which parameters its xray parsers read, as a target for xrat's
-parser rework. Source: `pkg/core/xray/{vless,trojan,vmess}.go` on `master`,
-inspected 2026-06-20.
+
+- sing-box) solves the same link → runtime-config problem xrat does. This
+  records exactly which parameters its xray parsers read, as a target for xrat's
+  parser rework. Source: `pkg/core/xray/{vless,trojan,vmess}.go` on `master`,
+  inspected 2026-06-20.
 
 ### How it differs from xrat
 
-xray-knife reads every transport/security parameter explicitly into typed
-struct fields, for **each** protocol — including Trojan, which xrat parses with
+xray-knife reads every transport/security parameter explicitly into typed struct
+fields, for **each** protocol — including Trojan, which xrat parses with
 `extensions: None`. It also validates `sni`/`host`, applies sensible defaults,
 and treats a missing `type` as `tcp` and a missing Trojan `security` as `tls`.
 
@@ -50,22 +51,23 @@ http-family transports.
 
 ### Gap table vs xrat
 
-| Parameter        | xray-knife (vless/trojan) | xrat today                         |
-| ---------------- | ------------------------- | ---------------------------------- |
-| `flow`           | both                      | vless only (added v0.9.0)          |
-| `pbk`/`sid`/`spx`| both                      | vless only                         |
-| `fp`/`alpn`      | both                      | vless only                         |
-| `headerType`     | both                      | dropped                            |
-| `serviceName`    | both                      | dropped (grpc uses `path` instead) |
-| `mode`           | both                      | vless only                         |
-| `quicSecurity`   | both                      | dropped                            |
-| Trojan params    | full set                  | `extensions: None` (all dropped)   |
-| VMess `scy`/`aid`| read                      | dropped                            |
+| Parameter         | xray-knife (vless/trojan) | xrat today                         |
+| ----------------- | ------------------------- | ---------------------------------- |
+| `flow`            | both                      | vless only (added v0.9.0)          |
+| `pbk`/`sid`/`spx` | both                      | vless only                         |
+| `fp`/`alpn`       | both                      | vless only                         |
+| `headerType`      | both                      | dropped                            |
+| `serviceName`     | both                      | dropped (grpc uses `path` instead) |
+| `mode`            | both                      | vless only                         |
+| `quicSecurity`    | both                      | dropped                            |
+| Trojan params     | full set                  | `extensions: None` (all dropped)   |
+| VMess `scy`/`aid` | read                      | dropped                            |
 
 ### Takeaways for the rework
 
 - Read parameters per protocol, not via a vless-only allowlist; Trojan and VMess
-  need the same coverage (Trojan+REALITY is otherwise broken like the v0.9.0 bug).
+  need the same coverage (Trojan+REALITY is otherwise broken like the v0.9.0
+  bug).
 - Read `serviceName` for gRPC instead of overloading `path`.
 - Adopt the same defaulting rules (`type`→`tcp`, Trojan `security`→`tls`,
   `fp`→`chrome` for tls/reality) so generated configs match common clients.

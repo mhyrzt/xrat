@@ -13,9 +13,9 @@ and later `empty "password"`. Two root causes, both the same class of bug:
    `security = "reality"` but emitted no `realitySettings`, and it had no field
    for the REALITY public key, so Xray rejected the outbound.
 2. `node_from_record` (`src/db/record/configs.rs`) reconstructed nodes from
-   typed DB columns only and hardcoded `extensions: None`, dropping `pbk`, `sid`,
-   `fp`, `flow`, `mode`, and `alpn`. Probes then built REALITY settings with an
-   empty public key.
+   typed DB columns only and hardcoded `extensions: None`, dropping `pbk`,
+   `sid`, `fp`, `flow`, `mode`, and `alpn`. Probes then built REALITY settings
+   with an empty public key.
 
 Both were fixed for REALITY specifically (re-parse `raw_config` to recover
 extensions; add `RealitySettings`). But the underlying design — an allowlist of
@@ -42,9 +42,9 @@ The runtime generator only covers a subset of transports and security options:
 - `src/xray/config/stream.rs` generates: `tcp` (http header from `path`), `ws`
   (path + `Host`), `grpc` (serviceName from `path`), `xhttp` (host, path, mode),
   `tls` (serverName, fingerprint, alpn), and now `reality`.
-- Not generated at all: `kcp`/mKCP, `httpupgrade`, QUIC/hysteria. A node with one
-  of these networks gets a `streamSettings` with `network` set but no matching
-  settings object, which Xray may reject or mis-handle.
+- Not generated at all: `kcp`/mKCP, `httpupgrade`, QUIC/hysteria. A node with
+  one of these networks gets a `streamSettings` with `network` set but no
+  matching settings object, which Xray may reject or mis-handle.
 - Missing per-transport fields: ws custom headers and early-data, grpc
   `multiMode`/`idleTimeout`, xhttp `extra`/headers, tls `allowInsecure`, mKCP
   `seed`/`header`, sockopt entirely.
@@ -57,8 +57,8 @@ config simply fails or, worse, connects with the wrong settings.
 `streamSettings` fields and the settings objects we should be able to round-trip
 (client side):
 
-- `network`: `raw`/`tcp`, `kcp`, `ws`, `grpc`, `xhttp` (splithttp, covers
-  HTTP/2 and HTTP/3), `httpupgrade`. The standalone `http`/h2 transport and
+- `network`: `raw`/`tcp`, `kcp`, `ws`, `grpc`, `xhttp` (splithttp, covers HTTP/2
+  and HTTP/3), `httpupgrade`. The standalone `http`/h2 transport and
   domainsocket are removed; `quic` is REALITY-incompatible.
 - `security`: `none`, `tls`, `reality`.
 - `tlsSettings`: `serverName`, `alpn`, `fingerprint`, `allowInsecure`.
@@ -132,9 +132,9 @@ Generate faithfully or fail loud:
 - Whether ignored-parameter diagnostics belong in logs only, or also as a field
   on the test/probe result surfaced in `xrat test` output and the TUI.
 - How strict to be: reject any config with an unhandled parameter, or generate a
-  best-effort config plus a warning. Leaning toward fail-loud for parameters that
-  change the wire protocol (security, flow, network) and warn-only for cosmetic
-  ones.
+  best-effort config plus a warning. Leaning toward fail-loud for parameters
+  that change the wire protocol (security, flow, network) and warn-only for
+  cosmetic ones.
 
 ### Related
 
