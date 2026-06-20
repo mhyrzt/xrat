@@ -1,21 +1,31 @@
-## xrat v0.8.1
+## xrat v0.9.0
 
-Small follow-up to v0.8.0.
+REALITY proxies now work end to end.
 
 ### Fixes
 
-- **TUI help modal**: combine the tab (`[ / ]`) and card-focus (`⇥ / ⇤`) rows
-  onto single lines and pad the key column by display width, so multi-glyph keys
-  line up with a consistent gap.
+- **REALITY / xhttp nodes now connect.** The runtime config generator never
+  emitted a `realitySettings` block, so Xray rejected every REALITY outbound
+  with `Empty "realitySettings"`. The generator now builds `realitySettings`
+  (server name, public key, short id, spider-x, fingerprint) and carries the
+  VLESS `flow` on the outbound user.
+- **Stored configs keep their transport extensions.** Config records dropped
+  `pbk`, `sid`, `fp`, `flow`, `mode`, and `alpn` when loaded from the database,
+  so probes built REALITY settings with an empty public key. Xray 26.x reports
+  that as `empty "password"`. Extensions are now recovered by re-parsing the
+  original link, with the database columns staying authoritative.
+- **Readable Xray failures.** Probe and daemon errors no longer dump the Xray
+  banner, info logs, temp config path, and full module chain. The deepest
+  error-chain cause is surfaced as a single line, e.g.
+  `REALITY: Empty "realitySettings"`.
 
-### Internal
+### Other
 
-- **CI**: bump `actions/upload-artifact` and `actions/download-artifact` to v5
-  (Node 24), clearing the remaining Node 20 deprecation warnings in the release
-  workflow.
+- The `xrat test` summary prints the `Failures:` header in red.
 
 ### Upgrade notes
 
-- No new database migrations and no behavior changes; safe drop-in upgrade.
+- No new database migrations; safe drop-in upgrade. Previously stored REALITY
+  configs start working without re-importing.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.8.0...v0.8.1
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.8.1...v0.9.0
