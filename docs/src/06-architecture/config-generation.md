@@ -139,6 +139,9 @@ Each protocol maps to a specific outbound format:
 
 #### VLESS
 
+When the link carries a `flow` extension (e.g. `xtls-rprx-vision`), it is added
+to the user entry:
+
 ```json
 {
   "vnext": [
@@ -148,7 +151,8 @@ Each protocol maps to a specific outbound format:
       "users": [
         {
           "id": "uuid-123",
-          "encryption": "none"
+          "encryption": "none",
+          "flow": "xtls-rprx-vision"
         }
       ]
     }
@@ -266,12 +270,14 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
     // Network-specific settings
     StreamSettings {
-        network,          // "tcp" | "ws" | "grpc" | "kcp" | "http"
-        security,         // "tls" | "none" | None
-        tls_settings,     // SNI, allow_insecure
-        ws_settings,      // path, headers (Host)
-        tcp_settings,     // HTTP header obfuscation
-        grpc_settings,    // service_name
+        network,           // "tcp" | "ws" | "grpc" | "xhttp"
+        security,          // "tls" | "reality" | "none" | None
+        tls_settings,      // serverName, fingerprint, alpn
+        reality_settings,  // serverName, publicKey, shortId, spiderX, fingerprint
+        ws_settings,       // path, headers (Host)
+        tcp_settings,      // HTTP header obfuscation
+        grpc_settings,     // service_name
+        xhttp_settings,    // host, path, mode
     }
 }
 ```
@@ -314,6 +320,30 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
   "network": "grpc",
   "grpcSettings": {
     "serviceName": "service"
+  }
+}
+```
+
+#### REALITY Settings
+
+Built when `security=reality`, using the VLESS extensions (`pbk`, `sid`, `spx`,
+`fp`) and `sni`:
+
+```json
+{
+  "network": "xhttp",
+  "security": "reality",
+  "realitySettings": {
+    "serverName": "www.example.com",
+    "publicKey": "PUBLICKEY",
+    "shortId": "SHORTID",
+    "spiderX": "/",
+    "fingerprint": "chrome"
+  },
+  "xhttpSettings": {
+    "host": "www.example.com",
+    "path": "/",
+    "mode": "packet-up"
   }
 }
 ```

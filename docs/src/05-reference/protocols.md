@@ -31,17 +31,28 @@ vless://<uuid>@<address>:<port>?type=<network>&security=<tls>&sni=<sni>&host=<ho
 
 **Fields**:
 
-| Field      | Location | Required | Description                                       |
-| ---------- | -------- | -------- | ------------------------------------------------- |
-| `uuid`     | userinfo | Yes      | VLESS user ID                                     |
-| `address`  | host     | Yes      | Server address                                    |
-| `port`     | port     | Yes      | Server port                                       |
-| `type`     | query    | No       | Network type (`tcp`, `ws`, `grpc`), default `tcp` |
-| `security` | query    | No       | TLS mode (`tls`, `none`), default `none`          |
-| `sni`      | query    | No       | SNI hostname                                      |
-| `host`     | query    | No       | Host header (WebSocket)                           |
-| `path`     | query    | No       | Path (WebSocket, gRPC, TCP)                       |
-| `name`     | fragment | No       | Display name                                      |
+| Field      | Location | Required | Description                                                |
+| ---------- | -------- | -------- | ---------------------------------------------------------- |
+| `uuid`     | userinfo | Yes      | VLESS user ID                                              |
+| `address`  | host     | Yes      | Server address                                             |
+| `port`     | port     | Yes      | Server port                                                |
+| `type`     | query    | No       | Network type (`tcp`, `ws`, `grpc`, `xhttp`), default `tcp` |
+| `security` | query    | No       | Security mode (`tls`, `reality`, `none`), default `none`   |
+| `sni`      | query    | No       | SNI hostname                                               |
+| `host`     | query    | No       | Host header (WebSocket)                                    |
+| `path`     | query    | No       | Path (WebSocket, gRPC, TCP)                                |
+| `flow`     | query    | No       | Flow control, e.g. `xtls-rprx-vision`                      |
+| `fp`       | query    | No       | uTLS fingerprint, e.g. `chrome` (REALITY defaults `chrome`)|
+| `alpn`     | query    | No       | Comma-separated ALPN list (TLS)                            |
+| `mode`     | query    | No       | xhttp/gRPC mode, e.g. `packet-up`                          |
+| `pbk`      | query    | REALITY  | REALITY public key (required when `security=reality`)      |
+| `sid`      | query    | No       | REALITY short ID                                           |
+| `spx`      | query    | No       | REALITY spiderX path                                       |
+| `name`     | fragment | No       | Display name                                               |
+
+**REALITY**: when `security=reality`, xrat builds `realitySettings` from `pbk`,
+`sid`, `spx`, `fp`, and `sni`. The public key (`pbk`) is required; without it
+Xray rejects the outbound.
 
 **Examples**:
 
@@ -49,6 +60,7 @@ vless://<uuid>@<address>:<port>?type=<network>&security=<tls>&sni=<sni>&host=<ho
 vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com&path=%2Fray#My%20Node
 vless://uuid-456@example.com:443?type=tcp#Direct
 vless://uuid-789@example.com:8443?type=grpc&serviceName=service#gRPC%20Node
+vless://uuid-abc@example.com:8080?type=xhttp&security=reality&sni=www.example.com&pbk=PUBLICKEY&sid=SHORTID&fp=chrome&flow=xtls-rprx-vision#REALITY%20Node
 ```
 
 **Engine**: Xray (auto), Xray (explicit)
