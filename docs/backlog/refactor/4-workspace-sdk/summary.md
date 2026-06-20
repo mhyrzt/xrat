@@ -13,9 +13,20 @@ usable today. What is missing is a curated public SDK facade, crate boundaries
 that keep frontend dependencies out of reusable logic, and a non-CLI way to
 construct stateful engine/runtime services.
 
+## Implementation Status
+
+The first workspace slice is complete: `xrat-model`, `xrat-config`, and
+`xrat-prober` are workspace crates, while the root crate retains compatibility
+re-exports and remains the single installed binary. These base crates are
+configured for dependency-ordered publication with `xrat`; the curated
+`xrat-sdk`, stateful engine/runtime extraction, and adapter crates remain
+backlog work. The root now
+has a programmatic `AppContext` constructor and builds without default features
+without compiling frontend, database, runtime, clipboard, or GeoIP stacks.
+
 ## Items
 
-- `28-extract-reusable-sdk-crate.md` — Medium. Workspace architecture roadmap:
+- `28-workspace-crate-extraction.md` — Medium. Workspace architecture roadmap:
   split reusable config/model/prober/runtime/engine logic into library crates,
   expose a stable `xrat-sdk` facade, keep `xrat-cli`, `xrat-tui`, and
   `xrat-http` as adapters, and preserve one installed `xrat` binary.
