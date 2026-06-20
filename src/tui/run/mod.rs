@@ -215,8 +215,14 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         };
                     let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
                     let rename_prefill = if open_rename {
-                        app.focused_source()
-                            .map(|s| (s.id, s.name.clone().unwrap_or_default()))
+                        app.focused_source().map(|source| {
+                            (
+                                source.id,
+                                source.display_ref().to_string(),
+                                source.display_name().to_string(),
+                                source.name.clone().unwrap_or_default(),
+                            )
+                        })
                     } else {
                         None
                     };
@@ -276,10 +282,12 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             &task_tx,
                         );
                     }
-                    if let Some((id, name)) = rename_prefill {
+                    if let Some((id, source_ref, current_name, input)) = rename_prefill {
                         app.rename_modal = Some(crate::tui::app::RenameModalState {
                             source_id: id,
-                            input: name,
+                            source_ref,
+                            current_name,
+                            input,
                             error: None,
                         });
                         app.needs_full_clear = true;

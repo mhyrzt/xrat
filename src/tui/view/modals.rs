@@ -1,7 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph};
 use unicode_width::UnicodeWidthStr;
 
 use crate::tui::app::TuiApp;
@@ -250,38 +250,73 @@ pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         return;
     };
 
-    frame.render_widget(Clear, area);
-    let cursor_input = format!("{}█", modal.input);
-    let mut lines = vec![
-        Line::styled(
-            "Enter a new name for this subscription.",
-            theme::muted_style(),
-        ),
-        Line::raw(""),
-        Line::styled(&cursor_input, theme::accent_style()),
-    ];
-    if let Some(err) = &modal.error {
-        lines.push(Line::raw(""));
-        lines.push(Line::styled(err.as_str(), theme::failure_style()));
-    }
-    lines.push(Line::raw(""));
-    lines.push(Line::styled(
-        "Enter save   Esc cancel",
-        theme::muted_style(),
-    ));
+    const MIN_WIDTH: u16 = 42;
+    const MAX_WIDTH: u16 = 72;
+    const CONTENT_PADDING: u16 = 2;
 
+    let title = format!(" Rename {} · {} ", modal.source_ref, modal.current_name);
+    let input_width = UnicodeWidthStr::width(modal.input.as_str()) as u16 + 5;
+    let content_width = (UnicodeWidthStr::width(title.as_str()) as u16)
+        .max(input_width)
+        .max(30);
+    let modal_width = (content_width + CONTENT_PADDING * 2 + 2).clamp(MIN_WIDTH, MAX_WIDTH);
+    let has_error = modal.error.is_some();
+    let modal_height = if has_error { 6 } else { 5 };
+    let modal_area = centered_rect_fixed(modal_width, modal_height, area);
+
+    frame.render_widget(Clear, modal_area);
+    let footer = Line::from(vec![
+        Span::styled(" Enter", theme::accent_style().bold()),
+        Span::styled(" save   ", theme::muted_style()),
+        Span::styled("Esc", theme::accent_style().bold()),
+        Span::styled(" cancel ", theme::muted_style()),
+    ])
+    .right_aligned();
+    let outer = Block::default()
+        .title(Line::styled(title, theme::accent_style().bold()))
+        .title_bottom(footer)
+        .borders(Borders::ALL)
+        .border_style(theme::muted_style())
+        .padding(Padding::horizontal(CONTENT_PADDING));
+    let inner = outer.inner(modal_area);
+    frame.render_widget(outer, modal_area);
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(if has_error {
+            vec![Constraint::Length(3), Constraint::Length(1)]
+        } else {
+            vec![Constraint::Length(3)]
+        })
+        .split(inner);
+
+    let input = if modal.input.is_empty() {
+        Line::from(vec![
+            Span::styled("Subscription name", theme::muted_style()),
+            Span::styled("█", theme::accent_style()),
+        ])
+    } else {
+        Line::styled(format!("{}█", modal.input), theme::accent_style())
+    };
+    let visible_input_width = rows[0].width.saturating_sub(4);
+    let input_scroll = (UnicodeWidthStr::width(modal.input.as_str()) as u16 + 1)
+        .saturating_sub(visible_input_width);
     frame.render_widget(
-        Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .title(format!(" Rename Subscription #{} ", modal.source_id))
-                    .borders(Borders::ALL),
-            )
-            .alignment(Alignment::Left)
-            .style(theme::chrome_style())
-            .wrap(Wrap { trim: false }),
-        area,
+        Paragraph::new(input).scroll((0, input_scroll)).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(theme::accent_style())
+                .padding(Padding::horizontal(1)),
+        ),
+        rows[0],
     );
+
+    if let Some(error) = &modal.error {
+        frame.render_widget(
+            Paragraph::new(error.as_str()).style(theme::failure_style()),
+            rows[1],
+        );
+    }
 }
 
 pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -378,22 +413,42 @@ pub fn centered_rect_fixed(width: u16, height: u16, area: Rect) -> Rect {
     }
 }
 
-pub fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(area);
-    let horizontal = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(vertical[1]);
-    horizontal[1]
+#[cfg(test)]
+mod tests {
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+
+    use super::*;
+    use crate::tui::app::RenameModalState;
+
+    #[test]
+    fn rename_modal_identifies_subscription_by_ref_and_name() {
+        let app = TuiApp {
+            rename_modal: Some(RenameModalState {
+                source_id: 7,
+                source_ref: "sub-a1b2c3".to_string(),
+                current_name: "Primary".to_string(),
+                input: "Primary".to_string(),
+                error: None,
+            }),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+        terminal
+            .draw(|frame| render_rename_modal(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("Rename sub-a1b2c3 · Primary"));
+        assert!(rendered.contains("Enter save   Esc cancel"));
+        assert!(!rendered.contains("New subscription name"));
+        assert!(!rendered.contains("Subscription #7"));
+    }
 }

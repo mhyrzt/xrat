@@ -224,6 +224,8 @@ pub struct ConfirmState {
 #[derive(Debug, Default)]
 pub struct RenameModalState {
     pub source_id: i64,
+    pub source_ref: String,
+    pub current_name: String,
     pub input: String,
     pub error: Option<String>,
 }

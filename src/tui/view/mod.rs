@@ -23,7 +23,7 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     }
 
     if app.rename_modal.is_some() {
-        modals::render_rename_modal(frame, modals::centered_rect(60, 30, area), app);
+        modals::render_rename_modal(frame, area, app);
     }
 
     if app.qr_modal.is_some() {
