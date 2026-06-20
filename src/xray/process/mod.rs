@@ -1,3 +1,4 @@
+mod diagnostics;
 mod errors;
 mod spawn;
 

@@ -169,6 +169,53 @@ fn generates_xhttp_stream_with_tls_fingerprint_and_alpn() {
 }
 
 #[test]
+fn generates_reality_stream_with_settings_and_flow() {
+    let mut extensions = std::collections::BTreeMap::new();
+    extensions.insert("pbk".to_string(), "test-public-key".to_string());
+    extensions.insert("sid".to_string(), "0123abcd".to_string());
+    extensions.insert("spx".to_string(), "/".to_string());
+    extensions.insert("flow".to_string(), "xtls-rprx-vision".to_string());
+
+    let node = Node {
+        protocol: Protocol::Vless,
+        address: "1.2.3.4".to_string(),
+        port: 443,
+        username: None,
+        uuid: Some("test-uuid".to_string()),
+        password: None,
+        method: None,
+        network: "tcp".to_string(),
+        tls: Some("reality".to_string()),
+        sni: Some("www.example.com".to_string()),
+        host: None,
+        path: None,
+        name: Some("reality-node".to_string()),
+        extensions: Some(extensions),
+        raw_config: "".to_string(),
+    };
+
+    let config = generate_probe_config(&node, 10808).unwrap();
+    let stream = config.outbounds[0].stream_settings.as_ref().unwrap();
+
+    assert_eq!(stream.security.as_deref(), Some("reality"));
+    let reality = stream.reality_settings.as_ref().unwrap();
+    assert_eq!(reality.server_name, "www.example.com");
+    assert_eq!(reality.public_key, "test-public-key");
+    assert_eq!(reality.short_id.as_deref(), Some("0123abcd"));
+    assert_eq!(reality.spider_x.as_deref(), Some("/"));
+    assert_eq!(reality.fingerprint.as_deref(), Some("chrome"));
+
+    let settings = &config.outbounds[0].settings;
+    assert_eq!(settings["vnext"][0]["users"][0]["flow"], "xtls-rprx-vision");
+
+    let json = serde_json::to_value(&config.outbounds[0]).unwrap();
+    assert!(
+        json["streamSettings"].get("realitySettings").is_some(),
+        "xray requires camelCase realitySettings, got: {json}"
+    );
+}
+
+#[test]
 fn generates_http_only_runtime_config() {
     let node = Node {
         protocol: Protocol::Http,

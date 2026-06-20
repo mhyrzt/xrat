@@ -104,7 +104,7 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
         .collect();
     if !failures.is_empty() {
         lines.push(String::new());
-        lines.push(maybe_color("Failures:", DIM, color));
+        lines.push(maybe_color("Failures:", RED, color));
         for output in failures {
             let reason = output.error.as_deref().unwrap_or_default();
             lines.push(format!("  {} {}", short_ref(&output.r#ref), reason));

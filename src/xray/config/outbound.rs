@@ -21,14 +21,23 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
     match node.protocol {
         Protocol::Vless => {
             let uuid = node.uuid.as_ref().ok_or("vless requires uuid")?;
+            let mut user = json!({
+                "id": uuid,
+                "encryption": "none"
+            });
+            if let Some(flow) = node
+                .extensions
+                .as_ref()
+                .and_then(|extensions| extensions.get("flow"))
+                .filter(|value| !value.is_empty())
+            {
+                user["flow"] = json!(flow);
+            }
             Ok(json!({
                 "vnext": [{
                     "address": node.address,
                     "port": node.port,
-                    "users": [{
-                        "id": uuid,
-                        "encryption": "none"
-                    }]
+                    "users": [user]
                 }]
             }))
         }

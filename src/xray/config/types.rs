@@ -52,6 +52,8 @@ pub struct StreamSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tls_settings: Option<TlsSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub reality_settings: Option<RealitySettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ws_settings: Option<WsSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcp_settings: Option<TcpSettings>,
@@ -71,6 +73,19 @@ pub struct TlsSettings {
     pub fingerprint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alpn: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RealitySettings {
+    pub server_name: String,
+    pub public_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spider_x: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

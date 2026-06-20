@@ -89,7 +89,80 @@ pub fn node_from_record(config: &ConfigRecord) -> Result<crate::model::Node, cra
         host: config.host.clone(),
         path: config.path.clone(),
         name: config.name.clone(),
-        extensions: None,
+        extensions: extensions_from_raw(&config.raw_config),
         raw_config: config.raw_config.clone(),
     })
+}
+
+/// Stored config records do not persist transport extensions (`pbk`, `sid`,
+/// `fp`, `flow`, `alpn`, `mode`). Recover them by re-parsing the original link
+/// so runtime config generation can build REALITY/flow settings. The DB columns
+/// remain authoritative for every other field.
+fn extensions_from_raw(raw_config: &str) -> Option<std::collections::BTreeMap<String, String>> {
+    crate::config::parse_link(raw_config)
+        .ok()
+        .flatten()
+        .and_then(|node| node.extensions)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn reality_record() -> ConfigRecord {
+        ConfigRecord {
+            id: 1,
+            r#ref: "ref".to_string(),
+            subscription_id: None,
+            dedup_key: "dedup".to_string(),
+            protocol: "vless".to_string(),
+            address: "it.example.com".to_string(),
+            port: 8080,
+            username: None,
+            uuid: Some("7c3b4063-d56f-4ec2-b706-4eff0828c453".to_string()),
+            password: None,
+            method: None,
+            network: "xhttp".to_string(),
+            tls: Some("reality".to_string()),
+            sni: Some("www.yahoo.com".to_string()),
+            host: None,
+            path: Some("/".to_string()),
+            name: None,
+            raw_config: "vless://7c3b4063-d56f-4ec2-b706-4eff0828c453@it.example.com:8080?\
+                encryption=none&security=reality&type=xhttp&path=%2F&sni=www.yahoo.com&\
+                fp=chrome&pbk=test-pbk&sid=79aac70f&flow=xtls-rprx-vision#node"
+                .to_string(),
+            is_active: false,
+            is_enabled: true,
+            is_deleted: false,
+            deleted_at: None,
+            imported_at: String::new(),
+            created_at: String::new(),
+            updated_at: String::new(),
+        }
+    }
+
+    #[test]
+    fn node_from_record_recovers_reality_extensions() {
+        let node = node_from_record(&reality_record()).unwrap();
+        let extensions = node
+            .extensions
+            .expect("extensions recovered from raw_config");
+
+        assert_eq!(extensions.get("pbk").map(String::as_str), Some("test-pbk"));
+        assert_eq!(extensions.get("sid").map(String::as_str), Some("79aac70f"));
+        assert_eq!(extensions.get("fp").map(String::as_str), Some("chrome"));
+        assert_eq!(
+            extensions.get("flow").map(String::as_str),
+            Some("xtls-rprx-vision")
+        );
+    }
+
+    #[test]
+    fn node_from_record_tolerates_unparseable_raw_config() {
+        let mut record = reality_record();
+        record.raw_config = "not a valid link".to_string();
+        let node = node_from_record(&record).unwrap();
+        assert!(node.extensions.is_none());
+    }
 }

@@ -127,7 +127,7 @@ impl XrayProcess {
         if output.trim().is_empty() {
             "process exited without output".to_string()
         } else {
-            output
+            super::diagnostics::summarize_xray_failure(&output)
         }
     }
 }

@@ -2,7 +2,8 @@ use serde_json::json;
 use std::collections::HashMap;
 
 use super::types::{
-    GrpcSettings, StreamSettings, TcpSettings, TlsSettings, WsSettings, XhttpSettings,
+    GrpcSettings, RealitySettings, StreamSettings, TcpSettings, TlsSettings, WsSettings,
+    XhttpSettings,
 };
 use crate::model::{Node, Protocol};
 
@@ -34,6 +35,18 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
             allow_insecure: None,
             fingerprint: extension(node, "fp"),
             alpn: alpn.filter(|parts| !parts.is_empty()),
+        })
+    } else {
+        None
+    };
+
+    let reality_settings = if node.tls.as_deref() == Some("reality") {
+        Some(RealitySettings {
+            server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
+            public_key: extension(node, "pbk").unwrap_or_default(),
+            short_id: extension(node, "sid"),
+            spider_x: extension(node, "spx"),
+            fingerprint: Some(extension(node, "fp").unwrap_or_else(|| "chrome".to_string())),
         })
     } else {
         None
@@ -91,6 +104,7 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         network: network.to_string(),
         security,
         tls_settings,
+        reality_settings,
         ws_settings,
         tcp_settings,
         grpc_settings,
