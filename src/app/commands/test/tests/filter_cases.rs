@@ -144,6 +144,52 @@ fn table_shows_geoip_columns_only_when_present() {
 }
 
 #[test]
+fn table_groups_failures_by_reason() {
+    let make = |r#ref: &str, reason: &str| TestOutputRow {
+        id: 0,
+        r#ref: r#ref.to_string(),
+        name: None,
+        protocol: "vless".to_string(),
+        address: "example.com".to_string(),
+        port: 443,
+        icmp_ms: None,
+        real_delay_ms: None,
+        download_mbps: None,
+        upload_mbps: None,
+        status: TestStatus::Failed,
+        error: Some(reason.to_string()),
+        tcp_ms: None,
+        ttfb_ms: None,
+        http_status: None,
+        dial_endpoint_ip: None,
+        dial_endpoint_location: None,
+        dial_endpoint_country: None,
+        dial_endpoint_asn: None,
+        dial_endpoint_geoip_source: None,
+        dial_endpoint_fronting: None,
+        ran_icmp: true,
+        ran_tcp: false,
+        ran_real_delay: false,
+        icmp_ok: false,
+        tcp_ok: false,
+        real_delay_ok: false,
+        failure_kind: Some("Unknown".to_string()),
+        elapsed_secs: 1.0,
+    };
+
+    let outputs = vec![
+        make("aaaaaaaaaaaa", "Ping failed"),
+        make("bbbbbbbbbbbb", "Proxy connection failed"),
+        make("cccccccccccc", "Ping failed"),
+    ];
+
+    let table = format_table(&outputs, false);
+    assert!(table.contains("Failures:"));
+    assert!(table.contains("  • Ping failed\n    aaaaaaaa, cccccccc"));
+    assert!(table.contains("  • Proxy connection failed\n    bbbbbbbb"));
+}
+
+#[test]
 fn resolves_configured_test_concurrency() {
     assert_eq!(resolve_concurrency(1).expect("positive concurrency"), 1);
     assert_eq!(resolve_concurrency(16).expect("positive concurrency"), 16);

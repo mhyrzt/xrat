@@ -108,13 +108,30 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
     if !failures.is_empty() {
         lines.push(String::new());
         lines.push(maybe_color("Failures:", RED, color));
-        for output in failures {
-            let reason = output.error.as_deref().unwrap_or_default();
-            lines.push(format!("  {} {}", short_ref(&output.r#ref), reason));
+        for (reason, refs) in group_failures(&failures) {
+            lines.push(maybe_color(&format!("  • {reason}"), RED, color));
+            lines.push(format!("    {}", refs.join(", ")));
         }
     }
 
     lines.join("\n")
+}
+
+/// Group failed rows by identical failure reason, preserving first-seen order,
+/// so repeated reasons (e.g. a shared proxy error) collapse to one reason line
+/// with the affected config refs listed beneath it.
+fn group_failures<'a>(failures: &[&'a TestOutputRow]) -> Vec<(&'a str, Vec<String>)> {
+    let mut groups: Vec<(&'a str, Vec<String>)> = Vec::new();
+    for output in failures {
+        let reason = output.error.as_deref().unwrap_or_default();
+        let short = short_ref(&output.r#ref).to_string();
+        if let Some((_, refs)) = groups.iter_mut().find(|(existing, _)| *existing == reason) {
+            refs.push(short);
+        } else {
+            groups.push((reason, vec![short]));
+        }
+    }
+    groups
 }
 
 fn status_label(status: TestStatus) -> String {
