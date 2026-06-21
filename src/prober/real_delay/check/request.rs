@@ -19,7 +19,7 @@ pub(crate) async fn make_proxied_request(
                 latency_ms: None,
                 ttfb_ms: None,
                 http_status: None,
-                endpoint_ip: None,
+                dial_endpoint_ip: None,
                 failure_kind: Some(FailureKind::Process),
                 failure_reason: Some(format!("Failed to create proxy config: {error}")),
             };
@@ -38,7 +38,7 @@ pub(crate) async fn make_proxied_request(
                 latency_ms: None,
                 ttfb_ms: None,
                 http_status: None,
-                endpoint_ip: None,
+                dial_endpoint_ip: None,
                 failure_kind: Some(FailureKind::Process),
                 failure_reason: Some(format!("Failed to create HTTP client: {error}")),
             };
@@ -50,14 +50,14 @@ pub(crate) async fn make_proxied_request(
         Ok(response) => {
             let ttfb_ms = start.elapsed().as_millis() as u32;
             let status = response.status().as_u16();
-            let endpoint_ip = response.remote_addr().map(|addr| addr.ip().to_string());
+            let dial_endpoint_ip = response.remote_addr().map(|addr| addr.ip().to_string());
             if response.status().is_success() || status == 204 {
                 RealDelayResult {
                     success: true,
                     latency_ms: Some(ttfb_ms),
                     ttfb_ms: Some(ttfb_ms),
                     http_status: Some(status),
-                    endpoint_ip,
+                    dial_endpoint_ip,
                     failure_kind: None,
                     failure_reason: None,
                 }
@@ -67,7 +67,7 @@ pub(crate) async fn make_proxied_request(
                     latency_ms: None,
                     ttfb_ms: Some(ttfb_ms),
                     http_status: Some(status),
-                    endpoint_ip,
+                    dial_endpoint_ip,
                     failure_kind: Some(FailureKind::Proxy),
                     failure_reason: Some(format!("HTTP status: {}", response.status())),
                 }
@@ -80,7 +80,7 @@ pub(crate) async fn make_proxied_request(
                 latency_ms: None,
                 ttfb_ms: None,
                 http_status: None,
-                endpoint_ip: None,
+                dial_endpoint_ip: None,
                 failure_kind: Some(kind),
                 failure_reason: Some(reason),
             }

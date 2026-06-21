@@ -2,14 +2,16 @@ use super::*;
 
 use crate::support::geoip::{EndpointGeoMeta, GeoIpLookup};
 
-pub(crate) fn classify_endpoint_location(endpoint_ip: Option<&str>) -> Option<String> {
-    geoip::classify_endpoint_location(endpoint_ip)
+pub(crate) fn classify_endpoint_location(dial_endpoint_ip: Option<&str>) -> Option<String> {
+    geoip::classify_endpoint_location(dial_endpoint_ip)
 }
 
 pub(crate) struct EndpointMeta {
     pub(crate) location: Option<String>,
     pub(crate) country: Option<String>,
     pub(crate) asn: Option<String>,
+    pub(crate) source: Option<String>,
+    pub(crate) fronting: Option<String>,
 }
 
 pub(crate) async fn resolve_endpoint_meta(
@@ -24,6 +26,8 @@ pub(crate) async fn resolve_endpoint_meta(
                 location: meta.location,
                 country: meta.country,
                 asn: meta.asn,
+                source: meta.source.map(|source| source.as_str().to_string()),
+                fronting: meta.fronting,
             };
         }
     }
@@ -31,5 +35,7 @@ pub(crate) async fn resolve_endpoint_meta(
         location: classify_endpoint_location(endpoint_address),
         country: None,
         asn: None,
+        source: None,
+        fronting: None,
     }
 }

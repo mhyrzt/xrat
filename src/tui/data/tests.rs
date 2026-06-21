@@ -17,9 +17,10 @@ fn row(id: i64, delay: Option<i64>) -> TuiConfigRow {
         tcp_ms: Some(20),
         download_mbps: Some(42.25),
         upload_mbps: Some(11.5),
-        endpoint_country: Some("NL".to_string()),
-        endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
-        endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+        dial_endpoint_country: Some("NL".to_string()),
+        dial_endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
+        dial_endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+        dial_endpoint_fronting: None,
         failure_reason: None,
         source_id: None,
         tested_at: Some("2026-01-01T00:00:00Z".to_string()),
@@ -50,13 +51,13 @@ fn needs_location_enrichment_only_when_geo_missing_and_address_present() {
     assert!(!known.needs_location_enrichment());
 
     let mut missing_geo = row(2, Some(100));
-    missing_geo.endpoint_country = None;
-    missing_geo.endpoint_location = None;
-    missing_geo.endpoint_asn = None;
+    missing_geo.dial_endpoint_country = None;
+    missing_geo.dial_endpoint_location = None;
+    missing_geo.dial_endpoint_asn = None;
     assert!(missing_geo.needs_location_enrichment());
 
     let mut partial_geo = missing_geo.clone();
-    partial_geo.endpoint_asn = Some("AS60781 LeaseWeb".to_string());
+    partial_geo.dial_endpoint_asn = Some("AS60781 LeaseWeb".to_string());
     assert!(!partial_geo.needs_location_enrichment());
 
     let mut no_address = missing_geo.clone();
@@ -64,11 +65,11 @@ fn needs_location_enrichment_only_when_geo_missing_and_address_present() {
     assert!(!no_address.needs_location_enrichment());
 
     let mut placeholder_geo = missing_geo.clone();
-    placeholder_geo.endpoint_location = Some("loopback_ipv4".to_string());
+    placeholder_geo.dial_endpoint_location = Some("loopback_ipv4".to_string());
     assert!(placeholder_geo.needs_location_enrichment());
 
     let mut real_geo = missing_geo.clone();
-    real_geo.endpoint_location = Some("US/California/Los Angeles".to_string());
+    real_geo.dial_endpoint_location = Some("US/California/Los Angeles".to_string());
     assert!(!real_geo.needs_location_enrichment());
 }
 
@@ -141,9 +142,9 @@ fn metric_columns_hide_location_when_geoip_disabled_and_no_location_data() {
     let mut settings = crate::app::config::TestingSettings::default();
     settings.geoip.enabled = false;
     let mut config = row(1, Some(100));
-    config.endpoint_country = None;
-    config.endpoint_location = None;
-    config.endpoint_asn = None;
+    config.dial_endpoint_country = None;
+    config.dial_endpoint_location = None;
+    config.dial_endpoint_asn = None;
 
     let columns = super::TuiMetricColumns::from_configs(&[config], Some(&settings));
 
@@ -166,14 +167,16 @@ fn matches_searchable_config_fields() {
 #[test]
 fn applies_location_meta_overwriting_stale_values() {
     let mut row = row(5, Some(90));
-    row.endpoint_country = Some("NL".to_string());
-    row.endpoint_location = Some("loopback_ipv4".to_string());
-    row.endpoint_asn = None;
+    row.dial_endpoint_country = Some("NL".to_string());
+    row.dial_endpoint_location = Some("loopback_ipv4".to_string());
+    row.dial_endpoint_asn = None;
 
     row.apply_location_meta(crate::support::geoip::EndpointGeoMeta {
         country: Some("US".to_string()),
         location: Some("US/California/Los Angeles".to_string()),
         asn: Some("AS15169 GOOGLE".to_string()),
+        source: None,
+        fronting: None,
     });
 
     assert_eq!(row.country_label(), "US");
@@ -184,7 +187,7 @@ fn applies_location_meta_overwriting_stale_values() {
 #[test]
 fn ignores_empty_location_meta() {
     let mut row = row(5, Some(90));
-    row.endpoint_location = Some("loopback_ipv4".to_string());
+    row.dial_endpoint_location = Some("loopback_ipv4".to_string());
 
     row.apply_location_meta(crate::support::geoip::EndpointGeoMeta::default());
 
@@ -289,10 +292,12 @@ fn test_record(id: i64, config_id: i64, failure_reason: Option<&str>) -> Connect
         connect_ms: None,
         ttfb_ms: None,
         http_status: None,
-        endpoint_ip: None,
-        endpoint_location: None,
-        endpoint_country: None,
-        endpoint_asn: None,
+        dial_endpoint_ip: None,
+        dial_endpoint_location: None,
+        dial_endpoint_country: None,
+        dial_endpoint_asn: None,
+        dial_endpoint_geoip_source: None,
+        dial_endpoint_fronting: None,
         failure_kind: None,
         failure_reason: failure_reason.map(str::to_string),
         tested_at: "tested".to_string(),

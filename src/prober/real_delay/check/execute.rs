@@ -24,7 +24,7 @@ pub async fn real_delay_check(
                 latency_ms: None,
                 ttfb_ms: None,
                 http_status: None,
-                endpoint_ip: None,
+                dial_endpoint_ip: None,
                 failure_kind: Some(FailureKind::Process),
                 failure_reason: Some(format!("Failed to find available port: {error}")),
             };
@@ -39,7 +39,7 @@ pub async fn real_delay_check(
                 latency_ms: None,
                 ttfb_ms: None,
                 http_status: None,
-                endpoint_ip: None,
+                dial_endpoint_ip: None,
                 failure_kind: Some(FailureKind::Process),
                 failure_reason: Some(format!("Failed to generate config: {error}")),
             };
@@ -57,7 +57,7 @@ pub async fn real_delay_check(
                     latency_ms: None,
                     ttfb_ms: None,
                     http_status: None,
-                    endpoint_ip: None,
+                    dial_endpoint_ip: None,
                     failure_kind: Some(kind),
                     failure_reason: Some(reason),
                 };

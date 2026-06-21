@@ -152,11 +152,11 @@ fn format_config_tsv(
     subscription_refs: &HashMap<i64, &str>,
 ) -> String {
     let mut lines = Vec::with_capacity(configs.len() + 1);
-    lines.push("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\ticmp_ms\ttcp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tendpoint_country\tendpoint_location\tendpoint_asn\tname".to_string());
+    lines.push("ref\tsubscription_ref\tstatus\tprotocol\taddress\tport\ticmp_ms\ttcp_ms\treal_delay_ms\tdownload_mbps\tupload_mbps\tdial_endpoint_country\tdial_endpoint_location\tdial_endpoint_asn\tdial_endpoint_fronting\tname".to_string());
     for row in configs {
         let config = &row.config;
         lines.push(format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             config.r#ref,
             subscription_ref_tsv_cell(config.subscription_id, subscription_refs),
             format_config_flags(config.is_enabled, config.is_active, config.is_deleted),
@@ -168,9 +168,10 @@ fn format_config_tsv(
             optional_i64(row.real_delay_ms),
             optional_f64(row.download_mbps),
             optional_f64(row.upload_mbps),
-            tsv_cell(row.endpoint_country.as_deref()),
-            tsv_cell(row.endpoint_location.as_deref()),
-            tsv_cell(row.endpoint_asn.as_deref()),
+            tsv_cell(row.dial_endpoint_country.as_deref()),
+            tsv_cell(row.dial_endpoint_location.as_deref()),
+            tsv_cell(row.dial_endpoint_asn.as_deref()),
+            tsv_cell(row.dial_endpoint_fronting.as_deref()),
             tsv_cell(config.name.as_deref()),
         ));
     }
@@ -322,9 +323,11 @@ fn config_json(
             "connect_ms": row.connect_ms,
             "ttfb_ms": row.ttfb_ms,
             "http_status": row.http_status,
-            "endpoint_location": row.endpoint_location,
-            "endpoint_country": row.endpoint_country,
-            "endpoint_asn": row.endpoint_asn,
+            "dial_endpoint_location": row.dial_endpoint_location,
+            "dial_endpoint_country": row.dial_endpoint_country,
+            "dial_endpoint_asn": row.dial_endpoint_asn,
+            "dial_endpoint_geoip_source": row.dial_endpoint_geoip_source,
+            "dial_endpoint_fronting": row.dial_endpoint_fronting,
             "failure_kind": row.failure_kind,
             "failure_reason": row.failure_reason,
             "tested_at": row.tested_at,
@@ -412,9 +415,13 @@ impl MetricColumns {
             real_delay: configs.iter().any(|row| row.real_delay_ms.is_some()),
             download: configs.iter().any(|row| row.download_mbps.is_some()),
             upload: configs.iter().any(|row| row.upload_mbps.is_some()),
-            country: configs.iter().any(|row| row.endpoint_country.is_some()),
-            location: configs.iter().any(|row| row.endpoint_location.is_some()),
-            asn: configs.iter().any(|row| row.endpoint_asn.is_some()),
+            country: configs
+                .iter()
+                .any(|row| row.dial_endpoint_country.is_some()),
+            location: configs
+                .iter()
+                .any(|row| row.dial_endpoint_location.is_some()),
+            asn: configs.iter().any(|row| row.dial_endpoint_asn.is_some()),
         }
     }
 
@@ -487,18 +494,21 @@ impl MetricColumns {
         }
         if self.country {
             cells.push(Cell::plain(location_cell(
-                row.endpoint_country.as_deref(),
+                row.dial_endpoint_country.as_deref(),
                 10,
             )));
         }
         if self.location {
             cells.push(Cell::plain(location_cell(
-                row.endpoint_location.as_deref(),
+                row.dial_endpoint_location.as_deref(),
                 24,
             )));
         }
         if self.asn {
-            cells.push(Cell::plain(location_cell(row.endpoint_asn.as_deref(), 24)));
+            cells.push(Cell::plain(location_cell(
+                row.dial_endpoint_asn.as_deref(),
+                24,
+            )));
         }
     }
 }
@@ -566,13 +576,13 @@ async fn enrich_config_locations(context: &AppContext, configs: &mut [ConfigWith
             continue;
         }
         if let Some(location) = meta.location {
-            row.endpoint_location = Some(location);
+            row.dial_endpoint_location = Some(location);
         }
         if let Some(country) = meta.country {
-            row.endpoint_country = Some(country);
+            row.dial_endpoint_country = Some(country);
         }
         if let Some(asn) = meta.asn {
-            row.endpoint_asn = Some(asn);
+            row.dial_endpoint_asn = Some(asn);
         }
     }
 }
@@ -583,9 +593,9 @@ trait ConfigLocationEnrichment {
 
 impl ConfigLocationEnrichment for ConfigWithLatestTest {
     fn needs_location_enrichment(&self) -> bool {
-        self.endpoint_location.is_none()
-            || self.endpoint_country.is_none()
-            || self.endpoint_asn.is_none()
+        self.dial_endpoint_location.is_none()
+            || self.dial_endpoint_country.is_none()
+            || self.dial_endpoint_asn.is_none()
     }
 }
 
@@ -617,7 +627,7 @@ mod tests {
         assert_eq!(json["ref"], "abcdef123456");
         assert_eq!(json["subscription_ref"], "123456abcdef");
         assert_eq!(json["latest_test"]["icmp_ms"], 42);
-        assert_eq!(json["latest_test"]["endpoint_country"], "NL");
+        assert_eq!(json["latest_test"]["dial_endpoint_country"], "NL");
         assert!(json.get("id").is_none());
         assert!(json.get("subscription_id").is_none());
     }
@@ -713,9 +723,11 @@ mod tests {
             connect_ms: Some(20),
             ttfb_ms: Some(80),
             http_status: Some(204),
-            endpoint_location: Some("NL/Amsterdam".to_string()),
-            endpoint_country: Some("NL".to_string()),
-            endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            dial_endpoint_location: Some("NL/Amsterdam".to_string()),
+            dial_endpoint_country: Some("NL".to_string()),
+            dial_endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            dial_endpoint_geoip_source: None,
+            dial_endpoint_fronting: None,
             failure_kind: None,
             failure_reason: None,
             tested_at: Some("tested".to_string()),

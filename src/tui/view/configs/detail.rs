@@ -159,6 +159,15 @@ fn detail_lines<'a>(
                     content_width,
                 );
             }
+            if let Some(fronting) = config.fronting_label() {
+                push_detail(
+                    &mut lines,
+                    "Fronting",
+                    format!("{fronting} (dial endpoint, origin unknown)"),
+                    LABEL_WIDTH,
+                    content_width,
+                );
+            }
             push_detail(
                 &mut lines,
                 "Subscription",
@@ -234,9 +243,10 @@ mod tests {
             tcp_ms: Some(20),
             download_mbps: Some(42.0),
             upload_mbps: Some(11.0),
-            endpoint_country: Some("NL".to_string()),
-            endpoint_location: Some("NL/Amsterdam".to_string()),
-            endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            dial_endpoint_country: Some("NL".to_string()),
+            dial_endpoint_location: Some("NL/Amsterdam".to_string()),
+            dial_endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+            dial_endpoint_fronting: None,
             failure_reason: None,
             source_id: None,
             tested_at: Some("tested".to_string()),

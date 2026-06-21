@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
-pub fn classify_endpoint_location(endpoint_ip: Option<&str>) -> Option<String> {
-    let ip = endpoint_ip?.parse::<IpAddr>().ok()?;
+pub fn classify_endpoint_location(dial_endpoint_ip: Option<&str>) -> Option<String> {
+    let ip = dial_endpoint_ip?.parse::<IpAddr>().ok()?;
     let label = match ip {
         IpAddr::V4(v4) => {
             if v4.is_private() {

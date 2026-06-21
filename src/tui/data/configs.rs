@@ -16,9 +16,10 @@ pub struct TuiConfigRow {
     pub tcp_ms: Option<i64>,
     pub download_mbps: Option<f64>,
     pub upload_mbps: Option<f64>,
-    pub endpoint_country: Option<String>,
-    pub endpoint_location: Option<String>,
-    pub endpoint_asn: Option<String>,
+    pub dial_endpoint_country: Option<String>,
+    pub dial_endpoint_location: Option<String>,
+    pub dial_endpoint_asn: Option<String>,
+    pub dial_endpoint_fronting: Option<String>,
     pub failure_reason: Option<String>,
     pub source_id: Option<i64>,
     pub tested_at: Option<String>,
@@ -97,25 +98,29 @@ impl TuiConfigRow {
     }
 
     pub fn country_label(&self) -> &str {
-        self.endpoint_country.as_deref().unwrap_or("-")
+        self.dial_endpoint_country.as_deref().unwrap_or("-")
     }
 
     pub fn location_label(&self) -> &str {
-        self.endpoint_location.as_deref().unwrap_or("-")
+        self.dial_endpoint_location.as_deref().unwrap_or("-")
     }
 
     pub fn asn_label(&self) -> &str {
-        self.endpoint_asn.as_deref().unwrap_or("-")
+        self.dial_endpoint_asn.as_deref().unwrap_or("-")
+    }
+
+    pub fn fronting_label(&self) -> Option<&str> {
+        self.dial_endpoint_fronting.as_deref()
     }
 
     pub fn needs_location_enrichment(&self) -> bool {
         if self.address.trim().is_empty() {
             return false;
         }
-        let has_real_geo = self.endpoint_country.is_some()
-            || self.endpoint_asn.is_some()
+        let has_real_geo = self.dial_endpoint_country.is_some()
+            || self.dial_endpoint_asn.is_some()
             || self
-                .endpoint_location
+                .dial_endpoint_location
                 .as_deref()
                 .is_some_and(|label| !crate::support::geoip::is_classified_placeholder(label));
         !has_real_geo
@@ -130,16 +135,19 @@ impl TuiConfigRow {
             location,
             country,
             asn,
+            source: _,
+            fronting,
         } = meta;
         if let Some(location) = location {
-            self.endpoint_location = Some(location);
+            self.dial_endpoint_location = Some(location);
         }
         if let Some(country) = country {
-            self.endpoint_country = Some(country);
+            self.dial_endpoint_country = Some(country);
         }
         if let Some(asn) = asn {
-            self.endpoint_asn = Some(asn);
+            self.dial_endpoint_asn = Some(asn);
         }
+        self.dial_endpoint_fronting = fronting;
     }
 
     pub fn clear_test_fields(&mut self) {
@@ -148,9 +156,10 @@ impl TuiConfigRow {
         self.tcp_ms = None;
         self.download_mbps = None;
         self.upload_mbps = None;
-        self.endpoint_country = None;
-        self.endpoint_location = None;
-        self.endpoint_asn = None;
+        self.dial_endpoint_country = None;
+        self.dial_endpoint_location = None;
+        self.dial_endpoint_asn = None;
+        self.dial_endpoint_fronting = None;
         self.failure_reason = None;
         self.tested_at = None;
     }
@@ -174,15 +183,15 @@ impl TuiConfigRow {
             || self.address.to_lowercase().contains(query)
             || self.network.to_lowercase().contains(query)
             || self
-                .endpoint_country
+                .dial_endpoint_country
                 .as_deref()
                 .is_some_and(|value| value.to_lowercase().contains(query))
             || self
-                .endpoint_location
+                .dial_endpoint_location
                 .as_deref()
                 .is_some_and(|value| value.to_lowercase().contains(query))
             || self
-                .endpoint_asn
+                .dial_endpoint_asn
                 .as_deref()
                 .is_some_and(|value| value.to_lowercase().contains(query))
             || self
@@ -209,9 +218,10 @@ impl From<ConfigWithLatestTest> for TuiConfigRow {
             tcp_ms: value.tcp_ms,
             download_mbps: value.download_mbps,
             upload_mbps: value.upload_mbps,
-            endpoint_country: value.endpoint_country,
-            endpoint_location: value.endpoint_location,
-            endpoint_asn: value.endpoint_asn,
+            dial_endpoint_country: value.dial_endpoint_country,
+            dial_endpoint_location: value.dial_endpoint_location,
+            dial_endpoint_asn: value.dial_endpoint_asn,
+            dial_endpoint_fronting: value.dial_endpoint_fronting,
             failure_reason: value.failure_reason,
             source_id: config.subscription_id,
             tested_at: value.tested_at,

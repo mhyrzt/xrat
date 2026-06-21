@@ -1,12 +1,39 @@
 use std::net::IpAddr;
 
 use super::GeoIpLookup;
+use super::fronting::detect_fronting;
+
+/// How the dial-endpoint IP that was geolocated got resolved. This records the
+/// lookup provenance so callers never present a CDN/relay address as if it were
+/// a verified proxy origin.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GeoIpSource {
+    /// The config dialed a literal IP address; the lookup describes that IP.
+    LiteralIp,
+    /// The config dialed a hostname; the lookup describes the DNS result, which
+    /// may be a CDN/relay front door rather than the real backend.
+    DialDns,
+}
+
+impl GeoIpSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GeoIpSource::LiteralIp => "literal_ip",
+            GeoIpSource::DialDns => "dial_dns",
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EndpointGeoMeta {
     pub location: Option<String>,
     pub country: Option<String>,
     pub asn: Option<String>,
+    /// Provenance of the lookup; `None` when no geo data was resolved.
+    pub source: Option<GeoIpSource>,
+    /// Detected CDN/relay provider label when the dialed IP belongs to a known
+    /// fronting network. A hint, not proof of the origin location.
+    pub fronting: Option<String>,
 }
 
 impl EndpointGeoMeta {
@@ -16,47 +43,52 @@ impl EndpointGeoMeta {
 }
 
 pub async fn enrich_address(address: &str, geoip_lookup: &dyn GeoIpLookup) -> EndpointGeoMeta {
-    let Some(ip) = resolve_address_ip(address).await else {
+    let Some((ip, source)) = resolve_address_ip_with_source(address).await else {
         return EndpointGeoMeta::default();
     };
 
-    if let Some(city) = geoip_lookup.city(ip).await.ok().flatten() {
+    let (location, country) = if let Some(city) = geoip_lookup.city(ip).await.ok().flatten() {
         let country = city.split('/').next().map(str::to_string);
-        return EndpointGeoMeta {
-            location: Some(city),
-            country,
-            asn: geoip_lookup.asn(ip).await.ok().flatten(),
-        };
-    }
-    if let Some(country) = geoip_lookup.country(ip).await.ok().flatten() {
-        return EndpointGeoMeta {
-            location: Some(country.clone()),
-            country: Some(country),
-            asn: geoip_lookup.asn(ip).await.ok().flatten(),
-        };
-    }
-    if let Some(asn) = geoip_lookup.asn(ip).await.ok().flatten() {
-        return EndpointGeoMeta {
-            location: Some(asn.clone()),
-            country: None,
-            asn: Some(asn),
-        };
+        (Some(city), country)
+    } else if let Some(country) = geoip_lookup.country(ip).await.ok().flatten() {
+        (Some(country.clone()), Some(country))
+    } else {
+        (None, None)
+    };
+
+    let asn = geoip_lookup.asn(ip).await.ok().flatten();
+    if location.is_none() && country.is_none() && asn.is_none() {
+        return EndpointGeoMeta::default();
     }
 
-    EndpointGeoMeta::default()
+    let fronting = detect_fronting(asn.as_deref());
+    EndpointGeoMeta {
+        location: location.or_else(|| asn.clone()),
+        country,
+        asn,
+        source: Some(source),
+        fronting,
+    }
 }
 
 pub async fn resolve_address_ip(address: &str) -> Option<IpAddr> {
+    resolve_address_ip_with_source(address)
+        .await
+        .map(|(ip, _)| ip)
+}
+
+async fn resolve_address_ip_with_source(address: &str) -> Option<(IpAddr, GeoIpSource)> {
     let host = address_host(address)?;
     if let Ok(ip) = host.parse::<IpAddr>() {
-        return Some(ip);
+        return Some((ip, GeoIpSource::LiteralIp));
     }
 
-    tokio::net::lookup_host((host.as_str(), 0))
+    let ip = tokio::net::lookup_host((host.as_str(), 0))
         .await
         .ok()?
         .map(|socket_addr| socket_addr.ip())
-        .next()
+        .next()?;
+    Some((ip, GeoIpSource::DialDns))
 }
 
 /// Extract the resolvable host from a config address (`host:port`, a URL, a
@@ -131,6 +163,8 @@ mod tests {
         assert_eq!(meta.country.as_deref(), Some("ZZ"));
         assert_eq!(meta.location.as_deref(), Some("ZZ/Test City"));
         assert_eq!(meta.asn.as_deref(), Some("AS64512 TEST"));
+        assert_eq!(meta.source, Some(GeoIpSource::LiteralIp));
+        assert_eq!(meta.fronting, None);
     }
 
     #[test]

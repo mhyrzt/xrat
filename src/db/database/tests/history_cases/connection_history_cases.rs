@@ -45,10 +45,12 @@ async fn stores_and_reads_connection_test_history() {
         connect_ms: None,
         ttfb_ms: None,
         http_status: None,
-        endpoint_ip: None,
-        endpoint_location: None,
-        endpoint_country: None,
-        endpoint_asn: None,
+        dial_endpoint_ip: None,
+        dial_endpoint_location: None,
+        dial_endpoint_country: None,
+        dial_endpoint_asn: None,
+        dial_endpoint_geoip_source: None,
+        dial_endpoint_fronting: None,
         failure_kind: Some("timeout".to_string()),
         failure_reason: Some("tcp handshake timed out".to_string()),
     })
@@ -69,10 +71,12 @@ async fn stores_and_reads_connection_test_history() {
         connect_ms: Some(95),
         ttfb_ms: Some(180),
         http_status: Some(204),
-        endpoint_ip: Some("1.1.1.1".to_string()),
-        endpoint_location: Some("US".to_string()),
-        endpoint_country: Some("US".to_string()),
-        endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
+        dial_endpoint_ip: Some("1.1.1.1".to_string()),
+        dial_endpoint_location: Some("US".to_string()),
+        dial_endpoint_country: Some("US".to_string()),
+        dial_endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
+        dial_endpoint_geoip_source: None,
+        dial_endpoint_fronting: None,
         failure_kind: None,
         failure_reason: None,
     })
@@ -107,11 +111,11 @@ async fn stores_and_reads_connection_test_history() {
     assert_eq!(latest.connect_ms, Some(95));
     assert_eq!(latest.ttfb_ms, Some(180));
     assert_eq!(latest.http_status, Some(204));
-    assert_eq!(latest.endpoint_ip.as_deref(), Some("1.1.1.1"));
-    assert_eq!(latest.endpoint_location.as_deref(), Some("US"));
-    assert_eq!(latest.endpoint_country.as_deref(), Some("US"));
+    assert_eq!(latest.dial_endpoint_ip.as_deref(), Some("1.1.1.1"));
+    assert_eq!(latest.dial_endpoint_location.as_deref(), Some("US"));
+    assert_eq!(latest.dial_endpoint_country.as_deref(), Some("US"));
     assert_eq!(
-        latest.endpoint_asn.as_deref(),
+        latest.dial_endpoint_asn.as_deref(),
         Some("AS13335 CLOUDFLARENET")
     );
     assert_eq!(latest.failure_kind, None);

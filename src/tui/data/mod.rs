@@ -288,9 +288,9 @@ impl TuiMetricColumns {
 
 fn has_location_data(configs: &[TuiConfigRow]) -> bool {
     configs.iter().any(|row| {
-        row.endpoint_country.is_some()
-            || row.endpoint_location.is_some()
-            || row.endpoint_asn.is_some()
+        row.dial_endpoint_country.is_some()
+            || row.dial_endpoint_location.is_some()
+            || row.dial_endpoint_asn.is_some()
     })
 }
 
@@ -343,6 +343,8 @@ async fn apply_geo_cache(
                         location: record.location.clone(),
                         country: record.country.clone(),
                         asn: record.asn.clone(),
+                        source: None,
+                        fronting: None,
                     });
                 }
             }

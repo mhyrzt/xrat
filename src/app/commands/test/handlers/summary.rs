@@ -21,14 +21,22 @@ pub(super) async fn print_latest_run_summary(
         run.id, run.kind, run.created_at, total, ok, failed
     );
     print_geo_distribution(
-        "Country distribution",
+        "Dial-endpoint country distribution",
         tests
             .iter()
-            .filter_map(|row| row.endpoint_country.as_deref()),
+            .filter_map(|row| row.dial_endpoint_country.as_deref()),
     );
     print_geo_distribution(
-        "ASN distribution",
-        tests.iter().filter_map(|row| row.endpoint_asn.as_deref()),
+        "Dial-endpoint ASN distribution",
+        tests
+            .iter()
+            .filter_map(|row| row.dial_endpoint_asn.as_deref()),
+    );
+    print_geo_distribution(
+        "Detected fronting providers (dial endpoint, hint not origin)",
+        tests
+            .iter()
+            .filter_map(|row| row.dial_endpoint_fronting.as_deref()),
     );
     Ok(())
 }
@@ -50,13 +58,13 @@ pub(super) fn filter_latest_run_rows(
     rows.into_iter()
         .filter(|row| {
             let country_match = country.as_ref().is_none_or(|filter| {
-                row.endpoint_country
+                row.dial_endpoint_country
                     .as_deref()
                     .map(|value| value.eq_ignore_ascii_case(filter))
                     .unwrap_or(false)
             });
             let asn_match = asn.as_ref().is_none_or(|filter| {
-                row.endpoint_asn
+                row.dial_endpoint_asn
                     .as_deref()
                     .map(|value| value.to_ascii_lowercase().contains(filter))
                     .unwrap_or(false)

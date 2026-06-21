@@ -63,6 +63,8 @@ pub(crate) async fn test_and_record_config(
         }
     }
 
+    run_geoip_stage(&node, &settings, &mut result).await;
+
     let elapsed = test_start.elapsed();
     let output = TestOutputRow::from_parts(TestOutputParts {
         config: &config,

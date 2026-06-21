@@ -23,10 +23,10 @@ pub async fn list_by_config(
 ) -> crate::db::Result<Vec<ConnectionTestRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC",
         ).bind(config_id).fetch_all(pool).await?.into_iter().map(map_connection_test_row).collect()),
         DbPool::Postgres(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = $1 ORDER BY tested_at DESC, id DESC",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = $1 ORDER BY tested_at DESC, id DESC",
         ).bind(config_id).fetch_all(pool).await?.into_iter().map(map_connection_test_row).collect()),
     }
 }
@@ -37,10 +37,10 @@ pub async fn get_latest_by_config(
 ) -> crate::db::Result<Option<ConnectionTestRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC LIMIT 1",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = ?1 ORDER BY tested_at DESC, id DESC LIMIT 1",
         ).bind(config_id).fetch_optional(pool).await?.map(map_connection_test_row)),
         DbPool::Postgres(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = $1 ORDER BY tested_at DESC, id DESC LIMIT 1",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE config_id = $1 ORDER BY tested_at DESC, id DESC LIMIT 1",
         ).bind(config_id).fetch_optional(pool).await?.map(map_connection_test_row)),
     }
 }
@@ -68,10 +68,10 @@ pub async fn list_by_run(
 ) -> crate::db::Result<Vec<ConnectionTestRecord>> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE run_id = ?1 ORDER BY tested_at DESC, id DESC",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE run_id = ?1 ORDER BY tested_at DESC, id DESC",
         ).bind(run_id).fetch_all(pool).await?.into_iter().map(map_connection_test_row).collect()),
         DbPool::Postgres(pool) => Ok(sqlx::query(
-            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason, tested_at FROM connection_tests WHERE run_id = $1 ORDER BY tested_at DESC, id DESC",
+            "SELECT id, run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason, tested_at FROM connection_tests WHERE run_id = $1 ORDER BY tested_at DESC, id DESC",
         ).bind(run_id).fetch_all(pool).await?.into_iter().map(map_connection_test_row).collect()),
     }
 }

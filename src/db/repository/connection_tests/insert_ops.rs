@@ -4,8 +4,8 @@ use crate::db::record::{ConnectionTestInsert, ConnectionTestRunInsert};
 pub async fn insert(pool: &DbPool, test: &ConnectionTestInsert) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar(
-            "INSERT INTO connection_tests (run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19) RETURNING id",
+            "INSERT INTO connection_tests (run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21) RETURNING id",
         )
         .bind(test.run_id)
         .bind(test.config_id)
@@ -20,17 +20,19 @@ pub async fn insert(pool: &DbPool, test: &ConnectionTestInsert) -> crate::db::Re
         .bind(test.connect_ms)
         .bind(test.ttfb_ms)
         .bind(test.http_status)
-        .bind(&test.endpoint_ip)
-        .bind(&test.endpoint_location)
-        .bind(&test.endpoint_country)
-        .bind(&test.endpoint_asn)
+        .bind(&test.dial_endpoint_ip)
+        .bind(&test.dial_endpoint_location)
+        .bind(&test.dial_endpoint_country)
+        .bind(&test.dial_endpoint_asn)
+        .bind(&test.dial_endpoint_geoip_source)
+        .bind(&test.dial_endpoint_fronting)
         .bind(&test.failure_kind)
         .bind(&test.failure_reason)
         .fetch_one(pool)
         .await?),
         DbPool::Postgres(pool) => Ok(sqlx::query_scalar(
-            "INSERT INTO connection_tests (run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, endpoint_ip, endpoint_location, endpoint_country, endpoint_asn, failure_kind, failure_reason)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING id",
+            "INSERT INTO connection_tests (run_id, config_id, icmp_ok, icmp_ms, tcp_ok, tcp_ms, real_delay_ok, real_delay_ms, download_mbps, upload_mbps, connect_ms, ttfb_ms, http_status, dial_endpoint_ip, dial_endpoint_location, dial_endpoint_country, dial_endpoint_asn, dial_endpoint_geoip_source, dial_endpoint_fronting, failure_kind, failure_reason)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING id",
         )
         .bind(test.run_id)
         .bind(test.config_id)
@@ -45,10 +47,12 @@ pub async fn insert(pool: &DbPool, test: &ConnectionTestInsert) -> crate::db::Re
         .bind(test.connect_ms)
         .bind(test.ttfb_ms)
         .bind(test.http_status)
-        .bind(&test.endpoint_ip)
-        .bind(&test.endpoint_location)
-        .bind(&test.endpoint_country)
-        .bind(&test.endpoint_asn)
+        .bind(&test.dial_endpoint_ip)
+        .bind(&test.dial_endpoint_location)
+        .bind(&test.dial_endpoint_country)
+        .bind(&test.dial_endpoint_asn)
+        .bind(&test.dial_endpoint_geoip_source)
+        .bind(&test.dial_endpoint_fronting)
         .bind(&test.failure_kind)
         .bind(&test.failure_reason)
         .fetch_one(pool)

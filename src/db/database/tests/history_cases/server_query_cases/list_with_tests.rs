@@ -39,10 +39,12 @@ async fn list_with_latest_tests_returns_config_and_test() {
         connect_ms: None,
         ttfb_ms: None,
         http_status: None,
-        endpoint_ip: None,
-        endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
-        endpoint_country: Some("NL".to_string()),
-        endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+        dial_endpoint_ip: None,
+        dial_endpoint_location: Some("NL/North Holland/Amsterdam".to_string()),
+        dial_endpoint_country: Some("NL".to_string()),
+        dial_endpoint_asn: Some("AS60781 LeaseWeb".to_string()),
+        dial_endpoint_geoip_source: None,
+        dial_endpoint_fronting: None,
         failure_kind: None,
         failure_reason: None,
     })
@@ -60,12 +62,15 @@ async fn list_with_latest_tests_returns_config_and_test() {
     assert_eq!(rows[0].icmp_ms, Some(40));
     assert_eq!(rows[0].tcp_ok, Some(true));
     assert_eq!(rows[0].real_delay_ms, Some(200));
-    assert_eq!(rows[0].endpoint_country.as_deref(), Some("NL"));
+    assert_eq!(rows[0].dial_endpoint_country.as_deref(), Some("NL"));
     assert_eq!(
-        rows[0].endpoint_location.as_deref(),
+        rows[0].dial_endpoint_location.as_deref(),
         Some("NL/North Holland/Amsterdam")
     );
-    assert_eq!(rows[0].endpoint_asn.as_deref(), Some("AS60781 LeaseWeb"));
+    assert_eq!(
+        rows[0].dial_endpoint_asn.as_deref(),
+        Some("AS60781 LeaseWeb")
+    );
     assert!(rows[0].tested_at.is_some());
 
     let _ = std::fs::remove_file(db_path);

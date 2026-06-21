@@ -81,16 +81,7 @@ pub(crate) async fn run_real_delay_stage(
     result.real_delay_ms = real_delay_result.latency_ms;
     result.ttfb_ms = real_delay_result.ttfb_ms;
     result.http_status = real_delay_result.http_status;
-    result.endpoint_ip = real_delay_result.endpoint_ip;
-    let endpoint_meta = resolve_endpoint_meta(
-        Some(node.address.as_str()),
-        settings.geoip_enabled,
-        settings.geoip_lookup.as_ref(),
-    )
-    .await;
-    result.endpoint_location = endpoint_meta.location;
-    result.endpoint_country = endpoint_meta.country;
-    result.endpoint_asn = endpoint_meta.asn;
+    result.dial_endpoint_ip = real_delay_result.dial_endpoint_ip;
     merge_failure(
         result,
         real_delay_result.failure_kind,
@@ -106,4 +97,28 @@ pub(crate) async fn run_real_delay_stage(
     }
 
     Ok(())
+}
+
+/// Resolve dial-endpoint GeoIP metadata independently of the probe stages so it
+/// is recorded per config (and streamed to the TUI) even when real-delay does
+/// not run. Uses the configured dial address, not the probe-observed IP.
+pub(crate) async fn run_geoip_stage(
+    node: &Node,
+    settings: &ResolvedTestSettings,
+    result: &mut TestResult,
+) {
+    if !settings.geoip_enabled {
+        return;
+    }
+    let endpoint_meta = resolve_endpoint_meta(
+        Some(node.address.as_str()),
+        settings.geoip_enabled,
+        settings.geoip_lookup.as_ref(),
+    )
+    .await;
+    result.dial_endpoint_location = endpoint_meta.location;
+    result.dial_endpoint_country = endpoint_meta.country;
+    result.dial_endpoint_asn = endpoint_meta.asn;
+    result.dial_endpoint_geoip_source = endpoint_meta.source;
+    result.dial_endpoint_fronting = endpoint_meta.fronting;
 }

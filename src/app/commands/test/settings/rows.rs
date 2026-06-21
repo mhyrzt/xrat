@@ -22,13 +22,17 @@ pub(crate) struct TestOutputRow {
     #[serde(skip_serializing)]
     pub(crate) http_status: Option<u16>,
     #[serde(skip_serializing)]
-    pub(crate) endpoint_ip: Option<String>,
+    pub(crate) dial_endpoint_ip: Option<String>,
     #[serde(skip_serializing)]
-    pub(crate) endpoint_location: Option<String>,
+    pub(crate) dial_endpoint_location: Option<String>,
     #[serde(skip_serializing)]
-    pub(crate) endpoint_country: Option<String>,
+    pub(crate) dial_endpoint_country: Option<String>,
     #[serde(skip_serializing)]
-    pub(crate) endpoint_asn: Option<String>,
+    pub(crate) dial_endpoint_asn: Option<String>,
+    #[serde(skip_serializing)]
+    pub(crate) dial_endpoint_geoip_source: Option<String>,
+    #[serde(skip_serializing)]
+    pub(crate) dial_endpoint_fronting: Option<String>,
     #[serde(skip_serializing)]
     pub(crate) ran_icmp: bool,
     #[serde(skip_serializing)]
