@@ -37,8 +37,10 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
     }
 
     let metric_columns = TestMetricColumns::from_outputs(outputs);
+    let geo_columns = TestGeoColumns::from_outputs(outputs);
     let mut headers = vec!["REF", "STATUS"];
     metric_columns.push_headers(&mut headers);
+    geo_columns.push_headers(&mut headers);
     headers.extend(["PROTO", "ADDRESS", "PORT", "NAME"]);
     let right_aligned = headers
         .iter()
@@ -52,6 +54,7 @@ pub(crate) fn format_table(outputs: &[TestOutputRow], color: bool) -> String {
             status_label(output.status),
         ];
         metric_columns.push_table_cells(output, &mut row);
+        geo_columns.push_table_cells(output, &mut row);
         row.extend([
             output.protocol.clone(),
             dash_cell(&output.address),
@@ -189,9 +192,11 @@ fn truncate_display(text: &str, max_width: usize) -> String {
 
 pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
     let metric_columns = TestMetricColumns::from_outputs(outputs);
+    let geo_columns = TestGeoColumns::from_outputs(outputs);
     let mut lines = Vec::with_capacity(outputs.len() + 1);
     let mut headers = vec!["ref", "name", "protocol", "address", "port"];
     metric_columns.push_raw_headers(&mut headers);
+    geo_columns.push_raw_headers(&mut headers);
     headers.extend(["status", "error"]);
     lines.push(headers.join("\t"));
 
@@ -204,6 +209,7 @@ pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
             output.port.to_string(),
         ];
         metric_columns.push_raw_cells(output, &mut cells);
+        geo_columns.push_tsv_cells(output, &mut cells);
         cells.extend([
             output.status.as_str().to_string(),
             tsv_cell(output.error.as_deref()),
@@ -216,9 +222,11 @@ pub(crate) fn format_tsv(outputs: &[TestOutputRow]) -> String {
 
 pub(crate) fn format_csv(outputs: &[TestOutputRow]) -> String {
     let metric_columns = TestMetricColumns::from_outputs(outputs);
+    let geo_columns = TestGeoColumns::from_outputs(outputs);
     let mut lines = Vec::with_capacity(outputs.len() + 1);
     let mut headers = vec!["ref", "name", "protocol", "address", "port"];
     metric_columns.push_raw_headers(&mut headers);
+    geo_columns.push_raw_headers(&mut headers);
     headers.extend(["status", "error"]);
     lines.push(headers.join(","));
 
@@ -231,6 +239,7 @@ pub(crate) fn format_csv(outputs: &[TestOutputRow]) -> String {
             output.port.to_string(),
         ];
         metric_columns.push_raw_cells(output, &mut cells);
+        geo_columns.push_csv_cells(output, &mut cells);
         cells.extend([
             output.status.as_str().to_string(),
             csv_cell(output.error.as_deref()),
@@ -339,4 +348,114 @@ impl TestMetricColumns {
             cells.push(optional_float(output.upload_mbps));
         }
     }
+}
+
+/// Dial-endpoint GeoIP columns, shown only when at least one row carries the
+/// data. The table stays compact (country + fronting hint); tsv/csv expose the
+/// full set, including the lookup provenance, for downstream filtering.
+#[derive(Clone, Copy, Debug, Default)]
+struct TestGeoColumns {
+    country: bool,
+    location: bool,
+    asn: bool,
+    fronting: bool,
+    source: bool,
+}
+
+impl TestGeoColumns {
+    fn from_outputs(outputs: &[TestOutputRow]) -> Self {
+        Self {
+            country: outputs
+                .iter()
+                .any(|output| output.dial_endpoint_country.is_some()),
+            location: outputs
+                .iter()
+                .any(|output| output.dial_endpoint_location.is_some()),
+            asn: outputs
+                .iter()
+                .any(|output| output.dial_endpoint_asn.is_some()),
+            fronting: outputs
+                .iter()
+                .any(|output| output.dial_endpoint_fronting.is_some()),
+            source: outputs
+                .iter()
+                .any(|output| output.dial_endpoint_geoip_source.is_some()),
+        }
+    }
+
+    fn push_headers(self, headers: &mut Vec<&'static str>) {
+        if self.country {
+            headers.push("COUNTRY");
+        }
+        if self.fronting {
+            headers.push("FRONTING");
+        }
+    }
+
+    fn push_table_cells(self, output: &TestOutputRow, cells: &mut Vec<String>) {
+        if self.country {
+            cells.push(geo_cell(output.dial_endpoint_country.as_deref()));
+        }
+        if self.fronting {
+            cells.push(geo_cell(output.dial_endpoint_fronting.as_deref()));
+        }
+    }
+
+    fn push_raw_headers(self, headers: &mut Vec<&'static str>) {
+        if self.country {
+            headers.push("dial_endpoint_country");
+        }
+        if self.location {
+            headers.push("dial_endpoint_location");
+        }
+        if self.asn {
+            headers.push("dial_endpoint_asn");
+        }
+        if self.fronting {
+            headers.push("dial_endpoint_fronting");
+        }
+        if self.source {
+            headers.push("dial_endpoint_geoip_source");
+        }
+    }
+
+    fn push_tsv_cells(self, output: &TestOutputRow, cells: &mut Vec<String>) {
+        if self.country {
+            cells.push(tsv_cell(output.dial_endpoint_country.as_deref()));
+        }
+        if self.location {
+            cells.push(tsv_cell(output.dial_endpoint_location.as_deref()));
+        }
+        if self.asn {
+            cells.push(tsv_cell(output.dial_endpoint_asn.as_deref()));
+        }
+        if self.fronting {
+            cells.push(tsv_cell(output.dial_endpoint_fronting.as_deref()));
+        }
+        if self.source {
+            cells.push(tsv_cell(output.dial_endpoint_geoip_source.as_deref()));
+        }
+    }
+
+    fn push_csv_cells(self, output: &TestOutputRow, cells: &mut Vec<String>) {
+        if self.country {
+            cells.push(csv_cell(output.dial_endpoint_country.as_deref()));
+        }
+        if self.location {
+            cells.push(csv_cell(output.dial_endpoint_location.as_deref()));
+        }
+        if self.asn {
+            cells.push(csv_cell(output.dial_endpoint_asn.as_deref()));
+        }
+        if self.fronting {
+            cells.push(csv_cell(output.dial_endpoint_fronting.as_deref()));
+        }
+        if self.source {
+            cells.push(csv_cell(output.dial_endpoint_geoip_source.as_deref()));
+        }
+    }
+}
+
+fn geo_cell(value: Option<&str>) -> String {
+    value.unwrap_or("-").to_string()
 }

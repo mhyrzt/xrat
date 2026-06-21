@@ -37,10 +37,10 @@ fn formats_csv_results_with_download_speed() {
 
     let csv = format_csv(&[output]);
 
-    assert!(csv.starts_with("ref,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,status,error\n"));
-    assert!(
-        csv.contains("abcdef123456,\"node, one\",vless,example.com,443,12,123,45.68,12.35,ok,")
-    );
+    assert!(csv.starts_with("ref,name,protocol,address,port,icmp_ms,real_delay_ms,download_mbps,upload_mbps,dial_endpoint_country,dial_endpoint_location,dial_endpoint_asn,status,error\n"));
+    assert!(csv.contains(
+        "abcdef123456,\"node, one\",vless,example.com,443,12,123,45.68,12.35,US,US,AS13335 CLOUDFLARENET,ok,"
+    ));
 }
 
 #[test]
@@ -88,6 +88,59 @@ fn test_table_shows_only_ran_metrics_with_dashes_for_missing_values() {
     let csv = format_csv(&[output]);
     assert!(csv.starts_with("ref,name,protocol,address,port,real_delay_ms,status,error\n"));
     assert!(!csv.contains("icmp_ms"));
+}
+
+#[test]
+fn table_shows_geoip_columns_only_when_present() {
+    let mut output = TestOutputRow {
+        id: 7,
+        r#ref: "abcdef123456".to_string(),
+        name: Some("node".to_string()),
+        protocol: "vless".to_string(),
+        address: "example.com".to_string(),
+        port: 443,
+        icmp_ms: Some(12),
+        real_delay_ms: None,
+        download_mbps: None,
+        upload_mbps: None,
+        status: TestStatus::Ok,
+        error: None,
+        tcp_ms: None,
+        ttfb_ms: None,
+        http_status: None,
+        dial_endpoint_ip: Some("1.1.1.1".to_string()),
+        dial_endpoint_location: Some("US/Los Angeles".to_string()),
+        dial_endpoint_country: Some("US".to_string()),
+        dial_endpoint_asn: Some("AS13335 CLOUDFLARENET".to_string()),
+        dial_endpoint_geoip_source: Some("dial_dns".to_string()),
+        dial_endpoint_fronting: Some("cloudflare".to_string()),
+        ran_icmp: true,
+        ran_tcp: false,
+        ran_real_delay: false,
+        icmp_ok: true,
+        tcp_ok: false,
+        real_delay_ok: false,
+        failure_kind: None,
+        elapsed_secs: 1.0,
+    };
+
+    let table = format_table(&[output.clone()], false);
+    assert!(table.contains("COUNTRY"));
+    assert!(table.contains("FRONTING"));
+    assert!(table.contains("cloudflare"));
+
+    let csv = format_csv(&[output.clone()]);
+    assert!(csv.starts_with("ref,name,protocol,address,port,icmp_ms,dial_endpoint_country,dial_endpoint_location,dial_endpoint_asn,dial_endpoint_fronting,dial_endpoint_geoip_source,status,error\n"));
+    assert!(csv.contains("US,US/Los Angeles,AS13335 CLOUDFLARENET,cloudflare,dial_dns,ok,"));
+
+    output.dial_endpoint_country = None;
+    output.dial_endpoint_location = None;
+    output.dial_endpoint_asn = None;
+    output.dial_endpoint_geoip_source = None;
+    output.dial_endpoint_fronting = None;
+    let table = format_table(&[output], false);
+    assert!(!table.contains("COUNTRY"));
+    assert!(!table.contains("FRONTING"));
 }
 
 #[test]

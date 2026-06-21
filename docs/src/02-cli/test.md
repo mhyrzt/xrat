@@ -188,6 +188,24 @@ Comma-separated values, spreadsheet compatible.
 
 Machine-parseable JSON array with full test result details.
 
+### Dial-endpoint GeoIP columns
+
+When GeoIP is enabled, each tested config records geolocation for the address it
+dials. These columns appear only when at least one tested config resolved GeoIP
+data, so non-GeoIP runs stay compact.
+
+| Output       | Columns shown                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| `table`      | `COUNTRY`, `FRONTING`                                                                                     |
+| `tsv`, `csv` | `dial_endpoint_country`, `dial_endpoint_location`, `dial_endpoint_asn`, `dial_endpoint_fronting`, `dial_endpoint_geoip_source` |
+
+These describe the **dial endpoint** — the address xrat connects to first — not
+a verified proxy origin. When the dialed address is behind a CDN or relay, the
+country and ASN belong to that fronting provider, and `dial_endpoint_fronting`
+names the detected provider (a hint, not proof of the backend location).
+`dial_endpoint_geoip_source` records lookup provenance: `literal_ip` when the
+config dialed a literal IP, `dial_dns` when a hostname was resolved via DNS.
+
 ## Failure Classification
 
 Test failures are classified into categories:
