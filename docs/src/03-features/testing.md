@@ -356,13 +356,26 @@ max_entries = 10000
 
 ### Test Result Enrichment
 
-When GeoIP enrichment is enabled, test results include:
+When GeoIP enrichment is enabled, test results describe the **dial endpoint** —
+the address xrat actually connected to. For configs that front through a CDN or
+relay, this is the front door, not necessarily the proxy's real origin:
 
-- `endpoint_ip` — resolved IP address
-- `endpoint_country` — ISO country code (e.g. `NL`)
-- `endpoint_location` — location label such as city/country when available
-- `endpoint_asn` — Autonomous System Number and organization (e.g.
+- `dial_endpoint_ip` — resolved IP address
+- `dial_endpoint_country` — ISO country code (e.g. `NL`)
+- `dial_endpoint_location` — location label such as city/country when available
+- `dial_endpoint_asn` — Autonomous System Number and organization (e.g.
   `AS15169 Google LLC`)
+- `dial_endpoint_geoip_source` — lookup provenance: `literal_ip` (the config
+  dialed a literal IP) or `dial_dns` (a hostname resolved via DNS, where CDN
+  fronting hides)
+- `dial_endpoint_fronting` — detected CDN/relay provider label (e.g.
+  `cloudflare`) when the dialed IP belongs to a known fronting network. This is
+  a hint, not proof: the real origin may be elsewhere or hidden. `null` when no
+  fronting provider is recognized.
+
+Because these fields describe the dial endpoint, the
+`--country`/`--asn` filters on `xrat test --latest-run-summary` match the
+fronting/relay provider for fronted configs, not the verified origin.
 
 ### Related
 
@@ -408,7 +421,9 @@ All test results are persisted to the database:
 | `connect_ms`, `ttfb_ms`, `http_status`            | HTTP details                        |
 | `download_mbps`, `upload_mbps`                    | Throughput                          |
 | `failure_kind`, `failure_reason`                  | Failure details                     |
-| `endpoint_ip`, `endpoint_country`, `endpoint_asn` | GeoIP                               |
+| `dial_endpoint_ip`, `dial_endpoint_country`, `dial_endpoint_asn` | Dial-endpoint GeoIP   |
+| `dial_endpoint_geoip_source`                      | Lookup provenance                   |
+| `dial_endpoint_fronting`                          | Detected CDN/relay provider (hint)  |
 | `tested_at`                                       | Timestamp                           |
 
 ## Related

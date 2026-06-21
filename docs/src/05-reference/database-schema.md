@@ -142,10 +142,12 @@ CREATE TABLE connection_tests (
     upload_mbps REAL,
     failure_kind TEXT,
     failure_reason TEXT,
-    endpoint_ip TEXT,
-    endpoint_location TEXT,
-    endpoint_country TEXT,
-    endpoint_asn TEXT,
+    dial_endpoint_ip TEXT,
+    dial_endpoint_location TEXT,
+    dial_endpoint_country TEXT,
+    dial_endpoint_asn TEXT,
+    dial_endpoint_geoip_source TEXT,
+    dial_endpoint_fronting TEXT,
     tested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -168,10 +170,12 @@ CREATE TABLE connection_tests (
 | `upload_mbps`       | REAL      | Upload throughput          |
 | `failure_kind`      | TEXT      | Failure classification     |
 | `failure_reason`    | TEXT      | Human-readable error       |
-| `endpoint_ip`       | TEXT      | Resolved IP address        |
-| `endpoint_location` | TEXT      | GeoIP location             |
-| `endpoint_country`  | TEXT      | Country ISO code           |
-| `endpoint_asn`      | TEXT      | ASN identifier             |
+| `dial_endpoint_ip`            | TEXT      | Resolved dial-endpoint IP        |
+| `dial_endpoint_location`      | TEXT      | Dial-endpoint GeoIP location     |
+| `dial_endpoint_country`       | TEXT      | Dial-endpoint country ISO code   |
+| `dial_endpoint_asn`           | TEXT      | Dial-endpoint ASN identifier     |
+| `dial_endpoint_geoip_source`  | TEXT      | Lookup provenance (`literal_ip`/`dial_dns`) |
+| `dial_endpoint_fronting`      | TEXT      | Detected CDN/relay provider (hint) |
 | `tested_at`         | TIMESTAMP | Test timestamp             |
 
 **Indexes**:

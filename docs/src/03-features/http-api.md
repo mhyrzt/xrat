@@ -334,9 +334,11 @@ curl "http://localhost:8080/configs/42?key=secret"
     "upload_mbps": null,
     "failure_kind": null,
     "failure_reason": null,
-    "endpoint_ip": "93.184.216.34",
-    "endpoint_country": "US",
-    "endpoint_asn": "AS15133",
+    "dial_endpoint_ip": "93.184.216.34",
+    "dial_endpoint_country": "US",
+    "dial_endpoint_asn": "AS15133",
+    "dial_endpoint_geoip_source": "dial_dns",
+    "dial_endpoint_fronting": null,
     "tested_at": "2026-05-28T10:00:00Z"
   }
 }
