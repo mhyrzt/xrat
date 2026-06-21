@@ -1,39 +1,77 @@
 use std::collections::BTreeSet;
 
+use serde::Serialize;
 use url::Url;
 
 use crate::app::AppError;
-use crate::app::commands::output;
+use crate::app::commands::output::{self, Style};
 use crate::app::config::{
     AppConfig, ConnectionTestStage, DatabaseBackend, SecretString, TestingSettings,
 };
 use crate::cli::{ValidateArgs, ValidateFormat};
 
+/// One validation finding. Beyond identifying the offending field, each
+/// diagnostic explains why the value is rejected and how to repair it so users
+/// can fix `config.toml` without reading source or guessing valid ranges.
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+struct Diagnostic {
+    /// Config path such as `[runtime.socks].port`. Empty for structural or
+    /// parse failures that are not tied to a single field.
+    field: String,
+    /// What is invalid about the current value.
+    problem: String,
+    /// Why the constraint matters.
+    reason: String,
+    /// How to fix it, including accepted values or ranges where relevant.
+    fix: String,
+}
+
+impl Diagnostic {
+    fn new(
+        field: impl Into<String>,
+        problem: impl Into<String>,
+        reason: impl Into<String>,
+        fix: impl Into<String>,
+    ) -> Self {
+        Self {
+            field: field.into(),
+            problem: problem.into(),
+            reason: reason.into(),
+            fix: fix.into(),
+        }
+    }
+
+    /// A finding not tied to a specific config field (missing file, parse
+    /// failure). Rendered without a leading field label.
+    fn structural(
+        problem: impl Into<String>,
+        reason: impl Into<String>,
+        fix: impl Into<String>,
+    ) -> Self {
+        Self::new(String::new(), problem, reason, fix)
+    }
+}
+
 pub fn run(args: &ValidateArgs) -> crate::app::Result<()> {
-    let errors = collect_errors(args);
+    let diagnostics = collect_errors(args);
     let color = output::color_enabled();
 
     match args.format {
         ValidateFormat::Human => {
-            if errors.is_empty() {
+            if diagnostics.is_empty() {
                 println!(
                     "{}",
                     output::success(format!("{} is valid.", args.path.display()), color)
                 );
             } else {
-                let title = format!(
-                    "{} has {} validation error(s):",
-                    args.path.display(),
-                    errors.len()
-                );
-                eprintln!("{}", output::format_list(&title, &errors, color));
+                eprintln!("{}", render_human(args, &diagnostics, color));
             }
         }
         ValidateFormat::Json => {
             let report = serde_json::json!({
                 "path": args.path.display().to_string(),
-                "valid": errors.is_empty(),
-                "errors": errors,
+                "valid": diagnostics.is_empty(),
+                "errors": diagnostics,
             });
             println!(
                 "{}",
@@ -42,7 +80,7 @@ pub fn run(args: &ValidateArgs) -> crate::app::Result<()> {
         }
     }
 
-    if errors.is_empty() {
+    if diagnostics.is_empty() {
         Ok(())
     } else {
         Err(AppError::InvalidArgument(format!(
@@ -52,55 +90,111 @@ pub fn run(args: &ValidateArgs) -> crate::app::Result<()> {
     }
 }
 
+fn render_human(args: &ValidateArgs, diagnostics: &[Diagnostic], color: bool) -> String {
+    let title = format!(
+        "{} has {} validation error(s):",
+        args.path.display(),
+        diagnostics.len()
+    );
+
+    let mut lines = Vec::with_capacity(diagnostics.len() * 4 + 1);
+    lines.push(output::style_text(&title, Style::Dim, color));
+
+    for diagnostic in diagnostics {
+        lines.push(String::new());
+        let heading = if diagnostic.field.is_empty() {
+            diagnostic.problem.clone()
+        } else {
+            format!(
+                "{} {}",
+                output::style_text(&diagnostic.field, Style::Red, color),
+                diagnostic.problem
+            )
+        };
+        lines.push(format!("  {heading}"));
+        lines.push(format!(
+            "    {} {}",
+            output::style_text("why:", Style::Dim, color),
+            diagnostic.reason
+        ));
+        lines.push(format!(
+            "    {} {}",
+            output::style_text("fix:", Style::Dim, color),
+            diagnostic.fix
+        ));
+    }
+
+    lines.join("\n")
+}
+
 /// Collect all validation findings. Structural problems (missing/non-file path,
 /// parse failure) short-circuit deeper checks since there is no config to lint.
-fn collect_errors(args: &ValidateArgs) -> Vec<String> {
+fn collect_errors(args: &ValidateArgs) -> Vec<Diagnostic> {
     let mut errors = Vec::new();
 
     if !args.path.exists() {
-        errors.push(format!(
-            "config file does not exist: {}",
-            args.path.display()
+        errors.push(Diagnostic::structural(
+            format!("config file does not exist: {}", args.path.display()),
+            "validation needs an existing config file to read.",
+            "create the file or pass the correct path; run `xrat init` to generate a default config.",
         ));
         return errors;
     }
     if !args.path.is_file() {
-        errors.push(format!(
-            "config path is not a file: {}",
-            args.path.display()
+        errors.push(Diagnostic::structural(
+            format!("config path is not a file: {}", args.path.display()),
+            "the path points at a directory or special file, not a readable config.",
+            "pass the path to the config.toml file itself.",
         ));
         return errors;
     }
 
     match crate::app::config::load(&args.path) {
         Ok(config) => validate_config(&config, &mut errors),
-        Err(err) => errors.push(format!("config failed to parse: {err}")),
+        Err(err) => errors.push(Diagnostic::structural(
+            format!("config failed to parse: {err}"),
+            "the file is not valid TOML or has a field with the wrong type or an unknown enum value.",
+            "fix the reported syntax or value; check quoting, table headers, and that enum fields use accepted values.",
+        )),
     }
 
     errors
 }
 
-fn validate_config(config: &AppConfig, errors: &mut Vec<String>) {
+fn validate_config(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     validate_runtime(config, errors);
     validate_database(config, errors);
     validate_testing(&config.testing, errors);
     validate_server(config, errors);
 }
 
-fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
+fn validate_runtime(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     let runtime = &config.runtime;
     if !matches!(runtime.engine.as_str(), "xray" | "v2ray" | "sing-box") {
-        errors.push("[runtime].engine must be one of: xray, v2ray, sing-box".to_string());
+        errors.push(Diagnostic::new(
+            "[runtime].engine",
+            format!("unsupported engine: {}", runtime.engine),
+            "the engine selects which proxy core generates and runs the runtime config.",
+            "use one of: xray, v2ray, sing-box.",
+        ));
     }
 
     if runtime.rotation.test_concurrency < 0 {
-        errors.push("[runtime.rotation].test_concurrency must be 0 or greater".to_string());
+        errors.push(Diagnostic::new(
+            "[runtime.rotation].test_concurrency",
+            format!("value is {}", runtime.rotation.test_concurrency),
+            "concurrency cannot be negative; 0 means an automatic default.",
+            "use 0 for the default, or a positive number of parallel tests.",
+        ));
     }
 
     for stage in &runtime.rotation.test_stages {
         if ConnectionTestStage::from_config_str(stage).is_none() {
-            errors.push(format!(
-                "[runtime.rotation].test_stages contains unsupported stage: {stage}"
+            errors.push(Diagnostic::new(
+                "[runtime.rotation].test_stages",
+                format!("unsupported stage: {stage}"),
+                "rotation can only run stages the tester knows about.",
+                "use accepted stages: icmp (alias ping), real_delay (alias real-delay), download (alias download-speed).",
             ));
         }
     }
@@ -140,8 +234,12 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
             .unwrap_or_default()
             .is_empty()
         {
-            errors
-                .push("[runtime.socks.auth].username is required when auth is enabled".to_string());
+            errors.push(Diagnostic::new(
+                "[runtime.socks.auth].username",
+                "username is empty",
+                "SOCKS auth requires a username when enabled.",
+                "set a non-empty username, or set [runtime.socks.auth].enabled = false.",
+            ));
         }
         validate_secret(
             "[runtime.socks.auth].password",
@@ -152,7 +250,12 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
 
     if runtime.shadowsocks.enabled {
         if runtime.shadowsocks.method.is_empty() {
-            errors.push("[runtime.shadowsocks].method is required when enabled".to_string());
+            errors.push(Diagnostic::new(
+                "[runtime.shadowsocks].method",
+                "method is empty",
+                "the Shadowsocks inbound needs a cipher method to encrypt traffic.",
+                "set a supported method such as aes-256-gcm or chacha20-ietf-poly1305.",
+            ));
         }
         validate_secret(
             "[runtime.shadowsocks].password",
@@ -161,15 +264,18 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<String>) {
         );
         for network in runtime.shadowsocks.network.split(',') {
             if !matches!(network.trim(), "tcp" | "udp") {
-                errors.push(format!(
-                    "[runtime.shadowsocks].network contains unsupported value: {network}"
+                errors.push(Diagnostic::new(
+                    "[runtime.shadowsocks].network",
+                    format!("unsupported value: {network}"),
+                    "network selects which transports the inbound accepts.",
+                    "use tcp, udp, or a comma-separated combination like \"tcp,udp\".",
                 ));
             }
         }
     }
 }
 
-fn validate_database(config: &AppConfig, errors: &mut Vec<String>) {
+fn validate_database(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     if config.database.backend != DatabaseBackend::Postgres {
         return;
     }
@@ -180,35 +286,60 @@ fn validate_database(config: &AppConfig, errors: &mut Vec<String>) {
         errors,
     );
     if config.database.postgres.db_name.is_empty() {
-        errors.push(
-            "[database.postgres].db_name is required when backend = \"postgres\"".to_string(),
-        );
+        errors.push(Diagnostic::new(
+            "[database.postgres].db_name",
+            "db_name is empty",
+            "the Postgres backend needs a target database name to connect.",
+            "set db_name to the database you want xrat to use.",
+        ));
     }
     if config.database.postgres.max_connections == 0 {
-        errors.push("[database.postgres].max_connections must be greater than 0".to_string());
+        errors.push(Diagnostic::new(
+            "[database.postgres].max_connections",
+            "value is 0",
+            "the connection pool needs at least one connection to work.",
+            "set max_connections to 1 or more.",
+        ));
     }
     if config.database.postgres.min_connections > config.database.postgres.max_connections {
-        errors.push(
-            "[database.postgres].min_connections must be less than or equal to max_connections"
-                .to_string(),
-        );
+        errors.push(Diagnostic::new(
+            "[database.postgres].min_connections",
+            format!(
+                "min_connections ({}) exceeds max_connections ({})",
+                config.database.postgres.min_connections, config.database.postgres.max_connections
+            ),
+            "the pool cannot keep more idle connections than its maximum.",
+            "set min_connections less than or equal to max_connections.",
+        ));
     }
     if config.database.postgres.connect_timeout_secs == 0 {
-        errors.push("[database.postgres].connect_timeout_secs must be greater than 0".to_string());
+        errors.push(Diagnostic::new(
+            "[database.postgres].connect_timeout_secs",
+            "value is 0",
+            "a 0-second connect timeout would fail immediately on a slow network.",
+            "set connect_timeout_secs to a positive number of seconds.",
+        ));
     }
 }
 
-fn validate_testing(testing: &TestingSettings, errors: &mut Vec<String>) {
+fn validate_testing(testing: &TestingSettings, errors: &mut Vec<Diagnostic>) {
     if testing.concurrency < 0 {
-        errors.push("[testing].concurrency must be 0 or greater".to_string());
+        errors.push(Diagnostic::new(
+            "[testing].concurrency",
+            format!("value is {}", testing.concurrency),
+            "concurrency cannot be negative; 0 means an automatic default.",
+            "use 0 for the default, or a positive number of parallel tests.",
+        ));
     }
 
     let mut seen = BTreeSet::new();
     for stage in &testing.order {
         if !seen.insert(test_stage_name(*stage)) {
-            errors.push(format!(
-                "[testing].order contains duplicate stage: {}",
-                test_stage_name(*stage)
+            errors.push(Diagnostic::new(
+                "[testing].order",
+                format!("duplicate stage: {}", test_stage_name(*stage)),
+                "each stage runs once, so duplicates have no effect and likely signal a mistake.",
+                "list each stage at most once.",
             ));
         }
     }
@@ -231,7 +362,12 @@ fn validate_testing(testing: &TestingSettings, errors: &mut Vec<String>) {
     }
     if testing.icmp.enabled {
         if testing.icmp.attempts == 0 {
-            errors.push("[testing.icmp].attempts must be greater than 0".to_string());
+            errors.push(Diagnostic::new(
+                "[testing.icmp].attempts",
+                "value is 0",
+                "an ICMP test with zero attempts can never produce a result.",
+                "set attempts to 1 or more.",
+            ));
         }
         validate_positive("[testing.icmp].timeout", testing.icmp.timeout, errors);
     }
@@ -239,17 +375,27 @@ fn validate_testing(testing: &TestingSettings, errors: &mut Vec<String>) {
         validate_positive("[testing.tcp].timeout", testing.tcp.timeout, errors);
     }
     if testing.geoip.remote.timeout_ms == 0 {
-        errors.push("[testing.geoip.remote].timeout_ms must be greater than 0".to_string());
+        errors.push(Diagnostic::new(
+            "[testing.geoip.remote].timeout_ms",
+            "value is 0",
+            "a 0-millisecond timeout would abort the remote GeoIP lookup immediately.",
+            "set timeout_ms to a positive number of milliseconds.",
+        ));
     }
 }
 
-fn validate_server(config: &AppConfig, errors: &mut Vec<String>) {
+fn validate_server(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     if !config.server.enabled {
         return;
     }
 
     if config.server.host.is_empty() {
-        errors.push("[server].host is required when enabled".to_string());
+        errors.push(Diagnostic::new(
+            "[server].host",
+            "host is empty",
+            "the HTTP server needs a bind address when enabled.",
+            "set host to a bind address such as 127.0.0.1 or 0.0.0.0.",
+        ));
     }
     validate_secret_if_present("[server].key", config.server.key.as_ref(), errors);
 }
@@ -260,20 +406,33 @@ fn validate_inbound(
     host: &str,
     port: u16,
     enabled_ports: &mut BTreeSet<u16>,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     if !enabled {
         return;
     }
 
     if host.is_empty() {
-        errors.push(format!("{label}.host is required when enabled"));
+        errors.push(Diagnostic::new(
+            format!("{label}.host"),
+            "host is empty",
+            "an enabled inbound needs a bind address to listen on.",
+            "set host to a bind address such as 127.0.0.1 or 0.0.0.0.",
+        ));
     }
     if port == 0 {
-        errors.push(format!("{label}.port must be greater than 0"));
+        errors.push(Diagnostic::new(
+            format!("{label}.port"),
+            "port is 0",
+            "0 is not a bindable TCP port.",
+            "use a port in 1-65535, unique across enabled inbounds.",
+        ));
     } else if !enabled_ports.insert(port) {
-        errors.push(format!(
-            "{label}.port duplicates another enabled inbound port: {port}"
+        errors.push(Diagnostic::new(
+            format!("{label}.port"),
+            format!("port {port} is already used by another enabled inbound"),
+            "two inbounds cannot bind the same port at once.",
+            "give each enabled inbound a distinct port in 1-65535.",
         ));
     }
 }
@@ -281,19 +440,34 @@ fn validate_inbound(
 /// Structural secret validation for the default lint path: a literal must not be
 /// empty and an env reference must name a variable, but the env variable is not
 /// required to be set at validation time (resolution is deferred to runtime).
-fn validate_secret(label: &str, secret: Option<&SecretString>, errors: &mut Vec<String>) {
+fn validate_secret(label: &str, secret: Option<&SecretString>, errors: &mut Vec<Diagnostic>) {
     let Some(secret) = secret else {
-        errors.push(format!("{label} is required"));
+        errors.push(Diagnostic::new(
+            label,
+            "secret is missing",
+            "this secret is required for the enabled feature.",
+            "set a literal value, or reference an environment variable with { env = \"VAR_NAME\" }.",
+        ));
         return;
     };
 
     match secret {
         SecretString::Literal(value) if value.is_empty() => {
-            errors.push(format!("{label} must not be empty"));
+            errors.push(Diagnostic::new(
+                label,
+                "secret is empty",
+                "an empty secret offers no protection and may be rejected at runtime.",
+                "set a non-empty value, or reference an environment variable with { env = \"VAR_NAME\" }.",
+            ));
         }
         SecretString::Literal(_) => {}
         SecretString::Env { env } if env.trim().is_empty() => {
-            errors.push(format!("{label} env reference must name a variable"));
+            errors.push(Diagnostic::new(
+                label,
+                "env reference names no variable",
+                "an env secret must name the environment variable to read at runtime.",
+                "set the env field to a variable name, e.g. { env = \"XRAT_SECRET\" }.",
+            ));
         }
         SecretString::Env { .. } => {}
     }
@@ -302,27 +476,42 @@ fn validate_secret(label: &str, secret: Option<&SecretString>, errors: &mut Vec<
 fn validate_secret_if_present(
     label: &str,
     secret: Option<&SecretString>,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     if secret.is_some() {
         validate_secret(label, secret, errors);
     }
 }
 
-fn validate_http_url(label: &str, value: &str, errors: &mut Vec<String>) {
+fn validate_http_url(label: &str, value: &str, errors: &mut Vec<Diagnostic>) {
     let Ok(url) = Url::parse(value) else {
-        errors.push(format!("{label} must be a valid HTTP or HTTPS URL"));
+        errors.push(Diagnostic::new(
+            label,
+            format!("not a valid URL: {value}"),
+            "this test fetches the URL, so it must be parseable.",
+            "use an absolute http or https URL such as https://example.com.",
+        ));
         return;
     };
 
     if !matches!(url.scheme(), "http" | "https") {
-        errors.push(format!("{label} must use http or https"));
+        errors.push(Diagnostic::new(
+            label,
+            format!("unsupported scheme: {}", url.scheme()),
+            "the tester only speaks HTTP(S) for this check.",
+            "use an http or https URL.",
+        ));
     }
 }
 
-fn validate_positive(label: &str, value: u64, errors: &mut Vec<String>) {
+fn validate_positive(label: &str, value: u64, errors: &mut Vec<Diagnostic>) {
     if value == 0 {
-        errors.push(format!("{label} must be greater than 0"));
+        errors.push(Diagnostic::new(
+            label,
+            "value is 0",
+            "a 0-second timeout would abort the test before it can complete.",
+            "set a positive number of seconds.",
+        ));
     }
 }
 
@@ -334,10 +523,17 @@ fn test_stage_name(stage: ConnectionTestStage) -> &'static str {
 mod tests {
     use super::*;
 
-    fn errors_for(config: &AppConfig) -> Vec<String> {
+    fn errors_for(config: &AppConfig) -> Vec<Diagnostic> {
         let mut errors = Vec::new();
         validate_config(config, &mut errors);
         errors
+    }
+
+    fn find<'a>(diagnostics: &'a [Diagnostic], field: &str) -> &'a Diagnostic {
+        diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.field == field)
+            .unwrap_or_else(|| panic!("expected a diagnostic for {field}: {diagnostics:?}"))
     }
 
     #[test]
@@ -356,8 +552,11 @@ mod tests {
         config.runtime.engine = "bad".to_string();
 
         let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[runtime].engine");
 
-        assert!(errors.iter().any(|e| e.contains("[runtime].engine")));
+        assert!(diagnostic.problem.contains("bad"));
+        assert!(diagnostic.fix.contains("xray"));
+        assert!(!diagnostic.reason.is_empty());
     }
 
     #[test]
@@ -367,12 +566,47 @@ mod tests {
         config.runtime.http.port = config.runtime.socks.port;
 
         let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[runtime.http].port");
 
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.contains("duplicates another enabled inbound port"))
-        );
+        assert!(diagnostic.problem.contains("already used"));
+        assert!(diagnostic.fix.contains("1-65535"));
+    }
+
+    #[test]
+    fn port_zero_reports_range_in_fix() {
+        let mut config = AppConfig::default();
+        config.runtime.socks.port = 0;
+
+        let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[runtime.socks].port");
+
+        assert!(diagnostic.fix.contains("1-65535"));
+        assert!(!diagnostic.reason.is_empty());
+    }
+
+    #[test]
+    fn timeout_zero_reports_reason_and_fix() {
+        let mut config = AppConfig::default();
+        config.testing.tcp.enabled = true;
+        config.testing.tcp.timeout = 0;
+
+        let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[testing.tcp].timeout");
+
+        assert!(!diagnostic.reason.is_empty());
+        assert!(diagnostic.fix.contains("seconds"));
+    }
+
+    #[test]
+    fn invalid_test_url_reports_scheme_guidance() {
+        let mut config = AppConfig::default();
+        config.testing.download.enabled = true;
+        config.testing.download.url = "ftp://example.com".to_string();
+
+        let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[testing.download].url");
+
+        assert!(diagnostic.fix.contains("http"));
     }
 
     #[test]
@@ -389,7 +623,7 @@ mod tests {
         assert!(
             !errors
                 .iter()
-                .any(|e| e.contains("test_stages contains unsupported stage")),
+                .any(|diagnostic| diagnostic.field == "[runtime.rotation].test_stages"),
             "stage aliases should be accepted: {errors:?}"
         );
     }
@@ -400,12 +634,10 @@ mod tests {
         config.runtime.rotation.test_stages = vec!["bogus".to_string()];
 
         let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[runtime.rotation].test_stages");
 
-        assert!(
-            errors
-                .iter()
-                .any(|e| e.contains("test_stages contains unsupported stage: bogus"))
-        );
+        assert!(diagnostic.problem.contains("bogus"));
+        assert!(diagnostic.fix.contains("icmp"));
     }
 
     #[test]
@@ -419,7 +651,9 @@ mod tests {
         let errors = errors_for(&config);
 
         assert!(
-            !errors.iter().any(|e| e.contains("[server].key")),
+            !errors
+                .iter()
+                .any(|diagnostic| diagnostic.field == "[server].key"),
             "env-referenced secret should pass structural validation: {errors:?}"
         );
     }
@@ -436,7 +670,7 @@ mod tests {
         assert!(
             errors
                 .iter()
-                .any(|e| e.contains("config file does not exist"))
+                .any(|diagnostic| diagnostic.problem.contains("config file does not exist"))
         );
     }
 }

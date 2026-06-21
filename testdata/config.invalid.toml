@@ -1,0 +1,141 @@
+# Intentionally invalid config for exercising `xrat validate` diagnostics.
+# It parses as valid TOML but trips many semantic checks across runtime,
+# database, server, and testing. Run: `xrat validate testdata/config.invalid.toml`
+
+[paths]
+database = "db.sqlite"
+
+[database]
+backend = "postgres" # exercises postgres-specific checks below
+
+[database.sqlite]
+path = "db.sqlite"
+
+[database.postgres]
+user = { env = "XRAT_POSTGRES_USER" }
+password = { env = "XRAT_POSTGRES_PASSWORD" }
+host = "localhost"
+port = 5432
+db_name = ""             # invalid: required when backend = postgres
+max_connections = 5
+min_connections = 9      # invalid: min > max
+connect_timeout_secs = 0 # invalid: must be > 0
+
+[server]
+enabled = true
+host = ""                # invalid: required when enabled
+port = 8080
+key = ""                 # invalid: empty literal secret
+pac_enabled = true
+pac_allowed_hosts = ["localhost"]
+
+[runtime]
+engine = "bad" # invalid: must be xray | v2ray | sing-box
+replace_active_session = true
+
+[runtime.rotation]
+enabled = true
+interval_secs = 1800
+health_trigger_enabled = true
+cooldown_secs = 300
+test_concurrency = -1                  # invalid: must be >= 0
+test_stages = ["icmp", "bogus_stage"]  # invalid: unknown stage
+
+[runtime.log]
+enabled = true
+mask = "none"
+dir = "logs"
+dns_log = false
+level = "warning"
+keep = true
+
+[runtime.socks]
+enabled = true
+host = "0.0.0.0"
+port = 1080
+udp = true
+# invalid: auth enabled but username empty and password empty literal
+auth = { enabled = true, username = "", password = "" }
+
+[runtime.http]
+enabled = true
+host = "0.0.0.0"
+port = 1080 # invalid: duplicates the enabled SOCKS port
+
+[runtime.shadowsocks]
+enabled = true
+host = "0.0.0.0"
+port = 0           # invalid: port must be > 0
+method = ""        # invalid: required when enabled
+password = ""      # invalid: empty literal secret
+network = "carrier-pigeon" # invalid: must be tcp/udp
+
+[runtime.sniffing]
+enabled = true
+dest_override = ["http", "tls", "quic"]
+route_only = true
+metadata_only = false
+domains_excluded = []
+ips_excluded = []
+
+[routing]
+domain_strategy = "IPIfNonMatch"
+
+[parser]
+parse_mode = "strict"
+
+[geo]
+auto_update = false
+update_interval_hours = 168
+
+[mmdb]
+dir = "mmdb"
+download_url = "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/{edition}.mmdb"
+timeout_secs = 60
+default_editions = ["country", "city", "asn"]
+auto_update = false
+update_interval_hours = 168
+
+[routing.direct]
+domain = []
+ip = []
+geosite = []
+geoip = []
+
+[routing.block]
+domain = []
+ip = []
+geosite = []
+geoip = []
+
+[dns]
+query_strategy = "UseSystem"
+servers = ["8.8.8.8"]
+use_system_hosts = true
+disable_cache = false
+disable_fallback = false
+enable_parallel_query = true
+
+[testing]
+concurrency = -1 # invalid: must be >= 0
+order = ["icmp", "icmp", "real_delay"] # invalid: duplicate stage
+failure_policy = "continue"
+
+[testing.real_delay]
+enabled = true
+url = "not-a-url" # invalid: must be http/https URL
+timeout = 0       # invalid: must be > 0
+
+[testing.icmp]
+enabled = true
+timeout = 3000
+attempts = 0 # invalid: must be > 0
+
+[testing.download]
+enabled = true
+url = "ftp://example.com/file" # invalid: unsupported scheme
+timeout = 30_000
+
+[testing.tcp]
+enabled = true
+timeout = 0 # invalid: must be > 0

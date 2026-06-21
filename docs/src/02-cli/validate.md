@@ -38,6 +38,14 @@ literal must be non-empty and an env reference must name a variable, but the
 environment variable is **not** required to be set at validation time. Actual
 resolution happens at runtime.
 
+## Diagnostics
+
+Each validation error is reported as a diagnostic with four parts: the offending
+`field`, the `problem` with its value, the `reason` the constraint matters, and
+a `fix` that includes accepted values or ranges. Both `human` and `json` output
+carry the same information, so structured consumers get the same repair guidance
+as the terminal.
+
 ## Examples
 
 ```bash
@@ -46,6 +54,16 @@ xrat validate config.toml
 
 ```
 OK config.toml is valid.
+```
+
+Human output for an invalid config:
+
+```
+config.toml has 1 validation error(s):
+
+  [runtime].engine unsupported engine: bad
+    why: the engine selects which proxy core generates and runs the runtime config.
+    fix: use one of: xray, v2ray, sing-box.
 ```
 
 Machine-readable output:
@@ -58,7 +76,14 @@ xrat validate --format json config.toml
 {
   "path": "config.toml",
   "valid": false,
-  "errors": ["[runtime].engine must be one of: xray, v2ray, sing-box"]
+  "errors": [
+    {
+      "field": "[runtime].engine",
+      "problem": "unsupported engine: bad",
+      "reason": "the engine selects which proxy core generates and runs the runtime config.",
+      "fix": "use one of: xray, v2ray, sing-box."
+    }
+  ]
 }
 ```
 
