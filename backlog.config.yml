@@ -1,0 +1,22 @@
+project_name: "xrat backlog"
+default_status: "To Do"
+statuses: ["To Do", "In Progress", "Done"]
+labels: ["bugfix", "feature", "documentation", "improvement", "refactor", "cross-platform", "plugin-system", "legacy-import"]
+definition_of_done:
+  - "Acceptance criteria are satisfied or explicitly updated."
+  - "Relevant tests or checks were run and recorded in the task notes."
+  - "User-facing behavior changes are reflected in docs when applicable."
+  - "Final summary explains what changed and any residual risk."
+date_format: yyyy-mm-dd
+max_column_width: 20
+default_editor: "helix"
+auto_open_browser: false
+default_port: 6420
+remote_operations: false
+auto_commit: false
+filesystem_only: true
+bypass_git_hooks: false
+check_active_branches: false
+active_branch_days: 30
+task_prefix: "task"
+backlog_directory: "docs/backlog"
