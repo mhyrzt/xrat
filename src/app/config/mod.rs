@@ -25,8 +25,8 @@ pub use mmdb::MmdbSettings;
 pub use parser::ParserSettings;
 pub use path_settings::PathSettings;
 pub use proxy::{
-    AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
-    ShadowsocksSettings, SniffingSettings, SocksSettings,
+    AuthSettings, FragmentSettings, HttpSettings, LogSettings, MuxSettings, NetworkSettings,
+    RotationSettings, RuntimeSettings, ShadowsocksSettings, SniffingSettings, SocksSettings,
 };
 pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};

@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use super::super::SecretString;
 use super::super::defaults;
 use super::types::{
-    AuthSettings, HttpSettings, LogSettings, RotationSettings, RuntimeSettings,
-    ShadowsocksSettings, SniffingSettings, SocksSettings, StatsSettings,
+    AuthSettings, FragmentSettings, HttpSettings, LogSettings, MuxSettings, NetworkSettings,
+    RotationSettings, RuntimeSettings, ShadowsocksSettings, SniffingSettings, SocksSettings,
+    StatsSettings,
 };
 
 impl Default for RuntimeSettings {
@@ -19,6 +20,43 @@ impl Default for RuntimeSettings {
             shadowsocks: ShadowsocksSettings::default(),
             sniffing: SniffingSettings::default(),
             stats: StatsSettings::default(),
+            mux: MuxSettings::default(),
+            fragment: FragmentSettings::default(),
+            network: NetworkSettings::default(),
+        }
+    }
+}
+
+impl Default for MuxSettings {
+    fn default() -> Self {
+        Self {
+            enabled: defaults::DEFAULT_MUX_ENABLED,
+            concurrency: defaults::DEFAULT_MUX_CONCURRENCY,
+            xudp_concurrency: defaults::DEFAULT_MUX_XUDP_CONCURRENCY,
+            xudp_proxy_udp443: defaults::DEFAULT_MUX_XUDP_PROXY_UDP443.to_string(),
+        }
+    }
+}
+
+impl Default for FragmentSettings {
+    fn default() -> Self {
+        Self {
+            enabled: defaults::DEFAULT_FRAGMENT_ENABLED,
+            packets_mode: defaults::DEFAULT_FRAGMENT_PACKETS_MODE.to_string(),
+            packets: defaults::DEFAULT_FRAGMENT_PACKETS,
+            length: defaults::DEFAULT_FRAGMENT_LENGTH,
+            interval: defaults::DEFAULT_FRAGMENT_INTERVAL,
+        }
+    }
+}
+
+impl Default for NetworkSettings {
+    fn default() -> Self {
+        Self {
+            interface: defaults::DEFAULT_NETWORK_INTERFACE.to_string(),
+            bind_address: defaults::DEFAULT_NETWORK_BIND_ADDRESS.to_string(),
+            mark: defaults::DEFAULT_NETWORK_MARK,
+            listen_interface: defaults::DEFAULT_NETWORK_LISTEN_INTERFACE.to_string(),
         }
     }
 }

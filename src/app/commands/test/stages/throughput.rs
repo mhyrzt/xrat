@@ -17,6 +17,7 @@ pub(crate) async fn run_download_stage(
         &settings.xray_binary_path,
         settings.xray_startup_timeout,
         settings.download_timeout,
+        &settings.gen_options,
     )
     .await;
     let failure_reason = download_result.failure_reason.clone();
@@ -62,6 +63,7 @@ pub(crate) async fn run_upload_stage(
         settings.xray_startup_timeout,
         settings.upload_timeout,
         settings.upload_payload_bytes,
+        &settings.gen_options,
     )
     .await;
     let failure_reason = upload_result.failure_reason.clone();

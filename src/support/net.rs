@@ -14,3 +14,22 @@ pub fn primary_local_ip() -> Option<String> {
     socket.connect("8.8.8.8:80").ok()?;
     socket.local_addr().ok().map(|addr| addr.ip().to_string())
 }
+
+/// Resolve a network interface name to a bindable address, preferring IPv4.
+/// Used to turn an inbound `listen_interface` setting into a concrete `listen`
+/// address. Returns `None` when the interface is unknown or has no address.
+pub fn interface_address(name: &str) -> Option<String> {
+    let addrs = if_addrs::get_if_addrs().ok()?;
+    let mut ipv6: Option<String> = None;
+    for iface in addrs {
+        if iface.name != name {
+            continue;
+        }
+        let ip = iface.ip();
+        if ip.is_ipv4() {
+            return Some(ip.to_string());
+        }
+        ipv6.get_or_insert_with(|| ip.to_string());
+    }
+    ipv6
+}

@@ -15,6 +15,19 @@ fn parses_minimal_config_with_defaults() {
         vec!["icmp".to_string(), "real_delay".to_string()]
     );
     assert_eq!(config.runtime.socks.port, 18200);
+    assert!(!config.runtime.mux.enabled);
+    assert_eq!(config.runtime.mux.concurrency, 8);
+    assert_eq!(config.runtime.mux.xudp_concurrency, 0);
+    assert_eq!(config.runtime.mux.xudp_proxy_udp443, "reject");
+    assert!(!config.runtime.fragment.enabled);
+    assert_eq!(config.runtime.fragment.packets_mode, "tlshello");
+    assert_eq!(config.runtime.fragment.packets, [1, 3]);
+    assert_eq!(config.runtime.fragment.length, [100, 200]);
+    assert_eq!(config.runtime.fragment.interval, [10, 20]);
+    assert_eq!(config.runtime.network.interface, "");
+    assert_eq!(config.runtime.network.bind_address, "");
+    assert_eq!(config.runtime.network.mark, 0);
+    assert_eq!(config.runtime.network.listen_interface, "");
     assert_eq!(config.testing.concurrency, 0);
     assert_eq!(
         config.testing.order,

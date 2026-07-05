@@ -6,18 +6,31 @@ impl<'a> RuntimeService<'a> {
         config: &ConfigRecord,
     ) -> crate::app::Result<ResolvedLaunch> {
         let runtime = &self.context.app_config.runtime;
+        // When listen_interface is set, all managed inbounds bind to that
+        // interface's address instead of their configured host.
+        let listen_addr = resolve_listen_interface_addr(runtime)?;
+        let socks_host = listen_addr
+            .clone()
+            .unwrap_or_else(|| runtime.socks.host.clone());
+        let http_host = listen_addr
+            .clone()
+            .unwrap_or_else(|| runtime.http.host.clone());
+        let shadowsocks_host = listen_addr
+            .clone()
+            .unwrap_or_else(|| runtime.shadowsocks.host.clone());
+
         let socks = runtime.socks.enabled.then_some((
-            runtime.socks.host.as_str(),
+            socks_host.as_str(),
             runtime.socks.port,
             runtime.socks.udp,
         ));
         let http = runtime
             .http
             .enabled
-            .then_some((runtime.http.host.as_str(), runtime.http.port));
+            .then_some((http_host.as_str(), runtime.http.port));
         let shadowsocks = if runtime.shadowsocks.enabled {
             Some((
-                runtime.shadowsocks.host.as_str(),
+                shadowsocks_host.as_str(),
                 runtime.shadowsocks.port,
                 runtime.shadowsocks.method.as_str(),
                 runtime.shadowsocks.password.resolve()?,
@@ -37,8 +50,15 @@ impl<'a> RuntimeService<'a> {
             return self.resolve_singbox_launch(&node, socks, http, shadowsocks);
         }
 
-        let mut xray_config = generate_runtime_config_for_inbounds(&node, socks, http)
-            .map_err(AppError::InvalidArgument)?;
+        let gen_options = build_xray_gen_options(runtime);
+        if gen_options.bind_address.is_some() {
+            tracing::warn!(
+                "[runtime.network].bind_address is set but the Xray engine cannot bind a source address; ignoring it"
+            );
+        }
+        let mut xray_config =
+            generate_runtime_config_for_inbounds_with_options(&node, socks, http, &gen_options)
+                .map_err(AppError::InvalidArgument)?;
         if let Some((host, port, method, password, network)) = &shadowsocks {
             xray_config.inbounds.push(Inbound {
                 tag: "shadowsocks-in".to_string(),

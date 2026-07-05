@@ -14,6 +14,7 @@ pub(super) fn node_to_outbound(node: &Node, tag: &str) -> Result<Outbound, Strin
         protocol,
         settings,
         stream_settings,
+        mux: None,
     })
 }
 

@@ -38,6 +38,7 @@ async fn download_speed_check_rejects_invalid_config() {
         Path::new("xray"),
         Duration::from_secs(5),
         Duration::from_secs(10),
+        &crate::xray::XrayGenOptions::default(),
     )
     .await;
 

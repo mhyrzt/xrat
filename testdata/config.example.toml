@@ -81,6 +81,26 @@ metadata_only = false
 domains_excluded = []
 ips_excluded = []
 
+[runtime.mux]
+enabled = true
+concurrency = 4
+xudp_concurrency = 16
+xudp_proxy_udp443 = "skip"
+
+[runtime.fragment]
+enabled = true
+packets_mode = "tlshello" # "tlshello" | "range"
+packets = [1, 3]          # used only when packets_mode = "range"
+length = [100, 200]
+interval = [10, 20]
+
+[runtime.network]
+interface = "eth0"
+# Xray ignores bind_address (no source-IP sockopt); kept here to document shape.
+bind_address = "192.168.1.10"
+mark = 255
+listen_interface = ""
+
 [routing]
 domain_strategy = "IPIfNonMatch" # "AsIs" | "IPIfNonMatch" | "IPOnDemand"
 

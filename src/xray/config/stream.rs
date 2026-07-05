@@ -109,5 +109,6 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         tcp_settings,
         grpc_settings,
         xhttp_settings,
+        sockopt: None,
     }))
 }

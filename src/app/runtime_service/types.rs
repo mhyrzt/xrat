@@ -7,6 +7,9 @@ pub(super) use tokio::time::timeout;
 pub(super) use crate::app::AppError;
 pub(super) use crate::app::config::defaults;
 pub(super) use crate::app::context::AppContext;
+pub(super) use crate::app::runtime_tuning::{
+    build_xray_gen_options, resolve_listen_interface_addr,
+};
 pub(super) use crate::db::{
     ConfigListFilter, ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord,
     RuntimeSessionStatus,
@@ -17,7 +20,9 @@ pub(super) use crate::singbox::{
     generate_singbox_runtime_config, process_mgmt as singbox_runtime,
 };
 pub(super) use crate::xray::config::{Inbound, enable_stats_api};
-pub(super) use crate::xray::{generate_runtime_config_for_inbounds, process_mgmt as xray_runtime};
+pub(super) use crate::xray::{
+    generate_runtime_config_for_inbounds_with_options, process_mgmt as xray_runtime,
+};
 
 pub(super) use crate::support::time::now_string;
 

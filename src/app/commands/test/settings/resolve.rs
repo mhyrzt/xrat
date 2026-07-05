@@ -80,5 +80,6 @@ pub(crate) fn resolve_test_settings(
         geoip_city_path,
         geoip_asn_path,
         geoip_lookup,
+        gen_options: crate::app::runtime_tuning::build_xray_gen_options(&app_config.runtime),
     })
 }

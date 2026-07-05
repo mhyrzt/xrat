@@ -41,6 +41,18 @@ pub struct Outbound {
     pub settings: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream_settings: Option<StreamSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mux: Option<Mux>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Mux {
+    pub enabled: bool,
+    pub concurrency: i32,
+    pub xudp_concurrency: i32,
+    #[serde(rename = "xudpProxyUDP443")]
+    pub xudp_proxy_udp443: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,6 +73,19 @@ pub struct StreamSettings {
     pub grpc_settings: Option<GrpcSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xhttp_settings: Option<XhttpSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sockopt: Option<Sockopt>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Sockopt {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interface: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mark: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dialer_proxy: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

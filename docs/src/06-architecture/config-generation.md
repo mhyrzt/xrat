@@ -427,6 +427,32 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
 }
 ```
 
+### Runtime Tuning
+
+Global runtime tuning from `config.toml` (`[runtime.mux]`, `[runtime.fragment]`,
+`[runtime.network]`) is **not** derived from `Node` data. It is applied as a
+post-build mutation of the generated config via
+`apply_runtime_tuning(&mut XrayConfig, &XrayGenOptions)`, mirroring how
+`enable_stats_api` mutates an already-built config. `XrayGenOptions` defaults to
+empty, so generated config is byte-identical to before unless a section is
+enabled.
+
+- **Mux** sets a `mux` object on the proxy outbound (`outbounds[0]`).
+- **Fragment** appends a `freedom` outbound tagged `fragment` and points the
+  proxy outbound at it via `streamSettings.sockopt.dialerProxy`.
+- **Interface/`mark`** set `streamSettings.sockopt.interface` / `.mark` on the
+  egress outbound — the `fragment` outbound when fragmentation is enabled,
+  otherwise the proxy outbound. A minimal `tcp` `streamSettings` is created for
+  socks/http upstreams that have none.
+- **`bind_address`** has no Xray `sockopt` equivalent and is intentionally not
+  emitted (a warning is logged at launch).
+- **`listen_interface`** is resolved to an interface address in the runtime
+  service and used as the inbound `listen` value; it does not affect probes.
+
+The same `XrayGenOptions` is threaded into probe config generation
+(`generate_probe_config_with_options`) so `xrat test`/`scan` exercise the same
+outbound behavior as the managed runtime.
+
 ## sing-box Config Generation
 
 Located in `src/singbox/config/`.

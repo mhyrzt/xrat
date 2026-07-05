@@ -273,6 +273,111 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
             }
         }
     }
+
+    validate_mux(&runtime.mux, errors);
+    validate_fragment(&runtime.fragment, errors);
+    validate_network(&runtime.network, errors);
+}
+
+fn validate_mux(mux: &crate::app::config::MuxSettings, errors: &mut Vec<Diagnostic>) {
+    if !(-1..=128).contains(&mux.concurrency) {
+        errors.push(Diagnostic::new(
+            "[runtime.mux].concurrency",
+            format!("value is {}", mux.concurrency),
+            "Xray accepts 1..=128 connections per Mux session; 0 means the default of 8 and -1 disables TCP Mux.",
+            "use -1, 0, or a value in 1..=128.",
+        ));
+    }
+    if !(-1..=1024).contains(&mux.xudp_concurrency) {
+        errors.push(Diagnostic::new(
+            "[runtime.mux].xudp_concurrency",
+            format!("value is {}", mux.xudp_concurrency),
+            "Xray accepts 1..=1024 for XUDP aggregation; 0 keeps the legacy path and -1 opts UDP out of Mux.",
+            "use -1, 0, or a value in 1..=1024.",
+        ));
+    }
+    if !matches!(mux.xudp_proxy_udp443.as_str(), "reject" | "allow" | "skip") {
+        errors.push(Diagnostic::new(
+            "[runtime.mux].xudp_proxy_udp443",
+            format!("unsupported value: {}", mux.xudp_proxy_udp443),
+            "this controls how QUIC/UDP 443 traffic is handled when XUDP is active.",
+            "use one of: reject, allow, skip.",
+        ));
+    }
+}
+
+fn validate_fragment(
+    fragment: &crate::app::config::FragmentSettings,
+    errors: &mut Vec<Diagnostic>,
+) {
+    match fragment.packets_mode.trim() {
+        "tlshello" => {}
+        "range" => {
+            if fragment.packets[0] == 0 || fragment.packets[0] > fragment.packets[1] {
+                errors.push(Diagnostic::new(
+                    "[runtime.fragment].packets",
+                    format!(
+                        "value is [{}, {}]",
+                        fragment.packets[0], fragment.packets[1]
+                    ),
+                    "in range mode, packets is a positive write range with min <= max.",
+                    "use a range like [1, 3] where both values are >= 1.",
+                ));
+            }
+        }
+        other => {
+            errors.push(Diagnostic::new(
+                "[runtime.fragment].packets_mode",
+                format!("unsupported value: {other}"),
+                "packets_mode selects how outgoing writes are fragmented.",
+                "use \"tlshello\" or \"range\".",
+            ));
+        }
+    }
+    if fragment.length[0] == 0 || fragment.length[0] > fragment.length[1] {
+        errors.push(Diagnostic::new(
+            "[runtime.fragment].length",
+            format!("value is [{}, {}]", fragment.length[0], fragment.length[1]),
+            "length is a positive byte range with min <= max.",
+            "use a range like [100, 200] where both values are >= 1.",
+        ));
+    }
+    if fragment.interval[0] > fragment.interval[1] {
+        errors.push(Diagnostic::new(
+            "[runtime.fragment].interval",
+            format!(
+                "value is [{}, {}]",
+                fragment.interval[0], fragment.interval[1]
+            ),
+            "interval is a millisecond range with min <= max.",
+            "use a range like [10, 20].",
+        ));
+    }
+}
+
+fn validate_network(network: &crate::app::config::NetworkSettings, errors: &mut Vec<Diagnostic>) {
+    if !network.bind_address.trim().is_empty()
+        && network
+            .bind_address
+            .trim()
+            .parse::<std::net::IpAddr>()
+            .is_err()
+    {
+        errors.push(Diagnostic::new(
+            "[runtime.network].bind_address",
+            format!("invalid address: {}", network.bind_address),
+            "bind_address must be a literal source IP. Note: the Xray engine cannot honor source-IP binding and will ignore it.",
+            "leave it empty, or set a valid IPv4/IPv6 address.",
+        ));
+    }
+    if network.mark < 0 {
+        errors.push(Diagnostic::new(
+            "[runtime.network].mark",
+            format!("value is {}", network.mark),
+            "mark is an fwmark applied to outbound sockets and cannot be negative; 0 means unset.",
+            "use 0 to disable, or a positive fwmark value.",
+        ));
+    }
 }
 
 fn validate_database(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
@@ -557,6 +662,96 @@ mod tests {
         assert!(diagnostic.problem.contains("bad"));
         assert!(diagnostic.fix.contains("xray"));
         assert!(!diagnostic.reason.is_empty());
+    }
+
+    #[test]
+    fn rejects_invalid_mux_values() {
+        let mut config = AppConfig::default();
+        config.runtime.mux.concurrency = 200;
+        config.runtime.mux.xudp_concurrency = 5000;
+        config.runtime.mux.xudp_proxy_udp443 = "nope".to_string();
+
+        let errors = errors_for(&config);
+        assert!(
+            find(&errors, "[runtime.mux].concurrency")
+                .fix
+                .contains("128")
+        );
+        assert!(
+            find(&errors, "[runtime.mux].xudp_concurrency")
+                .fix
+                .contains("1024")
+        );
+        assert!(
+            find(&errors, "[runtime.mux].xudp_proxy_udp443")
+                .fix
+                .contains("reject")
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_fragment_ranges() {
+        let mut config = AppConfig::default();
+        config.runtime.fragment.packets_mode = "range".to_string();
+        config.runtime.fragment.packets = [0, 3];
+        config.runtime.fragment.length = [200, 100];
+        config.runtime.fragment.interval = [30, 10];
+
+        let errors = errors_for(&config);
+        assert!(
+            !find(&errors, "[runtime.fragment].packets")
+                .reason
+                .is_empty()
+        );
+        assert!(!find(&errors, "[runtime.fragment].length").reason.is_empty());
+        assert!(
+            !find(&errors, "[runtime.fragment].interval")
+                .reason
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_network_bind_address() {
+        let mut config = AppConfig::default();
+        config.runtime.network.bind_address = "not-an-ip".to_string();
+        config.runtime.network.mark = -1;
+
+        let errors = errors_for(&config);
+        assert!(
+            find(&errors, "[runtime.network].bind_address")
+                .problem
+                .contains("not-an-ip")
+        );
+        assert!(!find(&errors, "[runtime.network].mark").reason.is_empty());
+    }
+
+    #[test]
+    fn rejects_unknown_fragment_packets_mode() {
+        let mut config = AppConfig::default();
+        config.runtime.fragment.packets_mode = "bogus".to_string();
+
+        let errors = errors_for(&config);
+        assert!(
+            find(&errors, "[runtime.fragment].packets_mode")
+                .fix
+                .contains("range")
+        );
+    }
+
+    #[test]
+    fn accepts_valid_fragment_packet_range() {
+        let mut config = AppConfig::default();
+        config.runtime.fragment.packets_mode = "range".to_string();
+        config.runtime.fragment.packets = [1, 3];
+
+        let errors = errors_for(&config);
+        assert!(
+            !errors
+                .iter()
+                .any(|diagnostic| diagnostic.field == "[runtime.fragment].packets"),
+            "valid packets range should not error: {errors:?}"
+        );
     }
 
     #[test]

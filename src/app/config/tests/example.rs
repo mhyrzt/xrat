@@ -38,6 +38,19 @@ fn parses_example_config() {
             env: "XRAT_SHADOWSOCKS_PASSWORD".to_string()
         }
     );
+    assert!(config.runtime.mux.enabled);
+    assert_eq!(config.runtime.mux.concurrency, 4);
+    assert_eq!(config.runtime.mux.xudp_concurrency, 16);
+    assert_eq!(config.runtime.mux.xudp_proxy_udp443, "skip");
+    assert!(config.runtime.fragment.enabled);
+    assert_eq!(config.runtime.fragment.packets_mode, "tlshello");
+    assert_eq!(config.runtime.fragment.packets, [1, 3]);
+    assert_eq!(config.runtime.fragment.length, [100, 200]);
+    assert_eq!(config.runtime.fragment.interval, [10, 20]);
+    assert_eq!(config.runtime.network.interface, "eth0");
+    assert_eq!(config.runtime.network.bind_address, "192.168.1.10");
+    assert_eq!(config.runtime.network.mark, 255);
+    assert_eq!(config.runtime.network.listen_interface, "");
     assert_eq!(config.routing.domain_strategy, "IPIfNonMatch");
     assert_eq!(config.geo.profiles.len(), 2);
     assert_eq!(config.dns.servers.len(), 5);

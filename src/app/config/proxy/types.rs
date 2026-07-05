@@ -16,6 +16,37 @@ pub struct RuntimeSettings {
     pub shadowsocks: ShadowsocksSettings,
     pub sniffing: SniffingSettings,
     pub stats: StatsSettings,
+    pub mux: MuxSettings,
+    pub fragment: FragmentSettings,
+    pub network: NetworkSettings,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct MuxSettings {
+    pub enabled: bool,
+    pub concurrency: i32,
+    pub xudp_concurrency: i32,
+    pub xudp_proxy_udp443: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct FragmentSettings {
+    pub enabled: bool,
+    pub packets_mode: String,
+    pub packets: [u32; 2],
+    pub length: [u32; 2],
+    pub interval: [u32; 2],
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct NetworkSettings {
+    pub interface: String,
+    pub bind_address: String,
+    pub mark: i64,
+    pub listen_interface: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]

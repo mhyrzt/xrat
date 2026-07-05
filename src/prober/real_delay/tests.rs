@@ -44,6 +44,7 @@ async fn test_real_delay_check_invalid_config() {
         Path::new("xray"),
         Duration::from_secs(5),
         Duration::from_secs(10),
+        &crate::xray::XrayGenOptions::default(),
     )
     .await;
 

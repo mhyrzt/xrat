@@ -53,7 +53,9 @@ pub(crate) struct ResolvedTestSettings {
     pub(crate) geoip_city_path: PathBuf,
     pub(crate) geoip_asn_path: PathBuf,
     pub(crate) geoip_lookup: Arc<dyn GeoIpLookup>,
+    pub(crate) gen_options: XrayGenOptions,
 }
 use std::sync::Arc;
 
 use crate::support::geoip::GeoIpLookup;
+use crate::xray::XrayGenOptions;

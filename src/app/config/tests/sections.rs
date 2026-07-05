@@ -39,6 +39,49 @@ fn rotation_refresh_subscriptions_defaults_off_and_parses() {
 }
 
 #[test]
+fn mux_section_parses_overrides() {
+    assert!(!AppConfig::default().runtime.mux.enabled);
+
+    let config: AppConfig = toml::from_str(
+        "[runtime.mux]\nenabled = true\nconcurrency = 16\nxudp_concurrency = 32\nxudp_proxy_udp443 = \"allow\"\n",
+    )
+    .expect("parse");
+    assert!(config.runtime.mux.enabled);
+    assert_eq!(config.runtime.mux.concurrency, 16);
+    assert_eq!(config.runtime.mux.xudp_concurrency, 32);
+    assert_eq!(config.runtime.mux.xudp_proxy_udp443, "allow");
+}
+
+#[test]
+fn fragment_section_parses_overrides() {
+    assert!(!AppConfig::default().runtime.fragment.enabled);
+
+    let config: AppConfig = toml::from_str(
+        "[runtime.fragment]\nenabled = true\npackets_mode = \"range\"\npackets = [2, 4]\nlength = [40, 80]\ninterval = [0, 5]\n",
+    )
+    .expect("parse");
+    assert!(config.runtime.fragment.enabled);
+    assert_eq!(config.runtime.fragment.packets_mode, "range");
+    assert_eq!(config.runtime.fragment.packets, [2, 4]);
+    assert_eq!(config.runtime.fragment.length, [40, 80]);
+    assert_eq!(config.runtime.fragment.interval, [0, 5]);
+}
+
+#[test]
+fn network_section_parses_overrides() {
+    assert_eq!(AppConfig::default().runtime.network.interface, "");
+
+    let config: AppConfig = toml::from_str(
+        "[runtime.network]\ninterface = \"wg0\"\nbind_address = \"10.0.0.2\"\nmark = 100\nlisten_interface = \"eth1\"\n",
+    )
+    .expect("parse");
+    assert_eq!(config.runtime.network.interface, "wg0");
+    assert_eq!(config.runtime.network.bind_address, "10.0.0.2");
+    assert_eq!(config.runtime.network.mark, 100);
+    assert_eq!(config.runtime.network.listen_interface, "eth1");
+}
+
+#[test]
 fn subscription_settings_default_to_disabled_daily() {
     let config = AppConfig::default();
     assert!(!config.subscriptions.auto_refresh);

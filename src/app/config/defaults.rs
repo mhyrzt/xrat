@@ -35,6 +35,22 @@ pub const DEFAULT_STATS_ENABLED: bool = true;
 pub const DEFAULT_STATS_HOST: &str = "127.0.0.1";
 pub const DEFAULT_STATS_PORT: u16 = 10085;
 
+pub const DEFAULT_MUX_ENABLED: bool = false;
+pub const DEFAULT_MUX_CONCURRENCY: i32 = 8;
+pub const DEFAULT_MUX_XUDP_CONCURRENCY: i32 = 0;
+pub const DEFAULT_MUX_XUDP_PROXY_UDP443: &str = "reject";
+
+pub const DEFAULT_FRAGMENT_ENABLED: bool = false;
+pub const DEFAULT_FRAGMENT_PACKETS_MODE: &str = "tlshello";
+pub const DEFAULT_FRAGMENT_PACKETS: [u32; 2] = [1, 3];
+pub const DEFAULT_FRAGMENT_LENGTH: [u32; 2] = [100, 200];
+pub const DEFAULT_FRAGMENT_INTERVAL: [u32; 2] = [10, 20];
+
+pub const DEFAULT_NETWORK_INTERFACE: &str = "";
+pub const DEFAULT_NETWORK_BIND_ADDRESS: &str = "";
+pub const DEFAULT_NETWORK_MARK: i64 = 0;
+pub const DEFAULT_NETWORK_LISTEN_INTERFACE: &str = "";
+
 pub const DEFAULT_SNIFFING_ENABLED: bool = true;
 pub const DEFAULT_SNIFFING_DEST_OVERRIDE: &[&str] = &["http", "tls", "quic"];
 pub const DEFAULT_SNIFFING_ROUTE_ONLY: bool = true;

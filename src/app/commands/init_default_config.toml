@@ -87,6 +87,49 @@ level = "warning"
 # # Transport: "tcp", "udp", or "tcp,udp".
 # network = "tcp,udp"
 
+# Client-side Mux (multiplexing) for generated Xray outbounds. Disabled by
+# default: Mux trades fewer TCP handshakes for worse throughput, so it can hurt
+# downloads, video, and speed tests. Enable only for many short-lived requests.
+# [runtime.mux]
+# enabled = false
+# # Concurrent logical connections per Mux session. 0 = Xray default (8);
+# # 1..=128 allowed; -1 disables TCP Mux.
+# concurrency = 8
+# # XUDP aggregation concurrency. 0 = legacy path; 1..=1024 allowed; -1 opts UDP
+# # out of Mux.
+# xudp_concurrency = 0
+# # QUIC/UDP 443 handling under XUDP: "reject", "allow", or "skip".
+# xudp_proxy_udp443 = "reject"
+
+# TCP fragmentation for generated Xray outbounds. Splits early TLS ClientHello
+# writes to evade some SNI-based censorship. Environment-dependent: it can help
+# or hurt depending on network and destination. Disabled by default.
+# [runtime.fragment]
+# enabled = false
+# # Which writes to fragment: "tlshello" (split the TLS ClientHello) or "range"
+# # (use the packets byte range below).
+# packets_mode = "tlshello"
+# # Write byte range [min, max], used only when packets_mode = "range".
+# packets = [1, 3]
+# # Byte length range [min, max].
+# length = [100, 200]
+# # Millisecond delay range [min, max] between fragments.
+# interval = [10, 20]
+
+# Network interface / source binding for generated runtime traffic.
+# [runtime.network]
+# # Outbound interface name to bind egress to (Xray sockopt.interface,
+# # SO_BINDTODEVICE on Linux). Empty = OS default routing.
+# interface = ""
+# # Outbound source IP. NOTE: the Xray engine cannot bind a source address and
+# # will ignore this; it is validated but only honored by future engines.
+# bind_address = ""
+# # fwmark applied to outbound sockets (Xray sockopt.mark). 0 = unset.
+# mark = 0
+# # Bind managed inbounds (socks/http/shadowsocks) to this interface's address
+# # instead of their configured host. Empty = use each inbound's host.
+# listen_interface = ""
+
 # Automatic config rotation: periodically switch to a healthy config.
 [runtime.rotation]
 enabled = true

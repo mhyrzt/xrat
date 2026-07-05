@@ -1,10 +1,12 @@
 mod generator;
 mod outbound;
 mod stream;
+mod tuning;
 mod types;
 
 use crate::model::Node;
 
+pub use tuning::{FragmentOptions, MuxOptions, XrayGenOptions};
 pub use types::{
     GrpcSettings, Inbound, LogConfig, Outbound, StreamSettings, TcpSettings, TlsSettings,
     WsSettings, XrayConfig,
@@ -12,6 +14,14 @@ pub use types::{
 
 pub fn generate_probe_config(node: &Node, local_port: u16) -> Result<XrayConfig, String> {
     generator::generate_probe_config(node, local_port)
+}
+
+pub fn generate_probe_config_with_options(
+    node: &Node,
+    local_port: u16,
+    options: &XrayGenOptions,
+) -> Result<XrayConfig, String> {
+    generator::generate_probe_config_with_options(node, local_port, options)
 }
 
 pub fn generate_runtime_config(
@@ -40,6 +50,15 @@ pub fn generate_runtime_config_for_inbounds(
     http: Option<(&str, u16)>,
 ) -> Result<XrayConfig, String> {
     generator::generate_runtime_config_for_inbounds(node, socks, http)
+}
+
+pub fn generate_runtime_config_for_inbounds_with_options(
+    node: &Node,
+    socks: Option<(&str, u16, bool)>,
+    http: Option<(&str, u16)>,
+    options: &XrayGenOptions,
+) -> Result<XrayConfig, String> {
+    generator::generate_runtime_config_for_inbounds_with_options(node, socks, http, options)
 }
 
 pub fn enable_stats_api(config: &mut XrayConfig, host: &str, port: u16) {

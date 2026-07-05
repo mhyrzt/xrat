@@ -11,7 +11,7 @@ Override with `--config <path>` or the `XRAT_PATH` environment variable.
 | ------------ | -------------------------------------------- |
 | `[paths]`    | Binary paths for xray, v2ray, sing-box       |
 | `[database]` | Backend selection and connection settings    |
-| `[runtime]`  | Engine, rotation, logging, inbound settings  |
+| `[runtime]`  | Engine, rotation, logging, inbound and outbound tuning |
 | `[routing]`  | Domain strategy, direct/block rules          |
 | `[geo]`      | GeoIP auto-update settings                   |
 | `[dns]`      | DNS query strategy, servers, hosts           |
@@ -99,6 +99,17 @@ route_only = true
 metadata_only = false
 domains_excluded = []
 ips_excluded = []
+
+# Optional Xray outbound tuning (all disabled/empty by default).
+[runtime.mux]
+enabled = false
+
+[runtime.fragment]
+enabled = false
+
+[runtime.network]
+interface = ""
+listen_interface = ""
 
 [routing]
 domain_strategy = "IPIfNonMatch"

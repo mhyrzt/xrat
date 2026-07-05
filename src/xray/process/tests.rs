@@ -30,6 +30,7 @@ async fn test_xray_process_lifecycle() {
             protocol: "freedom".to_string(),
             settings: serde_json::json!({}),
             stream_settings: None,
+            mux: None,
         }],
         api: None,
         stats: None,

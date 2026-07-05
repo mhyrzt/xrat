@@ -299,6 +299,78 @@ port = 10085
 | `host`    | string  | `"127.0.0.1"` | Listen host for the stats controller          |
 | `port`    | integer | `10085`       | Listen port for the stats controller          |
 
+### [runtime.mux]
+
+Client-side Mux (multiplexing) for generated Xray outbounds, applied to the
+proxy outbound of both runtime and probe configs. Disabled by default: Mux
+reduces TCP handshakes but commonly hurts throughput (downloads, video, speed
+tests), so enable it only for workloads dominated by many short-lived requests.
+
+```toml
+[runtime.mux]
+enabled = false
+concurrency = 8
+xudp_concurrency = 0
+xudp_proxy_udp443 = "reject"
+```
+
+| Field               | Type    | Default    | Description                                                                 |
+| ------------------- | ------- | ---------- | --------------------------------------------------------------------------- |
+| `enabled`           | boolean | `false`    | Emit a `mux` object on the proxy outbound                                    |
+| `concurrency`       | integer | `8`        | Logical connections per Mux session. `0` = Xray default (8); `1..=128`; `-1` disables TCP Mux |
+| `xudp_concurrency`  | integer | `0`        | XUDP aggregation concurrency. `0` = legacy path; `1..=1024`; `-1` opts UDP out of Mux |
+| `xudp_proxy_udp443` | string  | `"reject"` | QUIC/UDP 443 handling under XUDP: `reject`, `allow`, or `skip`               |
+
+### [runtime.fragment]
+
+TCP fragmentation for generated Xray outbounds. When enabled, the proxy outbound
+is chained through a `freedom` outbound (`sockopt.dialerProxy`) that splits early
+outgoing TCP writes (typically the TLS ClientHello). This is a
+network-circumvention feature whose effect depends on network, transport, and
+destination — it can help against some SNI-based filtering but may also hurt.
+Disabled by default.
+
+```toml
+[runtime.fragment]
+enabled = false
+packets_mode = "tlshello"
+packets = [1, 3]
+length = [100, 200]
+interval = [10, 20]
+```
+
+| Field          | Type      | Default        | Description                                                              |
+| -------------- | --------- | -------------- | ----------------------------------------------------------------------- |
+| `enabled`      | boolean   | `false`        | Emit the `freedom` fragment outbound and chain the proxy through it     |
+| `packets_mode` | string    | `"tlshello"`   | `"tlshello"` (fragment the TLS ClientHello) or `"range"` (use `packets`) |
+| `packets`      | integer[] | `[1, 3]`       | Write range `[min, max]` (min ≥ 1, min ≤ max). Used only in `range` mode |
+| `length`       | integer[] | `[100, 200]`   | Byte length range `[min, max]` (min ≥ 1, min ≤ max)                     |
+| `interval`     | integer[] | `[10, 20]`     | Millisecond delay range `[min, max]` (min ≤ max)                        |
+
+### [runtime.network]
+
+Interface and source binding for managed runtime traffic.
+
+```toml
+[runtime.network]
+interface = ""
+bind_address = ""
+mark = 0
+listen_interface = ""
+```
+
+| Field              | Type    | Default | Description                                                                                       |
+| ------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `interface`        | string  | `""`    | Outbound interface to bind egress to (Xray `sockopt.interface`, `SO_BINDTODEVICE` on Linux)       |
+| `bind_address`     | string  | `""`    | Outbound source IP. **The Xray engine cannot bind a source address and ignores this** (a warning is logged); validated for shape only |
+| `mark`             | integer | `0`     | fwmark applied to outbound sockets (Xray `sockopt.mark`). `0` = unset                              |
+| `listen_interface` | string  | `""`    | Bind managed inbounds (socks/http/shadowsocks) to this interface's address instead of their host  |
+
+> Interface binding (`interface`, `mark`) and `listen_interface` are
+> Linux-focused. `interface` requires a real device name; `listen_interface`
+> must resolve to a bindable address or the runtime fails to launch. System-wide
+> TUN capture is tracked separately and not provided here.
+
 ---
 
 ## [routing]
