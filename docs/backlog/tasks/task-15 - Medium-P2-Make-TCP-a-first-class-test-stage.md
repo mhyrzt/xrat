@@ -1,9 +1,10 @@
 ---
 id: TASK-15
 title: 'Medium, P2: Make TCP a first-class test stage'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-07-05 14:43'
+updated_date: '2026-07-06 12:09'
 labels:
   - legacy-import
   - feature
