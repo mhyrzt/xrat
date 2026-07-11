@@ -1,15 +1,16 @@
 ---
 id: TASK-16
 title: 'High, P1: Improve config validation diagnostics'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-05 14:43'
+updated_date: '2026-07-11 21:22'
 labels:
   - legacy-import
   - improvement
 dependencies: []
 priority: high
-ordinal: 1000
+ordinal: 3000
 ---
 
 ## Description
@@ -110,3 +111,31 @@ For wrong types, prefer messages like:
 - Should `xrat init` comments be updated to mention common validation mistakes,
   or should the validator alone carry that guidance?
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. error.rs: fix ConfigToml thiserror message to interpolate {0} for real toml line/col detail.
+2. validate.rs: parse file as toml::Value before AppConfig deserialize; syntax failure becomes structural diagnostic with real toml error.
+3. Add helpers: check_scalar_enum, check_string_array_enum, check_duration_field operating on toml::Value subtrees.
+4. Wire helpers to testing.order, testing.failure_policy, database.backend, testing.geoip.backend/.fallback, testing.geoip.remote.provider (real enums) and runtime.engine, routing.domain_strategy, dns.query_strategy (plain strings today, add accepted-list checks).
+5. Skip full AppConfig deserialize attempt when Value-level diagnostics found; otherwise fall back to existing serde-based validate_config path unchanged.
+6. Add validate_geo/validate_routing/validate_dns functions closing current validation gaps.
+7. Tests per Verification list: bad order entry, bad failure_policy, string-typed timeout, broken TOML syntax, valid config unchanged output.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Implemented: error.rs ConfigToml now interpolates {0} so the real toml::de::Error (with line/col) surfaces instead of a static message. validate.rs collect_errors now reads file contents once, parses as toml::Value (via toml::from_str::<toml::Value>, not Value::from_str which only parses a single value literal not a document - caught this via a failing test and fixed), and runs check_known_fields against it before attempting AppConfig deserialize; syntax errors get a structural diagnostic with the real toml error, field-level diagnostics short-circuit before the noisier generic serde-based fallback.
+Helpers: check_scalar_enum, check_string_array_enum, check_duration_field, operating on toml::Value via get_path; enum accepted-value tables (canonical + aliases) for testing.order, testing.failure_policy, database.backend, testing.geoip.backend/.fallback, testing.geoip.remote.provider.
+Scope decision: did NOT add validation for runtime.engine, routing.domain_strategy, dns.query_strategy - these are plain String fields that never block deserialization (unlike the true Rust enums above), so they don't hit the "opaque parse failure" problem this task targets. runtime.engine already has a working post-deserialize check. Adding accepted-value lists for domain_strategy/query_strategy would mean guessing xray vs sing-box accepted values not sourced from the task, so left as a follow-up decision rather than guessed.
+Tests added: 8 new tests in validate.rs covering unknown order entry, unknown failure_policy, string-typed duration, unknown database backend, unknown geoip backend, invalid TOML syntax, and a valid-config-on-disk regression check; existing 22 validate.rs tests still pass unchanged (no behavior regression on the semantic post-deserialize path).
+cargo fmt/clippy clean. cargo test --locked: 647/647 passed.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Fixed AppError::ConfigToml to interpolate the real toml::de::Error (line/col) instead of a static message. Added a toml::Value pre-pass in validate.rs's collect_errors that runs before AppConfig deserialization: syntax errors get a structural diagnostic with the real toml error, and new reusable helpers (check_scalar_enum, check_string_array_enum, check_duration_field) report field-level diagnostics for testing.order, testing.failure_policy, database.backend, and GeoIP backend/fallback/provider — the enum-backed fields that previously produced only an opaque generic parse failure. Field-level diagnostics short-circuit before the noisier serde-based fallback. Deliberately left runtime.engine/routing.domain_strategy/dns.query_strategy out of scope: they're plain strings that never block deserialization (not this task's problem), and guessing accepted values across xray/sing-box risked incorrect guidance. Verified with 8 new tests (bad order entry, bad failure_policy, string-typed duration, bad database/geoip backend, invalid TOML syntax, valid-config regression) plus all 22 existing validate.rs tests unchanged. cargo fmt/clippy clean, cargo test --locked: 647/647 passed.
+<!-- SECTION:FINAL_SUMMARY:END -->

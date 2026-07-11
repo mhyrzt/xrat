@@ -18,9 +18,16 @@ whether the file is valid.
 
 ## What it checks
 
+Enum-backed fields (`[testing].order`, `[testing].failure_policy`,
+`[database].backend`, GeoIP backend/provider settings) and integer duration
+fields are checked against the raw config file before it is deserialized, so
+an invalid value or wrong type is reported against the specific field instead
+of a generic parse failure.
+
 - **Runtime**: engine is one of `xray`, `v2ray`, `sing-box`; rotation
   `test_concurrency` is non-negative; rotation `test_stages` only contains known
-  stage names (`icmp`/`ping`, `real_delay`, `download`, and their aliases);
+  stage names (`icmp`/`ping`, `real_delay`, `download`, `tcp`, and their
+  aliases);
   enabled inbounds have a host and a non-zero, non-duplicated port; SOCKS auth
   and Shadowsocks material are present when enabled.
 - **Database**: when `backend = "postgres"`, validates user, database name,

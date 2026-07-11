@@ -5,7 +5,7 @@ pub enum AppError {
     #[error("application I/O failed")]
     Io(#[from] std::io::Error),
 
-    #[error("failed to parse application config")]
+    #[error("failed to parse application config: {0}")]
     ConfigToml(#[from] toml::de::Error),
 
     #[error(transparent)]

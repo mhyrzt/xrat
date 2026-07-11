@@ -149,6 +149,34 @@ fn collect_errors(args: &ValidateArgs) -> Vec<Diagnostic> {
         return errors;
     }
 
+    let contents = match std::fs::read_to_string(&args.path) {
+        Ok(contents) => contents,
+        Err(err) => {
+            errors.push(Diagnostic::structural(
+                format!("config file could not be read: {err}"),
+                "the file exists but could not be opened for reading.",
+                "check file permissions and that the path points at a regular file.",
+            ));
+            return errors;
+        }
+    };
+
+    match toml::from_str::<toml::Value>(&contents) {
+        Ok(value) => check_known_fields(&value, &mut errors),
+        Err(err) => {
+            errors.push(Diagnostic::structural(
+                format!("config file is not valid TOML: {err}"),
+                "the file could not be parsed as TOML syntax.",
+                "fix the reported syntax error, including quoting, commas, and table headers.",
+            ));
+            return errors;
+        }
+    }
+
+    if !errors.is_empty() {
+        return errors;
+    }
+
     match crate::app::config::load(&args.path) {
         Ok(config) => validate_config(&config, &mut errors),
         Err(err) => errors.push(Diagnostic::structural(
@@ -159,6 +187,225 @@ fn collect_errors(args: &ValidateArgs) -> Vec<Diagnostic> {
     }
 
     errors
+}
+
+const TEST_STAGE_ENUM: &[(&str, &[&str])] = &[
+    ("icmp", &["ping"]),
+    ("real_delay", &["real-delay"]),
+    ("download", &["download-speed"]),
+    ("tcp", &[]),
+];
+
+const FAILURE_POLICY_ENUM: &[(&str, &[&str])] = &[
+    ("continue", &[]),
+    ("skip_remaining", &["skip-remaining"]),
+    ("mark_failed", &["mark-failed"]),
+];
+
+const DATABASE_BACKEND_ENUM: &[(&str, &[&str])] = &[("sqlite", &[]), ("postgres", &[])];
+
+const GEOIP_BACKEND_ENUM: &[(&str, &[&str])] = &[
+    ("mmdb", &[]),
+    ("ip-whois", &["ipwhois"]),
+    ("ip-api", &["ipapi"]),
+    ("chain", &[]),
+    ("none", &[]),
+];
+
+const GEOIP_PROVIDER_ENUM: &[(&str, &[&str])] =
+    &[("ip-whois", &["ipwhois"]), ("ip-api", &["ipapi"])];
+
+/// Field-level checks against the raw TOML value, run before deserializing into
+/// `AppConfig`. These catch invalid enum values and wrong types on fields that
+/// would otherwise fail deserialization with only a generic parse error.
+fn check_known_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
+    check_string_array_enum(
+        value,
+        &["testing", "order"],
+        "[testing].order",
+        TEST_STAGE_ENUM,
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["testing", "failure_policy"],
+        "[testing].failure_policy",
+        FAILURE_POLICY_ENUM,
+        errors,
+    );
+    check_duration_field(
+        value,
+        &["testing", "tcp", "timeout"],
+        "[testing.tcp].timeout",
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["database", "backend"],
+        "[database].backend",
+        DATABASE_BACKEND_ENUM,
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["testing", "geoip", "backend"],
+        "[testing.geoip].backend",
+        GEOIP_BACKEND_ENUM,
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["testing", "geoip", "fallback"],
+        "[testing.geoip].fallback",
+        GEOIP_BACKEND_ENUM,
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["testing", "geoip", "remote", "provider"],
+        "[testing.geoip.remote].provider",
+        GEOIP_PROVIDER_ENUM,
+        errors,
+    );
+}
+
+fn get_path<'a>(value: &'a toml::Value, path: &[&str]) -> Option<&'a toml::Value> {
+    let mut current = value;
+    for segment in path {
+        current = current.as_table()?.get(*segment)?;
+    }
+    Some(current)
+}
+
+fn toml_kind(value: &toml::Value) -> &'static str {
+    match value {
+        toml::Value::String(_) => "a string",
+        toml::Value::Integer(_) => "an integer",
+        toml::Value::Float(_) => "a float",
+        toml::Value::Boolean(_) => "a boolean",
+        toml::Value::Datetime(_) => "a datetime",
+        toml::Value::Array(_) => "an array",
+        toml::Value::Table(_) => "a table",
+    }
+}
+
+fn enum_value_matches(accepted: &[(&str, &[&str])], text: &str) -> bool {
+    accepted
+        .iter()
+        .any(|(canonical, aliases)| *canonical == text || aliases.contains(&text))
+}
+
+fn accepted_values_list(accepted: &[(&str, &[&str])]) -> String {
+    accepted
+        .iter()
+        .map(|(canonical, aliases)| {
+            if aliases.is_empty() {
+                canonical.to_string()
+            } else {
+                format!("{canonical} (alias {})", aliases.join(", "))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn check_scalar_enum(
+    value: &toml::Value,
+    path: &[&str],
+    field: &str,
+    accepted: &[(&str, &[&str])],
+    errors: &mut Vec<Diagnostic>,
+) {
+    let Some(found) = get_path(value, path) else {
+        return;
+    };
+    let Some(text) = found.as_str() else {
+        errors.push(Diagnostic::new(
+            field,
+            format!("expected a string, got {}", toml_kind(found)),
+            "this field selects one of a fixed set of named options.",
+            format!("use one of: {}", accepted_values_list(accepted)),
+        ));
+        return;
+    };
+    if !enum_value_matches(accepted, text) {
+        errors.push(Diagnostic::new(
+            field,
+            format!("value \"{text}\" is not accepted here"),
+            "this field selects one of a fixed set of named options.",
+            format!("accepted values: {}", accepted_values_list(accepted)),
+        ));
+    }
+}
+
+fn check_string_array_enum(
+    value: &toml::Value,
+    path: &[&str],
+    field: &str,
+    accepted: &[(&str, &[&str])],
+    errors: &mut Vec<Diagnostic>,
+) {
+    let Some(found) = get_path(value, path) else {
+        return;
+    };
+    let Some(array) = found.as_array() else {
+        errors.push(Diagnostic::new(
+            field,
+            format!("expected an array of strings, got {}", toml_kind(found)),
+            "this field lists stages to run.",
+            format!("use an array such as [\"{}\"]", accepted[0].0),
+        ));
+        return;
+    };
+    for entry in array {
+        let Some(text) = entry.as_str() else {
+            errors.push(Diagnostic::new(
+                field,
+                format!("array entry is not a string: {entry}"),
+                "each entry names a stage.",
+                format!("accepted values: {}", accepted_values_list(accepted)),
+            ));
+            continue;
+        };
+        if !enum_value_matches(accepted, text) {
+            errors.push(Diagnostic::new(
+                field,
+                format!("value \"{text}\" is not accepted here"),
+                "each entry must name a known stage.",
+                format!("accepted values: {}", accepted_values_list(accepted)),
+            ));
+        }
+    }
+}
+
+fn check_duration_field(
+    value: &toml::Value,
+    path: &[&str],
+    field: &str,
+    errors: &mut Vec<Diagnostic>,
+) {
+    let Some(found) = get_path(value, path) else {
+        return;
+    };
+    match found {
+        toml::Value::Integer(number) if *number < 0 => {
+            errors.push(Diagnostic::new(
+                field,
+                format!("value is {number}"),
+                "a duration in milliseconds cannot be negative.",
+                "use 0 or a positive number of milliseconds.",
+            ));
+        }
+        toml::Value::Integer(_) => {}
+        other => {
+            errors.push(Diagnostic::new(
+                field,
+                format!("expected integer milliseconds, got {}", toml_kind(other)),
+                "this field is a duration in milliseconds.",
+                "use a plain integer, e.g. 2000.",
+            ));
+        }
+    }
 }
 
 fn validate_config(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
@@ -194,7 +441,7 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
                 "[runtime.rotation].test_stages",
                 format!("unsupported stage: {stage}"),
                 "rotation can only run stages the tester knows about.",
-                "use accepted stages: icmp (alias ping), real_delay (alias real-delay), download (alias download-speed).",
+                "use accepted stages: icmp (alias ping), real_delay (alias real-delay), download (alias download-speed), tcp.",
             ));
         }
     }
@@ -641,6 +888,28 @@ mod tests {
             .unwrap_or_else(|| panic!("expected a diagnostic for {field}: {diagnostics:?}"))
     }
 
+    fn errors_for_toml(contents: &str) -> Vec<Diagnostic> {
+        let root_dir = std::env::temp_dir().join(format!(
+            "xrat-validate-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("time should be valid")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root_dir).expect("temp dir should be created");
+        let config_path = root_dir.join("config.toml");
+        std::fs::write(&config_path, contents).expect("config should be written");
+
+        let errors = collect_errors(&ValidateArgs {
+            path: config_path.clone(),
+            format: ValidateFormat::Human,
+        });
+
+        let _ = std::fs::remove_file(config_path);
+        let _ = std::fs::remove_dir(root_dir);
+        errors
+    }
+
     #[test]
     fn accepts_default_config() {
         let errors = errors_for(&AppConfig::default());
@@ -866,6 +1135,110 @@ mod tests {
             errors
                 .iter()
                 .any(|diagnostic| diagnostic.problem.contains("config file does not exist"))
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_test_stage_before_deserializing() {
+        let errors = errors_for_toml(
+            r#"
+            [testing]
+            order = ["icmp", "bogus"]
+            "#,
+        );
+
+        let diagnostic = find(&errors, "[testing].order");
+        assert!(diagnostic.problem.contains("bogus"));
+        assert!(diagnostic.fix.contains("icmp"));
+        assert!(diagnostic.fix.contains("tcp"));
+    }
+
+    #[test]
+    fn rejects_unknown_failure_policy_before_deserializing() {
+        let errors = errors_for_toml(
+            r#"
+            [testing]
+            failure_policy = "skip"
+            "#,
+        );
+
+        let diagnostic = find(&errors, "[testing].failure_policy");
+        assert!(diagnostic.problem.contains("skip"));
+        assert!(diagnostic.fix.contains("skip_remaining"));
+        assert!(diagnostic.fix.contains("alias"));
+    }
+
+    #[test]
+    fn rejects_string_typed_duration_before_deserializing() {
+        let errors = errors_for_toml(
+            r#"
+            [testing.tcp]
+            timeout = "2000"
+            "#,
+        );
+
+        let diagnostic = find(&errors, "[testing.tcp].timeout");
+        assert!(diagnostic.problem.contains("expected integer milliseconds"));
+        assert!(diagnostic.problem.contains("a string"));
+    }
+
+    #[test]
+    fn rejects_unknown_database_backend_before_deserializing() {
+        let errors = errors_for_toml(
+            r#"
+            [database]
+            backend = "mysql"
+            "#,
+        );
+
+        let diagnostic = find(&errors, "[database].backend");
+        assert!(diagnostic.problem.contains("mysql"));
+        assert!(diagnostic.fix.contains("postgres"));
+    }
+
+    #[test]
+    fn rejects_unknown_geoip_backend_before_deserializing() {
+        let errors = errors_for_toml(
+            r#"
+            [testing.geoip]
+            backend = "bogus"
+            "#,
+        );
+
+        let diagnostic = find(&errors, "[testing.geoip].backend");
+        assert!(diagnostic.problem.contains("bogus"));
+        assert!(diagnostic.fix.contains("mmdb"));
+    }
+
+    #[test]
+    fn reports_invalid_toml_syntax_as_structural_error() {
+        let errors = errors_for_toml("[testing\norder = [\"icmp\"]\n");
+
+        assert!(
+            errors
+                .iter()
+                .any(|diagnostic| diagnostic.problem.contains("not valid TOML")),
+            "expected a syntax diagnostic: {errors:?}"
+        );
+    }
+
+    #[test]
+    fn accepts_valid_config_written_to_disk() {
+        let errors = errors_for_toml(
+            r#"
+            [testing]
+            order = ["icmp", "tcp", "real_delay"]
+            failure_policy = "skip_remaining"
+
+            [testing.tcp]
+            enabled = true
+            timeout = 2000
+            "#,
+        );
+
+        assert!(
+            errors.is_empty(),
+            "valid config should have no errors: {errors:?}"
         );
     }
 }
