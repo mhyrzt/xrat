@@ -17,7 +17,7 @@ SOCKS/HTTP/Shadowsocks inbounds, supervise runtime sessions with a daemon, and
 serve stored configs through an authenticated HTTP API.
 
 <p align="center">
-  <img src="media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
+  <img src="media/gif/tui.gif" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
 </p>
 
 ## What you can do

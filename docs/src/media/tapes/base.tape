@@ -3,12 +3,12 @@ Require xratui
 Require zsh
 
 Set Shell "zsh"
-Set Width 1200
-Set Height 600
-Set FontSize 22
+Set Width 1600
+Set Height 900
+Set FontSize 16
 Set Theme "GruvboxDarkHard"
-Set FontFamily "JetBrainsMono Nerd Font Mono, Apple Color Emoji, Segoe UI Emoji"
-Set Padding 8
+Set FontFamily "JetBrainsMono Nerd Font Mono, Noto Color Emoji, Noto Emoji"
+Set Padding 4
 Set CursorBlink true
 Set Framerate 60
 

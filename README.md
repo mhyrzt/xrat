@@ -28,7 +28,7 @@ edge IPs, run managed local SOCKS/HTTP/Shadowsocks inbounds, supervise runtime
 sessions with a daemon, and serve stored configs through a local HTTP API.
 
 <p align="center">
-  <img src="docs/src/media/screenshot.png" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
+  <img src="docs/src/media/gif/tui.gif" alt="XRAT terminal UI showing proxy testing progress, config details, logs, and runtime status">
 </p>
 
 ## Installation
