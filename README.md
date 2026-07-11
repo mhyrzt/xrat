@@ -39,18 +39,20 @@ Install script (Linux/macOS):
 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
-Or with Cargo from [crates.io](https://crates.io/crates/xrat):
+Or with Cargo, via
+[cargo-binstall](https://github.com/cargo-bins/cargo-binstall) (prebuilt binary,
+no compiling) or from [crates.io](https://crates.io/crates/xrat) (builds from
+source):
 
 ```bash
-cargo install xrat
+cargo binstall xrat   # or: cargo install xrat
 xrat setup
 alias xratui="xrat tui"   # optional: shortcut to launch the TUI
 ```
 
-Requires `xray` on your system. `cargo install` only places the binary; run
-`xrat setup` to finish setup (init, daemon, completions, man pages, desktop).
-For other installation methods (manual binary download, Docker, build from
-source) see the
+Requires `xray` on your system. Cargo only places the binary; run `xrat setup`
+to finish setup (init, daemon, completions, man pages, desktop). For other
+installation methods (manual binary download, Docker, build from source) see the
 [installation docs](https://mhyrzt.github.io/xrat/01-getting-started/installation.html).
 
 ## Current Features
