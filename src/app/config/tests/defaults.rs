@@ -96,3 +96,19 @@ fn parses_minimal_config_with_defaults() {
         vec!["localhost", "127.0.0.1", "::1"]
     );
 }
+
+#[test]
+fn parses_tcp_as_standalone_test_stage() {
+    let config: AppConfig = toml::from_str(
+        r#"
+        [testing]
+        order = ["icmp", "tcp"]
+        "#,
+    )
+    .expect("tcp should be an accepted stage in [testing].order");
+
+    assert_eq!(
+        config.testing.order,
+        vec![ConnectionTestStage::Icmp, ConnectionTestStage::Tcp]
+    );
+}

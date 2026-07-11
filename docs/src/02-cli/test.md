@@ -89,8 +89,10 @@ The test command can record up to 5 probe result types:
 
 ### Stage Order
 
-The default order for ICMP, real-delay, and download is configurable via
-`config.toml`:
+The default order for ICMP, TCP, real-delay, and download is configurable via
+`config.toml`. TCP is opt-in as a standalone stage; without it in `order`, TCP
+still runs as an implicit gate before real-delay when
+`[testing.tcp].enabled` is true.
 
 ```toml
 [testing]

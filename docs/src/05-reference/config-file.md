@@ -575,7 +575,7 @@ max_entries = 10000
 | Section           | Field                   | Type     | Default                                | Description                                                           |
 | ----------------- | ----------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------- |
 | `[testing]`       | `concurrency`           | integer  | `0`                                    | Test workers (0 = auto)                                               |
-| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`   | Stage execution order                                                 |
+| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`   | Stage execution order; accepted: `icmp`, `tcp`, `real_delay`, `download` |
 | `[testing]`       | `failure_policy`        | enum     | `continue`                             | Behavior on stage failure                                             |
 | `[icmp]`          | `enabled`               | boolean  | `true`                                 | Enable ICMP stage                                                     |
 | `[icmp]`          | `timeout`               | integer  | `3000`                                 | ICMP timeout (ms)                                                     |

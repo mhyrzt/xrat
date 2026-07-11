@@ -60,11 +60,19 @@ pub(crate) async fn run_rotation_bulk_tests(
         .test_stages
         .iter()
         .any(|stage| stage == "download");
+    let has_tcp = context
+        .app_config
+        .runtime
+        .rotation
+        .test_stages
+        .iter()
+        .any(|stage| stage == "tcp");
     settings.run_real_delay = has_real_delay && context.app_config.testing.real_delay.enabled;
     settings.run_download = has_download && context.app_config.testing.download.enabled;
-    settings.run_tcp = settings.run_real_delay && context.app_config.testing.tcp.enabled;
+    settings.run_tcp =
+        (has_tcp || settings.run_real_delay) && context.app_config.testing.tcp.enabled;
 
-    if !settings.run_real_delay && !settings.run_download {
+    if !settings.run_real_delay && !settings.run_download && !settings.run_tcp {
         return Ok(Vec::new());
     }
 

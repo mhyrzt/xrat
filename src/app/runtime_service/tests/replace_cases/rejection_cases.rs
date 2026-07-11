@@ -85,6 +85,28 @@ async fn manual_rotate_excludes_config_without_passing_real_delay() {
 }
 
 #[tokio::test]
+async fn manual_rotate_accepts_tcp_only_passing_result() {
+    let mut context = test_context().await;
+    let config = import_single_config(&context).await;
+    insert_tcp_passing_test(&context, config.id, 50).await;
+
+    write_fake_runtime_script(&context);
+    context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
+
+    let result = RuntimeService::new(&context)
+        .replace(ReplaceRequest {
+            trigger: RotationTrigger::Manual,
+            candidate_id: None,
+        })
+        .await
+        .expect("replace should accept a TCP-only passing candidate");
+
+    assert_eq!(result.new_config_id, config.id);
+
+    let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
+}
+
+#[tokio::test]
 async fn manual_rotate_selects_tested_config_over_untested() {
     let mut context = test_context().await;
     let (untested, tested) = import_two_configs(&context, "a", "b").await;

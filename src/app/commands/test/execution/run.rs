@@ -25,6 +25,13 @@ pub(crate) async fn test_and_record_config(
                     break;
                 }
             }
+            ConnectionTestStage::Tcp if settings.run_tcp && !ran_tcp => {
+                ran_tcp = true;
+                run_tcp_gate(&config, &settings, &mut result, print_progress).await?;
+                if !result.tcp_ok && settings.failure_policy.halts_after_failure() {
+                    break;
+                }
+            }
             ConnectionTestStage::RealDelay if settings.run_real_delay => {
                 if settings.run_tcp && !ran_tcp {
                     ran_tcp = true;

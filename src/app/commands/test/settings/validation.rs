@@ -16,11 +16,7 @@ pub(crate) fn validate_test_stage_order(order: &[ConnectionTestStage]) -> crate:
 }
 
 pub(crate) fn test_stage_name(stage: ConnectionTestStage) -> &'static str {
-    match stage {
-        ConnectionTestStage::Icmp => "icmp",
-        ConnectionTestStage::RealDelay => "real_delay",
-        ConnectionTestStage::Download => "download",
-    }
+    stage.config_name()
 }
 
 pub(crate) fn resolve_concurrency(value: i32) -> crate::app::Result<usize> {

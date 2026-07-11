@@ -23,6 +23,7 @@ pub enum ConnectionTestStage {
     RealDelay,
     #[serde(alias = "download-speed")]
     Download,
+    Tcp,
 }
 
 impl ConnectionTestStage {
@@ -32,6 +33,7 @@ impl ConnectionTestStage {
             ConnectionTestStage::Icmp => "icmp",
             ConnectionTestStage::RealDelay => "real_delay",
             ConnectionTestStage::Download => "download",
+            ConnectionTestStage::Tcp => "tcp",
         }
     }
 

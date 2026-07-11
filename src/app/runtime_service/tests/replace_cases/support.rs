@@ -49,6 +49,36 @@ pub(super) async fn insert_passing_test(context: &AppContext, config_id: i64, re
         .expect("connection test should insert");
 }
 
+pub(super) async fn insert_tcp_passing_test(context: &AppContext, config_id: i64, tcp_ms: i64) {
+    context
+        .db
+        .insert_connection_test(&ConnectionTestInsert {
+            run_id: None,
+            config_id,
+            icmp_ok: None,
+            icmp_ms: None,
+            tcp_ok: Some(true),
+            tcp_ms: Some(tcp_ms),
+            real_delay_ok: None,
+            real_delay_ms: None,
+            download_mbps: None,
+            upload_mbps: None,
+            connect_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            dial_endpoint_ip: None,
+            dial_endpoint_location: None,
+            dial_endpoint_country: None,
+            dial_endpoint_asn: None,
+            dial_endpoint_geoip_source: None,
+            dial_endpoint_fronting: None,
+            failure_kind: None,
+            failure_reason: None,
+        })
+        .await
+        .expect("connection test should insert");
+}
+
 pub(super) async fn insert_failing_test(context: &AppContext, config_id: i64) {
     context
         .db

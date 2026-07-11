@@ -48,9 +48,13 @@ timeout = 30_000
 
 ### Stage Order
 
-The `order` array controls ICMP, real-delay, and download ordering. TCP is a
-gate before real-delay when enabled. Upload is optional and runs after download
-only when `--upload-url` is provided.
+The `order` array controls ICMP, TCP, real-delay, and download ordering.
+Accepted values: `icmp`, `tcp`, `real_delay`, `download`. When `real_delay` is
+present and `tcp` is not, TCP still runs as an implicit gate before real-delay
+when `[testing.tcp].enabled` is true. Listing `tcp` explicitly makes it a
+standalone stage and avoids running the same TCP check twice if both `tcp` and
+`real_delay` are present. Upload is optional and runs after download only when
+`--upload-url` is provided.
 
 Example: skip ICMP, run only real-delay and download:
 

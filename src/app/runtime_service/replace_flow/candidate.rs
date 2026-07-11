@@ -195,13 +195,17 @@ impl<'a> RuntimeService<'a> {
         if !matches!(request.trigger, RotationTrigger::Manual) {
             let fresh_results = run_rotation_bulk_tests(self.context, eligible_ids).await?;
             for row in &fresh_results {
-                if !row.real_delay_ok {
-                    continue;
-                }
-                let Some(real_delay_ms) = row.real_delay_ms else {
+                let latency_ms = if row.real_delay_ok {
+                    row.real_delay_ms
+                } else if !row.ran_real_delay && row.ran_tcp && row.tcp_ok {
+                    row.tcp_ms
+                } else {
+                    None
+                };
+                let Some(latency_ms) = latency_ms else {
                     continue;
                 };
-                passing.push((row.id, real_delay_ms as i64, row.download_mbps));
+                passing.push((row.id, latency_ms as i64, row.download_mbps));
             }
             if !passing.is_empty() {
                 return Ok(());
@@ -217,13 +221,17 @@ impl<'a> RuntimeService<'a> {
             else {
                 continue;
             };
-            if test.real_delay_ok != Some(true) {
-                continue;
-            }
-            let Some(real_delay_ms) = test.real_delay_ms else {
+            let latency_ms = if test.real_delay_ok == Some(true) {
+                test.real_delay_ms
+            } else if test.real_delay_ok.is_none() && test.tcp_ok == Some(true) {
+                test.tcp_ms
+            } else {
+                None
+            };
+            let Some(latency_ms) = latency_ms else {
                 continue;
             };
-            passing.push((*config_id, real_delay_ms, test.download_mbps));
+            passing.push((*config_id, latency_ms, test.download_mbps));
         }
 
         Ok(())
@@ -232,8 +240,8 @@ impl<'a> RuntimeService<'a> {
 
 fn no_passing_candidate_error() -> AppError {
     AppError::InvalidArgument(
-        "no eligible replacement candidate: no enabled config has a passing real-delay result; \
-         run `xrat test` or `xrat scan` first"
+        "no eligible replacement candidate: no enabled config has a passing real-delay or \
+         TCP-only result; run `xrat test` or `xrat scan` first"
             .to_string(),
     )
 }
