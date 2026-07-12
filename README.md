@@ -39,6 +39,9 @@ Install script (Linux/macOS):
 curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
 ```
 
+This installs `xrat` and hands off to `xrat setup`, which also sets up the
+`xratui` shortcut (and the daemon, completions, man pages, desktop launcher).
+
 Or with Cargo, via
 [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) (prebuilt binary,
 no compiling) or from [crates.io](https://crates.io/crates/xrat) (builds from
