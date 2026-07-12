@@ -47,12 +47,12 @@ source):
 ```bash
 cargo binstall xrat   # or: cargo install xrat
 xrat setup
-alias xratui="xrat tui"   # optional: shortcut to launch the TUI
 ```
 
 Requires `xray` on your system. Cargo only places the binary; run `xrat setup`
-to finish setup (init, daemon, completions, man pages, desktop). For other
-installation methods (manual binary download, Docker, build from source) see the
+to finish setup (init, daemon, completions, man pages, desktop, and an `xratui`
+shortcut). For other installation methods (manual binary download, Docker, build
+from source) see the
 [installation docs](https://mhyrzt.github.io/xrat/01-getting-started/installation.html).
 
 ## Current Features

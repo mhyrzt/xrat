@@ -46,10 +46,11 @@ Add that line to your shell startup file if `xrat --version` cannot find it.
 
 ## Run Setup
 
-`cargo install` only places the binary. Run [`xrat setup`](../02-cli/setup.md) to
-complete setup — it checks dependencies, runs `xrat init`, offers to install the
-background daemon, and installs shell completions, man pages, and (on Linux/XDG)
-a desktop launcher with icons:
+`cargo install`/`cargo binstall` only place the binary. Run
+[`xrat setup`](../02-cli/setup.md) to complete setup — it checks dependencies,
+runs `xrat init`, offers to install the background daemon, and installs shell
+completions, man pages, an `xratui` shortcut, and (on Linux/XDG) a desktop
+launcher with icons:
 
 ```bash
 xrat setup

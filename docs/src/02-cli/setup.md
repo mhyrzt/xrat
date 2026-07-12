@@ -45,7 +45,9 @@ combined with `--no-daemon` (linger implies the daemon).
    `$XDG_DATA_HOME/man/man1`.
 7. **desktop** — *(Linux/XDG)* installs a terminal-aware launcher, a `.desktop`
    entry, and hicolor icons.
-8. **PATH** — checks whether the binary's directory is on `PATH` and prints an
+8. **xratui** — installs an `xratui` shortcut script next to the `xrat` binary
+   that execs `xrat tui`.
+9. **PATH** — checks whether the binary's directory is on `PATH` and prints an
    export hint if not.
 
 **Idempotent**: re-running reports each step as `already done` instead of
@@ -75,6 +77,7 @@ Setup
   ✔ completions  3 shells
   ✔ man pages    68 pages
   ✔ desktop      /home/user/.local/share/applications/xrat.desktop
+  ✔ xratui       /home/user/.local/bin/xratui
   ✔ PATH         /home/user/.local/bin
 
 OK Setup complete.
@@ -95,6 +98,7 @@ xrat setup --check
 ✔ completions  already done  -
 ✔ man pages    already done  -
 ✖ desktop      missing       desktop launcher not installed
+✔ xratui       already done  /home/user/.local/bin/xratui
 ✔ PATH         done          /home/user/.local/bin
 ```
 

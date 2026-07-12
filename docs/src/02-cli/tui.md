@@ -6,8 +6,9 @@ Start the interactive terminal UI.
 xrat tui
 ```
 
-When installed via `install.sh` or `just install`, xrat also installs an
-`xratui` shortcut next to the `xrat` binary:
+`xrat setup` also installs an `xratui` shortcut next to the `xrat` binary (run
+automatically by `install.sh`/`just install`, or manually after `cargo
+install`/`cargo binstall`):
 
 ```bash
 xratui

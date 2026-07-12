@@ -62,9 +62,10 @@ xrat setup
 
 This is idempotent and re-runnable. It checks dependencies (`xray` required,
 `sing-box` optional), runs `xrat init`, offers to install the background daemon,
-and installs shell completions, man pages, and (on Linux/XDG) a terminal-aware
-desktop launcher with icons. Use `-y` to accept defaults non-interactively, or
-flags like `--no-daemon` / `--no-desktop` to skip individual steps.
+and installs shell completions, man pages, an `xratui` shortcut, and (on
+Linux/XDG) a terminal-aware desktop launcher with icons. Use `-y` to accept
+defaults non-interactively, or flags like `--no-daemon` / `--no-desktop` to
+skip individual steps.
 
 To check what is and isn't configured without changing anything:
 

@@ -1,6 +1,6 @@
 //! `xrat setup` — post-install orchestration. Runs each setup step idempotently
 //! (init, dependency checks, daemon, linger, completions, man pages, desktop,
-//! PATH) and supports a read-only `--check` diagnostic mode.
+//! xratui shortcut, PATH) and supports a read-only `--check` diagnostic mode.
 
 mod desktop;
 mod report;
@@ -31,6 +31,7 @@ fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
         steps::probe_completions(),
         steps::probe_manpages(),
         desktop::probe(),
+        steps::probe_tui_shim(),
         steps::probe_path(),
     ];
 
@@ -100,6 +101,8 @@ async fn apply(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()>
     } else {
         outcomes.push(emit(desktop::apply()));
     }
+
+    outcomes.push(emit(steps::apply_tui_shim()));
 
     outcomes.push(emit(steps::probe_path()));
 

@@ -78,8 +78,8 @@ The installer will:
 4. Install `xrat` to `~/.local/bin/xrat`.
 5. Hand off to [`xrat setup`](../02-cli/setup.md) for post-install setup:
    dependency checks (`xray` required, `sing-box` optional), `xrat init`, the
-   background daemon, shell completions, man pages, and (Linux/XDG) the desktop
-   launcher and icons.
+   background daemon, shell completions, man pages, an `xratui` shortcut, and
+   (Linux/XDG) the desktop launcher and icons.
 
 Setup runs in the binary, so it works the same regardless of how xrat was
 installed and can be re-run any time with `xrat setup`. See the

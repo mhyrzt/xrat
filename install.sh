@@ -158,13 +158,7 @@ install_binary() {
     mkdir -p "$INSTALL_DIR"
     mv "${WORK_DIR}/xrat" "$INSTALL_DIR/xrat"
     chmod +x "$INSTALL_DIR/xrat"
-    cat > "$INSTALL_DIR/xratui" <<EOF
-#!/usr/bin/env sh
-exec "$INSTALL_DIR/xrat" tui "\$@"
-EOF
-    chmod +x "$INSTALL_DIR/xratui"
     info "Stashed xrat at ${INSTALL_DIR}/xrat (^_^)"
-    info "Stashed TUI shortcut at ${INSTALL_DIR}/xratui (^.^)"
 }
 
 build_from_source() {

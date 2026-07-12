@@ -18,6 +18,7 @@ pub const STEP_LINGER: &str = "linger";
 pub const STEP_COMPLETIONS: &str = "completions";
 pub const STEP_MANPAGES: &str = "man pages";
 pub const STEP_DESKTOP: &str = "desktop";
+pub const STEP_TUI_SHIM: &str = "xratui";
 pub const STEP_PATH: &str = "PATH";
 
 const XRAY_HINT: &str = "install xray-core: https://github.com/XTLS/Xray-core/releases";
@@ -344,6 +345,67 @@ pub fn apply_manpages() -> StepOutcome {
         Err(error) => StepOutcome::new(STEP_MANPAGES, StepStatus::Failed, false)
             .with_detail(error.to_string()),
     }
+}
+
+// ---------------------------------------------------------------------------
+// xratui shim
+// ---------------------------------------------------------------------------
+
+fn tui_shim_path() -> Option<PathBuf> {
+    exe_dir().map(|dir| dir.join("xratui"))
+}
+
+fn tui_shim_script(xrat_path: &std::path::Path) -> String {
+    format!(
+        "#!/usr/bin/env sh\nexec \"{}\" tui \"$@\"\n",
+        xrat_path.display()
+    )
+}
+
+pub fn probe_tui_shim() -> StepOutcome {
+    match tui_shim_path() {
+        Some(path) if path.exists() => {
+            StepOutcome::new(STEP_TUI_SHIM, StepStatus::AlreadyDone, false)
+                .with_detail(path.display().to_string())
+        }
+        Some(_) => StepOutcome::new(STEP_TUI_SHIM, StepStatus::Missing, false)
+            .with_detail("xratui shortcut not installed".to_string()),
+        None => StepOutcome::new(STEP_TUI_SHIM, StepStatus::Skipped, false)
+            .with_detail("could not resolve executable directory".to_string()),
+    }
+}
+
+pub fn apply_tui_shim() -> StepOutcome {
+    let Some(path) = tui_shim_path() else {
+        return StepOutcome::new(STEP_TUI_SHIM, StepStatus::Skipped, false)
+            .with_detail("could not resolve executable directory".to_string());
+    };
+    let Ok(xrat_path) = std::env::current_exe() else {
+        return StepOutcome::new(STEP_TUI_SHIM, StepStatus::Skipped, false)
+            .with_detail("could not resolve xrat executable path".to_string());
+    };
+    let existed = path.exists();
+    if let Err(error) = std::fs::write(&path, tui_shim_script(&xrat_path)) {
+        return StepOutcome::new(STEP_TUI_SHIM, StepStatus::Failed, false)
+            .with_detail(error.to_string());
+    }
+    if let Err(error) = set_executable(&path) {
+        return StepOutcome::new(STEP_TUI_SHIM, StepStatus::Failed, false)
+            .with_detail(error.to_string());
+    }
+    let status = if existed {
+        StepStatus::AlreadyDone
+    } else {
+        StepStatus::Done
+    };
+    StepOutcome::new(STEP_TUI_SHIM, status, false).with_detail(path.display().to_string())
+}
+
+fn set_executable(path: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = std::fs::metadata(path)?.permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(path, perms)
 }
 
 // ---------------------------------------------------------------------------
