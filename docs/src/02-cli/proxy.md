@@ -109,7 +109,7 @@ changing desktop or system proxy settings. xrat **prints** shell commands; it
 never edits `.bashrc`, `.zshrc`, or fish config.
 
 ```bash
-xrat proxy shell enable [--shell bash|zsh|fish]
+xrat proxy shell enable [protocol] [--shell bash|zsh|fish]
 xrat proxy shell disable [--shell bash|zsh|fish]
 xrat proxy shell toggle [--shell bash|zsh|fish]
 xrat proxy shell status
@@ -120,6 +120,26 @@ to SOCKS) and `all_proxy` (prefer SOCKS, falling back to HTTP), plus their
 uppercase variants. It errors if no usable inbound is active. `disable` unsets
 those variables. `status` inspects the environment inherited by `xrat` and
 reports whether the current shell points at active xrat endpoints.
+
+`enable`, `disable`, and `toggle` also print the current proxy shell status to
+stderr after emitting their script, so the stdout script stays safe to `eval`/
+`source` unchanged. Each script starts with a `#` comment showing how to apply
+it for the detected shell (or the one selected with `--shell`). The same usage
+note appears in each subcommand's `--help`.
+
+### Protocol
+
+`enable` accepts an optional trailing protocol to force the scheme used for both
+`http_proxy`/`https_proxy` and `all_proxy`:
+
+| Protocol | Exported scheme                            |
+| -------- | ------------------------------------------ |
+| `http`   | `http://` (requires an active HTTP inbound) |
+| `socks5` | `socks5://` (requires an active SOCKS inbound) |
+| `socks5h`| `socks5h://` (requires an active SOCKS inbound) |
+
+When omitted, the default behavior applies: `http_proxy`/`https_proxy` prefer the
+HTTP inbound, `all_proxy` prefers SOCKS, with cross-fallback.
 
 ### Usage
 

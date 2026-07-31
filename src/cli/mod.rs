@@ -60,7 +60,7 @@ pub use proxy::{
     ProxyDesktopEnableArgs, ProxyDesktopKind, ProxyDesktopStatusArgs, ProxyDesktopToggleArgs,
     ProxyInfoArgs, ProxyPacAction, ProxyPacArgs, ProxyPacPrintArgs, ProxyPacUrlArgs,
     ProxyShellAction, ProxyShellArgs, ProxyShellDisableArgs, ProxyShellEnableArgs, ProxyShellKind,
-    ProxyShellStatusArgs, ProxyShellToggleArgs,
+    ProxyShellProtocol, ProxyShellStatusArgs, ProxyShellToggleArgs,
 };
 pub use purge::PurgeArgs;
 pub use root::Cli;

@@ -57,11 +57,29 @@ pub struct ProxyShellArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ProxyShellAction {
-    #[command(about = "Print commands that point the current shell at xrat endpoints.")]
+    #[command(
+        about = "Print commands that point the current shell at xrat endpoints.",
+        long_about = "Print commands that point the current shell at xrat endpoints.\n\n\
+            Apply them in the current session with:\n\
+            - bash/zsh: eval \"$(xrat proxy shell enable)\"\n\
+            - fish:     xrat proxy shell enable | source"
+    )]
     Enable(ProxyShellEnableArgs),
-    #[command(about = "Print commands that unset the proxy environment variables.")]
+    #[command(
+        about = "Print commands that unset the proxy environment variables.",
+        long_about = "Print commands that unset the proxy environment variables.\n\n\
+            Apply them in the current session with:\n\
+            - bash/zsh: eval \"$(xrat proxy shell disable)\"\n\
+            - fish:     xrat proxy shell disable | source"
+    )]
     Disable(ProxyShellDisableArgs),
-    #[command(about = "Toggle shell proxy variables, preserving previous values.")]
+    #[command(
+        about = "Toggle shell proxy variables, preserving previous values.",
+        long_about = "Toggle shell proxy variables, preserving previous values.\n\n\
+            Apply them in the current session with:\n\
+            - bash/zsh: eval \"$(xrat proxy shell toggle)\"\n\
+            - fish:     xrat proxy shell toggle | source"
+    )]
     Toggle(ProxyShellToggleArgs),
     #[command(about = "Report whether the current shell points at active xrat endpoints.")]
     Status(ProxyShellStatusArgs),
@@ -71,6 +89,11 @@ pub enum ProxyShellAction {
 pub struct ProxyShellEnableArgs {
     #[arg(long = "shell", value_enum, help = "Override shell detection.")]
     pub shell: Option<ProxyShellKind>,
+    #[arg(
+        value_enum,
+        help = "Proxy protocol for the exported variables (http, socks5, or socks5h)."
+    )]
+    pub protocol: Option<ProxyShellProtocol>,
 }
 
 #[derive(Debug, Args, Default)]
@@ -93,6 +116,13 @@ pub enum ProxyShellKind {
     Bash,
     Zsh,
     Fish,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum ProxyShellProtocol {
+    Http,
+    Socks5,
+    Socks5h,
 }
 
 #[derive(Debug, Args)]

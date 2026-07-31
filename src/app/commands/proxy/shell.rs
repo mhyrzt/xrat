@@ -1,7 +1,7 @@
 use crate::app::AppError;
 use crate::app::commands::output;
 use crate::app::context::AppContext;
-use crate::cli::{ProxyShellAction, ProxyShellKind};
+use crate::cli::{ProxyShellAction, ProxyShellKind, ProxyShellProtocol};
 
 use super::{
     ActiveEndpoints, http_proxy_url, loopback_host, resolve_active_endpoints, socks_proxy_url,
@@ -11,14 +11,17 @@ pub(super) async fn run(context: &AppContext, action: &ProxyShellAction) -> crat
     match action {
         ProxyShellAction::Enable(args) => {
             let active = resolve_active_endpoints(context).await?;
-            let (http_proxy, all_proxy) = proxy_urls(&active)?;
+            let (http_proxy, all_proxy) = proxy_urls(&active, args.protocol)?;
             let kind = detect_shell(args.shell);
-            print!("{}", enable_script(kind, &http_proxy, &all_proxy));
+            print!("{}", enable_output(kind, &http_proxy, &all_proxy));
+            print_status_stderr(&active);
             Ok(())
         }
         ProxyShellAction::Disable(args) => {
             let kind = detect_shell(args.shell);
-            print!("{}", disable_script(kind));
+            print!("{}", disable_output(kind));
+            let active = resolve_active_endpoints(context).await?;
+            print_status_stderr(&active);
             Ok(())
         }
         ProxyShellAction::Status(_) => {
@@ -38,50 +41,123 @@ pub(super) async fn toggle(
     let kind = detect_shell(shell);
 
     if shell_points_at_active(&active) {
-        print!("{}", restore_script(kind));
+        print!("{}", toggle_off_output(kind));
+        print_status_stderr(&active);
         return Ok(());
     }
 
-    let (http_proxy, all_proxy) = proxy_urls(&active)?;
-    print!(
-        "{}{}",
-        capture_script(kind),
-        enable_script(kind, &http_proxy, &all_proxy)
-    );
+    let (http_proxy, all_proxy) = proxy_urls(&active, None)?;
+    print!("{}", toggle_on_output(kind, &http_proxy, &all_proxy));
+    print_status_stderr(&active);
     Ok(())
 }
 
+/// Comment telling the user how to apply the emitted script for their shell.
+/// Safe inside an `eval`/`source`, so it can ride on stdout with the script.
+fn usage_hint(kind: ProxyShellKind, verb: &str) -> String {
+    match kind {
+        ProxyShellKind::Bash | ProxyShellKind::Zsh => {
+            format!("# apply: eval \"$(xrat proxy shell {verb})\"\n")
+        }
+        ProxyShellKind::Fish => format!("# apply: xrat proxy shell {verb} | source\n"),
+    }
+}
+
+fn enable_output(kind: ProxyShellKind, http_proxy: &str, all_proxy: &str) -> String {
+    let mut out = usage_hint(kind, "enable");
+    out.push_str(&enable_script(kind, http_proxy, all_proxy));
+    out
+}
+
+fn disable_output(kind: ProxyShellKind) -> String {
+    let mut out = usage_hint(kind, "disable");
+    out.push_str(&disable_script(kind));
+    out
+}
+
+fn toggle_off_output(kind: ProxyShellKind) -> String {
+    let mut out = usage_hint(kind, "toggle");
+    out.push_str(&restore_script(kind));
+    out
+}
+
+fn toggle_on_output(kind: ProxyShellKind, http_proxy: &str, all_proxy: &str) -> String {
+    let mut out = usage_hint(kind, "toggle");
+    out.push_str(&capture_script(kind));
+    out.push_str(&enable_script(kind, http_proxy, all_proxy));
+    out
+}
+
 /// Resolve the `http_proxy`/`https_proxy` and `all_proxy` URLs from active
-/// endpoints. HTTP is preferred for `http_proxy`/`https_proxy` (SOCKS fallback);
-/// SOCKS is preferred for `all_proxy` (HTTP fallback). Errors if neither inbound
-/// is active.
-fn proxy_urls(active: &ActiveEndpoints) -> crate::app::Result<(String, String)> {
-    let http_url = active
-        .http
-        .as_ref()
-        .map(|(host, port)| http_proxy_url(host, *port))
-        .or_else(|| {
-            active
-                .socks
-                .as_ref()
-                .map(|(host, port)| socks_proxy_url(host, *port))
-        });
-    let all_url = active
-        .socks
-        .as_ref()
-        .map(|(host, port)| socks_proxy_url(host, *port))
-        .or_else(|| {
-            active
+/// endpoints. By default HTTP is preferred for `http_proxy`/`https_proxy`
+/// (SOCKS fallback); SOCKS is preferred for `all_proxy` (HTTP fallback). An
+/// explicit protocol forces the same scheme for both, using the matching
+/// inbound. Errors if the required inbound is not active.
+fn proxy_urls(
+    active: &ActiveEndpoints,
+    protocol: Option<ProxyShellProtocol>,
+) -> crate::app::Result<(String, String)> {
+    match protocol {
+        Some(ProxyShellProtocol::Http) => {
+            let url = active
                 .http
                 .as_ref()
                 .map(|(host, port)| http_proxy_url(host, *port))
-        });
+                .ok_or_else(|| {
+                    AppError::InvalidArgument(
+                        "no active HTTP inbound; start a runtime with `xrat connect <id>`"
+                            .to_string(),
+                    )
+                })?;
+            Ok((url.clone(), url))
+        }
+        Some(ProxyShellProtocol::Socks5 | ProxyShellProtocol::Socks5h) => {
+            let scheme = match protocol {
+                Some(ProxyShellProtocol::Socks5) => "socks5",
+                _ => "socks5h",
+            };
+            let url = active
+                .socks
+                .as_ref()
+                .map(|(host, port)| format!("{scheme}://{}:{port}", loopback_host(host)))
+                .ok_or_else(|| {
+                    AppError::InvalidArgument(
+                        "no active SOCKS inbound; start a runtime with `xrat connect <id>`"
+                            .to_string(),
+                    )
+                })?;
+            Ok((url.clone(), url))
+        }
+        None => {
+            let http_url = active
+                .http
+                .as_ref()
+                .map(|(host, port)| http_proxy_url(host, *port))
+                .or_else(|| {
+                    active
+                        .socks
+                        .as_ref()
+                        .map(|(host, port)| socks_proxy_url(host, *port))
+                });
+            let all_url = active
+                .socks
+                .as_ref()
+                .map(|(host, port)| socks_proxy_url(host, *port))
+                .or_else(|| {
+                    active
+                        .http
+                        .as_ref()
+                        .map(|(host, port)| http_proxy_url(host, *port))
+                });
 
-    match (http_url, all_url) {
-        (Some(http_url), Some(all_url)) => Ok((http_url, all_url)),
-        _ => Err(AppError::InvalidArgument(
-            "no active HTTP or SOCKS inbound; start a runtime with `xrat connect <id>`".to_string(),
-        )),
+            match (http_url, all_url) {
+                (Some(http_url), Some(all_url)) => Ok((http_url, all_url)),
+                _ => Err(AppError::InvalidArgument(
+                    "no active HTTP or SOCKS inbound; start a runtime with `xrat connect <id>`"
+                        .to_string(),
+                )),
+            }
+        }
     }
 }
 
@@ -220,6 +296,16 @@ fn detect_shell(override_kind: Option<ProxyShellKind>) -> ProxyShellKind {
 }
 
 fn print_status(active: &ActiveEndpoints) {
+    println!("{}", status_text(active));
+}
+
+/// Status output for the auto-status printed after enable/disable/toggle. Goes
+/// to stderr so the eval-able script on stdout stays clean.
+fn print_status_stderr(active: &ActiveEndpoints) {
+    eprintln!("{}", status_text(active));
+}
+
+fn status_text(active: &ActiveEndpoints) -> String {
     let color = output::color_enabled();
     let current = std::env::var("http_proxy")
         .or_else(|_| std::env::var("HTTP_PROXY"))
@@ -239,28 +325,25 @@ fn print_status(active: &ActiveEndpoints) {
         (None, _) => "shell has no proxy environment set",
     };
 
-    println!(
-        "{}",
-        output::format_kv(
-            Some("Proxy shell"),
-            &[
-                ("status", state.to_string()),
-                (
-                    "http_proxy",
-                    current.clone().unwrap_or_else(|| "-".to_string())
-                ),
-                (
-                    "active",
-                    if active_hosts.is_empty() {
-                        "-".to_string()
-                    } else {
-                        active_hosts.join(", ")
-                    },
-                ),
-            ],
-            color,
-        )
-    );
+    output::format_kv(
+        Some("Proxy shell"),
+        &[
+            ("status", state.to_string()),
+            (
+                "http_proxy",
+                current.clone().unwrap_or_else(|| "-".to_string()),
+            ),
+            (
+                "active",
+                if active_hosts.is_empty() {
+                    "-".to_string()
+                } else {
+                    active_hosts.join(", ")
+                },
+            ),
+        ],
+        color,
+    )
 }
 
 fn shell_points_at_active(active: &ActiveEndpoints) -> bool {
@@ -302,28 +385,68 @@ mod tests {
 
     #[test]
     fn prefers_http_for_http_proxy_and_socks_for_all_proxy() {
-        let (http_proxy, all_proxy) = proxy_urls(&endpoints(true, true)).expect("both active");
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(true, true), None).expect("both active");
         assert_eq!(http_proxy, "http://127.0.0.1:18201");
         assert_eq!(all_proxy, "socks5://127.0.0.1:18200");
     }
 
     #[test]
     fn falls_back_when_only_socks_active() {
-        let (http_proxy, all_proxy) = proxy_urls(&endpoints(false, true)).expect("socks active");
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(false, true), None).expect("socks active");
         assert_eq!(http_proxy, "socks5://127.0.0.1:18200");
         assert_eq!(all_proxy, "socks5://127.0.0.1:18200");
     }
 
     #[test]
     fn falls_back_when_only_http_active() {
-        let (http_proxy, all_proxy) = proxy_urls(&endpoints(true, false)).expect("http active");
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(true, false), None).expect("http active");
         assert_eq!(http_proxy, "http://127.0.0.1:18201");
         assert_eq!(all_proxy, "http://127.0.0.1:18201");
     }
 
     #[test]
     fn errors_when_no_inbound_active() {
-        assert!(proxy_urls(&endpoints(false, false)).is_err());
+        assert!(proxy_urls(&endpoints(false, false), None).is_err());
+    }
+
+    #[test]
+    fn protocol_http_forces_http_scheme_for_both_vars() {
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(true, true), Some(ProxyShellProtocol::Http))
+                .expect("http active");
+        assert_eq!(http_proxy, "http://127.0.0.1:18201");
+        assert_eq!(all_proxy, "http://127.0.0.1:18201");
+    }
+
+    #[test]
+    fn protocol_socks5_forces_socks5_scheme() {
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(true, true), Some(ProxyShellProtocol::Socks5))
+                .expect("socks active");
+        assert_eq!(http_proxy, "socks5://127.0.0.1:18200");
+        assert_eq!(all_proxy, "socks5://127.0.0.1:18200");
+    }
+
+    #[test]
+    fn protocol_socks5h_forces_socks5h_scheme() {
+        let (http_proxy, all_proxy) =
+            proxy_urls(&endpoints(true, true), Some(ProxyShellProtocol::Socks5h))
+                .expect("socks active");
+        assert_eq!(http_proxy, "socks5h://127.0.0.1:18200");
+        assert_eq!(all_proxy, "socks5h://127.0.0.1:18200");
+    }
+
+    #[test]
+    fn protocol_http_errors_without_http_inbound() {
+        assert!(proxy_urls(&endpoints(false, true), Some(ProxyShellProtocol::Http)).is_err());
+    }
+
+    #[test]
+    fn protocol_socks_errors_without_socks_inbound() {
+        assert!(proxy_urls(&endpoints(true, false), Some(ProxyShellProtocol::Socks5)).is_err());
     }
 
     #[test]
@@ -390,5 +513,60 @@ mod tests {
             detect_shell(Some(ProxyShellKind::Fish)),
             ProxyShellKind::Fish
         );
+    }
+
+    #[test]
+    fn usage_hint_bash_uses_eval() {
+        let hint = usage_hint(ProxyShellKind::Bash, "enable");
+        assert!(hint.starts_with("# apply: eval \"$(xrat proxy shell enable)\""));
+        let hint = usage_hint(ProxyShellKind::Zsh, "disable");
+        assert!(hint.starts_with("# apply: eval \"$(xrat proxy shell disable)\""));
+    }
+
+    #[test]
+    fn usage_hint_fish_uses_source_pipe() {
+        let hint = usage_hint(ProxyShellKind::Fish, "toggle");
+        assert!(hint.starts_with("# apply: xrat proxy shell toggle | source"));
+    }
+
+    #[test]
+    fn enable_output_prefixes_usage_hint() {
+        let out = enable_output(
+            ProxyShellKind::Bash,
+            "http://127.0.0.1:18201",
+            "socks5://127.0.0.1:18200",
+        );
+        assert!(out.starts_with("# apply: eval \"$(xrat proxy shell enable)\"\n"));
+        assert!(out.contains("export http_proxy=\"http://127.0.0.1:18201\""));
+    }
+
+    #[test]
+    fn disable_output_prefixes_usage_hint() {
+        let out = disable_output(ProxyShellKind::Fish);
+        assert!(out.starts_with("# apply: xrat proxy shell disable | source\n"));
+        assert!(out.contains("set -e http_proxy"));
+    }
+
+    #[test]
+    fn toggle_output_prefixes_usage_hint_for_both_branches() {
+        let on = toggle_on_output(
+            ProxyShellKind::Bash,
+            "http://127.0.0.1:18201",
+            "socks5://127.0.0.1:18200",
+        );
+        assert!(on.starts_with("# apply: eval \"$(xrat proxy shell toggle)\"\n"));
+        assert!(on.contains("export XRAT_PROXY_HAD_http_proxy"));
+        assert!(on.contains("export http_proxy=\"http://127.0.0.1:18201\""));
+
+        let off = toggle_off_output(ProxyShellKind::Bash);
+        assert!(off.starts_with("# apply: eval \"$(xrat proxy shell toggle)\"\n"));
+        assert!(off.contains("unset XRAT_PROXY_HAD_http_proxy"));
+    }
+
+    #[test]
+    fn status_text_reports_unset_proxy() {
+        let status = status_text(&endpoints(true, true));
+        assert!(status.contains("Proxy shell"));
+        assert!(status.contains("status"));
     }
 }
