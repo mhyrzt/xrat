@@ -200,10 +200,15 @@ side summarizes the test scope and count, mode, and concurrency. Its right side
 shows a live progress gauge while a batch is running, then summarizes nonzero
 completed result counts as done, ok, and failed.
 
-Test batches run TCP and real-delay tests with concurrency `4` and skip
-download, upload, and ICMP stages. Tests use the `t` chord leader: `t t`
-(focused), `t a` (all enabled), `t v` (visible), `t r` (failed), `t s` (stale),
-and `t c` cancels a running batch.
+Test batches run the stages listed in `[runtime.rotation].test_stages`
+(typically `icmp` and `real_delay`) with concurrency `4`, restricted to enabled,
+non-deleted configs. TCP and upload stages are always skipped from the TUI; the
+URLs, timeouts, and other stage settings come from `config.toml`. This mirrors
+rotation's stage selection rather than the full `xrat test` pipeline — for a CLI
+bulk test with identical semantics, run `xrat test --enabled-only` and align
+`[testing]` stages with `[runtime.rotation].test_stages`. Tests use the `t`
+chord leader: `t t` (focused), `t a` (all enabled), `t v` (visible),
+`t r` (failed), `t s` (stale), and `t c` cancels a running batch.
 
 While a batch is running, the gauge updates without blocking navigation.
 Cancelling requests cooperative cancellation; the active operation reports
