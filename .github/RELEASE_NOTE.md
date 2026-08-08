@@ -1,30 +1,32 @@
-## xrat v0.12.0
+## xrat v0.13.0
 
-This release improves the terminal proxy workflow (`xrat proxy shell`) and
-clarifies how TUI bulk tests relate to the CLI.
+This release makes real-delay tests useful for region-restricted HTTP services
+and tightens explicit proxy-shell protocol selection.
 
 ### Features
 
-- **Proxy shell protocol selection.** `xrat proxy shell enable` now accepts an
-  optional trailing protocol: `http`, `socks5`, or `socks5h`. When given, the
-  matching inbound is required and the same scheme is used for
-  `http_proxy`/`https_proxy` and `all_proxy`. Without it, the existing
-  prefer-HTTP-then-SOCKS behavior is unchanged.
-- **Proxy shell status + usage hints.** `enable`, `disable`, and `toggle` now
-  print the current proxy shell status to stderr after emitting their script,
-  so `eval "$(xrat proxy shell ...)"` output stays clean. Each emitted script
-  starts with a `#` comment showing how to apply it for the detected shell
-  (bash/zsh `eval`, fish `| source`), and the same usage note appears in each
-  subcommand's `--help`.
+- **Configurable real-delay HTTP acceptance.** `[testing.real_delay]` accepts
+  multiple exact status codes and inclusive ranges. Configured entries replace
+  the default `200-299` policy and are combined with OR semantics.
+- **Explicit redirect handling.** `follow_redirects` controls whether xrat
+  checks the initial response or follows up to 10 redirects and checks the
+  terminal response. Redirect loops fail with a clear diagnostic.
 
-### Docs
+### Fixes
 
-- TUI `t + a` bulk tests derive their stages from
-  `[runtime.rotation].test_stages` and always skip TCP/upload; the docs now
-  describe this instead of the previous stale "TCP and real-delay" wording.
+- **Strict proxy-shell protocols.** Explicit `http`, `socks5`, and `socks5h`
+  selections require their matching active inbound instead of silently
+  exporting another scheme. Automatic selection still cross-falls back when
+  no protocol is supplied.
+- **Accurate proxy-shell action status.** `enable`, `disable`, and `toggle`
+  report the state produced by their emitted shell script.
+- **Actionable real-delay failures.** Status mismatch messages include the test
+  URL, observed status, and configured expectation.
 
 ### Upgrade notes
 
-- No new database migrations; safe drop-in upgrade.
+- No database migrations; safe drop-in upgrade.
+- Existing real-delay configurations keep accepting final `200-299` responses
+  and following redirects until the new fields are configured.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.11.0...v0.12.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.12.0...v0.13.0
