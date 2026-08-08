@@ -182,6 +182,9 @@ failure_policy = "continue"
 enabled = true
 url = "https://www.google.com/generate_204"
 timeout = 10_000 # ms
+accepted_status_codes = [204]
+accepted_status_ranges = ["300-399"]
+follow_redirects = true
 
 [testing.icmp]
 enabled = true

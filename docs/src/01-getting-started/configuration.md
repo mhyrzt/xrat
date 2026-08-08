@@ -158,6 +158,9 @@ failure_policy = "continue"
 enabled = true
 url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
+# accepted_status_codes = [200, 204]
+# accepted_status_ranges = ["300-399"]
+follow_redirects = true
 
 [testing.icmp]
 enabled = true

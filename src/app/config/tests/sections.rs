@@ -1,6 +1,47 @@
 use crate::app::config::{AppConfig, SecretString};
 
 #[test]
+fn parses_real_delay_status_acceptance() {
+    let config: AppConfig = toml::from_str(
+        r#"
+[testing.real_delay]
+accepted_status_codes = [200, 204]
+accepted_status_ranges = ["300-399", "400 - 401"]
+follow_redirects = false
+"#,
+    )
+    .expect("config should parse");
+
+    assert_eq!(
+        config.testing.real_delay.accepted_status_codes,
+        Some(vec![200, 204])
+    );
+    assert_eq!(
+        config
+            .testing
+            .real_delay
+            .accepted_status_ranges
+            .as_ref()
+            .expect("ranges")
+            .iter()
+            .map(|range| range.bounds())
+            .collect::<Vec<_>>(),
+        vec![(300, 399), (400, 401)]
+    );
+    assert!(!config.testing.real_delay.follow_redirects);
+}
+
+#[test]
+fn rejects_malformed_real_delay_status_range() {
+    let error = toml::from_str::<AppConfig>(
+        "[testing.real_delay]\naccepted_status_ranges = [\"399-300\"]\n",
+    )
+    .expect_err("reversed range should fail");
+
+    assert!(error.to_string().contains("starts after it ends"));
+}
+
+#[test]
 fn parses_server_settings() {
     let config: AppConfig = toml::from_str(
         r#"

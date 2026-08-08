@@ -1,4 +1,5 @@
 use crate::prober::FailureKind;
+use crate::prober::real_delay::check::request::MAX_REDIRECTS;
 use crate::xray::XrayProcessError;
 
 pub(super) fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {
@@ -36,6 +37,11 @@ pub(super) fn classify_request_error(error: &reqwest::Error) -> (FailureKind, St
         (
             FailureKind::Proxy,
             format!("Proxy connection failed: {}", error),
+        )
+    } else if error.is_redirect() {
+        (
+            FailureKind::Proxy,
+            format!("Redirect failed or exceeded the {MAX_REDIRECTS}-hop limit: {error}"),
         )
     } else if error.is_request() {
         (FailureKind::Proxy, format!("Request failed: {}", error))

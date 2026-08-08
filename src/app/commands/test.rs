@@ -24,8 +24,8 @@ use crate::db::DatabaseConnectionConfig;
 use crate::db::{ConfigRecord, ConnectionTestInsert, ConnectionTestRunInsert, Database};
 use crate::model::Node;
 use crate::prober::{
-    FailureKind, TestResult, download_speed_check, icmp_ping, real_delay_check, tcp_check,
-    upload_speed_check,
+    AcceptedHttpStatuses, FailureKind, TestResult, download_speed_check, icmp_ping,
+    real_delay_check, tcp_check, upload_speed_check,
 };
 use crate::support::geoip;
 

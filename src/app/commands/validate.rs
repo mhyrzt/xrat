@@ -6,7 +6,7 @@ use url::Url;
 use crate::app::AppError;
 use crate::app::commands::output::{self, Style};
 use crate::app::config::{
-    AppConfig, ConnectionTestStage, DatabaseBackend, SecretString, TestingSettings,
+    AppConfig, ConnectionTestStage, DatabaseBackend, HttpStatusRange, SecretString, TestingSettings,
 };
 use crate::cli::{ValidateArgs, ValidateFormat};
 
@@ -239,6 +239,7 @@ fn check_known_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
         "[testing.tcp].timeout",
         errors,
     );
+    check_status_acceptance_fields(value, errors);
     check_scalar_enum(
         value,
         &["database", "backend"],
@@ -267,6 +268,87 @@ fn check_known_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
         GEOIP_PROVIDER_ENUM,
         errors,
     );
+}
+
+fn check_status_acceptance_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
+    let codes = get_path(value, &["testing", "real_delay", "accepted_status_codes"]);
+    let ranges = get_path(value, &["testing", "real_delay", "accepted_status_ranges"]);
+
+    if let Some(found) = codes {
+        let Some(array) = found.as_array() else {
+            errors.push(Diagnostic::new(
+                "[testing.real_delay].accepted_status_codes",
+                format!("expected an array of integers, got {}", toml_kind(found)),
+                "accepted HTTP statuses are configured as numeric status codes.",
+                "use an array such as [200, 204].",
+            ));
+            return;
+        };
+        for entry in array {
+            match entry.as_integer() {
+                Some(code) if (100..=599).contains(&code) => {}
+                Some(code) => errors.push(Diagnostic::new(
+                    "[testing.real_delay].accepted_status_codes",
+                    format!("status code {code} is outside 100-599"),
+                    "HTTP status acceptance is limited to standard three-digit response classes.",
+                    "use status codes from 100 through 599.",
+                )),
+                None => errors.push(Diagnostic::new(
+                    "[testing.real_delay].accepted_status_codes",
+                    format!("array entry is not an integer: {entry}"),
+                    "accepted HTTP statuses are configured as numeric status codes.",
+                    "use an array such as [200, 204].",
+                )),
+            }
+        }
+    }
+
+    if let Some(found) = ranges {
+        let Some(array) = found.as_array() else {
+            errors.push(Diagnostic::new(
+                "[testing.real_delay].accepted_status_ranges",
+                format!("expected an array of strings, got {}", toml_kind(found)),
+                "status ranges use inclusive START-END strings.",
+                "use an array such as [\"200-299\", \"300-399\"].",
+            ));
+            return;
+        };
+        for entry in array {
+            let Some(text) = entry.as_str() else {
+                errors.push(Diagnostic::new(
+                    "[testing.real_delay].accepted_status_ranges",
+                    format!("array entry is not a string: {entry}"),
+                    "status ranges use inclusive START-END strings.",
+                    "quote each range, for example [\"300-399\"].",
+                ));
+                continue;
+            };
+            if let Err(error) = text.parse::<HttpStatusRange>() {
+                errors.push(Diagnostic::new(
+                    "[testing.real_delay].accepted_status_ranges",
+                    error,
+                    "status ranges must be ordered and remain within 100-599.",
+                    "use inclusive ranges such as \"200-299\" or \"300-399\".",
+                ));
+            }
+        }
+    }
+
+    if (codes.is_some() || ranges.is_some())
+        && codes
+            .and_then(toml::Value::as_array)
+            .is_none_or(Vec::is_empty)
+        && ranges
+            .and_then(toml::Value::as_array)
+            .is_none_or(Vec::is_empty)
+    {
+        errors.push(Diagnostic::new(
+            "[testing.real_delay]",
+            "configured status acceptance set is empty",
+            "a real-delay request could never pass without an accepted status.",
+            "add at least one accepted status code or range, or omit both fields to accept 200-299.",
+        ));
+    }
 }
 
 fn get_path<'a>(value: &'a toml::Value, path: &[&str]) -> Option<&'a toml::Value> {
@@ -696,6 +778,39 @@ fn validate_testing(testing: &TestingSettings, errors: &mut Vec<Diagnostic>) {
         }
     }
 
+    if let Some(codes) = &testing.real_delay.accepted_status_codes {
+        for code in codes {
+            if !(100..=599).contains(code) {
+                errors.push(Diagnostic::new(
+                    "[testing.real_delay].accepted_status_codes",
+                    format!("status code {code} is outside 100-599"),
+                    "HTTP status acceptance is limited to standard three-digit response classes.",
+                    "use status codes from 100 through 599.",
+                ));
+            }
+        }
+    }
+    if (testing.real_delay.accepted_status_codes.is_some()
+        || testing.real_delay.accepted_status_ranges.is_some())
+        && testing
+            .real_delay
+            .accepted_status_codes
+            .as_ref()
+            .is_none_or(Vec::is_empty)
+        && testing
+            .real_delay
+            .accepted_status_ranges
+            .as_ref()
+            .is_none_or(Vec::is_empty)
+    {
+        errors.push(Diagnostic::new(
+            "[testing.real_delay]",
+            "configured status acceptance set is empty",
+            "a real-delay request could never pass without an accepted status.",
+            "add at least one accepted status code or range, or omit both fields to accept 200-299.",
+        ));
+    }
+
     if testing.real_delay.enabled {
         validate_http_url("[testing.real_delay].url", &testing.real_delay.url, errors);
         validate_positive(
@@ -1071,6 +1186,46 @@ mod tests {
         let diagnostic = find(&errors, "[testing.download].url");
 
         assert!(diagnostic.fix.contains("http"));
+    }
+
+    #[test]
+    fn rejects_out_of_range_real_delay_status_code() {
+        let mut config = AppConfig::default();
+        config.testing.real_delay.accepted_status_codes = Some(vec![99, 600]);
+
+        let errors = errors_for(&config);
+        let diagnostics = errors
+            .iter()
+            .filter(|diagnostic| diagnostic.field == "[testing.real_delay].accepted_status_codes")
+            .collect::<Vec<_>>();
+
+        assert_eq!(diagnostics.len(), 2);
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.fix.contains("599"))
+        );
+    }
+
+    #[test]
+    fn rejects_empty_real_delay_status_acceptance() {
+        let errors = errors_for_toml(
+            "[testing.real_delay]\naccepted_status_codes = []\naccepted_status_ranges = []\n",
+        );
+        let diagnostic = find(&errors, "[testing.real_delay]");
+
+        assert!(diagnostic.problem.contains("empty"));
+        assert!(diagnostic.fix.contains("omit both"));
+    }
+
+    #[test]
+    fn rejects_malformed_real_delay_status_range_with_guidance() {
+        let errors =
+            errors_for_toml("[testing.real_delay]\naccepted_status_ranges = [\"399-300\"]\n");
+        let diagnostic = find(&errors, "[testing.real_delay].accepted_status_ranges");
+
+        assert!(diagnostic.problem.contains("starts after it ends"));
+        assert!(diagnostic.fix.contains("300-399"));
     }
 
     #[test]

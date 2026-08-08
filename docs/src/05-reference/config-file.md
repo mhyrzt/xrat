@@ -536,6 +536,10 @@ failure_policy = "continue"  # "continue" | "skip_remaining" | "mark_failed"
 enabled = true
 url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
+# Omit both acceptance fields to accept 200-299.
+# accepted_status_codes = [200, 204]
+# accepted_status_ranges = ["300-399"]
+follow_redirects = true
 
 [testing.icmp]
 enabled = true
@@ -572,6 +576,13 @@ ttl_secs = 86400
 max_entries = 10000
 ```
 
+Real-delay status codes and inclusive ranges are combined with OR semantics.
+Setting either acceptance field replaces the default `200-299` range. Valid
+codes and range endpoints are `100-599`. When `follow_redirects` is enabled,
+xrat follows at most 10 redirects and checks the terminal response; when it is
+disabled, xrat checks the initial response so configured `3xx` statuses can
+pass.
+
 | Section           | Field                   | Type     | Default                                | Description                                                           |
 | ----------------- | ----------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------- |
 | `[testing]`       | `concurrency`           | integer  | `0`                                    | Test workers (0 = auto)                                               |
@@ -585,6 +596,9 @@ max_entries = 10000
 | `[real_delay]`    | `enabled`               | boolean  | `true`                                 | Enable real-delay stage                                               |
 | `[real_delay]`    | `url`                   | string   | `https://www.gstatic.com/generate_204` | Test URL                                                              |
 | `[real_delay]`    | `timeout`               | integer  | `10000`                                | HTTP request timeout (ms)                                             |
+| `[real_delay]`    | `accepted_status_codes` | integer[] | -                                     | Exact accepted HTTP status codes                                      |
+| `[real_delay]`    | `accepted_status_ranges` | string[] | - (effective `200-299`)               | Inclusive accepted ranges in `START-END` form                         |
+| `[real_delay]`    | `follow_redirects`      | boolean  | `true`                                 | Follow up to 10 redirects before checking status                      |
 | `[download]`      | `enabled`               | boolean  | `false`                                | Enable download stage                                                 |
 | `[download]`      | `url`                   | string   | -                                      | Download URL                                                          |
 | `[download]`      | `timeout`               | integer  | `30000`                                | Download timeout (ms)                                                 |

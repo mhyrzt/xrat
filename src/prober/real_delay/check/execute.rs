@@ -7,6 +7,7 @@ use super::port::find_available_port;
 use super::request::make_proxied_request;
 use crate::model::Node;
 use crate::prober::FailureKind;
+use crate::prober::real_delay::AcceptedHttpStatuses;
 use crate::xray::{XrayGenOptions, XrayProcess, generate_probe_config_with_options};
 
 #[allow(clippy::too_many_arguments)]
@@ -17,6 +18,8 @@ pub async fn real_delay_check(
     xray_startup_timeout: Duration,
     request_timeout: Duration,
     gen_options: &XrayGenOptions,
+    accepted_statuses: &AcceptedHttpStatuses,
+    follow_redirects: bool,
 ) -> RealDelayResult {
     let local_port = match find_available_port().await {
         Ok(port) => port,
@@ -66,7 +69,14 @@ pub async fn real_delay_check(
             }
         };
 
-    let result = make_proxied_request(local_port, test_url, request_timeout).await;
+    let result = make_proxied_request(
+        local_port,
+        test_url,
+        request_timeout,
+        accepted_statuses,
+        follow_redirects,
+    )
+    .await;
     let _ = process.kill();
     result
 }

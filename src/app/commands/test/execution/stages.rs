@@ -74,6 +74,8 @@ pub(crate) async fn run_real_delay_stage(
         settings.xray_startup_timeout,
         settings.real_delay_timeout,
         &settings.gen_options,
+        &settings.accepted_http_statuses,
+        settings.follow_redirects,
     )
     .await;
     let failure_reason = real_delay_result.failure_reason.clone();

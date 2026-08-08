@@ -54,6 +54,9 @@ fn parses_minimal_config_with_defaults() {
         config.testing.real_delay.url,
         crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL
     );
+    assert!(config.testing.real_delay.accepted_status_codes.is_none());
+    assert!(config.testing.real_delay.accepted_status_ranges.is_none());
+    assert!(config.testing.real_delay.follow_redirects);
     assert!(!config.testing.geoip.enabled);
     assert_eq!(
         config.testing.geoip.backend,

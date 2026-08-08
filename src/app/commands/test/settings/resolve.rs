@@ -14,6 +14,28 @@ pub(crate) fn resolve_test_settings(
         ));
     }
     validate_test_stage_order(&app_config.testing.order)?;
+    let real_delay = &app_config.testing.real_delay;
+    let accepted_http_statuses = if real_delay.accepted_status_codes.is_none()
+        && real_delay.accepted_status_ranges.is_none()
+    {
+        AcceptedHttpStatuses::default()
+    } else {
+        AcceptedHttpStatuses::new(
+            real_delay.accepted_status_codes.clone().unwrap_or_default(),
+            real_delay
+                .accepted_status_ranges
+                .as_deref()
+                .unwrap_or_default()
+                .iter()
+                .map(|range| range.bounds())
+                .collect(),
+        )
+        .map_err(|error| {
+            AppError::InvalidArgument(format!(
+                "invalid [testing.real_delay] status acceptance: {error}"
+            ))
+        })?
+    };
     let geoip_country_path = mmdb::mmdb_path_for(
         runtime_paths,
         app_config,
@@ -41,6 +63,8 @@ pub(crate) fn resolve_test_settings(
             .test_url
             .clone()
             .unwrap_or_else(|| app_config.testing.real_delay.url.clone()),
+        accepted_http_statuses,
+        follow_redirects: real_delay.follow_redirects,
         download_url: args
             .download_url
             .clone()

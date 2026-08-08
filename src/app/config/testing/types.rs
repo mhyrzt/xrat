@@ -1,5 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer, de};
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -61,6 +63,71 @@ pub struct RealDelayTestSettings {
     pub enabled: bool,
     pub url: String,
     pub timeout: u64,
+    pub accepted_status_codes: Option<Vec<u16>>,
+    pub accepted_status_ranges: Option<Vec<HttpStatusRange>>,
+    pub follow_redirects: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HttpStatusRange {
+    start: u16,
+    end: u16,
+}
+
+impl HttpStatusRange {
+    pub(crate) fn bounds(&self) -> (u16, u16) {
+        (self.start, self.end)
+    }
+}
+
+impl FromStr for HttpStatusRange {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let (start, end) = value
+            .split_once('-')
+            .ok_or_else(|| format!("status range \"{value}\" must use START-END syntax"))?;
+        if end.contains('-') {
+            return Err(format!(
+                "status range \"{value}\" must contain exactly one hyphen"
+            ));
+        }
+
+        let start = start
+            .trim()
+            .parse::<u16>()
+            .map_err(|_| format!("status range \"{value}\" has an invalid start"))?;
+        let end = end
+            .trim()
+            .parse::<u16>()
+            .map_err(|_| format!("status range \"{value}\" has an invalid end"))?;
+
+        if !(100..=599).contains(&start) || !(100..=599).contains(&end) {
+            return Err(format!("status range \"{value}\" must stay within 100-599"));
+        }
+        if start > end {
+            return Err(format!("status range \"{value}\" starts after it ends"));
+        }
+
+        Ok(Self { start, end })
+    }
+}
+
+impl<'de> Deserialize<'de> for HttpStatusRange {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(de::Error::custom)
+    }
+}
+
+impl fmt::Display for HttpStatusRange {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}-{}", self.start, self.end)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]

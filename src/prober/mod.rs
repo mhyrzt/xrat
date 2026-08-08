@@ -6,7 +6,7 @@ pub mod upload;
 
 pub use download::{DownloadResult, download_speed_check};
 pub use icmp::{IcmpResult, icmp_ping};
-pub use real_delay::{RealDelayResult, real_delay_check};
+pub use real_delay::{AcceptedHttpStatuses, RealDelayResult, real_delay_check};
 pub use tcp::{TcpResult, tcp_check};
 pub use upload::{UploadResult, upload_speed_check};
 

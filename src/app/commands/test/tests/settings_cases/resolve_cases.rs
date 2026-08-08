@@ -12,6 +12,7 @@ fn resolves_test_settings_from_app_config() {
                 enabled: true,
                 url: "https://example.test/204".to_string(),
                 timeout: 12_000,
+                ..crate::app::config::RealDelayTestSettings::default()
             },
             download: crate::app::config::DownloadTestSettings {
                 enabled: true,
@@ -64,6 +65,7 @@ fn cli_test_settings_override_app_config() {
                 enabled: true,
                 url: "https://example.test/204".to_string(),
                 timeout: 12_000,
+                ..crate::app::config::RealDelayTestSettings::default()
             },
             icmp: crate::app::config::IcmpTestSettings {
                 enabled: true,
@@ -98,6 +100,46 @@ fn cli_test_settings_override_app_config() {
     assert_eq!(settings.real_delay_timeout, Duration::from_millis(15_000));
     assert_eq!(settings.download_timeout, Duration::from_millis(45_000));
     assert_eq!(settings.geoip_lookup.backend_name(), "mmdb");
+}
+
+#[test]
+fn resolves_custom_status_acceptance_and_redirect_policy() {
+    let app_config: AppConfig = toml::from_str(
+        r#"
+[testing.real_delay]
+accepted_status_codes = [204, 403]
+accepted_status_ranges = ["300-399"]
+follow_redirects = false
+"#,
+    )
+    .expect("config");
+
+    let settings = resolve_test_settings(&test_args(Some(1)), &app_config, &test_runtime_paths())
+        .expect("settings");
+
+    assert!(settings.accepted_http_statuses.matches(204));
+    assert!(settings.accepted_http_statuses.matches(403));
+    assert!(settings.accepted_http_statuses.matches(300));
+    assert!(settings.accepted_http_statuses.matches(399));
+    assert!(!settings.accepted_http_statuses.matches(200));
+    assert!(!settings.follow_redirects);
+}
+
+#[test]
+fn rejects_explicitly_empty_status_acceptance() {
+    let app_config: AppConfig = toml::from_str(
+        "[testing.real_delay]\naccepted_status_codes = []\naccepted_status_ranges = []\n",
+    )
+    .expect("config");
+
+    let error = resolve_test_settings(&test_args(Some(1)), &app_config, &test_runtime_paths())
+        .expect_err("empty matcher should fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("at least one accepted HTTP status")
+    );
 }
 
 #[test]

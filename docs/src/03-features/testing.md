@@ -38,6 +38,10 @@ timeout = 5000
 enabled = true
 url = "https://www.gstatic.com/generate_204"
 timeout = 10_000
+# Omit both fields to accept 200-299.
+# accepted_status_codes = [200, 204]
+# accepted_status_ranges = ["300-399"]
+follow_redirects = true
 
 [testing.download]
 enabled = false
@@ -151,7 +155,21 @@ Measures actual HTTP round-trip latency through the proxy.
 enabled = true
 url = "https://www.gstatic.com/generate_204"
 timeout = 10_000  # ms
+accepted_status_codes = [204]
+accepted_status_ranges = ["300-399"]
+follow_redirects = false
 ```
+
+When either acceptance field is present, it replaces the default `200-299`
+range. Exact codes and inclusive `START-END` ranges are combined with OR
+semantics, so the example accepts `204` or any status from `300` through `399`.
+Codes and range endpoints must be within `100-599`.
+
+With `follow_redirects = true`, xrat follows up to 10 redirects and checks the
+terminal response status. A loop or longer chain fails the test. With
+`follow_redirects = false`, xrat checks the first response, allowing an initial
+`3xx` response to pass when configured; later redirect behavior, including a
+possible loop, is intentionally not inspected.
 
 ### Output
 

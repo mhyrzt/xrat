@@ -28,6 +28,9 @@ impl Default for RealDelayTestSettings {
             enabled: defaults::DEFAULT_TEST_STAGE_ENABLED,
             url: defaults::DEFAULT_REAL_DELAY_TEST_URL.to_string(),
             timeout: defaults::DEFAULT_REAL_DELAY_TIMEOUT_MS,
+            accepted_status_codes: None,
+            accepted_status_ranges: None,
+            follow_redirects: true,
         }
     }
 }

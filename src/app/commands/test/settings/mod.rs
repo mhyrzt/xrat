@@ -32,6 +32,8 @@ pub(crate) struct ResolvedTestSettings {
     pub(crate) stage_order: Vec<ConnectionTestStage>,
     pub(crate) failure_policy: TestFailurePolicy,
     pub(crate) real_delay_url: String,
+    pub(crate) accepted_http_statuses: AcceptedHttpStatuses,
+    pub(crate) follow_redirects: bool,
     pub(crate) download_url: String,
     pub(crate) upload_url: Option<String>,
     pub(crate) xray_binary_path: PathBuf,

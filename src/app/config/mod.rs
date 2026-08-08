@@ -34,8 +34,9 @@ pub use server::ServerSettings;
 pub use subscriptions::SubscriptionSettings;
 pub use testing::{
     ConnectionTestStage, DownloadTestSettings, GeoIpBackend, GeoIpCacheSettings,
-    GeoIpRemoteProvider, GeoIpTestSettings, IcmpTestSettings, RealDelayTestSettings,
-    RemoteGeoIpSettings, TcpTestSettings, TestFailurePolicy, TestingSettings,
+    GeoIpRemoteProvider, GeoIpTestSettings, HttpStatusRange, IcmpTestSettings,
+    RealDelayTestSettings, RemoteGeoIpSettings, TcpTestSettings, TestFailurePolicy,
+    TestingSettings,
 };
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
