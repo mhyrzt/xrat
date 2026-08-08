@@ -14,14 +14,14 @@ pub(super) async fn run(context: &AppContext, action: &ProxyShellAction) -> crat
             let (http_proxy, all_proxy) = proxy_urls(&active, args.protocol)?;
             let kind = detect_shell(args.shell);
             print!("{}", enable_output(kind, &http_proxy, &all_proxy));
-            print_status_stderr(&active);
+            print_status_stderr(&active, Some(http_proxy));
             Ok(())
         }
         ProxyShellAction::Disable(args) => {
             let kind = detect_shell(args.shell);
             print!("{}", disable_output(kind));
             let active = resolve_active_endpoints(context).await?;
-            print_status_stderr(&active);
+            print_status_stderr(&active, None);
             Ok(())
         }
         ProxyShellAction::Status(_) => {
@@ -41,14 +41,15 @@ pub(super) async fn toggle(
     let kind = detect_shell(shell);
 
     if shell_points_at_active(&active) {
+        let restored_proxy = restored_proxy_value();
         print!("{}", toggle_off_output(kind));
-        print_status_stderr(&active);
+        print_status_stderr(&active, restored_proxy);
         return Ok(());
     }
 
     let (http_proxy, all_proxy) = proxy_urls(&active, None)?;
     print!("{}", toggle_on_output(kind, &http_proxy, &all_proxy));
-    print_status_stderr(&active);
+    print_status_stderr(&active, Some(http_proxy));
     Ok(())
 }
 
@@ -91,43 +92,15 @@ fn toggle_on_output(kind: ProxyShellKind, http_proxy: &str, all_proxy: &str) -> 
 /// Resolve the `http_proxy`/`https_proxy` and `all_proxy` URLs from active
 /// endpoints. By default HTTP is preferred for `http_proxy`/`https_proxy`
 /// (SOCKS fallback); SOCKS is preferred for `all_proxy` (HTTP fallback). An
-/// explicit protocol forces the same scheme for both, using the matching
-/// inbound. Errors if the required inbound is not active.
+/// explicit protocol requires the matching inbound for both variables.
 fn proxy_urls(
     active: &ActiveEndpoints,
     protocol: Option<ProxyShellProtocol>,
 ) -> crate::app::Result<(String, String)> {
     match protocol {
-        Some(ProxyShellProtocol::Http) => {
-            let url = active
-                .http
-                .as_ref()
-                .map(|(host, port)| http_proxy_url(host, *port))
-                .ok_or_else(|| {
-                    AppError::InvalidArgument(
-                        "no active HTTP inbound; start a runtime with `xrat connect <id>`"
-                            .to_string(),
-                    )
-                })?;
-            Ok((url.clone(), url))
-        }
-        Some(ProxyShellProtocol::Socks5 | ProxyShellProtocol::Socks5h) => {
-            let scheme = match protocol {
-                Some(ProxyShellProtocol::Socks5) => "socks5",
-                _ => "socks5h",
-            };
-            let url = active
-                .socks
-                .as_ref()
-                .map(|(host, port)| format!("{scheme}://{}:{port}", loopback_host(host)))
-                .ok_or_else(|| {
-                    AppError::InvalidArgument(
-                        "no active SOCKS inbound; start a runtime with `xrat connect <id>`"
-                            .to_string(),
-                    )
-                })?;
-            Ok((url.clone(), url))
-        }
+        Some(protocol) => explicit_proxy_url(active, protocol)
+            .map(|url| (url.clone(), url))
+            .ok_or_else(|| unavailable_protocol_error(protocol)),
         None => {
             let http_url = active
                 .http
@@ -159,6 +132,35 @@ fn proxy_urls(
             }
         }
     }
+}
+
+fn explicit_proxy_url(active: &ActiveEndpoints, protocol: ProxyShellProtocol) -> Option<String> {
+    match protocol {
+        ProxyShellProtocol::Http => active
+            .http
+            .as_ref()
+            .map(|(host, port)| http_proxy_url(host, *port)),
+        ProxyShellProtocol::Socks5 => active
+            .socks
+            .as_ref()
+            .map(|(host, port)| format!("socks5://{}:{port}", loopback_host(host))),
+        ProxyShellProtocol::Socks5h => active
+            .socks
+            .as_ref()
+            .map(|(host, port)| format!("socks5h://{}:{port}", loopback_host(host))),
+    }
+}
+
+fn unavailable_protocol_error(protocol: ProxyShellProtocol) -> AppError {
+    let (name, setting) = match protocol {
+        ProxyShellProtocol::Http => ("HTTP", "[runtime.http].enabled"),
+        ProxyShellProtocol::Socks5 | ProxyShellProtocol::Socks5h => {
+            ("SOCKS", "[runtime.socks].enabled")
+        }
+    };
+    AppError::InvalidArgument(format!(
+        "{name} inbound is not active; set {setting} = true and reconnect, or omit the protocol to use an available inbound"
+    ))
 }
 
 const VARS: [&str; 3] = ["http_proxy", "https_proxy", "all_proxy"];
@@ -300,18 +302,19 @@ fn print_status(active: &ActiveEndpoints) {
 }
 
 /// Status output for the auto-status printed after enable/disable/toggle. Goes
-/// to stderr so the eval-able script on stdout stays clean.
-fn print_status_stderr(active: &ActiveEndpoints) {
-    eprintln!("{}", status_text(active));
+/// to stderr so the eval-able script on stdout stays clean. The expected proxy
+/// value is supplied because this process cannot observe changes made by the
+/// emitted script in the caller's shell.
+fn print_status_stderr(active: &ActiveEndpoints, expected_proxy: Option<String>) {
+    eprintln!("{}", status_text_for(active, expected_proxy));
 }
 
 fn status_text(active: &ActiveEndpoints) -> String {
+    status_text_for(active, current_proxy_value())
+}
+
+fn status_text_for(active: &ActiveEndpoints, current: Option<String>) -> String {
     let color = output::color_enabled();
-    let current = std::env::var("http_proxy")
-        .or_else(|_| std::env::var("HTTP_PROXY"))
-        .or_else(|_| std::env::var("all_proxy"))
-        .or_else(|_| std::env::var("ALL_PROXY"))
-        .ok();
 
     let active_hosts = active_hostports(active);
     let pointing = current
@@ -344,6 +347,22 @@ fn status_text(active: &ActiveEndpoints) -> String {
         ],
         color,
     )
+}
+
+fn current_proxy_value() -> Option<String> {
+    ["http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY"]
+        .into_iter()
+        .find_map(|name| std::env::var(name).ok())
+}
+
+fn restored_proxy_value() -> Option<String> {
+    ["http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY"]
+        .into_iter()
+        .find_map(|name| {
+            (std::env::var(had_var_name(name)).ok().as_deref() == Some("1"))
+                .then(|| std::env::var(old_var_name(name)).ok())
+                .flatten()
+        })
 }
 
 fn shell_points_at_active(active: &ActiveEndpoints) -> bool {
@@ -441,12 +460,24 @@ mod tests {
 
     #[test]
     fn protocol_http_errors_without_http_inbound() {
-        assert!(proxy_urls(&endpoints(false, true), Some(ProxyShellProtocol::Http)).is_err());
+        let error = proxy_urls(&endpoints(false, true), Some(ProxyShellProtocol::Http))
+            .expect_err("explicit HTTP should require HTTP inbound");
+        let message = error.to_string();
+        assert!(message.contains("HTTP inbound is not active"));
+        assert!(message.contains("[runtime.http].enabled"));
+        assert!(message.contains("omit the protocol"));
     }
 
     #[test]
     fn protocol_socks_errors_without_socks_inbound() {
-        assert!(proxy_urls(&endpoints(true, false), Some(ProxyShellProtocol::Socks5)).is_err());
+        for protocol in [ProxyShellProtocol::Socks5, ProxyShellProtocol::Socks5h] {
+            let error = proxy_urls(&endpoints(true, false), Some(protocol))
+                .expect_err("explicit SOCKS should require SOCKS inbound");
+            let message = error.to_string();
+            assert!(message.contains("SOCKS inbound is not active"));
+            assert!(message.contains("[runtime.socks].enabled"));
+            assert!(message.contains("omit the protocol"));
+        }
     }
 
     #[test]
@@ -564,9 +595,20 @@ mod tests {
     }
 
     #[test]
-    fn status_text_reports_unset_proxy() {
-        let status = status_text(&endpoints(true, true));
+    fn status_text_reports_post_enable_state() {
+        let status = status_text_for(
+            &endpoints(true, true),
+            Some("socks5://127.0.0.1:18200".to_string()),
+        );
         assert!(status.contains("Proxy shell"));
-        assert!(status.contains("status"));
+        assert!(status.contains("shell points at active xrat endpoints"));
+        assert!(status.contains("socks5://127.0.0.1:18200"));
+    }
+
+    #[test]
+    fn status_text_reports_post_disable_state() {
+        let status = status_text_for(&endpoints(true, true), None);
+        assert!(status.contains("shell has no proxy environment set"));
+        assert!(status.contains("http_proxy  -"));
     }
 }

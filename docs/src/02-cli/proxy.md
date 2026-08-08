@@ -121,25 +121,30 @@ uppercase variants. It errors if no usable inbound is active. `disable` unsets
 those variables. `status` inspects the environment inherited by `xrat` and
 reports whether the current shell points at active xrat endpoints.
 
-`enable`, `disable`, and `toggle` also print the current proxy shell status to
+`enable`, `disable`, and `toggle` also print the resulting proxy shell status to
 stderr after emitting their script, so the stdout script stays safe to `eval`/
-`source` unchanged. Each script starts with a `#` comment showing how to apply
-it for the detected shell (or the one selected with `--shell`). The same usage
-note appears in each subcommand's `--help`.
+`source` unchanged. Since xrat cannot inspect the parent shell after the script
+runs, this status is derived from the emitted action and saved toggle values.
+Each script starts with a `#` comment showing how to apply it for the detected
+shell (or the one selected with `--shell`). The same usage note appears in each
+subcommand's `--help`.
 
 ### Protocol
 
 `enable` accepts an optional trailing protocol to force the scheme used for both
 `http_proxy`/`https_proxy` and `all_proxy`:
 
-| Protocol | Exported scheme                            |
-| -------- | ------------------------------------------ |
-| `http`   | `http://` (requires an active HTTP inbound) |
-| `socks5` | `socks5://` (requires an active SOCKS inbound) |
-| `socks5h`| `socks5h://` (requires an active SOCKS inbound) |
+| Protocol | Required inbound | Exported scheme |
+| -------- | ---------------- | --------------- |
+| `http`   | HTTP             | `http://`       |
+| `socks5` | SOCKS            | `socks5://`     |
+| `socks5h`| SOCKS            | `socks5h://`    |
 
 When omitted, the default behavior applies: `http_proxy`/`https_proxy` prefer the
-HTTP inbound, `all_proxy` prefers SOCKS, with cross-fallback.
+HTTP inbound, `all_proxy` prefers SOCKS, with cross-fallback. An explicit
+protocol never falls back: if its matching inbound is not active, xrat reports
+the config setting to enable and suggests omitting the protocol for automatic
+selection. Reconnect the runtime after enabling an inbound.
 
 ### Usage
 
