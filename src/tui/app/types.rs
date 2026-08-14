@@ -127,6 +127,7 @@ pub enum TuiAction {
     RefreshFocusedSource,
     RefreshAllSources,
     OpenImportModal,
+    OpenSettingsModal,
     OpenRenameModal,
     RequestDeleteSource,
     OpenQrFocused,
@@ -139,6 +140,19 @@ pub enum TuiAction {
     RenameInput(char),
     RenameBackspace,
     RenameSubmit,
+    SettingsMove(i32),
+    SettingsSwitchPane,
+    SettingsFocusSections,
+    SettingsFocusFields,
+    SettingsBeginSearch,
+    SettingsInput(char),
+    SettingsBackspace,
+    SettingsClearInput,
+    SettingsSubmit,
+    SettingsCycle(i32),
+    SettingsReset,
+    SettingsSave,
+    SettingsConfirmDiscard(bool),
     Confirm,
     Cancel,
     NextTab,
@@ -161,6 +175,7 @@ pub enum ConfirmKind {
     PurgeConfig(i64),
     DeleteSource(i64),
     ClearEvents,
+    RestartAfterSettings,
 }
 
 /// Destructive multi-config operations triggered through the chord keymap.
@@ -257,6 +272,70 @@ pub struct RenameModalState {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SettingsPane {
+    #[default]
+    Sections,
+    Fields,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SettingsEditState {
+    pub setting_index: usize,
+    pub input: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsMode {
+    Browse,
+    Search,
+    Edit,
+    DiscardConfirm,
+}
+
+#[derive(Debug)]
+pub struct SettingsModalState {
+    pub session: crate::app::config::ConfigEditSession,
+    pub pane: SettingsPane,
+    pub section_index: usize,
+    pub field_index: usize,
+    pub query: String,
+    pub searching: bool,
+    pub editing: Option<SettingsEditState>,
+    pub discard_confirm: bool,
+    pub error: Option<String>,
+    pub notice: Option<String>,
+}
+
+impl SettingsModalState {
+    pub fn new(session: crate::app::config::ConfigEditSession) -> Self {
+        Self {
+            session,
+            pane: SettingsPane::Sections,
+            section_index: 0,
+            field_index: 0,
+            query: String::new(),
+            searching: false,
+            editing: None,
+            discard_confirm: false,
+            error: None,
+            notice: None,
+        }
+    }
+
+    pub fn mode(&self) -> SettingsMode {
+        if self.discard_confirm {
+            SettingsMode::DiscardConfirm
+        } else if self.editing.is_some() {
+            SettingsMode::Edit
+        } else if self.searching {
+            SettingsMode::Search
+        } else {
+            SettingsMode::Browse
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QrKind {
     Config,
@@ -319,6 +398,7 @@ pub struct TuiApp {
     pub active_log_tab: TuiLogTab,
     pub import_modal: Option<ImportModalState>,
     pub rename_modal: Option<RenameModalState>,
+    pub settings_modal: Option<SettingsModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,
     pub chrome_message: Option<ChromeMessage>,

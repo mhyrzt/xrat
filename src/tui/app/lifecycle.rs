@@ -69,7 +69,21 @@ impl TuiApp {
     }
 
     pub(super) fn back(&mut self) {
-        if self.qr_modal.is_some() {
+        if let Some(settings) = &mut self.settings_modal {
+            if settings.editing.is_some() {
+                settings.editing = None;
+                settings.error = None;
+            } else if settings.searching {
+                settings.searching = false;
+            } else if settings.discard_confirm {
+                settings.discard_confirm = false;
+            } else if settings.session.is_dirty() {
+                settings.discard_confirm = true;
+            } else {
+                self.settings_modal = None;
+                self.needs_full_clear = true;
+            }
+        } else if self.qr_modal.is_some() {
             self.qr_modal = None;
             self.needs_full_clear = true;
         } else if self.import_modal.is_some() {

@@ -8,7 +8,7 @@ mod view;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::tui::app::{TuiAction, TuiPanel, TuiView};
+use crate::tui::app::{SettingsMode, TuiAction, TuiPanel, TuiView};
 
 #[allow(clippy::too_many_arguments)]
 #[cfg(test)]
@@ -34,6 +34,7 @@ pub fn action_for_key(
         false,
         rename_modal_open,
         qr_modal_open,
+        None,
     )
 }
 
@@ -49,6 +50,7 @@ pub fn action_for_key_with_import(
     import_modal_open: bool,
     rename_modal_open: bool,
     qr_modal_open: bool,
+    settings_mode: Option<SettingsMode>,
 ) -> TuiAction {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
@@ -80,6 +82,10 @@ pub fn action_for_key_with_import(
         return confirm::action_for_confirm_key(key);
     }
 
+    if let Some(mode) = settings_mode {
+        return action_for_settings_modal_key(key, mode);
+    }
+
     if editing_search {
         return search::action_for_search_key(key);
     }
@@ -100,6 +106,54 @@ pub fn action_for_key_with_import(
     }
 
     view::action_for_view_key(key, active_view, focused_panel)
+}
+
+fn action_for_settings_modal_key(key: KeyEvent, mode: SettingsMode) -> TuiAction {
+    if mode == SettingsMode::DiscardConfirm {
+        return match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => TuiAction::SettingsConfirmDiscard(true),
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                TuiAction::SettingsConfirmDiscard(false)
+            }
+            _ => TuiAction::None,
+        };
+    }
+
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('u') {
+        return TuiAction::SettingsClearInput;
+    }
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('s') {
+        return TuiAction::SettingsSave;
+    }
+
+    match mode {
+        SettingsMode::Search | SettingsMode::Edit => match key.code {
+            KeyCode::Esc => TuiAction::Back,
+            KeyCode::Enter => TuiAction::SettingsSubmit,
+            KeyCode::Backspace => TuiAction::SettingsBackspace,
+            KeyCode::Char(ch)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                TuiAction::SettingsInput(ch)
+            }
+            _ => TuiAction::None,
+        },
+        SettingsMode::Browse => match key.code {
+            KeyCode::Esc => TuiAction::Back,
+            KeyCode::Tab | KeyCode::BackTab => TuiAction::SettingsSwitchPane,
+            KeyCode::Char('j') | KeyCode::Down => TuiAction::SettingsMove(1),
+            KeyCode::Char('k') | KeyCode::Up => TuiAction::SettingsMove(-1),
+            KeyCode::Char('/') => TuiAction::SettingsBeginSearch,
+            KeyCode::Enter | KeyCode::Char(' ') => TuiAction::SettingsSubmit,
+            KeyCode::Char('r') => TuiAction::SettingsReset,
+            KeyCode::Left => TuiAction::SettingsFocusSections,
+            KeyCode::Right => TuiAction::SettingsFocusFields,
+            KeyCode::Char('h') => TuiAction::SettingsCycle(-1),
+            KeyCode::Char('l') => TuiAction::SettingsCycle(1),
+            _ => TuiAction::None,
+        },
+        SettingsMode::DiscardConfirm => TuiAction::None,
+    }
 }
 
 fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {

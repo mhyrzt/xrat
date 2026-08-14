@@ -6,21 +6,24 @@ mod tests;
 #[cfg(test)]
 pub(crate) use tasks::test_args_for_app;
 
+use std::collections::BTreeSet;
 use std::time::Duration;
 
 use crossterm::event::{self, Event};
 use tokio::sync::mpsc;
 
+use crate::app::config::{ConfigEditSession, SettingEffect};
 use crate::app::context::AppContext;
-use crate::tui::app::TuiApp;
+use crate::tui::app::{ConfirmKind, ConfirmState, SettingsModalState, TuiApp};
 use crate::tui::data::TuiData;
 use crate::tui::task::TuiTaskEvent;
 
 use terminal::TerminalSession;
 
 pub async fn run(context: &AppContext) -> crate::app::Result<()> {
+    let mut context = context.clone();
     let mut terminal = TerminalSession::enter()?;
-    let data = TuiData::load(context, false).await?;
+    let data = TuiData::load(&context, false).await?;
     let mut app = TuiApp::with_data(data);
     let (task_tx, mut task_rx) = mpsc::unbounded_channel();
     let (version_tx, mut version_rx) = mpsc::unbounded_channel();
@@ -29,7 +32,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let (stats_tx, mut stats_rx) = mpsc::unbounded_channel();
     tasks::spawn_version_check(version_tx);
     tasks::spawn_probe_engines(context.clone(), &engines_tx);
-    let geo_lookup =
+    let mut geo_lookup =
         crate::tui::data::build_geo_lookup(&context.app_config, &context.runtime_paths);
     tasks::spawn_enrich_locations(
         context.db.clone(),
@@ -130,6 +133,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         app.import_modal.is_some(),
                         app.rename_modal.is_some(),
                         app.qr_modal.is_some(),
+                        app.settings_modal.as_ref().map(SettingsModalState::mode),
                     );
                     let bulk_to_run = if matches!(action, crate::tui::app::TuiAction::ConfirmBulk) {
                         app.pending_bulk
@@ -161,6 +165,11 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         matches!(action, crate::tui::app::TuiAction::Confirm)
                             && app.confirm.as_ref().is_some_and(|confirm| {
                                 matches!(confirm.kind, crate::tui::app::ConfirmKind::ClearEvents)
+                            });
+                    let confirmed_settings_restart =
+                        matches!(action, crate::tui::app::TuiAction::Confirm)
+                            && app.confirm.as_ref().is_some_and(|confirm| {
+                                matches!(confirm.kind, ConfirmKind::RestartAfterSettings)
                             });
                     let direct_command = app.config_command_for_action(action);
                     let start_focused_id =
@@ -217,6 +226,10 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             None
                         };
                     let open_import = matches!(action, crate::tui::app::TuiAction::OpenImportModal);
+                    let open_settings =
+                        matches!(action, crate::tui::app::TuiAction::OpenSettingsModal);
+                    let save_settings_requested =
+                        matches!(action, crate::tui::app::TuiAction::SettingsSave);
                     let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
                     let rename_prefill = if open_rename {
                         app.focused_source().map(|source| {
@@ -249,10 +262,120 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         } else {
                             Vec::new()
                         };
-                    app.apply(action);
+                    let save_settings = save_settings_requested && app.prepare_settings_save();
+                    if !save_settings_requested {
+                        app.apply(action);
+                    }
                     if open_import {
                         app.import_modal = Some(crate::tui::app::ImportModalState::default());
                         app.needs_full_clear = true;
+                    }
+                    if open_settings {
+                        match ConfigEditSession::open(&context.runtime_paths.config_path) {
+                            Ok(session) => {
+                                app.settings_modal = Some(SettingsModalState::new(session));
+                                app.needs_full_clear = true;
+                            }
+                            Err(error) => app.set_chrome_message(error, true),
+                        }
+                    }
+                    if save_settings {
+                        let settings_dirty = app
+                            .settings_modal
+                            .as_ref()
+                            .is_some_and(|modal| modal.session.is_dirty());
+                        if !settings_dirty {
+                            if let Some(modal) = &mut app.settings_modal {
+                                modal.notice = Some("No changes to save.".to_string());
+                                modal.error = None;
+                            }
+                            continue;
+                        }
+                        let result = app
+                            .settings_modal
+                            .as_mut()
+                            .map(|modal| modal.session.save());
+                        match result {
+                            Some(Ok(outcome)) => {
+                                let runtime_restart =
+                                    outcome.effects.contains(&SettingEffect::RuntimeRestart);
+                                let daemon_restart =
+                                    outcome.effects.contains(&SettingEffect::DaemonRestart);
+                                let changed_count = outcome.changed_paths.len();
+                                let changed_categories: BTreeSet<&str> = outcome
+                                    .changed_paths
+                                    .iter()
+                                    .filter_map(|path| path.split('.').next())
+                                    .collect();
+                                context.app_config = outcome.config;
+                                geo_lookup = crate::tui::data::build_geo_lookup(
+                                    &context.app_config,
+                                    &context.runtime_paths,
+                                );
+                                let reload_error =
+                                    match TuiData::load(&context, app.config_list.include_deleted)
+                                        .await
+                                    {
+                                        Ok(data) => {
+                                            app.reload_data(data);
+                                            None
+                                        }
+                                        Err(error) => Some(error),
+                                    };
+                                let mut message = if daemon_restart {
+                                    format!(
+                                        "saved {changed_count} setting(s); restart daemon to apply all changes"
+                                    )
+                                } else {
+                                    format!("saved {changed_count} setting(s)")
+                                };
+                                let is_error = if let Some(error) = reload_error {
+                                    message.push_str(&format!("; TUI reload failed: {error}"));
+                                    true
+                                } else {
+                                    false
+                                };
+                                if let Some(modal) = &mut app.settings_modal {
+                                    if is_error {
+                                        modal.error = Some(message.clone());
+                                        modal.notice = None;
+                                    } else {
+                                        modal.notice = Some(message.clone());
+                                        modal.error = None;
+                                    }
+                                }
+                                crate::app::events::record(
+                                    &context.db,
+                                    crate::app::events::LEVEL_INFO,
+                                    crate::app::events::SOURCE_SETTINGS,
+                                    "config_saved",
+                                    message,
+                                    None,
+                                    app.data.runtime.session_id,
+                                    Some(format!(
+                                        "changed_fields={changed_count}; categories={}",
+                                        changed_categories
+                                            .into_iter()
+                                            .collect::<Vec<_>>()
+                                            .join(",")
+                                    )),
+                                )
+                                .await;
+                                if runtime_restart && app.data.runtime.pid_running {
+                                    app.confirm = Some(ConfirmState {
+                                        kind: ConfirmKind::RestartAfterSettings,
+                                        prompt: "restart active runtime with new settings?"
+                                            .to_string(),
+                                    });
+                                }
+                            }
+                            Some(Err(error)) => {
+                                if let Some(modal) = &mut app.settings_modal {
+                                    modal.error = Some(error);
+                                }
+                            }
+                            None => {}
+                        }
                     }
                     if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
                         && let Some(import) = prepare_import_submission(&mut app)
@@ -276,7 +399,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
                     }
                     if let Some(op) = bulk_to_run {
-                        tasks::run_bulk_op(context, &mut app, op, &task_tx).await;
+                        tasks::run_bulk_op(&context, &mut app, op, &task_tx).await;
                     }
                     if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
                         tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);
@@ -313,23 +436,23 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     }
                     if let Some((source_id, name)) = rename_submit {
                         app.rename_modal = None;
-                        tasks::run_source_rename(context, &mut app, source_id, name, &task_tx)
+                        tasks::run_source_rename(&context, &mut app, source_id, name, &task_tx)
                             .await;
                     }
                     if let Some(source_id) = confirmed_source_delete {
-                        tasks::run_source_delete(context, &mut app, source_id, &task_tx).await;
+                        tasks::run_source_delete(&context, &mut app, source_id, &task_tx).await;
                     }
                     if confirmed_clear_events {
-                        tasks::run_clear_events(context, &mut app, &logs_tx).await;
+                        tasks::run_clear_events(&context, &mut app, &logs_tx).await;
                     }
                     if let Some((config_id, config_name)) = qr_config_id {
-                        tasks::open_qr_for_config(context, &mut app, config_id, config_name).await;
+                        tasks::open_qr_for_config(&context, &mut app, config_id, config_name).await;
                     }
                     if let Some((source_name, source_url)) = qr_source {
                         tasks::open_qr_for_source(&mut app, source_name, source_url);
                     }
                     if let Some(config_id) = copy_focused_id {
-                        tasks::copy_config_uri(context, &mut app, config_id).await;
+                        tasks::copy_config_uri(&context, &mut app, config_id).await;
                     }
                     if let Some((source_name, source_url)) = copy_focused_source {
                         tasks::copy_source_uri(&mut app, source_name, source_url);
@@ -341,7 +464,10 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         tasks::copy_api_url(&mut app);
                     }
                     if let Some(command) = confirmed_command.or(direct_command) {
-                        tasks::run_config_command(context, &mut app, command, &task_tx).await;
+                        tasks::run_config_command(&context, &mut app, command, &task_tx).await;
+                    }
+                    if confirmed_settings_restart {
+                        tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
                     }
                     if let Some(config_id) = start_focused_id {
                         tasks::spawn_runtime_start_config(
@@ -352,7 +478,13 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         );
                     }
                 }
-                Event::Paste(text) => app.append_import_text(&text),
+                Event::Paste(text) => {
+                    if app.settings_modal.is_some() {
+                        app.append_settings_text(&text);
+                    } else {
+                        app.append_import_text(&text);
+                    }
+                }
                 _ => {}
             }
         }

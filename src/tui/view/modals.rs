@@ -1,10 +1,11 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph, Wrap};
 use unicode_width::UnicodeWidthStr;
 
-use crate::tui::app::{ImportModalStep, TuiApp};
+use crate::app::config::{EditableSetting, SettingKind, SettingValue};
+use crate::tui::app::{ImportModalStep, SettingsMode, SettingsPane, TuiApp};
 use crate::tui::theme;
 
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
@@ -27,6 +28,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                     help_line("PgUp / PgDn", "Page up/down"),
                     help_line("Home / End", "Jump top/bottom"),
                     help_line("i", "Import link"),
+                    help_line(",", "Settings"),
                     help_line("Esc", "Close modal / back"),
                     help_line("q", "Quit"),
                 ],
@@ -244,6 +246,562 @@ fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
         ),
         Span::raw(description),
     ])
+}
+
+pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let Some(modal) = &app.settings_modal else {
+        return;
+    };
+    let width = area.width.saturating_sub(4).clamp(50, 110);
+    let height = area.height.saturating_sub(2).clamp(20, 40);
+    let modal_area = centered_rect_fixed(width, height, area);
+    let compact = modal_area.width < 80;
+    frame.render_widget(Clear, modal_area);
+
+    let dirty = if modal.session.is_dirty() { " *" } else { "" };
+    let title = format!(" Settings{dirty} · {} ", modal.session.path_display());
+    let footer = settings_footer(modal.mode(), modal.pane, compact);
+    let outer = Block::default()
+        .title(Line::styled(title, theme::accent_style().bold()))
+        .title_bottom(footer)
+        .borders(Borders::ALL)
+        .border_style(theme::muted_style())
+        .padding(Padding::horizontal(1));
+    let inner = outer.inner(modal_area);
+    frame.render_widget(outer, modal_area);
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Min(7),
+            Constraint::Length(if compact { 11 } else { 10 }),
+            Constraint::Length(
+                if modal.error.is_some() || modal.notice.is_some() || modal.discard_confirm {
+                    2
+                } else if modal.selected_setting_index().is_none() {
+                    1
+                } else {
+                    0
+                },
+            ),
+        ])
+        .split(inner);
+
+    let (input_title, input_text) = if let Some(editing) = &modal.editing {
+        let setting = &modal.session.settings[editing.setting_index];
+        let text = if matches!(setting.kind, SettingKind::Secret) {
+            "•".repeat(editing.input.chars().count())
+        } else {
+            editing.input.clone()
+        };
+        let unit = settings_value_unit(&setting.path)
+            .map(|unit| format!(" · {unit}"))
+            .unwrap_or_default();
+        (
+            format!(" Edit {}{unit} ", setting.label),
+            format!("{text}█"),
+        )
+    } else if modal.searching {
+        (" Search ".to_string(), format!("{}█", modal.query))
+    } else {
+        (
+            " Search ".to_string(),
+            if modal.query.is_empty() {
+                "Press / to filter settings".to_string()
+            } else {
+                modal.query.clone()
+            },
+        )
+    };
+    frame.render_widget(
+        Paragraph::new(input_text)
+            .style(if modal.editing.is_some() || modal.searching {
+                theme::accent_style()
+            } else {
+                theme::muted_style()
+            })
+            .block(
+                Block::default()
+                    .title(input_title)
+                    .borders(Borders::ALL)
+                    .border_style(if modal.editing.is_some() || modal.searching {
+                        theme::accent_style()
+                    } else {
+                        theme::muted_style()
+                    }),
+            ),
+        rows[0],
+    );
+
+    let columns = if compact {
+        match modal.pane {
+            SettingsPane::Sections => [rows[1], Rect::default()],
+            SettingsPane::Fields => [Rect::default(), rows[1]],
+        }
+    } else {
+        let columns = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+            .split(rows[1]);
+        [columns[0], columns[1]]
+    };
+    let sections = modal.sections();
+    let section_rows = columns[0].height.saturating_sub(2) as usize;
+    let section_start = modal
+        .section_index
+        .saturating_sub(section_rows.saturating_sub(1));
+    let section_lines: Vec<Line> = sections
+        .iter()
+        .enumerate()
+        .skip(section_start)
+        .take(section_rows)
+        .map(|(index, section)| {
+            let selected = index == modal.section_index;
+            let marker = if selected { "› " } else { "  " };
+            Line::styled(
+                format!(
+                    "{marker}{}",
+                    settings_section_tree_label(section, &sections)
+                ),
+                if selected {
+                    theme::accent_style().bold()
+                } else {
+                    theme::chrome_style()
+                },
+            )
+        })
+        .collect();
+    if !columns[0].is_empty() {
+        frame.render_widget(
+            Paragraph::new(section_lines).block(
+                Block::default()
+                    .title(format!(
+                        " Sections · {}/{} ",
+                        modal.section_index.saturating_add(1).min(sections.len()),
+                        sections.len()
+                    ))
+                    .borders(Borders::ALL)
+                    .border_style(if modal.pane == SettingsPane::Sections {
+                        theme::accent_style()
+                    } else {
+                        theme::muted_style()
+                    }),
+            ),
+            columns[0],
+        );
+    }
+
+    let indices = modal.visible_setting_indices();
+    let available_rows = columns[1].height.saturating_sub(2) as usize;
+    let section = modal.selected_section().unwrap_or_default();
+    let mut last_group = String::new();
+    let mut field_rows: Vec<(Option<usize>, Line)> = Vec::new();
+    let mut selected_tail_rows = 0;
+    let label_width = columns[1].width.saturating_sub(14).clamp(12, 24) as usize;
+    for (position, setting_index) in indices.iter().enumerate() {
+        let setting = &modal.session.settings[*setting_index];
+        let group = settings_value_group(&section, &setting.section);
+        if group != last_group {
+            field_rows.push((
+                None,
+                Line::styled(format!("  {group}"), theme::muted_style().bold()),
+            ));
+            last_group = group;
+        }
+        let selected = position == modal.field_index;
+        let state = settings_state_marker(setting);
+        let marker = if selected { "›" } else { " " };
+        let unavailable = setting.unavailable_reason().is_some();
+        let label_style = if selected {
+            theme::accent_style().bold()
+        } else if unavailable {
+            theme::muted_style()
+        } else {
+            theme::chrome_style()
+        };
+        let value_style = if selected && !unavailable {
+            theme::accent_style()
+        } else {
+            theme::muted_style()
+        };
+        if let Some((minimum, maximum)) = settings_range_pair(&setting.path, &setting.value) {
+            field_rows.push((
+                Some(position),
+                Line::styled(format!("{marker}{state} {}", setting.label), label_style),
+            ));
+            for (label, value) in [("min", minimum), ("max", maximum)] {
+                field_rows.push((
+                    None,
+                    Line::from(vec![
+                        Span::styled(format!("    {label:<22}"), theme::chrome_style()),
+                        Span::styled(settings_value_with_unit(&setting.path, value), value_style),
+                    ]),
+                ));
+            }
+            if selected {
+                selected_tail_rows = 2;
+            }
+            continue;
+        }
+        let value = settings_value_display(
+            &setting.path,
+            &setting.value,
+            matches!(setting.kind, SettingKind::Secret),
+        );
+        let value = if unavailable {
+            format!("{value} · inactive")
+        } else {
+            value
+        };
+        field_rows.push((
+            Some(position),
+            Line::from(vec![
+                Span::styled(
+                    format!("{marker}{state} {:<label_width$}", setting.label),
+                    label_style,
+                ),
+                Span::styled(value, value_style),
+            ]),
+        ));
+    }
+    let selected_row = field_rows
+        .iter()
+        .position(|(position, _)| *position == Some(modal.field_index))
+        .unwrap_or_default();
+    let selected_row_end = selected_row + selected_tail_rows;
+    let start = selected_row_end.saturating_sub(available_rows.saturating_sub(1));
+    let field_lines: Vec<Line> = field_rows
+        .into_iter()
+        .skip(start)
+        .take(available_rows)
+        .map(|(_, line)| line)
+        .collect();
+    if !columns[1].is_empty() {
+        frame.render_widget(
+            Paragraph::new(field_lines).block(
+                Block::default()
+                    .title(format!(
+                        " Values · {}/{} ",
+                        modal.field_index.saturating_add(1).min(indices.len()),
+                        indices.len()
+                    ))
+                    .borders(Borders::ALL)
+                    .border_style(if modal.pane == SettingsPane::Fields {
+                        theme::accent_style()
+                    } else {
+                        theme::muted_style()
+                    }),
+            ),
+            columns[1],
+        );
+    }
+
+    if let Some(index) = modal.selected_setting_index() {
+        let setting = &modal.session.settings[index];
+        let secret = matches!(setting.kind, SettingKind::Secret);
+        let default_value = settings_value_display(&setting.path, setting.default_value(), secret);
+        let (applies, applies_style) = if let Some(reason) = setting.unavailable_reason() {
+            (format!("inactive — {reason}"), theme::failure_style())
+        } else {
+            (
+                format!(
+                    "{} — {}",
+                    setting.effect.label(),
+                    setting.effect.help_text()
+                ),
+                theme::chrome_style(),
+            )
+        };
+        let help_lines = vec![
+            Line::from(vec![
+                Span::styled("Description  ", theme::accent_style().bold()),
+                Span::styled(setting.help.description, theme::chrome_style()),
+            ]),
+            Line::from(vec![
+                Span::styled("Values       ", theme::accent_style().bold()),
+                Span::styled(setting.possible_values(), theme::chrome_style()),
+            ]),
+            Line::from(vec![
+                Span::styled("Default      ", theme::accent_style().bold()),
+                Span::styled(default_value, theme::chrome_style()),
+            ]),
+            Line::from(vec![
+                Span::styled("Source       ", theme::accent_style().bold()),
+                Span::styled(settings_source_display(setting), theme::chrome_style()),
+            ]),
+            Line::from(vec![
+                Span::styled("Legend       ", theme::accent_style().bold()),
+                Span::styled(
+                    "· inherited default   + explicit override   * unsaved",
+                    theme::muted_style(),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Example      ", theme::accent_style().bold()),
+                Span::styled(setting.help.example, theme::chrome_style()),
+            ]),
+            Line::from(vec![
+                Span::styled("Applies      ", theme::accent_style().bold()),
+                Span::styled(applies, applies_style),
+            ]),
+        ];
+        frame.render_widget(
+            Paragraph::new(help_lines).wrap(Wrap { trim: true }).block(
+                Block::default()
+                    .title(format!(" Help · {} ", setting.path))
+                    .borders(Borders::ALL)
+                    .border_style(theme::muted_style()),
+            ),
+            rows[2],
+        );
+    } else {
+        frame.render_widget(
+            Paragraph::new("No settings match the filter.")
+                .style(theme::muted_style())
+                .block(
+                    Block::default()
+                        .title(" Help ")
+                        .borders(Borders::ALL)
+                        .border_style(theme::muted_style()),
+                ),
+            rows[2],
+        );
+    }
+
+    let status = if modal.discard_confirm {
+        Line::from(vec![
+            Span::styled("Discard unsaved changes?  ", theme::failure_style().bold()),
+            Span::styled("y", theme::success_style().bold()),
+            Span::styled(" / ", theme::muted_style()),
+            Span::styled("n", theme::failure_style().bold()),
+        ])
+    } else if let Some(error) = &modal.error {
+        Line::styled(error.as_str(), theme::failure_style())
+    } else if let Some(notice) = &modal.notice {
+        Line::styled(notice.as_str(), theme::success_style())
+    } else {
+        Line::styled("No settings match the filter.", theme::muted_style())
+    };
+    frame.render_widget(Paragraph::new(status), rows[3]);
+}
+
+fn settings_footer(mode: SettingsMode, pane: SettingsPane, compact: bool) -> Line<'static> {
+    let hints: &[(&str, &str)] = match mode {
+        SettingsMode::DiscardConfirm => &[("y", "discard"), ("n/Esc", "keep")],
+        SettingsMode::Search | SettingsMode::Edit if compact => &[
+            ("Enter", "apply"),
+            ("^U", "clear"),
+            ("^S", "save"),
+            ("Esc", "back"),
+        ],
+        SettingsMode::Search => &[
+            ("Enter", "apply"),
+            ("Ctrl+U", "clear"),
+            ("Ctrl+S", "save"),
+            ("Esc", "cancel"),
+        ],
+        SettingsMode::Edit => &[
+            ("Enter", "apply"),
+            ("Ctrl+U", "clear"),
+            ("Ctrl+S", "save"),
+            ("Esc", "cancel"),
+        ],
+        SettingsMode::Browse if compact => &[
+            ("←/→", "pane"),
+            ("Enter", "select"),
+            ("^S", "save"),
+            ("Esc", "close"),
+        ],
+        SettingsMode::Browse if pane == SettingsPane::Fields => &[
+            ("←/→", "pane"),
+            ("↑/↓", "move"),
+            ("Enter", "edit"),
+            ("r", "reset"),
+            ("Ctrl+S", "save"),
+            ("Esc", "close"),
+        ],
+        SettingsMode::Browse => &[
+            ("←/→", "pane"),
+            ("↑/↓", "move"),
+            ("Enter", "open"),
+            ("/", "search"),
+            ("Ctrl+S", "save"),
+            ("Esc", "close"),
+        ],
+    };
+    let mut spans = Vec::with_capacity(hints.len() * 2);
+    for (key, action) in hints {
+        spans.push(Span::styled(
+            format!(" {key}"),
+            theme::accent_style().bold(),
+        ));
+        spans.push(Span::styled(format!(" {action} "), theme::muted_style()));
+    }
+    Line::from(spans).right_aligned()
+}
+
+fn settings_state_marker(setting: &EditableSetting) -> &'static str {
+    if setting.is_dirty() {
+        "*"
+    } else if setting.is_explicit() {
+        "+"
+    } else {
+        "·"
+    }
+}
+
+fn settings_source_display(setting: &EditableSetting) -> String {
+    let source = if setting.is_explicit() {
+        "explicit override"
+    } else {
+        "inherited default"
+    };
+    if setting.is_reset() {
+        format!("{source} · reset to default on save · unsaved")
+    } else if setting.is_dirty() {
+        format!("{source} · unsaved")
+    } else {
+        source.to_string()
+    }
+}
+
+fn settings_section_tree_label(section: &str, sections: &[String]) -> String {
+    let parts: Vec<&str> = section.split('.').collect();
+    let depth = parts.len().saturating_sub(1);
+    let mut label = String::new();
+
+    for ancestor_depth in 1..depth {
+        let ancestor = &parts[..=ancestor_depth];
+        label.push_str(if is_last_section_child(ancestor, sections) {
+            "   "
+        } else {
+            "│  "
+        });
+    }
+    if depth > 0 {
+        label.push_str(if is_last_section_child(&parts, sections) {
+            "└─ "
+        } else {
+            "├─ "
+        });
+    }
+    label.push_str(&settings_section_name(
+        parts.last().copied().unwrap_or(section),
+    ));
+    if section == "dns" {
+        label.push_str(" · inactive");
+    }
+    label
+}
+
+fn is_last_section_child(parts: &[&str], sections: &[String]) -> bool {
+    sections
+        .iter()
+        .rev()
+        .find(|candidate| {
+            let candidate_parts: Vec<&str> = candidate.split('.').collect();
+            candidate_parts.len() == parts.len()
+                && candidate_parts[..parts.len().saturating_sub(1)]
+                    == parts[..parts.len().saturating_sub(1)]
+        })
+        .is_some_and(|candidate| candidate == &parts.join("."))
+}
+
+fn settings_section_name(segment: &str) -> String {
+    segment
+        .split('_')
+        .map(|word| match word {
+            "api" | "dns" | "http" | "https" | "icmp" | "tcp" => word.to_ascii_uppercase(),
+            "auth" => "Authentication".to_string(),
+            "geoip" => "GeoIP".to_string(),
+            _ => {
+                let mut chars = word.chars();
+                chars
+                    .next()
+                    .map(|first| first.to_uppercase().collect::<String>() + chars.as_str())
+                    .unwrap_or_default()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn settings_value_group(page: &str, section: &str) -> String {
+    let suffix = section
+        .strip_prefix(page)
+        .unwrap_or(section)
+        .trim_start_matches('.');
+    if suffix.is_empty() {
+        "General".to_string()
+    } else {
+        suffix
+            .split('.')
+            .map(settings_section_name)
+            .collect::<Vec<_>>()
+            .join(" › ")
+    }
+}
+
+fn settings_value_display(path: &str, value: &SettingValue, secret: bool) -> String {
+    let display = match value {
+        SettingValue::Bool(true) => "✓".to_string(),
+        SettingValue::Bool(false) => "✗".to_string(),
+        SettingValue::List(values) if values.is_empty() => "none".to_string(),
+        SettingValue::Integer(0)
+            if matches!(
+                path,
+                "testing.concurrency" | "runtime.rotation.test_concurrency"
+            ) =>
+        {
+            "auto".to_string()
+        }
+        value => value.display(secret),
+    };
+    if matches!(value, SettingValue::Integer(_)) {
+        settings_value_with_unit(path, &display)
+    } else {
+        display
+    }
+}
+
+fn settings_value_with_unit(path: &str, value: &str) -> String {
+    let Some(unit) = settings_value_unit(path) else {
+        return value.to_string();
+    };
+    format!("{value} {unit}")
+}
+
+fn settings_value_unit(path: &str) -> Option<&'static str> {
+    match path {
+        "runtime.fragment.interval"
+        | "testing.download.timeout"
+        | "testing.icmp.timeout"
+        | "testing.real_delay.timeout"
+        | "testing.tcp.timeout"
+        | "testing.geoip.remote.timeout_ms" => Some("ms"),
+        "runtime.rotation.cooldown_secs"
+        | "runtime.rotation.interval_secs"
+        | "testing.geoip.cache.ttl_secs" => Some("s"),
+        "subscriptions.refresh_interval_hours" => Some("h"),
+        _ => None,
+    }
+}
+
+fn settings_range_pair<'a>(path: &str, value: &'a SettingValue) -> Option<(&'a str, &'a str)> {
+    if !matches!(
+        path,
+        "runtime.fragment.packets" | "runtime.fragment.length" | "runtime.fragment.interval"
+    ) {
+        return None;
+    }
+    let SettingValue::List(values) = value else {
+        return None;
+    };
+    match values.as_slice() {
+        [minimum, maximum] => Some((minimum, maximum)),
+        _ => None,
+    }
 }
 
 pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
@@ -502,11 +1060,16 @@ pub fn centered_rect_fixed(width: u16, height: u16, area: Rect) -> Rect {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
 
     use super::*;
-    use crate::tui::app::RenameModalState;
+    use crate::app::config::ConfigEditSession;
+    use crate::tui::app::{
+        RenameModalState, SettingsEditState, SettingsModalState, SettingsPane, TuiAction,
+    };
 
     #[test]
     fn rename_modal_identifies_subscription_by_ref_and_name() {
@@ -537,5 +1100,425 @@ mod tests {
         assert!(rendered.contains("Enter save   Esc cancel"));
         assert!(!rendered.contains("New subscription name"));
         assert!(!rendered.contains("Subscription #7"));
+    }
+
+    #[test]
+    fn settings_modal_never_renders_secret_plaintext() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "[server]\nkey = \"top-secret\"\n").expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let secret_index = session
+            .settings
+            .iter()
+            .position(|setting| setting.path == "server.key")
+            .expect("secret setting should exist");
+        let mut modal = SettingsModalState::new(session);
+        modal.section_index = modal
+            .sections()
+            .iter()
+            .position(|section| section == "server")
+            .expect("server section should exist");
+        modal.field_index = modal
+            .visible_setting_indices()
+            .iter()
+            .position(|index| *index == secret_index)
+            .expect("secret field should be visible");
+        modal.editing = Some(SettingsEditState {
+            setting_index: secret_index,
+            input: "replacement".to_string(),
+        });
+        let app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(110, 34)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(!rendered.contains("top-secret"));
+        assert!(!rendered.contains("replacement"));
+        assert!(rendered.contains("configured"));
+        assert!(rendered.contains("XRAT_API_KEY"));
+    }
+
+    #[test]
+    fn settings_sections_render_as_capitalized_tree_rows() {
+        let sections = [
+            "runtime",
+            "runtime.http",
+            "runtime.socks",
+            "runtime.stats",
+            "testing",
+            "testing.download",
+        ]
+        .map(str::to_string);
+
+        let labels: Vec<String> = sections
+            .iter()
+            .map(|section| settings_section_tree_label(section, &sections))
+            .collect();
+
+        assert_eq!(
+            labels,
+            [
+                "Runtime",
+                "├─ HTTP",
+                "├─ Socks",
+                "└─ Stats",
+                "Testing",
+                "└─ Download",
+            ]
+        );
+        assert_eq!(
+            settings_value_group("runtime.socks", "runtime.socks"),
+            "General"
+        );
+        assert_eq!(
+            settings_value_group("runtime.socks", "runtime.socks.auth"),
+            "Authentication"
+        );
+        assert_eq!(settings_section_name("dns"), "DNS");
+        assert_eq!(
+            settings_section_tree_label("dns", &sections),
+            "DNS · inactive"
+        );
+        assert_eq!(
+            settings_value_display(
+                "runtime.sniffing.domains_excluded",
+                &SettingValue::List(Vec::new()),
+                false
+            ),
+            "none"
+        );
+        assert_eq!(
+            settings_value_display("testing.concurrency", &SettingValue::Integer(0), false),
+            "auto"
+        );
+        assert_eq!(
+            settings_value_display(
+                "runtime.rotation.test_concurrency",
+                &SettingValue::Integer(0),
+                false,
+            ),
+            "auto"
+        );
+        assert_eq!(
+            settings_value_display(
+                "runtime.mux.xudp_concurrency",
+                &SettingValue::Integer(0),
+                false,
+            ),
+            "0"
+        );
+        assert_eq!(
+            settings_value_display(
+                "testing.real_delay.timeout",
+                &SettingValue::Integer(10_000),
+                false,
+            ),
+            "10000 ms"
+        );
+        assert_eq!(
+            settings_value_display(
+                "runtime.rotation.interval_secs",
+                &SettingValue::Integer(1800),
+                false,
+            ),
+            "1800 s"
+        );
+        assert_eq!(
+            settings_value_display(
+                "subscriptions.refresh_interval_hours",
+                &SettingValue::Integer(24),
+                false,
+            ),
+            "24 h"
+        );
+        assert_eq!(
+            settings_value_display("server.port", &SettingValue::Integer(18203), false),
+            "18203"
+        );
+    }
+
+    #[test]
+    fn compact_settings_modal_shows_only_the_focused_pane() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "").expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut app = TuiApp {
+            settings_modal: Some(SettingsModalState::new(session)),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(60, 30)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("Sections ·"));
+        assert!(!rendered.contains("Values ·"));
+        assert!(rendered.contains("^S save"));
+        assert!(rendered.contains("Esc close"));
+
+        app.settings_modal.as_mut().expect("modal").pane = SettingsPane::Fields;
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(!rendered.contains("Sections ·"));
+        assert!(rendered.contains("Values ·"));
+    }
+
+    #[test]
+    fn settings_section_selection_remains_visible_in_short_modal() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "").expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut modal = SettingsModalState::new(session);
+        let sections = modal.sections();
+        modal.section_index = sections.len().saturating_sub(1);
+        let selected = modal.selected_section().expect("selected section");
+        let selected_label = settings_section_tree_label(&selected, &sections);
+        let app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(110, 22)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains(&format!("› {selected_label}")));
+    }
+
+    #[test]
+    fn settings_help_shows_origin_default_and_dns_availability() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "[dns]\nquery_strategy = \"UseSystem\"\n")
+            .expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut modal = SettingsModalState::new(session);
+        modal.section_index = modal
+            .sections()
+            .iter()
+            .position(|section| section == "dns")
+            .expect("DNS section");
+        modal.field_index = modal
+            .visible_setting_indices()
+            .iter()
+            .position(|index| modal.session.settings[*index].path == "dns.query_strategy")
+            .expect("query strategy setting");
+        modal.pane = SettingsPane::Fields;
+        let app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(110, 34)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("DNS · inactive"));
+        assert!(rendered.contains("Default"));
+        assert!(rendered.contains("Source"));
+        assert!(rendered.contains("Legend"));
+        assert!(rendered.contains("+ explicit override"));
+        assert!(rendered.contains("explicit override"));
+        assert!(rendered.contains("not yet applied"));
+    }
+
+    #[test]
+    fn settings_parent_page_renders_nested_value_subheaders() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(
+            &path,
+            "[runtime.socks]\nenabled = true\n[runtime.socks.auth]\nenabled = false\n",
+        )
+        .expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut modal = SettingsModalState::new(session);
+        modal.section_index = modal
+            .sections()
+            .iter()
+            .position(|section| section == "runtime.socks")
+            .expect("runtime.socks section should exist");
+        let app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(110, 34)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("General"));
+        assert!(rendered.contains("Authentication"));
+        assert!(rendered.contains('✓'));
+        assert!(rendered.contains('✗'));
+        assert!(!rendered.contains("runtime.socks.auth"));
+    }
+
+    #[test]
+    fn settings_help_follows_selection_in_compact_terminal() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "[runtime.socks]\nenabled = true\nport = 18200\n")
+            .expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut modal = SettingsModalState::new(session);
+        modal.section_index = modal
+            .sections()
+            .iter()
+            .position(|section| section == "runtime.socks")
+            .expect("runtime.socks section should exist");
+        let port_index = modal
+            .visible_setting_indices()
+            .iter()
+            .position(|index| modal.session.settings[*index].path == "runtime.socks.port")
+            .expect("port setting should be visible");
+        let enabled_index = modal
+            .visible_setting_indices()
+            .iter()
+            .position(|index| modal.session.settings[*index].path == "runtime.socks.enabled")
+            .expect("enabled setting should be visible");
+        modal.field_index = port_index;
+        modal.pane = SettingsPane::Fields;
+        let mut app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("Help · runtime.socks.port"));
+        assert!(rendered.contains("Description"));
+        assert!(rendered.contains("Values"));
+        assert!(rendered.contains("Example"));
+        assert!(rendered.contains("port = 18200"));
+        assert!(rendered.contains("runtime restart"));
+
+        let direction = if enabled_index < port_index { -1 } else { 1 };
+        for _ in 0..enabled_index.abs_diff(port_index) {
+            app.apply(TuiAction::SettingsMove(direction));
+        }
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.contains("Help · runtime.socks.enabled"));
+        assert!(rendered.contains("✓ enabled · ✗ disabled"));
+        assert!(rendered.contains("enabled = true"));
+    }
+
+    #[test]
+    fn settings_fragment_ranges_render_as_indented_min_max_rows() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(
+            &path,
+            "[runtime.fragment]\npackets = [1, 3]\nlength = [100, 200]\ninterval = [10, 20]\n",
+        )
+        .expect("config should be written");
+        let session = ConfigEditSession::open(&path).expect("settings should open");
+        let mut modal = SettingsModalState::new(session);
+        modal.section_index = modal
+            .sections()
+            .iter()
+            .position(|section| section == "runtime.fragment")
+            .expect("runtime.fragment section should exist");
+        let app = TuiApp {
+            settings_modal: Some(modal),
+            ..TuiApp::default()
+        };
+        let mut terminal = Terminal::new(TestBackend::new(110, 34)).unwrap();
+
+        terminal
+            .draw(|frame| render_settings_modal(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+        assert!(rendered.matches("min").count() >= 3);
+        assert!(rendered.matches("max").count() >= 3);
+        assert!(!rendered.contains("10, 20"));
+        assert_eq!(
+            settings_range_pair(
+                "runtime.fragment.interval",
+                &SettingValue::List(vec!["10".to_string(), "20".to_string()]),
+            ),
+            Some(("10", "20"))
+        );
+        assert_eq!(
+            settings_value_with_unit("runtime.fragment.interval", "10"),
+            "10 ms"
+        );
     }
 }

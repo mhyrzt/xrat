@@ -4,6 +4,7 @@ mod defaults;
 mod lifecycle;
 mod navigation;
 mod query;
+mod settings;
 mod tasks;
 mod test_state;
 mod types;
@@ -12,8 +13,9 @@ mod views;
 pub use types::{
     BulkKind, BulkOp, ChromeMessage, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind,
     ConfirmState, ImportModalState, ImportModalStep, PanelScroll, PanelViewport, QrKind,
-    QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode, TestScope,
-    TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiLogTab, TuiPanel, TuiView,
+    QrModalState, RenameModalState, SettingsEditState, SettingsModalState, SettingsMode,
+    SettingsPane, SourceFilter, SourceListState, TestMode, TestScope, TestViewState, TuiAction,
+    TuiApp, TuiConfigCommand, TuiLogTab, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -54,9 +56,11 @@ impl TuiApp {
             | TuiAction::OpenQrApiUrl
             | TuiAction::CopyApiUrl
             | TuiAction::OpenImportModal
+            | TuiAction::OpenSettingsModal
             | TuiAction::OpenRenameModal
             | TuiAction::ImportSubmit
-            | TuiAction::RenameSubmit => {}
+            | TuiAction::RenameSubmit
+            | TuiAction::SettingsSave => {}
             TuiAction::NextLogTab => {
                 self.active_log_tab = self.active_log_tab.next();
                 self.panel_scroll.log.set(0);
@@ -94,6 +98,18 @@ impl TuiApp {
                     modal.input.pop();
                 }
             }
+            TuiAction::SettingsMove(direction) => self.settings_move(direction),
+            TuiAction::SettingsSwitchPane => self.settings_switch_pane(),
+            TuiAction::SettingsFocusSections => self.settings_focus_pane(SettingsPane::Sections),
+            TuiAction::SettingsFocusFields => self.settings_focus_pane(SettingsPane::Fields),
+            TuiAction::SettingsBeginSearch => self.settings_begin_search(),
+            TuiAction::SettingsInput(ch) => self.settings_input(ch),
+            TuiAction::SettingsBackspace => self.settings_backspace(),
+            TuiAction::SettingsClearInput => self.settings_clear_input(),
+            TuiAction::SettingsSubmit => self.settings_submit(),
+            TuiAction::SettingsCycle(direction) => self.settings_cycle(direction),
+            TuiAction::SettingsReset => self.settings_reset(),
+            TuiAction::SettingsConfirmDiscard(discard) => self.settings_confirm_discard(discard),
             TuiAction::CancelTestBatch => {
                 if self.task_state.running.is_some() {
                     self.task_state.cancel();

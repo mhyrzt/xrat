@@ -92,6 +92,16 @@ fn maps_global_quit_keys() {
 }
 
 #[test]
+fn comma_opens_settings_from_both_views() {
+    for view in [TuiView::Configs, TuiView::Sources] {
+        assert_eq!(
+            act(key(KeyCode::Char(',')), view, false, false, false, false),
+            TuiAction::OpenSettingsModal
+        );
+    }
+}
+
+#[test]
 fn maps_view_switching_keys() {
     assert_eq!(
         act(

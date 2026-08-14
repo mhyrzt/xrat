@@ -17,6 +17,7 @@ pub const SOURCE_TEST: &str = "test";
 pub const SOURCE_SUBSCRIPTION: &str = "subscription";
 pub const SOURCE_API: &str = "api";
 pub const SOURCE_SETUP: &str = "setup";
+pub const SOURCE_SETTINGS: &str = "settings";
 
 /// Record an event, logging (but not propagating) any database failure.
 #[allow(clippy::too_many_arguments)]
