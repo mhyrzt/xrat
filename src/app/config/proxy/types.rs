@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::super::SecretString;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct RuntimeSettings {
     pub engine: String,
@@ -21,7 +21,7 @@ pub struct RuntimeSettings {
     pub network: NetworkSettings,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct MuxSettings {
     pub enabled: bool,
@@ -30,7 +30,7 @@ pub struct MuxSettings {
     pub xudp_proxy_udp443: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct FragmentSettings {
     pub enabled: bool,
@@ -40,7 +40,7 @@ pub struct FragmentSettings {
     pub interval: [u32; 2],
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct NetworkSettings {
     pub interface: String,
@@ -49,7 +49,7 @@ pub struct NetworkSettings {
     pub listen_interface: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct StatsSettings {
     pub enabled: bool,
@@ -57,7 +57,7 @@ pub struct StatsSettings {
     pub port: u16,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct RotationSettings {
     pub enabled: bool,
@@ -69,7 +69,7 @@ pub struct RotationSettings {
     pub refresh_subscriptions: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct LogSettings {
     pub enabled: bool,
@@ -80,7 +80,7 @@ pub struct LogSettings {
     pub keep: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct SocksSettings {
     pub enabled: bool,
@@ -90,7 +90,7 @@ pub struct SocksSettings {
     pub auth: AuthSettings,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct AuthSettings {
     pub enabled: bool,
@@ -98,7 +98,7 @@ pub struct AuthSettings {
     pub password: Option<SecretString>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct HttpSettings {
     pub enabled: bool,
@@ -106,7 +106,7 @@ pub struct HttpSettings {
     pub port: u16,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct ShadowsocksSettings {
     pub enabled: bool,
@@ -117,7 +117,7 @@ pub struct ShadowsocksSettings {
     pub network: String,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct SniffingSettings {
     pub enabled: bool,

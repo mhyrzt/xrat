@@ -5,6 +5,7 @@ use serde::Deserialize;
 mod database;
 pub(crate) mod defaults;
 mod dns;
+mod editor;
 mod geo;
 mod mmdb;
 mod parser;
@@ -15,6 +16,10 @@ mod secret;
 mod server;
 mod subscriptions;
 mod testing;
+
+pub(crate) use editor::{
+    ConfigEditSession, EditableSetting, SettingEffect, SettingKind, SettingValue,
+};
 
 pub use database::{
     DatabaseBackend, DatabaseSettings, PostgresDatabaseSettings, SqliteDatabaseSettings,

@@ -1,14 +1,15 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::defaults;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct DnsSettings {
     pub query_strategy: String,
     pub servers: Vec<String>,
+    #[serde(skip_serializing)]
     pub hosts: BTreeMap<String, DnsHostValue>,
     pub use_system_hosts: bool,
     pub disable_cache: bool,

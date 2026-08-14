@@ -497,6 +497,24 @@ fn validate_config(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     validate_server(config, errors);
 }
 
+pub(crate) fn validate_app_config(config: &AppConfig) -> Vec<String> {
+    let mut diagnostics = Vec::new();
+    validate_config(config, &mut diagnostics);
+    diagnostics
+        .into_iter()
+        .map(|diagnostic| {
+            if diagnostic.field.is_empty() {
+                format!("{}; {}", diagnostic.problem, diagnostic.fix)
+            } else {
+                format!(
+                    "{}: {}; {}",
+                    diagnostic.field, diagnostic.problem, diagnostic.fix
+                )
+            }
+        })
+        .collect()
+}
+
 fn validate_runtime(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     let runtime = &config.runtime;
     if !matches!(runtime.engine.as_str(), "xray" | "v2ray" | "sing-box") {

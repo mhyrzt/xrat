@@ -1,9 +1,9 @@
-use serde::{Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct TestingSettings {
     pub concurrency: i32,
@@ -16,7 +16,7 @@ pub struct TestingSettings {
     pub geoip: GeoIpTestSettings,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ConnectionTestStage {
     #[serde(alias = "ping")]
@@ -47,7 +47,7 @@ impl ConnectionTestStage {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TestFailurePolicy {
     Continue,
@@ -57,7 +57,7 @@ pub enum TestFailurePolicy {
     MarkFailed,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct RealDelayTestSettings {
     pub enabled: bool,
@@ -124,13 +124,22 @@ impl<'de> Deserialize<'de> for HttpStatusRange {
     }
 }
 
+impl Serialize for HttpStatusRange {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
 impl fmt::Display for HttpStatusRange {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}-{}", self.start, self.end)
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct DownloadTestSettings {
     pub enabled: bool,
@@ -138,7 +147,7 @@ pub struct DownloadTestSettings {
     pub timeout: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct IcmpTestSettings {
     pub enabled: bool,
@@ -146,14 +155,14 @@ pub struct IcmpTestSettings {
     pub timeout: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct TcpTestSettings {
     pub enabled: bool,
     pub timeout: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct GeoIpTestSettings {
     pub enabled: bool,
@@ -166,7 +175,7 @@ pub struct GeoIpTestSettings {
     pub cache: GeoIpCacheSettings,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum GeoIpBackend {
     Mmdb,
@@ -178,7 +187,7 @@ pub enum GeoIpBackend {
     None,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct RemoteGeoIpSettings {
     pub provider: GeoIpRemoteProvider,
@@ -188,7 +197,7 @@ pub struct RemoteGeoIpSettings {
     pub rate_limit_per_minute: u32,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum GeoIpRemoteProvider {
     #[serde(alias = "ipwhois")]
@@ -197,7 +206,7 @@ pub enum GeoIpRemoteProvider {
     IpApi,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct GeoIpCacheSettings {
     pub enabled: bool,

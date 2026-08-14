@@ -9,7 +9,7 @@ pub use shared::*;
 pub use transports::*;
 
 /// Parsing mode for Xray configuration
-#[derive(Debug, Clone, Copy, Default, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ParseMode {
     /// Strict mode: reject unknown fields
