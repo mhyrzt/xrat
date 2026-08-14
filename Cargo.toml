@@ -1,6 +1,6 @@
 [package]
 name = "xrat"
-version = "0.13.0"
+version = "0.14.0"
 edition = "2024"
 description = "A fast, polished CLI and TUI proxy manager for Xray-core and sing-box"
 license = "MIT"
