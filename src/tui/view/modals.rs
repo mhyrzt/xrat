@@ -4,7 +4,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph};
 use unicode_width::UnicodeWidthStr;
 
-use crate::tui::app::TuiApp;
+use crate::tui::app::{ImportModalStep, TuiApp};
 use crate::tui::theme;
 
 pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
@@ -26,6 +26,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: Rect) {
                     help_line("j, ↓ / k, ↑", "Scroll down/up"),
                     help_line("PgUp / PgDn", "Page up/down"),
                     help_line("Home / End", "Jump top/bottom"),
+                    help_line("i", "Import link"),
                     help_line("Esc", "Close modal / back"),
                     help_line("q", "Quit"),
                 ],
@@ -243,6 +244,92 @@ fn help_line<'a>(key: &'a str, description: &'a str) -> Line<'a> {
         ),
         Span::raw(description),
     ])
+}
+
+pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let Some(modal) = &app.import_modal else {
+        return;
+    };
+
+    const WIDTH: u16 = 72;
+    const CONTENT_PADDING: u16 = 2;
+
+    let (title, hint, placeholder, submit_label) = match &modal.step {
+        ImportModalStep::Link => (
+            " Import config or subscription ",
+            "Paste one config link or HTTP(S) subscription URL.",
+            "vless://… or https://…",
+            "continue",
+        ),
+        ImportModalStep::SubscriptionName { suggested_name, .. } => (
+            " Name subscription ",
+            "Enter a name, or leave blank to use the suggestion.",
+            suggested_name.as_str(),
+            "import",
+        ),
+    };
+    let has_error = modal.error.is_some();
+    let modal_height = if has_error { 8 } else { 7 };
+    let modal_area = centered_rect_fixed(WIDTH.min(area.width), modal_height, area);
+
+    frame.render_widget(Clear, modal_area);
+    let footer = Line::from(vec![
+        Span::styled(" Enter", theme::accent_style().bold()),
+        Span::styled(format!(" {submit_label}   "), theme::muted_style()),
+        Span::styled("Esc", theme::accent_style().bold()),
+        Span::styled(" cancel ", theme::muted_style()),
+    ])
+    .right_aligned();
+    let outer = Block::default()
+        .title(Line::styled(title, theme::accent_style().bold()))
+        .title_bottom(footer)
+        .borders(Borders::ALL)
+        .border_style(theme::muted_style())
+        .padding(Padding::horizontal(CONTENT_PADDING));
+    let inner = outer.inner(modal_area);
+    frame.render_widget(outer, modal_area);
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(if has_error {
+            vec![
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Length(1),
+            ]
+        } else {
+            vec![Constraint::Length(1), Constraint::Length(3)]
+        })
+        .split(inner);
+    frame.render_widget(Paragraph::new(hint).style(theme::muted_style()), rows[0]);
+
+    let input = if modal.input.is_empty() {
+        Line::from(vec![
+            Span::styled(placeholder, theme::muted_style()),
+            Span::styled("█", theme::accent_style()),
+        ])
+    } else {
+        Line::styled(format!("{}█", modal.input), theme::accent_style())
+    };
+    let visible_input_width = rows[1].width.saturating_sub(4);
+    let input_scroll = (UnicodeWidthStr::width(modal.input.as_str()) as u16 + 1)
+        .saturating_sub(visible_input_width);
+    frame.render_widget(
+        Paragraph::new(input).scroll((0, input_scroll)).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(theme::accent_style())
+                .padding(Padding::horizontal(1)),
+        ),
+        rows[1],
+    );
+
+    if let Some(error) = &modal.error {
+        frame.render_widget(
+            Paragraph::new(error.as_str()).style(theme::failure_style()),
+            rows[2],
+        );
+    }
 }
 
 pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {

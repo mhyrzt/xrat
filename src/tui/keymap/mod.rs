@@ -11,6 +11,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub fn action_for_key(
     key: KeyEvent,
     active_view: TuiView,
@@ -19,6 +20,33 @@ pub fn action_for_key(
     bulk_confirm_open: bool,
     editing_search: bool,
     confirming: bool,
+    rename_modal_open: bool,
+    qr_modal_open: bool,
+) -> TuiAction {
+    action_for_key_with_import(
+        key,
+        active_view,
+        focused_panel,
+        pending_chord,
+        bulk_confirm_open,
+        editing_search,
+        confirming,
+        false,
+        rename_modal_open,
+        qr_modal_open,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn action_for_key_with_import(
+    key: KeyEvent,
+    active_view: TuiView,
+    focused_panel: TuiPanel,
+    pending_chord: &mut Option<char>,
+    bulk_confirm_open: bool,
+    editing_search: bool,
+    confirming: bool,
+    import_modal_open: bool,
     rename_modal_open: bool,
     qr_modal_open: bool,
 ) -> TuiAction {
@@ -31,6 +59,10 @@ pub fn action_for_key(
             return TuiAction::Back;
         }
         return TuiAction::None;
+    }
+
+    if import_modal_open {
+        return action_for_import_modal_key(key);
     }
 
     if rename_modal_open {
@@ -68,6 +100,16 @@ pub fn action_for_key(
     }
 
     view::action_for_view_key(key, active_view, focused_panel)
+}
+
+fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {
+    match key.code {
+        KeyCode::Esc => TuiAction::Back,
+        KeyCode::Enter => TuiAction::ImportSubmit,
+        KeyCode::Backspace => TuiAction::ImportBackspace,
+        KeyCode::Char(ch) => TuiAction::ImportInput(ch),
+        _ => TuiAction::None,
+    }
 }
 
 fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {

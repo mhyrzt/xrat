@@ -1,10 +1,25 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use super::super::action_for_key;
+use super::super::{action_for_key, action_for_key_with_import};
 use crate::tui::app::{TuiAction, TuiPanel, TuiView};
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::empty())
+}
+
+fn import_act(key: KeyEvent) -> TuiAction {
+    action_for_key_with_import(
+        key,
+        TuiView::Configs,
+        TuiPanel::Table,
+        &mut None,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+    )
 }
 
 /// Wrapper preserving the pre-chord call shape: no armed chord, no bulk confirm.
@@ -113,4 +128,18 @@ fn maps_search_editing_keys() {
         ),
         TuiAction::ClearSearch
     );
+}
+
+#[test]
+fn import_modal_consumes_edit_and_submit_keys() {
+    assert_eq!(
+        import_act(key(KeyCode::Char('v'))),
+        TuiAction::ImportInput('v')
+    );
+    assert_eq!(
+        import_act(key(KeyCode::Backspace)),
+        TuiAction::ImportBackspace
+    );
+    assert_eq!(import_act(key(KeyCode::Enter)), TuiAction::ImportSubmit);
+    assert_eq!(import_act(key(KeyCode::Esc)), TuiAction::Back);
 }

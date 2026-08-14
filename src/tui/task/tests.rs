@@ -31,6 +31,15 @@ fn source_refresh_label_uses_subscriptions_wording() {
 }
 
 #[test]
+fn import_label_is_concise() {
+    let mut state = TuiTaskState::default();
+    state.apply(&TuiTaskEvent::Started {
+        kind: TuiTaskKind::Import,
+    });
+    assert_eq!(state.label(), "Importing");
+}
+
+#[test]
 fn start_creates_cancellation_token() {
     let mut state = TuiTaskState::default();
     let (token, _receiver) = state.start(TuiTaskKind::TestBatch);

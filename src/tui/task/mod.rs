@@ -12,6 +12,7 @@ pub enum TuiTaskKind {
     TestBatch,
     RuntimeOp,
     SourceRefresh,
+    Import,
 }
 
 #[derive(Debug)]

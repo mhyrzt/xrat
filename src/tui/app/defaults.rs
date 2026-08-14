@@ -23,6 +23,7 @@ impl Default for TuiApp {
             pending_chord: None,
             pending_bulk: None,
             active_log_tab: TuiLogTab::default(),
+            import_modal: None,
             rename_modal: None,
             qr_modal: None,
             event_log: Vec::new(),

@@ -126,12 +126,16 @@ pub enum TuiAction {
     ClearStatsView,
     RefreshFocusedSource,
     RefreshAllSources,
+    OpenImportModal,
     OpenRenameModal,
     RequestDeleteSource,
     OpenQrFocused,
     CopyFocused,
     OpenQrApiUrl,
     CopyApiUrl,
+    ImportInput(char),
+    ImportBackspace,
+    ImportSubmit,
     RenameInput(char),
     RenameBackspace,
     RenameSubmit,
@@ -221,6 +225,29 @@ pub struct ConfirmState {
     pub prompt: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportModalStep {
+    Link,
+    SubscriptionName { url: String, suggested_name: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportModalState {
+    pub step: ImportModalStep,
+    pub input: String,
+    pub error: Option<String>,
+}
+
+impl Default for ImportModalState {
+    fn default() -> Self {
+        Self {
+            step: ImportModalStep::Link,
+            input: String::new(),
+            error: None,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct RenameModalState {
     pub source_id: i64,
@@ -290,6 +317,7 @@ pub struct TuiApp {
     /// Bulk operation awaiting inline y/n confirmation in the key bar.
     pub pending_bulk: Option<BulkOp>,
     pub active_log_tab: TuiLogTab,
+    pub import_modal: Option<ImportModalState>,
     pub rename_modal: Option<RenameModalState>,
     pub qr_modal: Option<QrModalState>,
     pub event_log: Vec<String>,

@@ -56,6 +56,7 @@ separate Tests view.
 | arrow keys    | Move row / scroll the focused card down/up        |
 | `PgUp`, `PgDn`| Page the focused card up / down                   |
 | `Home`, `End` | Jump to the top / bottom of the focused card      |
+| `i`           | Import a config or subscription link              |
 | `?`           | Open help                                         |
 | `Esc`         | Close modal, leave search, or go back             |
 | `q`, `Ctrl+C` | Quit                                              |
@@ -181,11 +182,11 @@ to browse the filtered set.
 Subscription actions apply to the focused subscription row; they are no-ops on
 the `All configs` and `Orphans` rows.
 
-The TUI does not import new subscriptions. Add subscriptions from the CLI with
-[`xrat import <input>`](import.md) for subscriptions, files, and link lists, or
-[`xrat add <link>`](import.md#add) for a single config link, then refresh them
-here. This keeps every Subscriptions row a real, refreshable subscription
-record.
+Press `i` from either tab to open the import modal, then paste one supported
+config share link or one HTTP(S) subscription URL. Config links are saved
+immediately. Subscription URLs open a second, compact name prompt; leaving it
+blank uses the displayed random name. File paths, raw base64 payloads, JSON,
+and multi-link text remain available through [`xrat import <input>`](import.md).
 
 Subscription refresh runs as a background task. While it runs, the Runtime card
 shows live activity and the bottom bar shows completion summaries that

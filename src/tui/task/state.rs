@@ -20,6 +20,7 @@ impl TuiTaskState {
                 format!("{:?} cancelling", kind)
             }
             Some(TuiTaskKind::SourceRefresh) => "Subscriptions refreshing".to_string(),
+            Some(TuiTaskKind::Import) => "Importing".to_string(),
             Some(kind) => format!("{:?} running", kind),
             None => self
                 .last_summary

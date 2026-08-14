@@ -212,7 +212,7 @@ fn detail_lines<'a>(
                 theme::accent_style().add_modifier(Modifier::BOLD),
             ),
             Line::raw(""),
-            Line::raw("Import configs with `xrat import <input>`"),
+            Line::raw("Press `i` to import a config or subscription link"),
             Line::raw("or add one with `xrat add <config-uri>`."),
         ],
     }

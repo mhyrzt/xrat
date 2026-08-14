@@ -348,6 +348,16 @@ fn maps_navigation_and_help_keys() {
 }
 
 #[test]
+fn import_hotkey_is_global() {
+    for view in [TuiView::Configs, TuiView::Sources] {
+        assert_eq!(
+            act(key(KeyCode::Char('i')), view, false, false, false, false),
+            TuiAction::OpenImportModal
+        );
+    }
+}
+
+#[test]
 fn search_mode_esc_exits_and_ctrl_u_clears() {
     assert_eq!(
         act(

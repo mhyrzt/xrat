@@ -11,9 +11,9 @@ mod views;
 
 pub use types::{
     BulkKind, BulkOp, ChromeMessage, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind,
-    ConfirmState, PanelScroll, PanelViewport, QrKind, QrModalState, RenameModalState, SourceFilter,
-    SourceListState, TestMode, TestScope, TestViewState, TuiAction, TuiApp, TuiConfigCommand,
-    TuiLogTab, TuiPanel, TuiView,
+    ConfirmState, ImportModalState, ImportModalStep, PanelScroll, PanelViewport, QrKind,
+    QrModalState, RenameModalState, SourceFilter, SourceListState, TestMode, TestScope,
+    TestViewState, TuiAction, TuiApp, TuiConfigCommand, TuiLogTab, TuiPanel, TuiView,
 };
 
 use crate::tui::task::TuiTaskState;
@@ -53,7 +53,9 @@ impl TuiApp {
             | TuiAction::CopyFocused
             | TuiAction::OpenQrApiUrl
             | TuiAction::CopyApiUrl
+            | TuiAction::OpenImportModal
             | TuiAction::OpenRenameModal
+            | TuiAction::ImportSubmit
             | TuiAction::RenameSubmit => {}
             TuiAction::NextLogTab => {
                 self.active_log_tab = self.active_log_tab.next();
@@ -73,6 +75,13 @@ impl TuiApp {
             TuiAction::ConfirmBulk => self.pending_bulk = None,
             TuiAction::CancelBulk => {
                 self.pending_bulk = None;
+            }
+            TuiAction::ImportInput(ch) => self.append_import_text(&ch.to_string()),
+            TuiAction::ImportBackspace => {
+                if let Some(modal) = &mut self.import_modal {
+                    modal.input.pop();
+                    modal.error = None;
+                }
             }
             TuiAction::RenameInput(ch) => {
                 if let Some(modal) = &mut self.rename_modal {
@@ -125,6 +134,7 @@ impl TuiApp {
             Some(TuiTaskKind::TestBatch)
                 | Some(TuiTaskKind::RuntimeOp)
                 | Some(TuiTaskKind::SourceRefresh)
+                | Some(TuiTaskKind::Import)
         ) {
             self.spinner_tick = self.spinner_tick.wrapping_add(1);
             changed = true;
@@ -154,6 +164,13 @@ impl TuiApp {
 
     pub fn subscriptions_refresh_in_flight(&self) -> bool {
         self.task_state.running == Some(crate::tui::task::TuiTaskKind::SourceRefresh)
+    }
+
+    pub fn append_import_text(&mut self, text: &str) {
+        if let Some(modal) = &mut self.import_modal {
+            modal.input.push_str(text);
+            modal.error = None;
+        }
     }
 
     pub fn runtime_activity_in_flight(&self) -> bool {

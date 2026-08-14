@@ -3,6 +3,7 @@ use crate::app::input::source::{read_input, read_input_async};
 use crate::config::parse_text;
 use crate::db::ImportSource;
 use crate::db::SourceKind;
+use crate::db::{Database, ImportSummary};
 use crate::model::Node;
 use crate::support::decode::decode_or_raw_text;
 use crate::support::url::looks_like_url;
@@ -23,6 +24,24 @@ pub async fn load_nodes_async(input: &str) -> crate::app::Result<(ImportSource, 
     let normalized_text = expand_url_list_async(&config_text).await?;
 
     Ok((source, parse_text(&normalized_text)))
+}
+
+pub async fn persist_nodes(
+    database: &Database,
+    mut source: ImportSource,
+    nodes: &[Node],
+    name: Option<&str>,
+) -> crate::app::Result<ImportSummary> {
+    if let Some(name) = name {
+        source.name = Some(name.to_string());
+    }
+    let summary = database.import_nodes(&source, nodes).await?;
+    if let Some(name) = name {
+        database
+            .set_subscription_name(summary.subscription_id, name)
+            .await?;
+    }
+    Ok(summary)
 }
 
 pub fn load_single_node(input: &str) -> crate::app::Result<(ImportSource, Node)> {
@@ -109,8 +128,8 @@ async fn expand_url_list_async(input: &str) -> crate::app::Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::load_single_node;
-    use crate::db::SourceKind;
+    use super::{load_single_node, persist_nodes};
+    use crate::db::{Database, ImportSource, SourceKind};
     use crate::model::Protocol;
 
     #[test]
@@ -131,5 +150,60 @@ mod tests {
             .expect_err("multiple configs should fail");
 
         assert!(err.to_string().contains("exactly one"));
+    }
+
+    #[tokio::test]
+    async fn supplied_name_is_persisted_and_updates_existing_url() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let database = Database::connect_sqlite(&root.path().join("db.sqlite"))
+            .await
+            .expect("database should connect");
+
+        for name in ["First", "Second"] {
+            let (_, node) = load_single_node("vless://uuid-123@example.com:443#One")
+                .expect("config should parse");
+            let source = ImportSource {
+                kind: SourceKind::Url,
+                value: "https://example.com/sub".to_string(),
+                name: None,
+            };
+            persist_nodes(&database, source, &[node], Some(name))
+                .await
+                .expect("import should persist");
+        }
+
+        let subscriptions = database
+            .list_subscriptions()
+            .await
+            .expect("subscriptions should load");
+        assert_eq!(subscriptions.len(), 1);
+        assert_eq!(subscriptions[0].name.as_deref(), Some("Second"));
+    }
+
+    #[tokio::test]
+    async fn omitted_name_preserves_existing_import_behavior() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let database = Database::connect_sqlite(&root.path().join("db.sqlite"))
+            .await
+            .expect("database should connect");
+        let (_, node) =
+            load_single_node("vless://uuid-123@example.com:443#One").expect("config should parse");
+        let source = ImportSource {
+            kind: SourceKind::Url,
+            value: "https://example.com/sub".to_string(),
+            name: None,
+        };
+
+        persist_nodes(&database, source, &[node], None)
+            .await
+            .expect("import should persist");
+
+        let subscription = database
+            .list_subscriptions()
+            .await
+            .expect("subscriptions should load")
+            .pop()
+            .expect("subscription should exist");
+        assert_eq!(subscription.name, None);
     }
 }

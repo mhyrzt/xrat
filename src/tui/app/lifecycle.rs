@@ -72,6 +72,9 @@ impl TuiApp {
         if self.qr_modal.is_some() {
             self.qr_modal = None;
             self.needs_full_clear = true;
+        } else if self.import_modal.is_some() {
+            self.import_modal = None;
+            self.needs_full_clear = true;
         } else if self.rename_modal.is_some() {
             self.rename_modal = None;
             self.needs_full_clear = true;

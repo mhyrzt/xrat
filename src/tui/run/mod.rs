@@ -1,5 +1,7 @@
 mod tasks;
 mod terminal;
+#[cfg(test)]
+mod tests;
 
 #[cfg(test)]
 pub(crate) use tasks::test_args_for_app;
@@ -117,7 +119,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 }
                 Event::Key(key) => {
                     let bulk_confirm_open = app.pending_bulk.is_some();
-                    let action = crate::tui::keymap::action_for_key(
+                    let action = crate::tui::keymap::action_for_key_with_import(
                         key,
                         app.active_view,
                         app.focused_panel,
@@ -125,6 +127,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         bulk_confirm_open,
                         app.config_list.editing_search,
                         app.confirm.is_some(),
+                        app.import_modal.is_some(),
                         app.rename_modal.is_some(),
                         app.qr_modal.is_some(),
                     );
@@ -213,6 +216,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         } else {
                             None
                         };
+                    let open_import = matches!(action, crate::tui::app::TuiAction::OpenImportModal);
                     let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
                     let rename_prefill = if open_rename {
                         app.focused_source().map(|source| {
@@ -246,6 +250,21 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             Vec::new()
                         };
                     app.apply(action);
+                    if open_import {
+                        app.import_modal = Some(crate::tui::app::ImportModalState::default());
+                        app.needs_full_clear = true;
+                    }
+                    if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
+                        && let Some(import) = prepare_import_submission(&mut app)
+                    {
+                        app.import_modal = None;
+                        tasks::spawn_import(
+                            context.clone(),
+                            import,
+                            app.config_list.include_deleted,
+                            &task_tx,
+                        );
+                    }
                     if matches!(action, crate::tui::app::TuiAction::ToggleDeletedFilter) {
                         tasks::spawn_reload_data(
                             context.clone(),
@@ -333,12 +352,84 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                         );
                     }
                 }
+                Event::Paste(text) => app.append_import_text(&text),
                 _ => {}
             }
         }
     }
 
     Ok(())
+}
+
+fn prepare_import_submission(app: &mut TuiApp) -> Option<tasks::TuiImport> {
+    use crate::tui::app::ImportModalStep;
+
+    let modal = app.import_modal.as_ref()?;
+    let step = modal.step.clone();
+    let input = modal.input.trim().to_string();
+
+    match step {
+        ImportModalStep::Link => {
+            if input.is_empty() {
+                set_import_error(app, "paste a config link or subscription URL");
+                return None;
+            }
+
+            if crate::support::url::looks_like_url(&input) {
+                let valid_url = url::Url::parse(&input)
+                    .ok()
+                    .is_some_and(|url| url.host_str().is_some());
+                if !valid_url {
+                    set_import_error(app, "invalid HTTP(S) subscription URL");
+                    return None;
+                }
+                let random_ref = crate::support::refs::generate_ref();
+                let suggested_name = format!("sub-{}", &random_ref[..6]);
+                app.import_modal = Some(crate::tui::app::ImportModalState {
+                    step: ImportModalStep::SubscriptionName {
+                        url: input,
+                        suggested_name,
+                    },
+                    input: String::new(),
+                    error: None,
+                });
+                app.needs_full_clear = true;
+                return None;
+            }
+
+            if input.contains('\n') || input.split_once("://").is_none() {
+                set_import_error(app, "only one supported config link can be added");
+                return None;
+            }
+            match crate::app::import::load_single_node(&input) {
+                Ok((source, node)) => Some(tasks::TuiImport::Config {
+                    source,
+                    node: Box::new(node),
+                }),
+                Err(_) => {
+                    set_import_error(app, "unsupported or invalid config link");
+                    None
+                }
+            }
+        }
+        ImportModalStep::SubscriptionName {
+            url,
+            suggested_name,
+        } => {
+            let name = if input.is_empty() {
+                suggested_name
+            } else {
+                input
+            };
+            Some(tasks::TuiImport::Subscription { url, name })
+        }
+    }
+}
+
+fn set_import_error(app: &mut TuiApp, error: &str) {
+    if let Some(modal) = &mut app.import_modal {
+        modal.error = Some(error.to_string());
+    }
 }
 
 /// Resolve which stats backend to sample. Hy2 always runs on managed sing-box;
