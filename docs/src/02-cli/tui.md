@@ -57,6 +57,7 @@ separate Tests view.
 | `PgUp`, `PgDn`| Page the focused card up / down                   |
 | `Home`, `End` | Jump to the top / bottom of the focused card      |
 | `i`           | Import a config or subscription link              |
+| `,`           | Open the settings editor                          |
 | `?`           | Open help                                         |
 | `Esc`         | Close modal, leave search, or go back             |
 | `q`, `Ctrl+C` | Quit                                              |
@@ -74,6 +75,44 @@ or top/bottom of the card. Cards that overflow their height show a scrollbar.
 In the Logs card, long messages wrap inside the message column and continuation
 lines stay indented under it, so the time, level, source, and kind columns stay
 aligned and one entry never blends into the next.
+
+## Settings Modal
+
+Press `,` from either tab to edit operational values from the active
+`config.toml`, including runtime and inbound settings, rotation, tests,
+subscription refresh, routing, the API server, and parser mode. Fixed DNS
+options are visible but marked inactive and remain read-only until generated
+runtime configurations consume them. Database, binary paths, dynamic
+`[dns.hosts]` entries, and Geo/MMDB asset management remain file-only settings.
+
+The modal shows a two-level setting tree on the left and effective values on the
+right. Deeper groups share their parent page under subheaders such as `General`,
+`Authentication`, `Cache`, and `Remote`. Use `Left`/`Right`, `Enter`, or
+`Tab`/`Shift+Tab` to switch panes, then `j`/`k` or `Up`/`Down` to navigate the
+active pane. Use `/` to filter, `Enter` to edit or toggle, `h`/`l` to cycle
+choices, and `r` to remove an explicit override and return to its built-in
+default. List fields use comma-separated values. Secret fields stay masked;
+enter a literal replacement or `env:VARIABLE_NAME`. `Ctrl+S` validates and
+saves without closing the modal, while `Esc` cancels the current edit or closes
+the modal. Closing with unsaved changes asks for confirmation. On compact
+terminals, only the focused Sections or Values pane is shown; use `Left` and
+`Right` to switch between them.
+
+A contextual Help pane follows the selected field. It explains what the field
+controls, shows its accepted values or input format, provides a safe TOML
+assignment example, and states whether the change applies live or needs a proxy
+runtime or daemon restart. It also shows the built-in default and whether the
+current value is inherited or explicitly configured. Value rows use `·` for an
+inherited default, `+` for an explicit override, and `*` for an unsaved change;
+the Help pane includes the same legend. Secret examples use safe placeholders
+(and environment-variable references where supported) and never display
+configured secret contents.
+
+Saving patches only changed keys, preserving comments and unrelated sections.
+New values apply to subsequent TUI tests and connections immediately. Changes
+to runtime or routing generation offer to restart an active proxy after saving;
+daemon-owned rotation, subscription-refresh, and API-server settings report
+that the daemon must be restarted.
 
 ## Configs Tab
 
