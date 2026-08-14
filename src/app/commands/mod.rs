@@ -38,7 +38,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
     match command {
         Command::Init(args) => init::run(context, args),
         Command::Setup(args) => setup::run(context, args).await,
-        Command::Import(args) => import::run(context, &args.input).await,
+        Command::Import(args) => import::run(context, &args.input, args.name.as_deref()).await,
         Command::Add(args) => add::run(context, &args.input).await,
         Command::List(args) => list::run(context, args).await,
         Command::Show(args) => lifecycle::show(context, args).await,

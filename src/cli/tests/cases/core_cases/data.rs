@@ -42,7 +42,10 @@ fn parses_import_subcommand_with_global_flags() {
     );
 
     match cli.command {
-        Command::Import(args) => assert_eq!(args.input, "https://example.com/sub.txt"),
+        Command::Import(args) => {
+            assert_eq!(args.input, "https://example.com/sub.txt");
+            assert_eq!(args.name, None);
+        }
         Command::Add(_) => panic!("expected import command"),
         Command::List(_) => panic!("expected import command"),
         Command::Test(_) => panic!("expected import command"),
@@ -76,6 +79,60 @@ fn parses_import_subcommand_with_global_flags() {
             panic!("expected import command")
         }
     }
+}
+
+#[test]
+fn parses_import_name_long_and_short_flags() {
+    for arguments in [
+        vec![
+            "xrat",
+            "import",
+            "https://example.com/sub.txt",
+            "--name",
+            "Work VPN",
+        ],
+        vec![
+            "xrat",
+            "import",
+            "-n",
+            "Personal",
+            "https://example.com/sub.txt",
+        ],
+    ] {
+        let cli = Cli::parse_from(arguments);
+        let Command::Import(args) = cli.command else {
+            panic!("expected import command");
+        };
+        assert!(matches!(
+            args.name.as_deref(),
+            Some("Work VPN" | "Personal")
+        ));
+    }
+}
+
+#[test]
+fn import_name_is_trimmed_and_must_not_be_empty() {
+    let cli = Cli::parse_from([
+        "xrat",
+        "import",
+        "https://example.com/sub.txt",
+        "--name",
+        "  Work VPN  ",
+    ]);
+    let Command::Import(args) = cli.command else {
+        panic!("expected import command");
+    };
+    assert_eq!(args.name.as_deref(), Some("Work VPN"));
+
+    let error = Cli::try_parse_from([
+        "xrat",
+        "import",
+        "https://example.com/sub.txt",
+        "--name",
+        "   ",
+    ])
+    .expect_err("blank name should be rejected");
+    assert!(error.to_string().contains("name must not be empty"));
 }
 
 #[test]

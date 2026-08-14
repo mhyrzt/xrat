@@ -3,7 +3,7 @@
 Import a subscription URL, file, or raw text into the database.
 
 ```bash
-xrat import <input>
+xrat import <input> [--name <name>]
 ```
 
 ## Arguments
@@ -11,6 +11,12 @@ xrat import <input>
 | Argument | Description                                                           |
 | -------- | --------------------------------------------------------------------- |
 | `input`  | Subscription source: a URL, local file path, or raw subscription text |
+
+## Options
+
+| Option               | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| `-n`, `--name <name>` | Name for the imported subscription source        |
 
 ## Input Formats
 
@@ -32,6 +38,12 @@ Import from a subscription URL:
 
 ```bash
 xrat import https://example.com/sub.txt
+```
+
+Import and name a subscription:
+
+```bash
+xrat import https://example.com/sub.txt --name "Work VPN"
 ```
 
 Import from a local file:
@@ -59,7 +71,8 @@ xrat import "vless://uuid@example.com:443?type=ws&security=tls#MyNode"
 3. Parses and normalizes each node
 4. Deduplicates against existing configs using a versioned key
 5. Persists new configs to the database
-6. Creates or updates the subscription source record
+6. Creates or updates the subscription source record and applies `--name` when
+   provided
 7. Reconciles the source: configs attached to the same subscription that are
    absent from this payload are soft-deleted (recoverable). A later import that
    brings them back restores them. An empty payload removes nothing.
