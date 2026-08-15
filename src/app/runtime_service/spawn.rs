@@ -53,7 +53,10 @@ pub(super) fn preflight_runtime(
     runtime_dir: &std::path::Path,
 ) -> crate::app::Result<()> {
     std::fs::create_dir_all(runtime_dir)?;
-    let mut temporary = tempfile::NamedTempFile::new_in(runtime_dir)?;
+    let mut temporary = tempfile::Builder::new()
+        .prefix(".xrat-preflight-")
+        .suffix(".json")
+        .tempfile_in(runtime_dir)?;
     match &launch.config {
         RuntimeLaunchConfig::Xray(config) => {
             temporary.write_all(serde_json::to_string_pretty(config)?.as_bytes())?;

@@ -1,4 +1,41 @@
 use super::*;
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
+
+#[tokio::test]
+async fn xray_preflight_uses_json_config_filename() {
+    let mut context = test_context().await;
+    let config = imported_config(&context, test_node()).await;
+    let validator = context.runtime_paths.root_dir.join("xray-validator.py");
+    fs::write(
+        &validator,
+        r#"#!/usr/bin/env python3
+import json
+import sys
+
+config_path = sys.argv[sys.argv.index("-c") + 1]
+if not config_path.endswith(".json"):
+    print(f"failed to get format of config file: {config_path}", file=sys.stderr)
+    sys.exit(23)
+with open(config_path, "r", encoding="utf-8") as config_file:
+    json.load(config_file)
+"#,
+    )
+    .expect("validator should be written");
+    let mut permissions = fs::metadata(&validator)
+        .expect("validator metadata should load")
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&validator, permissions).expect("validator should be executable");
+    context.runtime_paths.xray_path = validator;
+
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .expect("launch should resolve");
+
+    preflight_runtime(&launch, &context.runtime_paths.runtime_dir)
+        .expect("Xray preflight should receive a JSON filename");
+}
 
 #[test]
 fn running_session_with_unreachable_inbound_is_degraded() {
