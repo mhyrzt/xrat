@@ -19,6 +19,7 @@ pub struct XrayGenOptions {
     pub interface: Option<String>,
     pub mark: Option<i64>,
     pub bind_address: Option<String>,
+    pub routing: Option<super::routing::XrayRoutingOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -71,7 +72,12 @@ pub fn apply_runtime_tuning(config: &mut XrayConfig, options: &XrayGenOptions) {
         // The fragment freedom outbound performs the actual egress dial, so
         // interface/fwmark binding belongs on it rather than the proxy outbound.
         if has_bind {
-            apply_sockopt(stream_settings_mut(&mut fragment_out), bind.0, bind.1, None);
+            apply_sockopt(
+                stream_settings_mut(&mut fragment_out),
+                bind.0.clone(),
+                bind.1,
+                None,
+            );
         }
         config.outbounds.push(fragment_out);
 
@@ -84,7 +90,16 @@ pub fn apply_runtime_tuning(config: &mut XrayConfig, options: &XrayGenOptions) {
             );
         }
     } else if has_bind && let Some(proxy) = config.outbounds.first_mut() {
-        apply_sockopt(stream_settings_mut(proxy), bind.0, bind.1, None);
+        apply_sockopt(stream_settings_mut(proxy), bind.0.clone(), bind.1, None);
+    }
+
+    if has_bind
+        && let Some(direct) = config
+            .outbounds
+            .iter_mut()
+            .find(|outbound| outbound.tag == "direct")
+    {
+        apply_sockopt(stream_settings_mut(direct), bind.0, bind.1, None);
     }
 }
 

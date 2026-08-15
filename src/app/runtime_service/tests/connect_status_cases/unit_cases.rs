@@ -109,6 +109,32 @@ async fn hy2_launch_auto_selects_singbox_runtime() {
 }
 
 #[tokio::test]
+async fn managed_xray_launch_applies_configured_routing() {
+    let mut context = test_context().await;
+    context.app_config.routing.direct.domain = vec!["domain:direct.example".to_string()];
+    context.app_config.routing.block.ip = vec!["203.0.113.0/24".to_string()];
+    let imported = imported_config(&context, test_node()).await;
+    let service = RuntimeService::new(&context);
+
+    let launch = service
+        .resolve_launch(&imported)
+        .expect("Xray launch should resolve");
+    let RuntimeLaunchConfig::Xray(config) = launch.config else {
+        panic!("expected an Xray runtime config");
+    };
+    let value = serde_json::to_value(config).expect("config should serialize");
+
+    assert_eq!(value["routing"]["rules"][0]["outboundTag"], "api");
+    assert_eq!(value["routing"]["rules"][1]["outboundTag"], "direct");
+    assert_eq!(
+        value["routing"]["rules"][1]["domain"][0],
+        "domain:direct.example"
+    );
+    assert_eq!(value["routing"]["rules"][2]["outboundTag"], "block");
+    assert_eq!(value["routing"]["rules"][2]["ip"][0], "203.0.113.0/24");
+}
+
+#[tokio::test]
 async fn configured_singbox_rejects_non_hy2_until_runtime_generation_exists() {
     let mut context = test_context().await;
     context.app_config.runtime.engine = "sing-box".to_string();

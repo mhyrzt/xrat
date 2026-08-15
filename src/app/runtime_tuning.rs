@@ -1,13 +1,13 @@
-//! Bridges `[runtime.mux]`, `[runtime.fragment]`, and `[runtime.network]`
-//! app-config sections to the engine-agnostic `XrayGenOptions` consumed by the
-//! Xray runtime/probe generators, plus inbound `listen_interface` resolution.
+//! Bridges runtime tuning and routing app-config sections to generated engine
+//! options, plus inbound `listen_interface` resolution.
 
 use crate::app::AppError;
-use crate::app::config::RuntimeSettings;
-use crate::xray::{FragmentOptions, MuxOptions, XrayGenOptions};
+use crate::app::config::{RouteList, RoutingSettings, RuntimeSettings};
+use crate::singbox::{SingboxRouteList, SingboxRoutingOptions};
+use crate::xray::{FragmentOptions, MuxOptions, XrayGenOptions, XrayRouteList, XrayRoutingOptions};
 
-/// Translate runtime tuning settings into outbound generation options. Disabled
-/// sections and empty values map to `None`, leaving generated config unchanged.
+/// Translate runtime tuning settings into outbound generation options. Routing
+/// is added separately for managed sessions so probe configs remain proxy-only.
 pub(crate) fn build_xray_gen_options(runtime: &RuntimeSettings) -> XrayGenOptions {
     let mux = runtime.mux.enabled.then(|| MuxOptions {
         concurrency: runtime.mux.concurrency,
@@ -26,6 +26,40 @@ pub(crate) fn build_xray_gen_options(runtime: &RuntimeSettings) -> XrayGenOption
         interface: non_empty(&runtime.network.interface),
         mark: (runtime.network.mark != 0).then_some(runtime.network.mark),
         bind_address: non_empty(&runtime.network.bind_address),
+        routing: None,
+    }
+}
+
+pub(crate) fn apply_xray_routing_options(options: &mut XrayGenOptions, routing: &RoutingSettings) {
+    options.routing = Some(XrayRoutingOptions {
+        domain_strategy: routing.domain_strategy.clone(),
+        direct: xray_route_list(&routing.direct),
+        block: xray_route_list(&routing.block),
+    });
+}
+
+fn xray_route_list(routes: &RouteList) -> XrayRouteList {
+    XrayRouteList {
+        domain: routes.domain.clone(),
+        ip: routes.ip.clone(),
+        geosite: routes.geosite.clone(),
+        geoip: routes.geoip.clone(),
+    }
+}
+
+pub(crate) fn build_singbox_routing_options(routing: &RoutingSettings) -> SingboxRoutingOptions {
+    SingboxRoutingOptions {
+        direct: singbox_route_list(&routing.direct),
+        block: singbox_route_list(&routing.block),
+    }
+}
+
+fn singbox_route_list(routes: &RouteList) -> SingboxRouteList {
+    SingboxRouteList {
+        domain: routes.domain.clone(),
+        ip: routes.ip.clone(),
+        geosite: routes.geosite.clone(),
+        geoip: routes.geoip.clone(),
     }
 }
 

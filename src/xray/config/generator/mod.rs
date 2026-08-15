@@ -2,6 +2,7 @@ use serde_json::json;
 
 use crate::model::Node;
 
+use super::routing::{apply_runtime_routing, field_rule};
 use super::tuning::{XrayGenOptions, apply_runtime_tuning};
 use super::{Inbound, LogConfig, XrayConfig, outbound::node_to_outbound};
 
@@ -92,6 +93,7 @@ pub fn generate_runtime_config_for_inbounds_with_options(
         policy: None,
         routing: None,
     };
+    apply_runtime_routing(&mut config, options.routing.as_ref());
     apply_runtime_tuning(&mut config, options);
     Ok(config)
 }
@@ -125,13 +127,14 @@ pub fn enable_stats_api(config: &mut XrayConfig, host: &str, port: u16) {
             stats_outbound_downlink: Some(true),
         }),
     });
-    config.routing = Some(json!({
-        "rules": [{
-            "type": "field",
-            "inboundTag": ["api"],
-            "outboundTag": "api",
-        }],
-    }));
+    let routing = config.routing.get_or_insert_with(|| super::RoutingConfig {
+        domain_strategy: None,
+        rules: Vec::new(),
+    });
+    routing.rules.insert(
+        0,
+        field_rule(None, None, Some(vec!["api".to_string()]), "api"),
+    );
 }
 
 fn build_inbounds(socks: Option<(&str, u16, bool)>, http: Option<(&str, u16)>) -> Vec<Inbound> {

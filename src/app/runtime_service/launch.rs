@@ -50,7 +50,8 @@ impl<'a> RuntimeService<'a> {
             return self.resolve_singbox_launch(&node, socks, http, shadowsocks);
         }
 
-        let gen_options = build_xray_gen_options(runtime);
+        let mut gen_options = build_xray_gen_options(runtime);
+        apply_xray_routing_options(&mut gen_options, &self.context.app_config.routing);
         if gen_options.bind_address.is_some() {
             tracing::warn!(
                 "[runtime.network].bind_address is set but the Xray engine cannot bind a source address; ignoring it"
@@ -169,7 +170,8 @@ impl<'a> RuntimeService<'a> {
             external_controller: format!("{}:{}", stats.host, stats.port),
             secret: None,
         });
-        let config = generate_singbox_runtime_config(node, inbounds, clash_api)
+        let routing = build_singbox_routing_options(&self.context.app_config.routing);
+        let config = generate_singbox_runtime_config(node, inbounds, clash_api, Some(&routing))
             .map_err(AppError::InvalidArgument)?;
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)

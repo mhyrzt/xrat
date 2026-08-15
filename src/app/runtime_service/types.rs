@@ -8,7 +8,8 @@ pub(super) use crate::app::AppError;
 pub(super) use crate::app::config::defaults;
 pub(super) use crate::app::context::AppContext;
 pub(super) use crate::app::runtime_tuning::{
-    build_xray_gen_options, resolve_listen_interface_addr,
+    apply_xray_routing_options, build_singbox_routing_options, build_xray_gen_options,
+    resolve_listen_interface_addr,
 };
 pub(super) use crate::db::{
     ConfigListFilter, ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord,

@@ -4,7 +4,9 @@ use super::{
     generate_runtime_config_for_inbounds_with_options,
 };
 use crate::model::{Node, Protocol};
-use crate::xray::config::{FragmentOptions, MuxOptions, XrayGenOptions};
+use crate::xray::config::{
+    FragmentOptions, MuxOptions, XrayGenOptions, XrayRouteList, XrayRoutingOptions,
+};
 
 fn vless_tls_node() -> Node {
     Node {
@@ -170,6 +172,125 @@ fn interface_with_fragment_binds_fragment_outbound() {
         .as_ref()
         .unwrap();
     assert_eq!(fragment_sockopt.interface.as_deref(), Some("eth0"));
+}
+
+#[test]
+fn managed_runtime_emits_ordered_routing_rules_and_outbounds() {
+    let node = vless_tls_node();
+    let options = XrayGenOptions {
+        interface: Some("eth0".to_string()),
+        mark: Some(255),
+        routing: Some(XrayRoutingOptions {
+            domain_strategy: "IPIfNonMatch".to_string(),
+            direct: XrayRouteList {
+                domain: vec!["domain:direct.example".to_string()],
+                ip: vec!["192.168.0.0/16".to_string()],
+                geosite: vec!["private".to_string()],
+                geoip: vec!["private".to_string()],
+            },
+            block: XrayRouteList {
+                domain: vec!["domain:ads.example".to_string()],
+                ip: vec!["203.0.113.0/24".to_string()],
+                geosite: vec!["category-ads-all".to_string()],
+                geoip: vec!["cn".to_string()],
+            },
+        }),
+        ..Default::default()
+    };
+
+    let config =
+        generate_runtime_config_for_inbounds_with_options(&node, None, None, &options).unwrap();
+    let value = serde_json::to_value(&config).unwrap();
+
+    assert_eq!(
+        value["outbounds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|outbound| outbound["tag"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["proxy", "direct", "block"]
+    );
+    assert_eq!(value["outbounds"][1]["protocol"], "freedom");
+    assert_eq!(value["outbounds"][2]["protocol"], "blackhole");
+    assert_eq!(
+        value["outbounds"][1]["streamSettings"]["sockopt"]["interface"],
+        "eth0"
+    );
+    assert_eq!(
+        value["outbounds"][1]["streamSettings"]["sockopt"]["mark"],
+        255
+    );
+    assert_eq!(value["routing"]["domainStrategy"], "IPIfNonMatch");
+
+    let rules = value["routing"]["rules"].as_array().unwrap();
+    assert_eq!(rules.len(), 4);
+    assert_eq!(rules[0]["outboundTag"], "direct");
+    assert_eq!(
+        rules[0]["domain"],
+        serde_json::json!(["domain:direct.example", "geosite:private"])
+    );
+    assert!(rules[0].get("ip").is_none());
+    assert_eq!(rules[1]["outboundTag"], "direct");
+    assert_eq!(
+        rules[1]["ip"],
+        serde_json::json!(["192.168.0.0/16", "geoip:private"])
+    );
+    assert_eq!(rules[2]["outboundTag"], "block");
+    assert_eq!(
+        rules[2]["domain"],
+        serde_json::json!(["domain:ads.example", "geosite:category-ads-all"])
+    );
+    assert_eq!(rules[3]["outboundTag"], "block");
+    assert_eq!(
+        rules[3]["ip"],
+        serde_json::json!(["203.0.113.0/24", "geoip:cn"])
+    );
+}
+
+#[test]
+fn probes_ignore_managed_runtime_routing() {
+    let node = vless_tls_node();
+    let options = XrayGenOptions {
+        routing: Some(XrayRoutingOptions {
+            domain_strategy: "AsIs".to_string(),
+            direct: XrayRouteList {
+                domain: vec!["domain:direct.example".to_string()],
+                ..Default::default()
+            },
+            block: XrayRouteList::default(),
+        }),
+        ..Default::default()
+    };
+
+    let config = generate_probe_config_with_options(&node, 10808, &options).unwrap();
+
+    assert!(config.routing.is_none());
+    assert_eq!(config.outbounds.len(), 1);
+}
+
+#[test]
+fn stats_api_rule_precedes_user_routing_rules() {
+    let node = vless_tls_node();
+    let options = XrayGenOptions {
+        routing: Some(XrayRoutingOptions {
+            domain_strategy: "AsIs".to_string(),
+            direct: XrayRouteList {
+                domain: vec!["domain:direct.example".to_string()],
+                ..Default::default()
+            },
+            block: XrayRouteList::default(),
+        }),
+        ..Default::default()
+    };
+    let mut config =
+        generate_runtime_config_for_inbounds_with_options(&node, None, None, &options).unwrap();
+
+    enable_stats_api(&mut config, "127.0.0.1", 10085);
+
+    let value = serde_json::to_value(config).unwrap();
+    assert_eq!(value["routing"]["rules"][0]["outboundTag"], "api");
+    assert_eq!(value["routing"]["rules"][1]["outboundTag"], "direct");
 }
 
 #[test]

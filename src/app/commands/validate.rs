@@ -6,7 +6,8 @@ use url::Url;
 use crate::app::AppError;
 use crate::app::commands::output::{self, Style};
 use crate::app::config::{
-    AppConfig, ConnectionTestStage, DatabaseBackend, HttpStatusRange, SecretString, TestingSettings,
+    AppConfig, ConnectionTestStage, DatabaseBackend, HttpStatusRange, RouteList, RoutingSettings,
+    SecretString, TestingSettings,
 };
 use crate::cli::{ValidateArgs, ValidateFormat};
 
@@ -492,9 +493,45 @@ fn check_duration_field(
 
 fn validate_config(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
     validate_runtime(config, errors);
+    validate_routing(&config.routing, errors);
     validate_database(config, errors);
     validate_testing(&config.testing, errors);
     validate_server(config, errors);
+}
+
+fn validate_routing(routing: &RoutingSettings, errors: &mut Vec<Diagnostic>) {
+    if !matches!(
+        routing.domain_strategy.as_str(),
+        "AsIs" | "IPIfNonMatch" | "IPOnDemand"
+    ) {
+        errors.push(Diagnostic::new(
+            "[routing].domain_strategy",
+            format!("unsupported strategy: {}", routing.domain_strategy),
+            "Xray and V2Ray accept only their documented routing domain strategies.",
+            "use one of: AsIs, IPIfNonMatch, IPOnDemand.",
+        ));
+    }
+
+    validate_route_list("[routing.direct]", &routing.direct, errors);
+    validate_route_list("[routing.block]", &routing.block, errors);
+}
+
+fn validate_route_list(prefix: &str, routes: &RouteList, errors: &mut Vec<Diagnostic>) {
+    for (name, values) in [
+        ("domain", &routes.domain),
+        ("ip", &routes.ip),
+        ("geosite", &routes.geosite),
+        ("geoip", &routes.geoip),
+    ] {
+        if values.iter().any(|value| value.trim().is_empty()) {
+            errors.push(Diagnostic::new(
+                format!("{prefix}.{name}"),
+                "contains an empty routing rule",
+                "empty rules are invalid and can make the generated engine configuration fail native validation.",
+                "remove blank entries or replace them with a valid routing rule.",
+            ));
+        }
+    }
 }
 
 pub(crate) fn validate_app_config(config: &AppConfig) -> Vec<String> {
@@ -1072,6 +1109,36 @@ mod tests {
         assert!(diagnostic.problem.contains("bad"));
         assert!(diagnostic.fix.contains("xray"));
         assert!(!diagnostic.reason.is_empty());
+    }
+
+    #[test]
+    fn rejects_invalid_routing_domain_strategy() {
+        let mut config = AppConfig::default();
+        config.routing.domain_strategy = "AlwaysIP".to_string();
+
+        let errors = errors_for(&config);
+        let diagnostic = find(&errors, "[routing].domain_strategy");
+
+        assert!(diagnostic.problem.contains("AlwaysIP"));
+        assert!(diagnostic.fix.contains("IPIfNonMatch"));
+    }
+
+    #[test]
+    fn rejects_blank_routing_rules() {
+        let mut config = AppConfig::default();
+        config.routing.direct.domain = vec!["   ".to_string()];
+        config.routing.block.geoip = vec![String::new()];
+
+        let errors = errors_for(&config);
+
+        assert_eq!(
+            find(&errors, "[routing.direct].domain").problem,
+            "contains an empty routing rule"
+        );
+        assert_eq!(
+            find(&errors, "[routing.block].geoip").problem,
+            "contains an empty routing rule"
+        );
     }
 
     #[test]

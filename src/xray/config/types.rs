@@ -15,7 +15,29 @@ pub struct XrayConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy: Option<PolicyObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub routing: Option<serde_json::Value>,
+    pub routing: Option<RoutingConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoutingConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub domain_strategy: Option<String>,
+    pub rules: Vec<RoutingRule>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoutingRule {
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub domain: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ip: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inbound_tag: Option<Vec<String>>,
+    pub outbound_tag: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
