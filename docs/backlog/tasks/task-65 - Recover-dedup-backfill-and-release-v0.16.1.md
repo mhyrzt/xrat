@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-08-15 13:17'
-updated_date: '2026-08-15 13:23'
+updated_date: '2026-08-15 13:30'
 labels:
   - bug
   - release
@@ -26,7 +26,7 @@ Fix the v0.15.0 startup failure when legacy configs collapse to the same v2 dedu
 - [x] #2 Backfill is transactional, idempotent, and recovers partially migrated databases
 - [x] #3 Process inspection regression test waits for child exec with a bounded deadline
 - [x] #4 xrat upgrade can run when database initialization fails
-- [ ] #5 Regression tests and just ci pass
+- [x] #5 Regression tests and just ci pass
 - [ ] #6 v0.16.1 is versioned, documented, tagged, and pushed without rewriting v0.16.0
 <!-- AC:END -->
 
@@ -40,6 +40,8 @@ Fix the v0.15.0 startup failure when legacy configs collapse to the same v2 dedu
 
 <!-- SECTION:NOTES:BEGIN -->
 Implemented transactional SQLite/PostgreSQL backfill with deterministic preservation keys for canonical collisions, bounded child-exec polling in the process inspection test, and database-independent upgrade dispatch. Focused tests pass. A SQLite backup of the actual failing database recovered from 29 v1 rows plus 114 migrated rows to 139 canonical v2 rows plus 4 preserved collision rows, retaining all 143 configs; a second pass was clean.
+
+Release gate passed for v0.16.1: rustfmt, Prettier, SQLite/PostgreSQL SQL formatting, strict Clippy, 749 library tests, and the binary-level upgrade-with-invalid-config test.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
