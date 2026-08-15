@@ -1,11 +1,11 @@
 ---
 id: TASK-64
 title: Release v0.16.0
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-08-15 11:58'
-updated_date: '2026-08-15 12:03'
+updated_date: '2026-08-15 12:04'
 labels:
   - release
 dependencies: []
@@ -25,7 +25,7 @@ Prepare and publish xrat v0.16.0 with managed runtime routing for Xray/V2Ray and
 - [x] #2 Cargo.toml and Cargo.lock package versions are 0.16.0
 - [x] #3 Release notes summarize routing behavior, engine limitations, and compatibility
 - [x] #4 just ci passes before tagging
-- [ ] #5 Annotated v0.16.0 tag and master are pushed without waiting for release automation
+- [x] #5 Annotated v0.16.0 tag and master are pushed without waiting for release automation
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -38,12 +38,20 @@ Prepare and publish xrat v0.16.0 with managed runtime routing for Xray/V2Ray and
 
 <!-- SECTION:NOTES:BEGIN -->
 Prepared v0.16.0 routing release notes and bumped Cargo.toml/Cargo.lock. The first just fmt ci run hit a transient /proc argument-read race in resolves_exe_and_cmd_for_spawned_process; the focused test passed immediately, followed by a clean just ci run with strict Clippy and all 747 tests passing.
+
+Release commit 7cefab4 and annotated v0.16.0 tag were pushed to origin. Release automation is intentionally not being monitored.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Published the v0.16.0 release trigger with managed routing, safe replacement preflight, engine-specific compatibility notes, and no database migration. Verified locally with strict Clippy and 747 passing tests; pipeline and publication outcomes remain intentionally unmonitored.
+<!-- SECTION:FINAL_SUMMARY:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria are satisfied or explicitly updated.
-- [ ] #2 Relevant tests or checks were run and recorded in the task notes.
-- [ ] #3 User-facing behavior changes are reflected in docs when applicable.
-- [ ] #4 Final summary explains what changed and any residual risk.
+- [x] #1 Acceptance criteria are satisfied or explicitly updated.
+- [x] #2 Relevant tests or checks were run and recorded in the task notes.
+- [x] #3 User-facing behavior changes are reflected in docs when applicable.
+- [x] #4 Final summary explains what changed and any residual risk.
 <!-- DOD:END -->
