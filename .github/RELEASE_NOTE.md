@@ -1,51 +1,51 @@
-## xrat v0.16.1
+## xrat v0.17.0
 
-This release repairs legacy database upgrades, keeps self-upgrade available
-during database failures, and introduces managed routing for Xray, V2Ray, and
-sing-box sessions.
+This release adds verified user-local installation and upgrades for Xray,
+sing-box, and V2Ray, and restores native preflight validation with Xray 26.3.27.
 
-### Database recovery
+### Managed proxy cores
 
-- Legacy v1 dedup keys are upgraded in one transaction. If multiple stored
-  configs resolve to the same canonical v2 key, xrat preserves every row and
-  assigns stable preservation keys instead of failing the unique constraint.
-- Partially migrated databases recover automatically and repeated startup is
-  idempotent. Config IDs, subscription relationships, test history, and runtime
-  history are retained.
-- `xrat upgrade` now runs before database initialization, so a migration or
-  database connection error cannot block installing a corrective release.
-- The process-introspection regression that intermittently failed release CI
-  now waits for the spawned child to complete `exec` with a bounded deadline.
+- **Install without root access.** `xrat setup` can install Xray, sing-box, and
+  V2Ray under `~/.local/share/xrat/cores` and expose safe CLI links through
+  `~/.local/bin`.
+- **Use verified official releases.** Setup discovers the latest stable release
+  from each core's official GitHub repository, requires its published SHA-256
+  digest, verifies the staged binary version, and replaces managed copies
+  atomically. A failed update leaves the previous core usable.
+- **Preserve system packages.** Existing external or package-managed binaries
+  are detected and never overwritten. Accepting an update installs an isolated
+  managed copy and records its path in `config.toml`.
+- **Keep assets isolated.** Managed Xray and V2Ray processes receive their own
+  GeoIP and Geosite asset directories during validation, testing, and runtime
+  startup.
 
-### Managed routing
+### Setup behavior
 
-- **Route directly or block traffic.** Xray and V2Ray sessions translate
-  `[routing.direct]` and `[routing.block]` domain, IP, Geosite, and GeoIP lists
-  into ordered engine rules with `freedom` and `blackhole` outbounds.
-- **Predictable precedence.** Direct rules run before block rules, unmatched
-  traffic continues through the selected proxy, and the internal stats API
-  rule remains first when statistics are enabled.
-- **Route sing-box traffic safely.** sing-box sessions translate supported
-  domain forms and IP/CIDR rules. Unsupported Geosite, GeoIP, and Xray-only
-  forms fail with an actionable error instead of being silently ignored.
-- Connection-test probes and parser previews remain proxy-only, so routing
-  exclusions cannot produce misleading test results.
+- `xrat setup --check` reports missing, current, and outdated cores. An
+  `update_available` result is visible in table and JSON output without making
+  an otherwise healthy check fail.
+- `xrat setup --yes` installs missing Xray and sing-box, skips an absent V2Ray,
+  and upgrades installed outdated cores.
+- Release lookup failures do not disable an installed core; setup reports that
+  the update check failed and keeps the detected binary available.
+- The piped `install.sh` flow reconnects setup prompts to the controlling
+  terminal. When no terminal is available, it prints a clear unattended
+  fallback instead of silently consuming closed standard input.
+
+### Xray compatibility
+
+- Native runtime preflight files now retain a `.json` suffix. Xray 26.3.27 uses
+  the filename to select its config parser and previously rejected the
+  extensionless temporary files with exit status 23, preventing connection and
+  rotation even when the generated configuration was valid.
 
 ### Upgrade notes
 
-- No new SQL migration is required. The repair safely completes the v2 dedup
-  backfill introduced in v0.15.0.
-- If v0.15.0 reports `UNIQUE constraint failed: configs.dedup_key` before
-  `xrat upgrade` can start, install this release directly:
+- No database migration is required, and existing `config.toml` files remain
+  compatible.
+- Run `xrat setup --check` to inspect installed core versions. Run `xrat setup`
+  to adopt managed copies interactively.
+- Existing external Xray, sing-box, and V2Ray installations remain selected
+  until an installation or update is explicitly accepted.
 
-  ```bash
-  curl -fsSL https://raw.githubusercontent.com/mhyrzt/xrat/master/install.sh | bash
-  ```
-
-- Existing `config.toml` files remain compatible. Routing lists now affect
-  managed sessions started by connect, rotation, or the daemon; review lists
-  that were previously used only for PAC generation.
-- Full sing-box Geosite and GeoIP rule-set translation remains planned; use
-  Xray/V2Ray for those lists in this release.
-
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.15.0...v0.16.1
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.16.1...v0.17.0
