@@ -113,18 +113,35 @@ mod tests {
             .expect("spawn sleep");
         let pid = child.id() as i64;
 
-        let exe = process_exe_path(pid);
-        let args = process_cmd_args(pid);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let (exe, args) = loop {
+            let exe = process_exe_path(pid);
+            let args = process_cmd_args(pid);
+            let exec_completed = exe
+                .as_ref()
+                .and_then(|path| path.file_name())
+                .is_some_and(|name| name == "sleep")
+                && args
+                    .as_ref()
+                    .is_some_and(|args| args.iter().any(|arg| arg == "30"));
+            if exec_completed || std::time::Instant::now() >= deadline {
+                break (exe, args);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        };
 
         let _ = child.kill();
         let _ = child.wait();
 
         let exe = exe.expect("expected to resolve exe for spawned process");
-        assert!(exe.file_name().is_some());
+        assert_eq!(
+            exe.file_name().and_then(|name| name.to_str()),
+            Some("sleep")
+        );
 
         let args = args.expect("expected cmd args for spawned process");
         assert!(
-            args.iter().any(|arg| arg.contains("30")),
+            args.iter().any(|arg| arg == "30"),
             "spawned process args missing argument: {args:?}"
         );
     }
