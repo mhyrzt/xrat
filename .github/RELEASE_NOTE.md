@@ -1,35 +1,45 @@
-## xrat v0.14.0
+## xrat v0.15.0
 
-This release brings imports and operational settings into the TUI and adds
-optional subscription naming to the CLI import workflow.
+This release preserves imported proxy parameters end to end and makes automatic
+rotation safer when an active connection becomes unhealthy.
 
-### Features
+### Config compatibility
 
-- **Import from the TUI.** Press `i` from either tab to import a supported
-  config share link or an HTTP(S) subscription URL. Subscription imports offer
-  a compact naming step and fall back to a generated `sub-<random>` name.
-- **Manage settings in the TUI.** Press `,` to browse, search, explain, edit,
-  validate, and save supported `config.toml` fields without leaving xrat.
-  Comment-preserving patches update only changed keys, and restart guidance is
-  shown when a change cannot apply live.
-- **Name CLI imports.** `xrat import` accepts optional `--name` / `-n` flags for
-  new subscriptions and safe renaming when re-importing an existing URL.
+- **Round-trip imported parameters.** VLESS, VMess, Trojan, Shadowsocks, HTTP,
+  SOCKS5, and Hysteria2 imports retain non-structural parameters, native VMess
+  JSON values, and repeated URL query keys instead of silently dropping them.
+- **Generate current Xray transports.** Runtime generation covers current raw,
+  WebSocket, gRPC, xhttp, mKCP, and HTTPUpgrade settings, including TLS and
+  REALITY client fields. Unsupported wire-affecting values fail with an
+  actionable error instead of producing a partial config.
+- **Keep distinct configs distinct.** Canonical v2 deduplication includes the
+  preserved extension map, preventing configs with different transport or
+  security parameters from collapsing into one record.
 
-### TUI improvements
+### Safer rotation
 
-- Settings use readable labels, boolean glyphs, duration units, grouped range
-  values, and `Auto` for zero-valued concurrency settings.
-- Contextual help documents each field's effect, accepted values, examples,
-  defaults, source markers, and restart requirements.
-- Responsive navigation keeps sections, values, help, save/reset behavior, and
-  unsaved-change handling usable on compact terminals.
+- Health monitoring distinguishes immediate process/inbound failures from
+  data-plane failures. HTTP checks run asynchronously through the active proxy
+  and require a configurable number of consecutive failures before recovery.
+- Automatic and unpinned rotations use fresh candidate tests. ICMP remains
+  diagnostic and cannot qualify a candidate by itself.
+- Replacement configs pass the native Xray, V2Ray, or sing-box validator before
+  the active runtime stops. If the replacement fails during handoff, xrat tries
+  to restore the previous runtime.
+- `xrat rotate enable` and `xrat rotate disable` persist their state in
+  `config.toml`. Rotation status includes the failure threshold, current
+  failure count, probe state, last health error, and pending recovery state.
+- The TUI settings modal exposes the new
+  `runtime.rotation.health_failure_threshold` option as **Failure threshold**
+  with contextual help and validation. The default is `3`.
 
 ### Upgrade notes
 
-- No database migrations; safe drop-in upgrade.
-- Existing `config.toml` files remain compatible. Settings not explicitly saved
-  continue using their built-in defaults.
-- Database paths, binary paths, dynamic DNS hosts, GeoIP/MMDB assets, and fixed
-  DNS settings remain file-managed.
+- Migration `0022` adds `configs.extensions_json` on SQLite and PostgreSQL. It
+  runs automatically and backfills legacy v1 config rows from their stored raw
+  links while preserving config IDs and refs.
+- Existing `config.toml` files remain compatible. The new health threshold uses
+  its default until explicitly configured.
+- No CLI commands or supported import schemes were removed.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.13.0...v0.14.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.14.0...v0.15.0
