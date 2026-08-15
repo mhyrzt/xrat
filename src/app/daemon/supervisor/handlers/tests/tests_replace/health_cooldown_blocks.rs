@@ -62,7 +62,7 @@ async fn health_tick_cooldown_blocks_health_replace_candidate_selection() {
         .expect("cooldown session should exist");
     assert_eq!(
         cooled.last_failed_reason_code.as_deref(),
-        Some("health_check_failed")
+        Some("runtime_inbound_unreachable")
     );
     assert!(cooled.cooldown_until.is_some());
 

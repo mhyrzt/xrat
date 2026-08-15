@@ -1,4 +1,6 @@
 use super::*;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 pub(super) struct SpawnedRuntime {
     pub(super) pid: u32,
@@ -44,4 +46,52 @@ pub(super) async fn spawn_runtime(
             })
         }
     }
+}
+
+pub(super) fn preflight_runtime(
+    launch: &ResolvedLaunch,
+    runtime_dir: &std::path::Path,
+) -> crate::app::Result<()> {
+    std::fs::create_dir_all(runtime_dir)?;
+    let mut temporary = tempfile::NamedTempFile::new_in(runtime_dir)?;
+    match &launch.config {
+        RuntimeLaunchConfig::Xray(config) => {
+            temporary.write_all(serde_json::to_string_pretty(config)?.as_bytes())?;
+        }
+        RuntimeLaunchConfig::Singbox(config) => {
+            temporary.write_all(serde_json::to_string_pretty(config)?.as_bytes())?;
+        }
+    }
+    temporary.as_file_mut().flush()?;
+    let path = temporary.path();
+    let mut command = Command::new(&launch.binary_path);
+    match launch.validator {
+        RuntimeValidator::Xray => {
+            command.arg("run").arg("-test").arg("-c").arg(path);
+        }
+        RuntimeValidator::V2ray => {
+            command.arg("test").arg("-c").arg(path);
+        }
+        RuntimeValidator::Singbox => {
+            command.arg("check").arg("-c").arg(path);
+        }
+    }
+    let output = command.stdin(Stdio::null()).output().map_err(|error| {
+        AppError::XraySpawn(format!("native config validation failed to start: {error}"))
+    })?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let detail = if stderr.is_empty() { stdout } else { stderr };
+    Err(AppError::InvalidArgument(format!(
+        "native runtime config validation failed ({}): {}",
+        output.status,
+        if detail.is_empty() {
+            "no diagnostic output"
+        } else {
+            &detail
+        }
+    )))
 }

@@ -3,22 +3,16 @@ use super::*;
 impl<'a> RuntimeService<'a> {
     pub(super) async fn stage_replacement_runtime(
         &self,
-        next_config_id: i64,
+        next_config: ConfigRecord,
+        launch: ResolvedLaunch,
     ) -> crate::app::Result<(i64, i64, u32)> {
-        let Some(next_config) = self.context.db.get_config_by_id(next_config_id).await? else {
-            return Err(AppError::InvalidArgument(format!(
-                "config {} was not found",
-                next_config_id
-            )));
-        };
         if !next_config.is_enabled {
             return Err(AppError::InvalidArgument(format!(
                 "config {} is disabled",
-                next_config_id
+                next_config.id
             )));
         }
 
-        let launch = self.resolve_launch(&next_config)?;
         let session_id = self
             .context
             .db

@@ -111,6 +111,11 @@ impl<'a> RuntimeService<'a> {
                     port,
                 }),
             },
+            validator: if runtime.engine == "v2ray" {
+                RuntimeValidator::V2ray
+            } else {
+                RuntimeValidator::Xray
+            },
         })
     }
 
@@ -195,6 +200,7 @@ impl<'a> RuntimeService<'a> {
                     port,
                 }),
             },
+            validator: RuntimeValidator::Singbox,
         })
     }
 

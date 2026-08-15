@@ -63,6 +63,7 @@ fn rejects_unknown_protocol() {
         path: None,
         name: None,
         raw_config: "raw".to_string(),
+        extensions_json: None,
         is_active: false,
         is_enabled: true,
         is_deleted: false,

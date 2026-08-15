@@ -42,6 +42,8 @@ pub(super) async fn handle_runtime_replace(
             state.last_candidate_config_id = Some(result.new_config_id);
             state.last_candidate_result = "replace_commit_success".to_string();
             state.cooldown_active = false;
+            state.pending_health_recovery = false;
+            state.consecutive_health_failures = 0;
             if state.rotation_enabled {
                 state.next_timer_epoch_secs =
                     Some(now_epoch_seconds() + state.rotation_interval_secs);
@@ -89,6 +91,11 @@ pub(super) async fn handle_runtime_replace(
             state.last_candidate_config_id = candidate_id;
             state.last_candidate_result = failure_reason.to_string();
             state.cooldown_active = trigger == RotationTrigger::HealthCheckFailed;
+            state.pending_health_recovery = trigger == RotationTrigger::HealthCheckFailed;
+            if state.rotation_enabled {
+                state.next_timer_epoch_secs =
+                    Some(now_epoch_seconds() + state.rotation_interval_secs);
+            }
             if let Some(session) = &active_session {
                 let _ = context
                     .db

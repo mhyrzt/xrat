@@ -1,21 +1,23 @@
+use super::fake_runtime::write_fake_runtime_script;
 use super::support::*;
 use super::*;
 
 #[tokio::test]
-async fn replace_spawn_failure_stops_old_runtime_and_clears_active_config() {
+async fn replace_spawn_failure_restores_old_runtime() {
     let mut context = test_context().await;
-    let config = import_single_config(&context).await;
+    let (active_config, failing_config) = import_two_configs(&context, "old", "fail").await;
 
     let mut child = spawn_sleep(5);
     let pid = i64::from(child.id());
 
-    context.runtime_paths.xray_path = std::path::PathBuf::from("/definitely/missing-xray");
-    let old_session_id = set_running_session(&context, config.id, pid).await;
+    write_fake_runtime_script(&context);
+    context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
+    let old_session_id = set_running_session(&context, active_config.id, pid).await;
 
     let result = RuntimeService::new(&context)
         .replace(ReplaceRequest {
             trigger: RotationTrigger::Manual,
-            candidate_id: Some(config.id),
+            candidate_id: Some(failing_config.id),
         })
         .await;
 
@@ -28,14 +30,20 @@ async fn replace_spawn_failure_stops_old_runtime_and_clears_active_config() {
         .get_running_runtime_session()
         .await
         .expect("running should load");
-    assert!(running.is_none(), "no runtime should remain running");
+    let running = running.expect("the previous runtime should be restored");
+    assert_eq!(running.config_id, Some(active_config.id));
 
-    let active_config = context
+    let restored_active = context
         .db
         .get_active_config()
         .await
         .expect("active config should load");
-    assert!(active_config.is_none(), "active config should be cleared");
+    assert_eq!(
+        restored_active
+            .expect("active config should be restored")
+            .id,
+        active_config.id
+    );
 
     let latest = context
         .db
@@ -44,19 +52,18 @@ async fn replace_spawn_failure_stops_old_runtime_and_clears_active_config() {
         .expect("latest should load")
         .expect("latest should exist");
     assert_ne!(latest.id, old_session_id);
-    assert_eq!(latest.status, RuntimeSessionStatus::Failed);
-    assert_eq!(
-        latest.last_failed_reason_code.as_deref(),
-        Some("replace_validation_failed")
-    );
-    assert!(latest.last_failed_at.is_some());
+
+    if let Some(pid) = running.process_id {
+        let _ = xray_runtime::terminate_process_gracefully(pid, SHUTDOWN_TIMEOUT);
+    }
+    assert_eq!(latest.status, RuntimeSessionStatus::Running);
     assert_eq!(
         context
             .db
             .get_runtime_session_count()
             .await
             .expect("session count should load"),
-        2
+        3
     );
     assert_ne!(latest.id, old_session_id);
 

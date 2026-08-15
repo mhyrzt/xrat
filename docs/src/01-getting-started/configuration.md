@@ -7,17 +7,17 @@ Override with `--config <path>` or the `XRAT_PATH` environment variable.
 
 ## Sections
 
-| Section      | Purpose                                      |
-| ------------ | -------------------------------------------- |
-| `[paths]`    | Binary paths for xray, v2ray, sing-box       |
-| `[database]` | Backend selection and connection settings    |
+| Section      | Purpose                                                |
+| ------------ | ------------------------------------------------------ |
+| `[paths]`    | Binary paths for xray, v2ray, sing-box                 |
+| `[database]` | Backend selection and connection settings              |
 | `[runtime]`  | Engine, rotation, logging, inbound and outbound tuning |
-| `[routing]`  | Domain strategy, direct/block rules          |
-| `[geo]`      | GeoIP auto-update settings                   |
-| `[dns]`      | DNS query strategy, servers, hosts           |
-| `[parser]`   | Xray JSON schema validation mode             |
-| `[testing]`  | Concurrency, stage order, per-stage settings |
-| `[server]`   | HTTP API host, port, API key                 |
+| `[routing]`  | Domain strategy, direct/block rules                    |
+| `[geo]`      | GeoIP auto-update settings                             |
+| `[dns]`      | DNS query strategy, servers, hosts                     |
+| `[parser]`   | Xray JSON schema validation mode                       |
+| `[testing]`  | Concurrency, stage order, per-stage settings           |
+| `[server]`   | HTTP API host, port, API key                           |
 
 ## Example
 
@@ -57,9 +57,10 @@ engine = "xray"
 replace_active_session = true
 
 [runtime.rotation]
-enabled = false
+enabled = true
 interval_secs = 1800
 health_trigger_enabled = true
+health_failure_threshold = 3
 cooldown_secs = 300
 test_concurrency = 0
 test_stages = ["icmp", "real_delay"]

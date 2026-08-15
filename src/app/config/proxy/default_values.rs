@@ -77,6 +77,7 @@ impl Default for RotationSettings {
             enabled: defaults::DEFAULT_ROTATION_ENABLED,
             interval_secs: defaults::DEFAULT_ROTATION_INTERVAL_SECS,
             health_trigger_enabled: defaults::DEFAULT_ROTATION_HEALTH_TRIGGER_ENABLED,
+            health_failure_threshold: defaults::DEFAULT_ROTATION_HEALTH_FAILURE_THRESHOLD,
             cooldown_secs: defaults::DEFAULT_ROTATION_COOLDOWN_SECS,
             test_concurrency: defaults::DEFAULT_ROTATION_TEST_CONCURRENCY,
             test_stages: defaults::DEFAULT_ROTATION_TEST_STAGES

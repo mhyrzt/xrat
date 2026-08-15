@@ -14,9 +14,17 @@ pub(super) struct ResolvedLaunch {
     pub(super) ready_host: String,
     pub(super) ready_port: u16,
     pub(super) endpoints: RuntimeEndpoints,
+    pub(super) validator: RuntimeValidator,
 }
 
 pub(super) enum RuntimeLaunchConfig {
     Xray(crate::xray::XrayConfig),
     Singbox(SingboxConfig),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum RuntimeValidator {
+    Xray,
+    V2ray,
+    Singbox,
 }

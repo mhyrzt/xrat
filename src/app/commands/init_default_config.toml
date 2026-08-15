@@ -137,6 +137,7 @@ enabled = true
 interval_secs = 1800
 # Also switch immediately when the active config becomes unhealthy.
 health_trigger_enabled = true
+health_failure_threshold = 3
 # Minimum seconds between health-triggered switches.
 cooldown_secs = 300
 # Concurrency for the pre-rotation test pass (0 = auto).

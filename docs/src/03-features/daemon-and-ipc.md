@@ -150,37 +150,28 @@ Every 15 seconds, the daemon:
 
 1. Loads the active session from the database
 2. Checks if the PID is still running
-3. Tests TCP reachability of the SOCKS port
-4. If health check fails:
-   - Logs the failure
-   - Triggers auto-rotation (if `health_trigger_enabled`)
+3. Tests reachability of the configured local inbounds
+4. Starts an asynchronous HTTP request through the active SOCKS5 or HTTP proxy
+5. Applies a current-session result only; stale results from replaced sessions
+   are discarded
 
-### Health Check Implementation
-
-```rust
-async fn check_proxy_health() -> HealthStatus {
-    let session = db.get_latest_running_session().await?;
-
-    if !process_is_running(session.process_id) {
-        return HealthStatus::ProcessDead;
-    }
-
-    if !tcp_connect(session.socks_host, session.socks_port).await {
-        return HealthStatus::PortUnreachable;
-    }
-
-    HealthStatus::Healthy
-}
-```
+Process exit and inbound loss are control-plane failures and trigger recovery
+immediately. Proxied HTTP failures are data-plane failures and must occur
+`runtime.rotation.health_failure_threshold` times consecutively. A successful
+probe resets the counter. Shadowsocks-only sessions use process and socket
+checks because the daemon does not embed a Shadowsocks HTTP client.
 
 ### Failure Handling
 
-When a health check fails:
+When a health failure reaches its trigger condition:
 
 1. **Log the failure** — Record in daemon logs
-2. **Update session** — Mark as `failed` with reason
+2. **Update session** — Persist a specific reason code and per-config cooldown
 3. **Trigger rotation** — If `health_trigger_enabled`, start rotation
-4. **Respect cooldown** — Don't rotate if cooldown is active
+4. **Select safely** — Fresh-test enabled candidates outside their cooldown
+
+`ProxyStatus` reports the configured threshold, consecutive failure count,
+whether a probe is in flight, last check time/error, and pending recovery state.
 
 ## Session Reconciliation
 

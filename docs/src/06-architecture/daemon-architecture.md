@@ -178,28 +178,36 @@ flowchart TD
 
     TICK["health tick fires"]:::tick
     CHECK{"active session?"}:::check
-    PROBE["probe inbound SOCKS / HTTP ports"]:::check
-    OPEN{"all inbounds reachable?"}:::check
+    CONTROL["check process and<br/>configured inbounds"]:::check
+    OPEN{"control plane healthy?"}:::check
+    PROBE["asynchronous proxied<br/>HTTP request"]:::check
+    DATA{"data plane healthy?"}:::check
     RECORD["record success<br/>reset failure count"]:::ok
     WAIT["skip"]:::ok
     INCR["increment failure count"]:::warn
-    THRESH{"failures > threshold?"}:::warn
+    THRESH{"failures >= threshold?"}:::warn
     TRIGGER["trigger rotation<br/>(HealthCheckFailed)"]:::fail
-    COOLDOWN["enter cooldown period"]:::warn
+    RETRY["wait for next tick"]:::warn
 
     TICK --> CHECK
-    CHECK -- "yes" --> PROBE
+    CHECK -- "yes" --> CONTROL
     CHECK -- "no"  --> WAIT
-    PROBE --> OPEN
-    OPEN  -- "yes" --> RECORD
-    OPEN  -- "no"  --> INCR --> THRESH
+    CONTROL --> OPEN
+    OPEN  -- "no" --> TRIGGER
+    OPEN  -- "yes" --> PROBE --> DATA
+    DATA -- "yes" --> RECORD
+    DATA -- "no"  --> INCR --> THRESH
     THRESH -- "yes" --> TRIGGER
-    THRESH -- "no"  --> COOLDOWN
+    THRESH -- "no"  --> RETRY
 ```
 
 Inbound health is reported as `RuntimeInboundHealth` with per-endpoint
 `RuntimeEndpointState::{Reachable, Unreachable, NotChecked}` (see
 [Runtime Lifecycle](runtime-lifecycle.md)).
+
+The proxied request result carries its runtime session ID. The supervisor drops
+it if that session is no longer active, preventing an old probe from failing a
+new runtime.
 
 ## Auto-Rotation
 
@@ -217,7 +225,10 @@ The trigger is carried inline in `DaemonRequestKind::RuntimeReplace`. The
 supervisor stores rotation state in `SupervisorState` (per-`AppContext`) and
 reports it via `ProxyStatusPayload` (`rotation_enabled`, `interval_secs`,
 `health_trigger_enabled`, `cooldown_secs`, `last_trigger`, `last_result`,
-`cooldown_active`, `next_timer_epoch_secs`).
+`cooldown_active`, `next_timer_epoch_secs`, `health_failure_threshold`,
+`consecutive_health_failures`, `health_probe_in_flight`,
+`last_health_check_epoch_secs`, `last_health_error`, and
+`pending_health_recovery`).
 
 ### Rotation Flow
 
@@ -230,20 +241,25 @@ flowchart TD
     classDef store   fill:#1a2e2e,stroke:#5bcfdf,color:#e6edf3
 
     TRIG{"trigger source"}:::trigger
-    NEXT["select next candidate config"]:::step
-    BUILD["handle_runtime_replace<br/>supervisor/handlers/runtime/"]:::step
+    NEXT["fresh-test or resolve<br/>explicit candidate"]:::step
+    PREFLIGHT["native engine<br/>config validation"]:::step
     STOP_OLD["stop old process"]:::step
-    SPAWN["spawn new Xray<br/>(configured ports)"]:::step
+    SPAWN["spawn replacement engine<br/>(configured ports)"]:::step
     WAIT_HEALTH["wait for inbound health"]:::step
     ATOMIC{"healthy?"}
     SWITCH["set active config"]:::ok
-    CLEAN["record failed session<br/>clear active config"]:::fail
+    ROLLBACK["restore previous runtime"]:::fail
     PERSIST["persist new session record"]:::store
 
     TRIG -- "Timer"         --> NEXT
     TRIG -- "HealthCheckFailed" --> NEXT
     TRIG -- "Manual IPC"   --> NEXT
-    NEXT --> BUILD --> STOP_OLD --> SPAWN --> WAIT_HEALTH --> ATOMIC
+    NEXT --> PREFLIGHT --> STOP_OLD --> SPAWN --> WAIT_HEALTH --> ATOMIC
     ATOMIC -- "yes" --> SWITCH --> PERSIST
-    ATOMIC -- "no"  --> CLEAN
+    ATOMIC -- "no"  --> ROLLBACK
 ```
+
+Preflight uses `xray run -test -c`, `v2ray test -c`, or `sing-box check -c`
+before the active process is stopped. Since both sessions bind the same local
+ports, the spawn itself occurs after shutdown; a post-stop failure reconnects
+the previous config.

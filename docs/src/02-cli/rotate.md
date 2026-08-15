@@ -36,8 +36,9 @@ xrat rotate enable
 ```
 
 The daemon enables the rotation scheduler using `[runtime.rotation]` settings
-from `config.toml` (interval, health trigger, cooldown). Rotation state is
-volatile and resets to config defaults on daemon restart.
+from `config.toml` (interval, health trigger, threshold, and cooldown). The
+command also writes `runtime.rotation.enabled = true` atomically, so the choice
+survives daemon restarts.
 
 ---
 
@@ -49,6 +50,9 @@ the scheduler is disabled.
 ```bash
 xrat rotate disable
 ```
+
+The command writes `runtime.rotation.enabled = false` atomically. It does not
+disconnect the active runtime.
 
 ---
 
@@ -89,11 +93,19 @@ xrat rotate now [--config-id <ref>] [--refresh]
    anything else, so the candidate pass sees the freshest configs.
 2. If `--config-id` is provided, rotates to that specific config.
 3. Otherwise, selects the best candidate from enabled configs:
-   - Tests candidates using `test_stages` from `config.toml`.
-   - Picks the config with the lowest real-delay latency.
-4. Stops the old session and starts the replacement on the same configured local
-   inbound ports.
-5. Respects the cooldown period.
+   - Runs fresh tests using `test_stages` from `config.toml`; stored results are
+     not reused.
+   - Uses real-delay as the qualifying metric when run, then download, then TCP.
+     ICMP is diagnostic and cannot qualify a candidate alone.
+4. Runs the selected engine's native config validator before stopping the old
+   session.
+5. Starts the replacement on the same configured local inbound ports. If that
+   post-stop handoff fails, xrat attempts to restore the previous runtime.
+
+An explicit `--config-id` bypasses candidate testing and cooldown, but the
+config must be enabled, different from the active config, and pass native
+preflight validation. An unpinned manual rotation bypasses cooldown but still
+runs fresh candidate tests.
 
 ## Related
 

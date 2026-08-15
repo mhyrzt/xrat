@@ -534,6 +534,14 @@ fn validate_runtime(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
             "use 0 for the default, or a positive number of parallel tests.",
         ));
     }
+    if runtime.rotation.health_failure_threshold == 0 {
+        errors.push(Diagnostic::new(
+            "[runtime.rotation].health_failure_threshold",
+            "value is 0",
+            "data-plane health recovery requires at least one failed probe.",
+            "use 3 for the recommended failure threshold, or another positive number.",
+        ));
+    }
 
     for stage in &runtime.rotation.test_stages {
         if ConnectionTestStage::from_config_str(stage).is_none() {

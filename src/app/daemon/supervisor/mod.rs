@@ -39,6 +39,12 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
     state.rotation_enabled = context.app_config.runtime.rotation.enabled;
     state.rotation_interval_secs = context.app_config.runtime.rotation.interval_secs;
     state.health_trigger_enabled = context.app_config.runtime.rotation.health_trigger_enabled;
+    state.health_failure_threshold = context
+        .app_config
+        .runtime
+        .rotation
+        .health_failure_threshold
+        .max(1);
     state.cooldown_secs = context.app_config.runtime.rotation.cooldown_secs;
     if state.rotation_enabled {
         state.next_timer_epoch_secs = Some(now_epoch_seconds() + state.rotation_interval_secs);
@@ -50,11 +56,17 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
     let refresh_in_progress = Arc::new(AtomicBool::new(false));
     let mut refresh_ticker = time::interval(Duration::from_secs(SUBSCRIPTION_REFRESH_TICK_SECONDS));
     refresh_ticker.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
+    let (health_result_tx, mut health_result_rx) = mpsc::channel(8);
 
     loop {
         tokio::select! {
             _ = health_ticker.tick() => {
-                handlers::handle_event(&mut state, SupervisorEvent::HealthTick, &context).await;
+                handlers::handle_event_with_sender(
+                    &mut state,
+                    SupervisorEvent::HealthTick,
+                    &context,
+                    &health_result_tx,
+                ).await;
             }
             _ = refresh_ticker.tick(), if auto_refresh_enabled => {
                 spawn_due_refresh(&context, &refresh_in_progress);
@@ -63,7 +75,13 @@ pub async fn run(mut rx: mpsc::Receiver<SupervisorEvent>, context: AppContext) {
                 let Some(event) = event else {
                     break;
                 };
-                handlers::handle_event(&mut state, event, &context).await;
+                handlers::handle_event_with_sender(&mut state, event, &context, &health_result_tx).await;
+            }
+            event = health_result_rx.recv() => {
+                let Some(event) = event else {
+                    continue;
+                };
+                handlers::handle_event_with_sender(&mut state, event, &context, &health_result_tx).await;
             }
         }
     }

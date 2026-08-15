@@ -1,6 +1,7 @@
 use crate::db::RuntimeSessionRecord;
 
 mod tests_cooldown;
+mod tests_health;
 mod tests_replace;
 
 fn session_with_cooldown(cooldown_until: Option<&str>) -> RuntimeSessionRecord {

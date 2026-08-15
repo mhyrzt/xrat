@@ -24,8 +24,24 @@ pub(crate) async fn make_proxied_request(
     accepted_statuses: &AcceptedHttpStatuses,
     follow_redirects: bool,
 ) -> RealDelayResult {
-    let proxy_url = format!("socks5://127.0.0.1:{proxy_port}");
-    let proxy = match Proxy::all(&proxy_url) {
+    make_proxied_request_via(
+        &format!("socks5h://127.0.0.1:{proxy_port}"),
+        test_url,
+        timeout_duration,
+        accepted_statuses,
+        follow_redirects,
+    )
+    .await
+}
+
+pub(crate) async fn make_proxied_request_via(
+    proxy_url: &str,
+    test_url: &str,
+    timeout_duration: Duration,
+    accepted_statuses: &AcceptedHttpStatuses,
+    follow_redirects: bool,
+) -> RealDelayResult {
+    let proxy = match Proxy::all(proxy_url) {
         Ok(proxy) => proxy,
         Err(error) => {
             return RealDelayResult {

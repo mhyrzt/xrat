@@ -27,6 +27,7 @@ pub async fn run(context: &AppContext, args: &RotateArgs) -> crate::app::Result<
 }
 
 async fn enable(context: &AppContext, socket_path: &std::path::Path) -> crate::app::Result<()> {
+    persist_rotation_enabled(context, true)?;
     match ipc::proxy_start_daemon(socket_path).await {
         Ok(response) => {
             if !response.ok {
@@ -36,13 +37,6 @@ async fn enable(context: &AppContext, socket_path: &std::path::Path) -> crate::a
                 "{}",
                 output::success(
                     format!("Proxy rotation: {}.", response.message),
-                    output::color_enabled()
-                )
-            );
-            println!(
-                "{}",
-                output::notice(
-                    "State is volatile and resets to config defaults on daemon restart.",
                     output::color_enabled()
                 )
             );
@@ -57,6 +51,7 @@ async fn enable(context: &AppContext, socket_path: &std::path::Path) -> crate::a
 }
 
 async fn disable(context: &AppContext, socket_path: &std::path::Path) -> crate::app::Result<()> {
+    persist_rotation_enabled(context, false)?;
     match ipc::proxy_stop_daemon(socket_path).await {
         Ok(response) => {
             if !response.ok {
@@ -69,13 +64,6 @@ async fn disable(context: &AppContext, socket_path: &std::path::Path) -> crate::
                     output::color_enabled()
                 )
             );
-            println!(
-                "{}",
-                output::notice(
-                    "State is volatile and resets to config defaults on daemon restart.",
-                    output::color_enabled()
-                )
-            );
             print_rotation_config_guidance(context, false);
             Ok(())
         }
@@ -84,6 +72,22 @@ async fn disable(context: &AppContext, socket_path: &std::path::Path) -> crate::
         )),
         Err(err) => Err(err),
     }
+}
+
+fn persist_rotation_enabled(context: &AppContext, enabled: bool) -> crate::app::Result<()> {
+    let mut session =
+        crate::app::config::ConfigEditSession::open(&context.runtime_paths.config_path)
+            .map_err(crate::app::AppError::InvalidArgument)?;
+    session
+        .set_value(
+            "runtime.rotation.enabled",
+            if enabled { "true" } else { "false" },
+        )
+        .map_err(crate::app::AppError::InvalidArgument)?;
+    session
+        .save()
+        .map_err(crate::app::AppError::InvalidArgument)?;
+    Ok(())
 }
 
 async fn status(
@@ -119,6 +123,12 @@ async fn status(
                         "last_candidate_config_ref": last_candidate_config_ref,
                         "last_candidate_result": payload.last_candidate_result,
                         "next_timer_epoch_secs": payload.next_timer_epoch_secs,
+                        "health_failure_threshold": payload.health_failure_threshold,
+                        "consecutive_health_failures": payload.consecutive_health_failures,
+                        "health_probe_in_flight": payload.health_probe_in_flight,
+                        "last_health_check_epoch_secs": payload.last_health_check_epoch_secs,
+                        "last_health_error": payload.last_health_error,
+                        "pending_health_recovery": payload.pending_health_recovery,
                     }))?
                 );
             } else {
@@ -174,6 +184,38 @@ async fn status(
                                     .next_timer_epoch_secs
                                     .map(|value| value.to_string())
                                     .unwrap_or_else(|| "-".to_string()),
+                            ),
+                            (
+                                "health threshold",
+                                payload.health_failure_threshold.to_string()
+                            ),
+                            (
+                                "health failures",
+                                payload.consecutive_health_failures.to_string()
+                            ),
+                            (
+                                "health probe",
+                                if payload.health_probe_in_flight {
+                                    "running"
+                                } else {
+                                    "idle"
+                                }
+                                .to_string(),
+                            ),
+                            (
+                                "last health check",
+                                payload
+                                    .last_health_check_epoch_secs
+                                    .map(|value| value.to_string())
+                                    .unwrap_or_else(|| "-".to_string()),
+                            ),
+                            (
+                                "last health error",
+                                payload.last_health_error.unwrap_or_else(|| "-".to_string()),
+                            ),
+                            (
+                                "pending recovery",
+                                output::bool_label(payload.pending_health_recovery).to_string(),
                             ),
                         ],
                         output::color_enabled(),

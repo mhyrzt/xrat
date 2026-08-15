@@ -142,22 +142,32 @@ Proxy auto-rotation settings.
 
 ```toml
 [runtime.rotation]
-enabled = false
+enabled = true
 interval_secs = 1800
 health_trigger_enabled = true
+health_failure_threshold = 3
 cooldown_secs = 300
 test_concurrency = 0
 test_stages = ["icmp", "real_delay"]
+refresh_subscriptions = false
 ```
 
-| Field                    | Type     | Default                  | Description                        |
-| ------------------------ | -------- | ------------------------ | ---------------------------------- |
-| `enabled`                | boolean  | `false`                  | Enable scheduled rotation          |
-| `interval_secs`          | integer  | `1800`                   | Rotation interval in seconds       |
-| `health_trigger_enabled` | boolean  | `true`                   | Trigger rotation on health failure |
-| `cooldown_secs`          | integer  | `300`                    | Minimum time between rotations     |
-| `test_concurrency`       | integer  | `0`                      | Test workers (0 = auto)            |
-| `test_stages`            | string[] | `["icmp", "real_delay"]` | Candidate test stages              |
+| Field                      | Type     | Default                  | Description                                                  |
+| -------------------------- | -------- | ------------------------ | ------------------------------------------------------------ |
+| `enabled`                  | boolean  | `true`                   | Enable scheduled and health-triggered rotation               |
+| `interval_secs`            | integer  | `1800`                   | Rotation interval in seconds                                 |
+| `health_trigger_enabled`   | boolean  | `true`                   | Recover when the active runtime becomes unhealthy            |
+| `health_failure_threshold` | integer  | `3`                      | Consecutive proxied HTTP failures required before recovery   |
+| `cooldown_secs`            | integer  | `300`                    | Per-config health-failure cooldown in seconds                |
+| `test_concurrency`         | integer  | `0`                      | Fresh candidate test workers (`0` = auto)                    |
+| `test_stages`              | string[] | `["icmp", "real_delay"]` | Candidate test stages; ICMP alone does not qualify a config  |
+| `refresh_subscriptions`    | boolean  | `false`                  | Refresh URL subscriptions before automatic candidate testing |
+
+Process exit and configured-inbound loss trigger immediate recovery. Proxied
+HTTP failures use the threshold above and the request behavior configured under
+`[testing.real_delay]`, even when the real-delay test stage is disabled. The
+settings modal exposes this field as **Failure threshold** with the same help
+and validation as `config.toml`.
 
 ---
 
@@ -293,11 +303,11 @@ host = "127.0.0.1"
 port = 10085
 ```
 
-| Field     | Type    | Default       | Description                                   |
-| --------- | ------- | ------------- | --------------------------------------------- |
+| Field     | Type    | Default       | Description                                    |
+| --------- | ------- | ------------- | ---------------------------------------------- |
 | `enabled` | boolean | `true`        | Enable the stats endpoint and TUI stats poller |
-| `host`    | string  | `"127.0.0.1"` | Listen host for the stats controller          |
-| `port`    | integer | `10085`       | Listen port for the stats controller          |
+| `host`    | string  | `"127.0.0.1"` | Listen host for the stats controller           |
+| `port`    | integer | `10085`       | Listen port for the stats controller           |
 
 ### [runtime.mux]
 
@@ -314,18 +324,18 @@ xudp_concurrency = 0
 xudp_proxy_udp443 = "reject"
 ```
 
-| Field               | Type    | Default    | Description                                                                 |
-| ------------------- | ------- | ---------- | --------------------------------------------------------------------------- |
-| `enabled`           | boolean | `false`    | Emit a `mux` object on the proxy outbound                                    |
+| Field               | Type    | Default    | Description                                                                                   |
+| ------------------- | ------- | ---------- | --------------------------------------------------------------------------------------------- |
+| `enabled`           | boolean | `false`    | Emit a `mux` object on the proxy outbound                                                     |
 | `concurrency`       | integer | `8`        | Logical connections per Mux session. `0` = Xray default (8); `1..=128`; `-1` disables TCP Mux |
-| `xudp_concurrency`  | integer | `0`        | XUDP aggregation concurrency. `0` = legacy path; `1..=1024`; `-1` opts UDP out of Mux |
-| `xudp_proxy_udp443` | string  | `"reject"` | QUIC/UDP 443 handling under XUDP: `reject`, `allow`, or `skip`               |
+| `xudp_concurrency`  | integer | `0`        | XUDP aggregation concurrency. `0` = legacy path; `1..=1024`; `-1` opts UDP out of Mux         |
+| `xudp_proxy_udp443` | string  | `"reject"` | QUIC/UDP 443 handling under XUDP: `reject`, `allow`, or `skip`                                |
 
 ### [runtime.fragment]
 
 TCP fragmentation for generated Xray outbounds. When enabled, the proxy outbound
-is chained through a `freedom` outbound (`sockopt.dialerProxy`) that splits early
-outgoing TCP writes (typically the TLS ClientHello). This is a
+is chained through a `freedom` outbound (`sockopt.dialerProxy`) that splits
+early outgoing TCP writes (typically the TLS ClientHello). This is a
 network-circumvention feature whose effect depends on network, transport, and
 destination — it can help against some SNI-based filtering but may also hurt.
 Disabled by default.
@@ -339,13 +349,13 @@ length = [100, 200]
 interval = [10, 20]
 ```
 
-| Field          | Type      | Default        | Description                                                              |
-| -------------- | --------- | -------------- | ----------------------------------------------------------------------- |
-| `enabled`      | boolean   | `false`        | Emit the `freedom` fragment outbound and chain the proxy through it     |
-| `packets_mode` | string    | `"tlshello"`   | `"tlshello"` (fragment the TLS ClientHello) or `"range"` (use `packets`) |
-| `packets`      | integer[] | `[1, 3]`       | Write range `[min, max]` (min ≥ 1, min ≤ max). Used only in `range` mode |
-| `length`       | integer[] | `[100, 200]`   | Byte length range `[min, max]` (min ≥ 1, min ≤ max)                     |
-| `interval`     | integer[] | `[10, 20]`     | Millisecond delay range `[min, max]` (min ≤ max)                        |
+| Field          | Type      | Default      | Description                                                              |
+| -------------- | --------- | ------------ | ------------------------------------------------------------------------ |
+| `enabled`      | boolean   | `false`      | Emit the `freedom` fragment outbound and chain the proxy through it      |
+| `packets_mode` | string    | `"tlshello"` | `"tlshello"` (fragment the TLS ClientHello) or `"range"` (use `packets`) |
+| `packets`      | integer[] | `[1, 3]`     | Write range `[min, max]` (min ≥ 1, min ≤ max). Used only in `range` mode |
+| `length`       | integer[] | `[100, 200]` | Byte length range `[min, max]` (min ≥ 1, min ≤ max)                      |
+| `interval`     | integer[] | `[10, 20]`   | Millisecond delay range `[min, max]` (min ≤ max)                         |
 
 ### [runtime.network]
 
@@ -359,12 +369,12 @@ mark = 0
 listen_interface = ""
 ```
 
-| Field              | Type    | Default | Description                                                                                       |
-| ------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------ |
-| `interface`        | string  | `""`    | Outbound interface to bind egress to (Xray `sockopt.interface`, `SO_BINDTODEVICE` on Linux)       |
+| Field              | Type    | Default | Description                                                                                                                           |
+| ------------------ | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `interface`        | string  | `""`    | Outbound interface to bind egress to (Xray `sockopt.interface`, `SO_BINDTODEVICE` on Linux)                                           |
 | `bind_address`     | string  | `""`    | Outbound source IP. **The Xray engine cannot bind a source address and ignores this** (a warning is logged); validated for shape only |
-| `mark`             | integer | `0`     | fwmark applied to outbound sockets (Xray `sockopt.mark`). `0` = unset                              |
-| `listen_interface` | string  | `""`    | Bind managed inbounds (socks/http/shadowsocks) to this interface's address instead of their host  |
+| `mark`             | integer | `0`     | fwmark applied to outbound sockets (Xray `sockopt.mark`). `0` = unset                                                                 |
+| `listen_interface` | string  | `""`    | Bind managed inbounds (socks/http/shadowsocks) to this interface's address instead of their host                                      |
 
 > Interface binding (`interface`, `mark`) and `listen_interface` are
 > Linux-focused. `interface` requires a real device name; `listen_interface`
@@ -583,39 +593,39 @@ xrat follows at most 10 redirects and checks the terminal response; when it is
 disabled, xrat checks the initial response so configured `3xx` statuses can
 pass.
 
-| Section           | Field                   | Type     | Default                                | Description                                                           |
-| ----------------- | ----------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------- |
-| `[testing]`       | `concurrency`           | integer  | `0`                                    | Test workers (0 = auto)                                               |
-| `[testing]`       | `order`                 | string[] | `["icmp", "real_delay", "download"]`   | Stage execution order; accepted: `icmp`, `tcp`, `real_delay`, `download` |
-| `[testing]`       | `failure_policy`        | enum     | `continue`                             | Behavior on stage failure                                             |
-| `[icmp]`          | `enabled`               | boolean  | `true`                                 | Enable ICMP stage                                                     |
-| `[icmp]`          | `timeout`               | integer  | `3000`                                 | ICMP timeout (ms)                                                     |
-| `[icmp]`          | `attempts`              | integer  | `3`                                    | ICMP attempt count                                                    |
-| `[tcp]`           | `enabled`               | boolean  | `true`                                 | Enable TCP stage                                                      |
-| `[tcp]`           | `timeout`               | integer  | `5000`                                 | TCP timeout (ms)                                                      |
-| `[real_delay]`    | `enabled`               | boolean  | `true`                                 | Enable real-delay stage                                               |
-| `[real_delay]`    | `url`                   | string   | `https://www.gstatic.com/generate_204` | Test URL                                                              |
-| `[real_delay]`    | `timeout`               | integer  | `10000`                                | HTTP request timeout (ms)                                             |
-| `[real_delay]`    | `accepted_status_codes` | integer[] | -                                     | Exact accepted HTTP status codes                                      |
-| `[real_delay]`    | `accepted_status_ranges` | string[] | - (effective `200-299`)               | Inclusive accepted ranges in `START-END` form                         |
-| `[real_delay]`    | `follow_redirects`      | boolean  | `true`                                 | Follow up to 10 redirects before checking status                      |
-| `[download]`      | `enabled`               | boolean  | `false`                                | Enable download stage                                                 |
-| `[download]`      | `url`                   | string   | -                                      | Download URL                                                          |
-| `[download]`      | `timeout`               | integer  | `30000`                                | Download timeout (ms)                                                 |
-| `[testing.geoip]` | `enabled`               | boolean  | `false`                                | Enable GeoIP enrichment                                               |
-| `[testing.geoip]` | `backend`               | enum     | `mmdb`                                 | Lookup backend: `mmdb`, `ipwhois`, `ip-api`, `chain`                  |
-| `[testing.geoip]` | `fallback`              | enum     | `none`                                 | Fallback backend when primary is `chain`: `ipwhois`, `ip-api`, `none` |
-| `[testing.geoip]` | `country_path`          | string   | `mmdb/GeoLite2-Country.mmdb`           | Country MMDB path (relative to config)                                |
-| `[testing.geoip]` | `city_path`             | string   | `mmdb/GeoLite2-City.mmdb`              | City MMDB path (relative to config)                                   |
-| `[testing.geoip]` | `asn_path`              | string   | `mmdb/GeoLite2-ASN.mmdb`               | ASN MMDB path (relative to config)                                    |
-| `[remote]`        | `provider`              | enum     | `ipwhois`                              | Remote provider: `ipwhois`, `ip-api`                                  |
-| `[remote]`        | `endpoint`              | string   | `""` (uses provider default)           | Remote API endpoint override                                          |
-| `[remote]`        | `timeout_ms`            | integer  | `5000`                                 | Remote request timeout in milliseconds                                |
-| `[remote]`        | `api_key`               | string   | `""`                                   | API key (provider-specific)                                           |
-| `[remote]`        | `rate_limit_per_minute` | integer  | `30`                                   | Max remote requests per minute                                        |
-| `[cache]`         | `enabled`               | boolean  | `true`                                 | Enable in-memory caching                                              |
-| `[cache]`         | `ttl_secs`              | integer  | `86400`                                | Cache entry TTL in seconds                                            |
-| `[cache]`         | `max_entries`           | integer  | `10000`                                | Maximum cache entries                                                 |
+| Section           | Field                    | Type      | Default                                | Description                                                              |
+| ----------------- | ------------------------ | --------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `[testing]`       | `concurrency`            | integer   | `0`                                    | Test workers (0 = auto)                                                  |
+| `[testing]`       | `order`                  | string[]  | `["icmp", "real_delay", "download"]`   | Stage execution order; accepted: `icmp`, `tcp`, `real_delay`, `download` |
+| `[testing]`       | `failure_policy`         | enum      | `continue`                             | Behavior on stage failure                                                |
+| `[icmp]`          | `enabled`                | boolean   | `true`                                 | Enable ICMP stage                                                        |
+| `[icmp]`          | `timeout`                | integer   | `3000`                                 | ICMP timeout (ms)                                                        |
+| `[icmp]`          | `attempts`               | integer   | `3`                                    | ICMP attempt count                                                       |
+| `[tcp]`           | `enabled`                | boolean   | `true`                                 | Enable TCP stage                                                         |
+| `[tcp]`           | `timeout`                | integer   | `5000`                                 | TCP timeout (ms)                                                         |
+| `[real_delay]`    | `enabled`                | boolean   | `true`                                 | Enable real-delay stage                                                  |
+| `[real_delay]`    | `url`                    | string    | `https://www.gstatic.com/generate_204` | Test URL                                                                 |
+| `[real_delay]`    | `timeout`                | integer   | `10000`                                | HTTP request timeout (ms)                                                |
+| `[real_delay]`    | `accepted_status_codes`  | integer[] | -                                      | Exact accepted HTTP status codes                                         |
+| `[real_delay]`    | `accepted_status_ranges` | string[]  | - (effective `200-299`)                | Inclusive accepted ranges in `START-END` form                            |
+| `[real_delay]`    | `follow_redirects`       | boolean   | `true`                                 | Follow up to 10 redirects before checking status                         |
+| `[download]`      | `enabled`                | boolean   | `false`                                | Enable download stage                                                    |
+| `[download]`      | `url`                    | string    | -                                      | Download URL                                                             |
+| `[download]`      | `timeout`                | integer   | `30000`                                | Download timeout (ms)                                                    |
+| `[testing.geoip]` | `enabled`                | boolean   | `false`                                | Enable GeoIP enrichment                                                  |
+| `[testing.geoip]` | `backend`                | enum      | `mmdb`                                 | Lookup backend: `mmdb`, `ipwhois`, `ip-api`, `chain`                     |
+| `[testing.geoip]` | `fallback`               | enum      | `none`                                 | Fallback backend when primary is `chain`: `ipwhois`, `ip-api`, `none`    |
+| `[testing.geoip]` | `country_path`           | string    | `mmdb/GeoLite2-Country.mmdb`           | Country MMDB path (relative to config)                                   |
+| `[testing.geoip]` | `city_path`              | string    | `mmdb/GeoLite2-City.mmdb`              | City MMDB path (relative to config)                                      |
+| `[testing.geoip]` | `asn_path`               | string    | `mmdb/GeoLite2-ASN.mmdb`               | ASN MMDB path (relative to config)                                       |
+| `[remote]`        | `provider`               | enum      | `ipwhois`                              | Remote provider: `ipwhois`, `ip-api`                                     |
+| `[remote]`        | `endpoint`               | string    | `""` (uses provider default)           | Remote API endpoint override                                             |
+| `[remote]`        | `timeout_ms`             | integer   | `5000`                                 | Remote request timeout in milliseconds                                   |
+| `[remote]`        | `api_key`                | string    | `""`                                   | API key (provider-specific)                                              |
+| `[remote]`        | `rate_limit_per_minute`  | integer   | `30`                                   | Max remote requests per minute                                           |
+| `[cache]`         | `enabled`                | boolean   | `true`                                 | Enable in-memory caching                                                 |
+| `[cache]`         | `ttl_secs`               | integer   | `86400`                                | Cache entry TTL in seconds                                               |
+| `[cache]`         | `max_entries`            | integer   | `10000`                                | Maximum cache entries                                                    |
 
 Upload tests are enabled per invocation with `xrat test --upload-url <url>`.
 There is no `[testing.upload]` config section; `--upload-timeout` overrides the

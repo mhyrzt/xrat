@@ -37,6 +37,7 @@ replace_active_session = true
 enabled = true
 interval_secs = 1800
 health_trigger_enabled = true
+health_failure_threshold = 3
 cooldown_secs = 300
 test_concurrency = -1                  # invalid: must be >= 0
 test_stages = ["icmp", "bogus_stage"]  # invalid: unknown stage

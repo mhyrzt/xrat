@@ -50,6 +50,11 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "",
             "health_trigger_enabled = true",
         ),
+        "runtime.rotation.health_failure_threshold" => help(
+            "Sets how many consecutive proxied HTTP failures trigger recovery.",
+            "Positive whole numbers. Process exit and inbound socket loss remain immediate.",
+            "health_failure_threshold = 3",
+        ),
         "runtime.rotation.cooldown_secs" => help(
             "Prevents repeated health-triggered switches during this cooldown window.",
             "Zero or more whole seconds.",

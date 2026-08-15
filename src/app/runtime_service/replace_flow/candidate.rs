@@ -21,14 +21,6 @@ impl<'a> RuntimeService<'a> {
                     candidate_id
                 )));
             }
-            if !matches!(request.trigger, RotationTrigger::Manual)
-                && self.config_is_on_cooldown(candidate_id).await?
-            {
-                return Err(AppError::InvalidArgument(format!(
-                    "config {} is on cooldown and cannot be selected for replacement",
-                    candidate_id
-                )));
-            }
             return Ok(candidate_id);
         }
 
@@ -85,11 +77,9 @@ impl<'a> RuntimeService<'a> {
                     candidate_id
                 )));
             }
-            if !matches!(request.trigger, RotationTrigger::Manual)
-                && self.config_is_on_cooldown(candidate_id).await?
-            {
+            if active.config_id == Some(candidate_id) {
                 return Err(AppError::InvalidArgument(format!(
-                    "config {} is on cooldown and cannot be selected for replacement",
+                    "config {} is already active and cannot replace itself",
                     candidate_id
                 )));
             }
@@ -188,50 +178,25 @@ impl<'a> RuntimeService<'a> {
 
     async fn collect_passing_rotation_candidates(
         &self,
-        request: &ReplaceRequest,
+        _request: &ReplaceRequest,
         eligible_ids: &[i64],
         passing: &mut Vec<(i64, i64, Option<f64>)>,
     ) -> crate::app::Result<()> {
-        if !matches!(request.trigger, RotationTrigger::Manual) {
-            let fresh_results = run_rotation_bulk_tests(self.context, eligible_ids).await?;
-            for row in &fresh_results {
-                let latency_ms = if row.real_delay_ok {
-                    row.real_delay_ms
-                } else if !row.ran_real_delay && row.ran_tcp && row.tcp_ok {
-                    row.tcp_ms
-                } else {
-                    None
-                };
-                let Some(latency_ms) = latency_ms else {
-                    continue;
-                };
-                passing.push((row.id, latency_ms as i64, row.download_mbps));
-            }
-            if !passing.is_empty() {
-                return Ok(());
-            }
-        }
-
-        for config_id in eligible_ids {
-            let Some(test) = self
-                .context
-                .db
-                .get_latest_connection_test(*config_id)
-                .await?
-            else {
-                continue;
-            };
-            let latency_ms = if test.real_delay_ok == Some(true) {
-                test.real_delay_ms
-            } else if test.real_delay_ok.is_none() && test.tcp_ok == Some(true) {
-                test.tcp_ms
+        let fresh_results = run_rotation_bulk_tests(self.context, eligible_ids).await?;
+        for row in &fresh_results {
+            let latency_ms = if row.ran_real_delay {
+                row.real_delay_ok.then_some(row.real_delay_ms).flatten()
+            } else if row.download_mbps.is_some() {
+                Some(row.tcp_ms.unwrap_or(u32::MAX))
+            } else if row.ran_tcp && row.tcp_ok {
+                row.tcp_ms
             } else {
                 None
             };
             let Some(latency_ms) = latency_ms else {
                 continue;
             };
-            passing.push((*config_id, latency_ms, test.download_mbps));
+            passing.push((row.id, i64::from(latency_ms), row.download_mbps));
         }
 
         Ok(())
@@ -240,9 +205,7 @@ impl<'a> RuntimeService<'a> {
 
 fn no_passing_candidate_error() -> AppError {
     AppError::InvalidArgument(
-        "no eligible replacement candidate: no enabled config has a passing real-delay or \
-         TCP-only result; run `xrat test` or `xrat scan` first"
-            .to_string(),
+        "no eligible replacement candidate passed the fresh configured rotation tests".to_string(),
     )
 }
 

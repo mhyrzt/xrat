@@ -2,19 +2,21 @@ use super::super::super::test_support::{test_context, test_node, test_source};
 use super::helpers::{set_running_session, spawn_sleep, write_fake_runtime_script};
 use super::*;
 use crate::app::daemon::supervisor::{SupervisorEvent, SupervisorState};
-use crate::db::ConnectionTestInsert;
 
 #[tokio::test]
 async fn health_tick_timer_due_success_updates_rotation_state_and_reschedules() {
     let mut context = test_context("health-tick-timer-success").await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("TCP candidate listener should bind");
+    let candidate_port = listener.local_addr().unwrap().port();
+    let mut candidate_node = test_node("127.0.0.1", "b");
+    candidate_node.port = candidate_port;
     context
         .db
         .import_nodes(
             &test_source(),
-            &[
-                test_node("example-a.com", "a"),
-                test_node("example-b.com", "b"),
-            ],
+            &[test_node("example-a.com", "a"), candidate_node],
         )
         .await
         .expect("nodes should import");
@@ -25,39 +27,10 @@ async fn health_tick_timer_due_success_updates_rotation_state_and_reschedules() 
         .expect("configs should load");
     configs.sort_by_key(|cfg| cfg.id);
     let active_config = configs[0].clone();
-    let candidate_config = configs[1].clone();
 
     write_fake_runtime_script(&context);
     context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
-    context.app_config.runtime.rotation.test_stages = Vec::new();
-
-    context
-        .db
-        .insert_connection_test(&ConnectionTestInsert {
-            run_id: None,
-            config_id: candidate_config.id,
-            icmp_ok: None,
-            icmp_ms: None,
-            tcp_ok: Some(true),
-            tcp_ms: Some(5),
-            real_delay_ok: Some(true),
-            real_delay_ms: Some(20),
-            download_mbps: Some(120.0),
-            upload_mbps: None,
-            connect_ms: None,
-            ttfb_ms: None,
-            http_status: None,
-            dial_endpoint_ip: None,
-            dial_endpoint_location: None,
-            dial_endpoint_country: None,
-            dial_endpoint_asn: None,
-            dial_endpoint_geoip_source: None,
-            dial_endpoint_fronting: None,
-            failure_kind: None,
-            failure_reason: None,
-        })
-        .await
-        .expect("candidate test result should insert");
+    context.app_config.runtime.rotation.test_stages = vec!["tcp".to_string()];
 
     let mut old = spawn_sleep(30);
     let old_pid = i64::from(old.id());
@@ -99,4 +72,5 @@ async fn health_tick_timer_due_success_updates_rotation_state_and_reschedules() 
     );
     let _ = old.kill();
     let _ = old.wait();
+    drop(listener);
 }

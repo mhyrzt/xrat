@@ -25,6 +25,9 @@ if config_path is None:
 with open(config_path, "r", encoding="utf-8") as f:
     cfg = json.load(f)
 
+if "-test" in sys.argv:
+    sys.exit(0)
+
 inbound = cfg["inbounds"][0]
 host = inbound.get("listen", "127.0.0.1")
 port = int(inbound["port"])

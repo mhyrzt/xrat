@@ -43,7 +43,22 @@ pub(crate) async fn run_rotation_bulk_tests(
     )?;
 
     settings.concurrency = context.app_config.runtime.rotation.test_concurrency;
-    settings.run_icmp = false;
+    settings.stage_order = context
+        .app_config
+        .runtime
+        .rotation
+        .test_stages
+        .iter()
+        .filter_map(|stage| ConnectionTestStage::from_config_str(stage))
+        .collect();
+    settings.run_icmp = context
+        .app_config
+        .runtime
+        .rotation
+        .test_stages
+        .iter()
+        .any(|stage| stage == "icmp")
+        && context.app_config.testing.icmp.enabled;
     settings.run_upload = false;
 
     let has_real_delay = context

@@ -18,24 +18,26 @@ Enable and configure rotation in `config.toml`:
 
 ```toml
 [runtime.rotation]
-enabled = false
+enabled = true
 interval_secs = 1800
 health_trigger_enabled = true
+health_failure_threshold = 3
 cooldown_secs = 300
 test_concurrency = 0
 test_stages = ["icmp", "real_delay"]
 refresh_subscriptions = false
 ```
 
-| Field                    | Description                                       | Default                  |
-| ------------------------ | ------------------------------------------------- | ------------------------ |
-| `enabled`                | Enable scheduled rotation                         | `false`                  |
-| `interval_secs`          | Rotation interval in seconds                      | `1800` (30 minutes)      |
-| `health_trigger_enabled` | Trigger rotation on health check failure          | `true`                   |
-| `cooldown_secs`          | Minimum time between rotations                    | `300` (5 minutes)        |
-| `test_concurrency`       | Concurrent test workers (`0` = auto)              | `0`                      |
-| `test_stages`            | Test stages to run for candidate selection        | `["icmp", "real_delay"]` |
-| `refresh_subscriptions`  | Refresh URL subscriptions before candidate select | `false`                  |
+| Field                      | Description                                                | Default                  |
+| -------------------------- | ---------------------------------------------------------- | ------------------------ |
+| `enabled`                  | Enable scheduled and health-triggered rotation             | `true`                   |
+| `interval_secs`            | Rotation interval in seconds                               | `1800` (30 minutes)      |
+| `health_trigger_enabled`   | Trigger recovery when the active runtime becomes unhealthy | `true`                   |
+| `health_failure_threshold` | Consecutive proxied HTTP failures required for recovery    | `3`                      |
+| `cooldown_secs`            | Per-config cooldown after health failure                   | `300` (5 minutes)        |
+| `test_concurrency`         | Concurrent test workers (`0` = auto)                       | `0`                      |
+| `test_stages`              | Fresh candidate test stages                                | `["icmp", "real_delay"]` |
+| `refresh_subscriptions`    | Refresh URL subscriptions before candidate selection       | `false`                  |
 
 ### Refresh Before Rotation
 
@@ -62,8 +64,10 @@ Scheduled rotation every `interval_secs`:
 interval_secs = 1800  # rotate every 30 minutes
 ```
 
-The daemon maintains a timer that fires at the specified interval, triggering
-rotation to the best available candidate.
+The timer runs only while a managed runtime is active. Starting the daemon with
+no runtime does not select or start a config automatically. A failed timer
+attempt is rescheduled for the normal interval instead of retrying in a tight
+loop.
 
 ### Health Check Trigger
 
@@ -73,8 +77,16 @@ Triggered when the active proxy fails a health check:
 health_trigger_enabled = true
 ```
 
-The daemon monitors proxy health every 15 seconds. If the health check fails
-(process dead, port unreachable), rotation is triggered immediately.
+The daemon monitors proxy health every 15 seconds. A dead runtime process or an
+unreachable configured inbound triggers recovery immediately. When an active
+SOCKS5 or HTTP inbound exists, xrat also sends an asynchronous HTTP request
+through that proxy using `[testing.real_delay]` URL, timeout, redirect, and
+accepted-status settings. These data-plane failures trigger recovery only after
+`health_failure_threshold` consecutive failures; a successful probe resets the
+counter. Results from a session that has already been replaced are discarded.
+
+Shadowsocks-only runtimes use process and inbound-socket checks because xrat
+does not currently run the HTTP probe through a Shadowsocks client.
 
 ### Manual Trigger
 
@@ -84,7 +96,8 @@ Triggered by the user via CLI:
 xrat rotate now
 ```
 
-Manual rotation bypasses the timer but respects cooldown.
+Unpinned manual rotation bypasses the timer and per-config cooldown, but still
+runs fresh candidate tests.
 
 ### Forced Rotation
 
@@ -94,36 +107,21 @@ Rotate to a specific config:
 xrat rotate now --config-id 99
 ```
 
-Skips candidate selection and rotates to the specified config.
+Skips candidate selection and candidate health ranking. The target must still be
+enabled, different from the active config, and pass native engine preflight
+validation.
 
 ## Cooldown Protection
 
-After a rotation, the daemon enforces a cooldown period:
+After a health failure, the failed config receives a per-config cooldown:
 
 ```toml
 cooldown_secs = 300  # 5 minutes
 ```
 
-During cooldown:
-
-- Timer triggers are delayed until cooldown expires
-- Health check triggers are suppressed (unless critical)
-- Manual triggers are allowed (user override)
-
-### Cooldown State
-
-```rust
-struct SupervisorState {
-    cooldown_until: Option<DateTime<Utc>>,
-    // ...
-}
-```
-
-When a rotation completes:
-
-```rust
-state.cooldown_until = Some(Utc::now() + Duration::from_secs(cooldown_secs));
-```
+Automatic timer and health selection excludes configs whose cooldown has not
+expired. Manual rotation may select them; a pinned manual target explicitly
+bypasses cooldown.
 
 ## Candidate Selection
 
@@ -142,30 +140,22 @@ WHERE is_enabled = true
 
 ### Step 2: Test Candidates
 
-Run test stages on all candidates concurrently:
+Run the configured stages freshly on all candidates concurrently. Stored test
+rows are not reused for rotation:
 
 ```toml
 test_concurrency = 4  # test 4 configs at once
 test_stages = ["icmp", "real_delay"]
 ```
 
-For each candidate:
-
-1. Generate a probe config
-2. Spawn a short-lived Xray process
-3. Run the specified test stages
-4. Collect results (latency, throughput, success/failure)
-5. Terminate the probe process
+For each candidate, xrat runs the normal test pipeline and records the result.
+ICMP is diagnostic only. A candidate qualifies by real-delay when that stage
+ran, otherwise by download, otherwise by TCP. A candidate cannot qualify from
+ICMP alone.
 
 ### Step 3: Filter Failures
 
-Exclude configs that failed any test stage:
-
-```rust
-let successful = candidates.into_iter()
-    .filter(|c| c.real_delay_ok && c.download_ok)
-    .collect();
-```
+Exclude configs that do not pass the qualifying stage.
 
 ### Step 4: Sort by Latency
 
@@ -189,33 +179,20 @@ If no candidates pass testing, rotation is skipped.
 
 When rotation is triggered:
 
-1. **Check cooldown** — If active, delay or skip
-2. **Select candidate** — Run candidate selection (or use `--config-id`)
-3. **Atomic replace** — Disconnect old session, connect new session
-4. **Update state** — Record rotation timestamp, trigger type, new config ID
-5. **Reset timer** — Schedule next timer-based rotation
+1. **Select candidate** — Run fresh tests, or validate an explicit config ID
+2. **Preflight** — Run the selected engine's native config validator
+3. **Handoff** — Stop the old process and start the replacement on the same
+   inbounds
+4. **Verify** — Wait for the replacement inbound to become reachable
+5. **Commit or roll back** — Mark the replacement active, or reconnect the old
+   config
+6. **Reschedule** — Record the result and schedule the normal next interval
 
-### Atomic Replace
-
-The replace flow ensures minimal downtime:
-
-```rust
-async fn replace_session(old_id: i64, new_config_id: i64) -> Result<()> {
-    // 1. Start new session
-    let new_session = connect(new_config_id).await?;
-
-    // 2. Wait for new session to be ready
-    wait_for_ready(new_session.socks_port).await?;
-
-    // 3. Stop old session
-    disconnect(old_id).await?;
-
-    Ok(())
-}
-```
-
-The new session is started **before** the old session is stopped, ensuring
-continuous connectivity.
+Native preflight commands are `xray run -test -c`, `v2ray test -c`, and
+`sing-box check -c`. Preflight happens before disruption. Because the old and
+new runtime use the same local ports, the process handoff cannot overlap; if the
+replacement fails after the old process stops, xrat reconnects the previous
+config and reports both the replacement and rollback outcome.
 
 ## Rotation Status
 
@@ -265,8 +242,8 @@ xrat rotate status --json
 xrat rotate enable
 ```
 
-Sends a `ProxyStart` request to the daemon, which enables the rotation
-scheduler.
+Atomically writes `runtime.rotation.enabled = true` to `config.toml`, then
+enables the running daemon scheduler.
 
 ### Stop Rotation
 
@@ -274,8 +251,8 @@ scheduler.
 xrat rotate disable
 ```
 
-Sends a `ProxyStop` request to the daemon, which disables the rotation
-scheduler. The active proxy session continues running.
+Atomically writes `runtime.rotation.enabled = false` to `config.toml`, then
+disables the running daemon scheduler. The active proxy session continues.
 
 ## Rotation Strategies
 
@@ -326,14 +303,10 @@ Best for: stable connections with automatic failover
 
 ## Persistence
 
-Rotation state is tracked in memory (not persisted to database). On daemon
-restart:
-
-- Rotation is disabled (must be re-enabled with `xrat rotate enable`)
-- Cooldown is reset
-- Timer is reset
-
-The active session is persisted and reattached on daemon restart.
+The enabled setting survives daemon restarts because `rotate enable` and
+`rotate disable` update `config.toml`. Runtime counters and scheduling state are
+in memory, while per-config cooldown/failure metadata and the active runtime
+session are persisted in the database.
 
 ## Troubleshooting
 

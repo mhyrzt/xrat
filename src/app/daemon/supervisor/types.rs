@@ -8,6 +8,11 @@ use crate::app::daemon::ipc::{
 #[derive(Debug)]
 pub enum SupervisorEvent {
     HealthTick,
+    HealthProbeCompleted {
+        session_id: i64,
+        success: bool,
+        error: Option<String>,
+    },
     DaemonPing {
         respond_to: oneshot::Sender<PingPayload>,
     },
@@ -96,6 +101,12 @@ pub struct SupervisorState {
     pub last_candidate_config_id: Option<i64>,
     pub last_candidate_result: String,
     pub cooldown_active: bool,
+    pub health_failure_threshold: u32,
+    pub consecutive_health_failures: u32,
+    pub health_probe_in_flight: bool,
+    pub last_health_check_epoch_secs: Option<u64>,
+    pub last_health_error: Option<String>,
+    pub pending_health_recovery: bool,
 }
 
 impl SupervisorState {
@@ -113,6 +124,12 @@ impl SupervisorState {
             last_candidate_config_id: None,
             last_candidate_result: "never_selected".to_string(),
             cooldown_active: false,
+            health_failure_threshold: 3,
+            consecutive_health_failures: 0,
+            health_probe_in_flight: false,
+            last_health_check_epoch_secs: None,
+            last_health_error: None,
+            pending_health_recovery: false,
         }
     }
 }

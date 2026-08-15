@@ -3,9 +3,9 @@ use super::support::*;
 use super::*;
 
 #[tokio::test]
-async fn replace_success_stages_new_then_stops_old_runtime() {
+async fn replace_success_validates_new_then_stops_old_runtime() {
     let mut context = test_context().await;
-    let config = import_single_config(&context).await;
+    let (active_config, next_config) = import_two_configs(&context, "old", "new").await;
 
     write_fake_runtime_script(&context);
     context.runtime_paths.xray_path = context.runtime_paths.root_dir.join("fake-xray.py");
@@ -13,12 +13,12 @@ async fn replace_success_stages_new_then_stops_old_runtime() {
     let mut old = spawn_sleep(30);
     let old_pid = i64::from(old.id());
 
-    let old_session_id = set_running_session(&context, config.id, old_pid).await;
+    let old_session_id = set_running_session(&context, active_config.id, old_pid).await;
 
     let result = RuntimeService::new(&context)
         .replace(ReplaceRequest {
             trigger: RotationTrigger::Manual,
-            candidate_id: Some(config.id),
+            candidate_id: Some(next_config.id),
         })
         .await
         .expect("replace should succeed");
@@ -48,7 +48,7 @@ async fn replace_success_stages_new_then_stops_old_runtime() {
         .expect("new running session should exist");
     assert_eq!(running.id, result.new_session_id);
     assert_eq!(running.status, RuntimeSessionStatus::Running);
-    assert_eq!(running.config_id, Some(config.id));
+    assert_eq!(running.config_id, Some(next_config.id));
     assert_eq!(
         running.socks_port,
         Some(i64::from(context.app_config.runtime.socks.port))
@@ -69,7 +69,7 @@ async fn replace_success_stages_new_then_stops_old_runtime() {
         .await
         .expect("active config should load")
         .expect("active config should exist");
-    assert_eq!(active_config.id, config.id);
+    assert_eq!(active_config.id, next_config.id);
 
     let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
     let _ = old.kill();

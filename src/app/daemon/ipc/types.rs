@@ -110,6 +110,12 @@ pub struct ProxyStatusPayload {
     pub last_candidate_result: String,
     pub cooldown_active: bool,
     pub next_timer_epoch_secs: Option<u64>,
+    pub health_failure_threshold: u32,
+    pub consecutive_health_failures: u32,
+    pub health_probe_in_flight: bool,
+    pub last_health_check_epoch_secs: Option<u64>,
+    pub last_health_error: Option<String>,
+    pub pending_health_recovery: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

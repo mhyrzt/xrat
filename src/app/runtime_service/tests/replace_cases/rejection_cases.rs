@@ -14,7 +14,7 @@ async fn replace_starts_runtime_without_running_session() {
     let result = RuntimeService::new(&context)
         .replace(ReplaceRequest {
             trigger: RotationTrigger::Manual,
-            candidate_id: None,
+            candidate_id: Some(config.id),
         })
         .await
         .expect("replace should start a runtime when none is running");
@@ -85,7 +85,7 @@ async fn manual_rotate_excludes_config_without_passing_real_delay() {
 }
 
 #[tokio::test]
-async fn manual_rotate_accepts_tcp_only_passing_result() {
+async fn manual_rotate_does_not_reuse_stored_tcp_result() {
     let mut context = test_context().await;
     let config = import_single_config(&context).await;
     insert_tcp_passing_test(&context, config.id, 50).await;
@@ -98,16 +98,15 @@ async fn manual_rotate_accepts_tcp_only_passing_result() {
             trigger: RotationTrigger::Manual,
             candidate_id: None,
         })
-        .await
-        .expect("replace should accept a TCP-only passing candidate");
+        .await;
 
-    assert_eq!(result.new_config_id, config.id);
-
-    let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
+    assert!(
+        matches!(result, Err(AppError::InvalidArgument(message)) if message.contains("fresh configured rotation tests"))
+    );
 }
 
 #[tokio::test]
-async fn manual_rotate_selects_tested_config_over_untested() {
+async fn manual_rotate_does_not_reuse_stored_real_delay_result() {
     let mut context = test_context().await;
     let (untested, tested) = import_two_configs(&context, "a", "b").await;
     insert_passing_test(&context, tested.id, 100).await;
@@ -120,16 +119,12 @@ async fn manual_rotate_selects_tested_config_over_untested() {
             trigger: RotationTrigger::Manual,
             candidate_id: None,
         })
-        .await
-        .expect("replace should select the tested config");
+        .await;
 
-    assert_ne!(
-        result.new_config_id, untested.id,
-        "must not fall back to the untested lower-id config"
+    let _ = (untested, tested);
+    assert!(
+        matches!(result, Err(AppError::InvalidArgument(message)) if message.contains("fresh configured rotation tests"))
     );
-    assert_eq!(result.new_config_id, tested.id);
-
-    let _ = xray_runtime::terminate_process_gracefully(result.new_pid as i64, SHUTDOWN_TIMEOUT);
 }
 
 #[tokio::test]

@@ -285,6 +285,15 @@ impl ConfigEditSession {
         sections.into_iter().collect()
     }
 
+    pub(crate) fn set_value(&mut self, path: &str, input: &str) -> Result<(), String> {
+        let setting = self
+            .settings
+            .iter_mut()
+            .find(|setting| setting.path == path)
+            .ok_or_else(|| format!("setting {path:?} was not found"))?;
+        setting.set_from_input(input)
+    }
+
     pub(crate) fn save(&mut self) -> Result<ConfigSaveOutcome, String> {
         let current_contents = fs::read_to_string(&self.path)
             .map_err(|error| format!("could not re-read {}: {error}", self.path.display()))?;
@@ -435,6 +444,7 @@ fn setting_label(path: &str) -> String {
         "runtime.fragment.packets_mode" => "packet_mode",
         "runtime.log.dns_log" => "dns_logging",
         "runtime.mux.xudp_proxy_udp443" => "udp_443_handling",
+        "runtime.rotation.health_failure_threshold" => "failure_threshold",
         _ => path.rsplit('.').next().unwrap_or(path),
     };
     let key = [
@@ -771,6 +781,10 @@ mod tests {
         assert_eq!(label("runtime.fragment.packets_mode"), "Packet mode");
         assert_eq!(label("runtime.log.dns_log"), "DNS logging");
         assert_eq!(label("runtime.mux.xudp_proxy_udp443"), "UDP 443 handling");
+        assert_eq!(
+            label("runtime.rotation.health_failure_threshold"),
+            "Failure threshold"
+        );
         assert_eq!(label("server.pac_allowed_hosts"), "PAC allowed hosts");
         assert_eq!(label("testing.geoip.remote.timeout_ms"), "Timeout");
         assert_eq!(label("testing.geoip.cache.ttl_secs"), "TTL");

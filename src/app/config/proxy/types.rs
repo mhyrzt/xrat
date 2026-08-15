@@ -63,6 +63,7 @@ pub struct RotationSettings {
     pub enabled: bool,
     pub interval_secs: u64,
     pub health_trigger_enabled: bool,
+    pub health_failure_threshold: u32,
     pub cooldown_secs: u64,
     pub test_concurrency: i32,
     pub test_stages: Vec<String>,

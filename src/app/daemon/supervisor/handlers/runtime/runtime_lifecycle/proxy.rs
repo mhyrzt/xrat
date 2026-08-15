@@ -52,6 +52,12 @@ pub(super) async fn handle_proxy_status(
         last_candidate_result: state.last_candidate_result.clone(),
         cooldown_active: state.cooldown_active,
         next_timer_epoch_secs: state.next_timer_epoch_secs,
+        health_failure_threshold: state.health_failure_threshold,
+        consecutive_health_failures: state.consecutive_health_failures,
+        health_probe_in_flight: state.health_probe_in_flight,
+        last_health_check_epoch_secs: state.last_health_check_epoch_secs,
+        last_health_error: state.last_health_error.clone(),
+        pending_health_recovery: state.pending_health_recovery,
     }));
 }
 
