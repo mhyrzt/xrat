@@ -29,8 +29,10 @@ combined with `--no-daemon` (linger implies the daemon).
 
 `setup` runs these steps in order, each idempotent:
 
-1. **Dependencies** — checks that `xray` is on `PATH` (required) and `sing-box`
-   (optional). A missing `xray` aborts setup with an install hint.
+1. **Dependencies** — checks configured paths and `PATH` for Xray (required),
+   sing-box, and V2Ray, then compares installed versions with the latest stable
+   official releases. Missing or outdated cores can be installed as user-local
+   managed copies. Declining a missing Xray leaves setup incomplete.
 2. **init** — creates the config directory, `config.toml`, database, and
    subdirectories (reuses [`init`](init.md); never overwrites a customized
    config).
@@ -54,6 +56,19 @@ combined with `--no-daemon` (linger implies the daemon).
 failing. Setup is recorded as a diagnostic event, so a run appears in
 [`xrat logs`](logs.md).
 
+Managed cores are installed under
+`$XDG_DATA_HOME/xrat/cores/<engine>` (normally
+`~/.local/share/xrat/cores/<engine>`). Setup stores their absolute paths in
+`config.toml` and creates CLI links such as `~/.local/bin/xray` when that does
+not overwrite an existing user file. Xray and V2Ray keep separate GeoIP and
+Geosite assets.
+
+Downloads come from the official Xray-core, sing-box, and V2Ray GitHub stable
+releases. Setup requires the release asset's published SHA-256 digest and
+validates the staged binary's reported version before replacing a managed
+copy. It never overwrites an externally installed or package-managed binary;
+accepting an update for one installs and adopts a managed copy instead.
+
 ## Example: guided setup
 
 ```bash
@@ -70,6 +85,7 @@ Environment
 Dependencies
   ✔ xray         /usr/local/bin/xray (v26.3.27)
   ✔ sing-box     /usr/bin/sing-box (v1.13.13)
+  ✖ v2ray        not installed (latest v5.52.0)
 
 Setup
   ✔ init         /home/user/.config/xrat
@@ -93,6 +109,7 @@ xrat setup --check
   STEP         STATUS        DETAIL
 ✔ xray         done          /usr/local/bin/xray (v26.3.27)
 ✔ sing-box     done          /usr/bin/sing-box (v1.13.13)
+↑ v2ray        update available /usr/bin/v2ray (v5.48.0; latest v5.52.0; external)
 ✔ init         already done  /home/user/.config/xrat
 ✖ daemon       missing       background daemon not installed
 ✔ completions  already done  -
@@ -102,8 +119,11 @@ xrat setup --check
 ✔ PATH         done          /home/user/.local/bin
 ```
 
-`--check` exits non-zero when a required step (xray, init) is missing. Use
-`--format json` for machine-readable output:
+`--check` exits non-zero when a required step (Xray or init) is missing. An
+outdated core uses the `update_available` status but does not fail the check.
+If the release service is unavailable, an installed core remains usable and
+the detail column reports that the update check failed. Use `--format json`
+for machine-readable output:
 
 ```bash
 xrat setup --check --format json
@@ -112,9 +132,13 @@ xrat setup --check --format json
 ## Relationship to install.sh
 
 The [install script](../01-getting-started/installation.md) downloads, verifies,
-and places the binary, then runs `xrat setup` (passing through `-y`,
-`--no-desktop`, and `--linger`). If you installed xrat another way, run
-`xrat setup` yourself to complete setup.
+and places the xrat binary, then runs `xrat setup` (passing through `-y`,
+`--no-desktop`, and `--linger`). When the script itself is piped into a shell,
+it reconnects setup to the controlling terminal so dependency prompts still
+work. If no terminal exists, use `--yes` or run `xrat setup` later.
+
+With `--yes`, setup installs missing Xray and sing-box, leaves an absent V2Ray
+alone, and upgrades every outdated core that is already installed.
 
 ## Related
 

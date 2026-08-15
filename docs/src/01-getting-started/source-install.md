@@ -14,8 +14,8 @@ Install:
 - `git`
 - Rust via [rustup](https://rustup.rs/)
 - `just`
-- `xray` in `PATH`
-- `sing-box` if you need sing-box preview or managed Hysteria2 runtime support
+- Xray for runtime use; `xrat setup` can install it as a verified user-local tool
+- sing-box or V2Ray when needed; setup can install these too
 
 Install `just` with Cargo if your distribution does not package it:
 

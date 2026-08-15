@@ -12,12 +12,19 @@ For other install paths, see [Docker Install](docker-install.md),
 
 ### Runtime dependencies
 
-| Tool       | Required | Purpose                                                 | Install                                                   |
+| Tool       | Required | Purpose                                                 | Upstream                                                  |
 | ---------- | -------- | ------------------------------------------------------- | --------------------------------------------------------- |
-| `xray`     | Yes      | Managed Xray runtime and real-delay tests               | [XTLS/Xray-install](https://github.com/XTLS/Xray-install) |
-| `sing-box` | No       | sing-box preview and managed Hysteria2 runtime sessions | [sing-box.app](https://sing-box.app/install.sh)           |
+| `xray`     | Yes      | Managed Xray runtime and real-delay tests               | [XTLS/Xray-core](https://github.com/XTLS/Xray-core)       |
+| `sing-box` | No       | sing-box preview and managed Hysteria2 runtime sessions | [SagerNet/sing-box](https://github.com/SagerNet/sing-box) |
+| `v2ray`    | No       | Alternative V2Ray managed runtime                       | [V2Fly/V2Ray](https://github.com/v2fly/v2ray-core)        |
 
-Install xray:
+`xrat setup` detects these tools, checks their latest stable versions, and can
+install verified user-local copies without root access. Managed files live
+under `~/.local/share/xrat/cores`, with commands linked into `~/.local/bin`.
+Existing system or package-manager installations are never overwritten.
+
+The upstream system installers remain available when a system-wide service is
+preferred. Install Xray system-wide:
 
 ```bash
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
@@ -27,6 +34,12 @@ Install sing-box if you need Hysteria2 (`hy2`) managed runtime support:
 
 ```bash
 curl -fsSL https://sing-box.app/install.sh | sh
+```
+
+Install V2Ray system-wide on a supported systemd Linux distribution:
+
+```bash
+bash -c "$(curl -L https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh)"
 ```
 
 ### System requirements
@@ -77,9 +90,9 @@ The installer will:
 3. Verify the archive against `SHASUMS256.txt` (`sha256sum` or `shasum`).
 4. Install `xrat` to `~/.local/bin/xrat`.
 5. Hand off to [`xrat setup`](../02-cli/setup.md) for post-install setup:
-   dependency checks (`xray` required, `sing-box` optional), `xrat init`, the
-   background daemon, shell completions, man pages, an `xratui` shortcut, and
-   (Linux/XDG) the desktop launcher and icons.
+   managed dependency checks and optional installs, `xrat init`, the background
+   daemon, shell completions, man pages, an `xratui` shortcut, and (Linux/XDG)
+   the desktop launcher and icons.
 
 Setup runs in the binary, so it works the same regardless of how xrat was
 installed and can be re-run any time with `xrat setup`. See the
@@ -203,3 +216,5 @@ Then follow the [Quickstart](quickstart.md) to import configs and connect.
 | `$HOME/.config/xrat/runtime/`    | Daemon socket, session state | -                   |
 | `$HOME/.config/xrat/logs/`       | Runtime logs                 | `[runtime.log].dir` |
 | `$HOME/.config/xrat/mmdb/`       | GeoIP data                   | `[mmdb].dir`        |
+| `$HOME/.local/share/xrat/cores/` | Managed proxy cores/assets   | XDG data directory |
+| `$HOME/.local/bin/{xray,v2ray,sing-box}` | Managed core CLI links | -             |

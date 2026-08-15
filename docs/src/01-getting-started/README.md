@@ -9,7 +9,8 @@ and exposes an HTTP API.
 ## Prerequisites
 
 - **Xray-core** binary installed and available in `PATH`
-- **sing-box** binary (optional, required for managed Hysteria2 runtime support)
+- **Proxy cores**: Xray is required for runtime use; setup can install Xray,
+  sing-box, and V2Ray as verified user-local tools
 - **Rust toolchain** and **just** when building from source
 
 ## Installation

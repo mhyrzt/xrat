@@ -60,8 +60,8 @@ to install everything:
 xrat setup
 ```
 
-This is idempotent and re-runnable. It checks dependencies (`xray` required,
-`sing-box` optional), runs `xrat init`, offers to install the background daemon,
+This is idempotent and re-runnable. It checks Xray, sing-box, and V2Ray and can
+install or update verified user-local copies, runs `xrat init`, offers to install the background daemon,
 and installs shell completions, man pages, an `xratui` shortcut, and (on
 Linux/XDG) a terminal-aware desktop launcher with icons. Use `-y` to accept
 defaults non-interactively, or flags like `--no-daemon` / `--no-desktop` to

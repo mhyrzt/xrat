@@ -10,8 +10,8 @@ For release binaries, see [Installation Script](installation.md) or
 ## Requirements
 
 - Rust toolchain via [rustup](https://rustup.rs/) (`cargo` in `PATH`)
-- `xray` in `PATH` (required); `sing-box` if you need sing-box preview or managed
-  Hysteria2 runtime support
+- Xray is required for runtime use; `xrat setup` can install it and optional
+  sing-box/V2Ray cores as verified user-local tools
 
 ## Install with cargo-binstall (recommended)
 
