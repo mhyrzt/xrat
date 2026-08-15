@@ -21,7 +21,7 @@ impl<'a> RuntimeService<'a> {
             )));
         }
 
-        match self.active_session_state().await? {
+        let launch = match self.active_session_state().await? {
             ActiveSessionState::Running(session) => {
                 if !self.context.app_config.runtime.replace_active_session {
                     tracing::warn!(
@@ -31,18 +31,20 @@ impl<'a> RuntimeService<'a> {
                     return Err(AppError::RuntimeSessionAlreadyActive);
                 }
 
+                let launch = self.resolve_launch(&config)?;
+                preflight_runtime(&launch, &self.context.runtime_paths.runtime_dir)?;
                 self.disconnect().await?;
+                launch
             }
             ActiveSessionState::Stale(session) => {
                 tracing::warn!(
                     session_id = session.id,
                     "stale runtime session was reconciled before connect"
                 );
+                self.resolve_launch(&config)?
             }
-            ActiveSessionState::None => {}
-        }
-
-        let launch = self.resolve_launch(&config)?;
+            ActiveSessionState::None => self.resolve_launch(&config)?,
+        };
         let session_id = self
             .context
             .db
