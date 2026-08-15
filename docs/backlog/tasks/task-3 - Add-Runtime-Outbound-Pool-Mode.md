@@ -1,16 +1,16 @@
 ---
 id: TASK-3
 title: Add Runtime Outbound Pool Mode
-status: In Progress
+status: To Do
 assignee: []
 created_date: '2026-07-05 14:43'
-updated_date: '2026-07-06 12:09'
+updated_date: '2026-08-14 19:38'
 labels:
   - legacy-import
   - feature
 dependencies: []
 priority: medium
-ordinal: 2000
+ordinal: 3000
 ---
 
 ## Description

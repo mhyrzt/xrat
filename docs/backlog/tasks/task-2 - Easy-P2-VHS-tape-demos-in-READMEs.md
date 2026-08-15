@@ -1,15 +1,16 @@
 ---
 id: TASK-2
 title: 'Easy, P2: VHS tape demos in READMEs'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-05 14:43'
+updated_date: '2026-08-14 13:52'
 labels:
   - legacy-import
   - documentation
 dependencies: []
 priority: medium
-ordinal: 1000
+ordinal: 15000
 ---
 
 ## Description

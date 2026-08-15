@@ -1,15 +1,16 @@
 ---
 id: TASK-53
 title: Release v0.13.0
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-08-08 12:27'
+updated_date: '2026-08-14 13:51'
 labels:
   - release
 dependencies: []
 priority: high
-ordinal: 11000
+ordinal: 14000
 ---
 
 ## Description
