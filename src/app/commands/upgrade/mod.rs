@@ -5,14 +5,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::app::AppError;
-use crate::app::context::AppContext;
 use crate::cli::UpgradeArgs;
 
 pub(crate) const REPO: &str = "mhyrzt/xrat";
 
-pub async fn run(context: &AppContext, args: &UpgradeArgs) -> crate::app::Result<()> {
+pub async fn run(config_path: &Path, args: &UpgradeArgs) -> crate::app::Result<()> {
     let target = current_exe()?;
-    let config_path = &context.runtime_paths.config_path;
 
     if args.source {
         source::upgrade(args, &target, config_path).await

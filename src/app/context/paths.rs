@@ -28,7 +28,6 @@ pub fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, App
         .config
         .clone()
         .unwrap_or_else(|| app_paths.config_path.clone());
-
     app_paths::ensure_config_file(&config_path)?;
     let app_config = config::load(&config_path)?;
     let database_config =
@@ -67,6 +66,17 @@ pub fn resolve_runtime(args: &cli::Cli) -> crate::app::Result<(RuntimePaths, App
         },
         app_config,
     ))
+}
+
+pub fn resolve_config_path(args: &cli::Cli) -> crate::app::Result<PathBuf> {
+    let app_paths = app_paths::ensure_layout()?;
+    let config_path = args
+        .config
+        .clone()
+        .unwrap_or_else(|| app_paths.config_path.clone());
+
+    app_paths::ensure_config_file(&config_path)?;
+    Ok(config_path)
 }
 
 fn resolve_database_config(

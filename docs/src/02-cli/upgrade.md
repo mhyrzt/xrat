@@ -9,7 +9,10 @@ xrat upgrade [OPTIONS]
 
 The new binary is staged in the same directory as the current executable and
 then atomically renamed over it, so an in-place upgrade is safe even while the
-command is running.
+command is running. Upgrade discovery and installation run before database
+initialization, allowing `xrat upgrade` to recover from a database migration or
+connection failure. The newly installed binary still runs migrations before
+the command reports success.
 
 ## Flags
 

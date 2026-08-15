@@ -4,7 +4,7 @@ use crate::app::config::AppConfig;
 use crate::cli;
 use crate::db::Database;
 
-pub use paths::RuntimePaths;
+pub use paths::{RuntimePaths, resolve_config_path};
 
 #[derive(Clone)]
 pub struct AppContext {

@@ -27,7 +27,7 @@ mod status;
 pub(crate) mod test;
 mod tui;
 pub(crate) mod update;
-mod upgrade;
+pub mod upgrade;
 pub mod validate;
 mod version;
 
@@ -62,7 +62,7 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::Update(args) => update::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
         Command::Validate(args) => validate::run(args),
-        Command::Upgrade(args) => upgrade::run(context, args).await,
+        Command::Upgrade(args) => upgrade::run(&context.runtime_paths.config_path, args).await,
         Command::Version(args) => version::run(context, args),
         Command::Mmdb(args) => geoip::run(context, args).await,
         Command::Manpage(args) => manpage::run(context, args),
