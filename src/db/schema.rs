@@ -30,9 +30,11 @@ pub async fn init_postgres(pool: &PgPool) -> crate::db::Result<()> {
 }
 
 async fn backfill_sqlite_config_extensions(pool: &SqlitePool) -> crate::db::Result<()> {
-    let rows = sqlx::query("SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%'")
-        .fetch_all(pool)
-        .await?;
+    let mut transaction = pool.begin().await?;
+    let rows =
+        sqlx::query("SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%' ORDER BY id")
+            .fetch_all(&mut *transaction)
+            .await?;
     for row in rows {
         let id: i64 = row.get("id");
         let raw_config: String = row.get("raw_config");
@@ -43,20 +45,33 @@ async fn backfill_sqlite_config_extensions(pool: &SqlitePool) -> crate::db::Resu
             .extensions
             .as_ref()
             .and_then(|extensions| serde_json::to_string(extensions).ok());
+        let canonical_key = node.dedup_key_string();
+        let occupied_by = sqlx::query_scalar::<_, i64>(
+            "SELECT id FROM configs WHERE dedup_key = ?1 AND id <> ?2 LIMIT 1",
+        )
+        .bind(&canonical_key)
+        .bind(id)
+        .fetch_optional(&mut *transaction)
+        .await?;
+        let dedup_key = collision_safe_dedup_key(id, canonical_key, occupied_by);
         sqlx::query("UPDATE configs SET dedup_key = ?1, extensions_json = ?2 WHERE id = ?3")
-            .bind(node.dedup_key_string())
+            .bind(dedup_key)
             .bind(extensions_json)
             .bind(id)
-            .execute(pool)
+            .execute(&mut *transaction)
             .await?;
     }
+    transaction.commit().await?;
     Ok(())
 }
 
 async fn backfill_postgres_config_extensions(pool: &PgPool) -> crate::db::Result<()> {
-    let rows = sqlx::query("SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%'")
-        .fetch_all(pool)
-        .await?;
+    let mut transaction = pool.begin().await?;
+    let rows = sqlx::query(
+        "SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%' ORDER BY id FOR UPDATE",
+    )
+    .fetch_all(&mut *transaction)
+    .await?;
     for row in rows {
         let id: i64 = row.get("id");
         let raw_config: String = row.get("raw_config");
@@ -67,14 +82,41 @@ async fn backfill_postgres_config_extensions(pool: &PgPool) -> crate::db::Result
             .extensions
             .as_ref()
             .and_then(|extensions| serde_json::to_string(extensions).ok());
+        let canonical_key = node.dedup_key_string();
+        let occupied_by = sqlx::query_scalar::<_, i64>(
+            "SELECT id FROM configs WHERE dedup_key = $1 AND id <> $2 LIMIT 1",
+        )
+        .bind(&canonical_key)
+        .bind(id)
+        .fetch_optional(&mut *transaction)
+        .await?;
+        let dedup_key = collision_safe_dedup_key(id, canonical_key, occupied_by);
         sqlx::query("UPDATE configs SET dedup_key = $1, extensions_json = $2 WHERE id = $3")
-            .bind(node.dedup_key_string())
+            .bind(dedup_key)
             .bind(extensions_json)
             .bind(id)
-            .execute(pool)
+            .execute(&mut *transaction)
             .await?;
     }
+    transaction.commit().await?;
     Ok(())
+}
+
+fn collision_safe_dedup_key(
+    config_id: i64,
+    canonical_key: String,
+    occupied_by: Option<i64>,
+) -> String {
+    let Some(existing_id) = occupied_by else {
+        return canonical_key;
+    };
+
+    tracing::warn!(
+        config_id,
+        existing_id,
+        "preserving legacy config whose canonical dedup key is already occupied"
+    );
+    format!("v2-legacy|id={config_id}|{canonical_key}")
 }
 
 /// Normalize migration SQL so cosmetic reformatting (whitespace, line wrapping,
@@ -407,6 +449,88 @@ mod tests {
                 .expect("backfilled config should load");
         assert!(dedup_key.starts_with("v2|"));
         assert_eq!(extensions_json.as_deref(), Some(r#"{"foo":"bar"}"#));
+    }
+
+    #[tokio::test]
+    async fn sqlite_backfill_preserves_legacy_rows_with_colliding_v2_keys() {
+        let pool = memory_pool().await;
+        init_sqlite(&pool).await.expect("first migration run");
+        let raw_config = "vless://2f2d0c0d-334b-4f0a-8a42-d090618c9f55@example.com:443?type=ws&security=tls&foo=bar#legacy";
+        for legacy_key in ["v1|legacy-a", "v1|legacy-b"] {
+            sqlx::query(
+                "INSERT INTO configs (dedup_key, protocol, address, port, uuid, network, tls, name, raw_config) VALUES (?, 'vless', 'example.com', 443, '2f2d0c0d-334b-4f0a-8a42-d090618c9f55', 'ws', 'tls', 'legacy', ?)",
+            )
+            .bind(legacy_key)
+            .bind(raw_config)
+            .execute(&pool)
+            .await
+            .expect("legacy config should insert");
+        }
+
+        init_sqlite(&pool)
+            .await
+            .expect("colliding backfill should preserve both rows");
+
+        let rows: Vec<(i64, String, Option<String>)> =
+            sqlx::query_as("SELECT id, dedup_key, extensions_json FROM configs ORDER BY id")
+                .fetch_all(&pool)
+                .await
+                .expect("backfilled configs should load");
+        assert_eq!(rows.len(), 2);
+        assert!(rows[0].1.starts_with("v2|"));
+        assert_eq!(
+            rows[1].1,
+            format!("v2-legacy|id={}|{}", rows[1].0, rows[0].1)
+        );
+        assert!(
+            rows.iter()
+                .all(|row| row.2.as_deref() == Some(r#"{"foo":"bar"}"#))
+        );
+
+        init_sqlite(&pool)
+            .await
+            .expect("collision repair should be idempotent");
+        let keys: Vec<String> = sqlx::query_scalar("SELECT dedup_key FROM configs ORDER BY id")
+            .fetch_all(&pool)
+            .await
+            .expect("dedup keys should load");
+        assert_eq!(keys, vec![rows[0].1.clone(), rows[1].1.clone()]);
+    }
+
+    #[tokio::test]
+    async fn sqlite_backfill_recovers_partially_migrated_collision() {
+        let pool = memory_pool().await;
+        init_sqlite(&pool).await.expect("first migration run");
+        let raw_config = "vless://2f2d0c0d-334b-4f0a-8a42-d090618c9f55@example.com:443?type=ws&security=tls&foo=bar#legacy";
+        let canonical_key = crate::config::parse_link(raw_config)
+            .expect("link should parse")
+            .expect("link should produce a node")
+            .dedup_key_string();
+        for dedup_key in [&canonical_key, "v1|remaining"] {
+            sqlx::query(
+                "INSERT INTO configs (dedup_key, protocol, address, port, uuid, network, tls, name, raw_config) VALUES (?, 'vless', 'example.com', 443, '2f2d0c0d-334b-4f0a-8a42-d090618c9f55', 'ws', 'tls', 'legacy', ?)",
+            )
+            .bind(dedup_key)
+            .bind(raw_config)
+            .execute(&pool)
+            .await
+            .expect("config should insert");
+        }
+
+        init_sqlite(&pool)
+            .await
+            .expect("partially migrated collision should recover");
+
+        let rows: Vec<(i64, String)> =
+            sqlx::query_as("SELECT id, dedup_key FROM configs ORDER BY id")
+                .fetch_all(&pool)
+                .await
+                .expect("configs should load");
+        assert_eq!(rows[0].1, canonical_key);
+        assert_eq!(
+            rows[1].1,
+            format!("v2-legacy|id={}|{}", rows[1].0, rows[0].1)
+        );
     }
 
     async fn seed_migrations_table(pool: &SqlitePool) {
