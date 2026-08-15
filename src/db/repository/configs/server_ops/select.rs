@@ -2,7 +2,7 @@ use sqlx::QueryBuilder;
 
 use crate::db::record::ConfigListFilter;
 
-pub(super) const CONFIG_COLUMNS_ALIASED: &str = "c.id, c.ref, c.subscription_id, c.dedup_key, c.protocol, c.address, c.port, c.username, c.uuid, c.password, c.method, c.network, c.tls, c.sni, c.host, c.path, c.name, c.raw_config, c.is_active, c.is_enabled, c.is_deleted, c.deleted_at, c.imported_at, c.created_at, c.updated_at";
+pub(super) const CONFIG_COLUMNS_ALIASED: &str = "c.id, c.ref, c.subscription_id, c.dedup_key, c.protocol, c.address, c.port, c.username, c.uuid, c.password, c.method, c.network, c.tls, c.sni, c.host, c.path, c.name, c.raw_config, c.extensions_json, c.is_active, c.is_enabled, c.is_deleted, c.deleted_at, c.imported_at, c.created_at, c.updated_at";
 
 pub(super) const LATEST_TEST_COLUMNS: &str = "ct.id AS lt_id, ct.icmp_ok AS lt_icmp_ok, ct.icmp_ms AS lt_icmp_ms, ct.tcp_ok AS lt_tcp_ok, ct.tcp_ms AS lt_tcp_ms, ct.real_delay_ok AS lt_real_delay_ok, ct.real_delay_ms AS lt_real_delay_ms, ct.download_mbps AS lt_download_mbps, ct.upload_mbps AS lt_upload_mbps, ct.connect_ms AS lt_connect_ms, ct.ttfb_ms AS lt_ttfb_ms, ct.http_status AS lt_http_status, ct.dial_endpoint_location AS lt_endpoint_location, ct.dial_endpoint_country AS lt_endpoint_country, ct.dial_endpoint_asn AS lt_endpoint_asn, ct.dial_endpoint_geoip_source AS lt_endpoint_geoip_source, ct.dial_endpoint_fronting AS lt_endpoint_fronting, ct.failure_kind AS lt_failure_kind, ct.failure_reason AS lt_failure_reason, ct.tested_at AS lt_tested_at";
 

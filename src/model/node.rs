@@ -19,7 +19,7 @@ pub struct Node {
     pub path: Option<String>,
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub extensions: Option<BTreeMap<String, String>>,
+    pub extensions: Option<BTreeMap<String, serde_json::Value>>,
     pub raw_config: String,
 }
 
@@ -38,10 +38,24 @@ impl Node {
             sni: self.sni.clone(),
             host: self.host.clone(),
             path: self.path.clone(),
+            extensions: self.extensions.clone(),
         }
     }
 
     pub fn dedup_key_string(&self) -> String {
         self.dedup_key().to_string()
+    }
+
+    pub fn extension_value(&self, key: &str) -> Option<&serde_json::Value> {
+        self.extensions.as_ref()?.get(key)
+    }
+
+    pub fn extension_string(&self, key: &str) -> Option<String> {
+        match self.extension_value(key)? {
+            serde_json::Value::String(value) => Some(value.clone()),
+            serde_json::Value::Bool(value) => Some(value.to_string()),
+            serde_json::Value::Number(value) => Some(value.to_string()),
+            _ => None,
+        }
     }
 }

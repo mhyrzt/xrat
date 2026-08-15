@@ -131,8 +131,8 @@ The `Protocol` enum lives in `model/protocol.rs` and serializes lowercase
 
 `model::Node` is the shared, in-memory domain type produced by every parser and
 consumed by every engine generator. Fields are intentionally minimal —
-protocol-specific quirks live in the parser or get dropped on the floor before
-persistence.
+structural fields stay typed while non-structural link parameters are preserved
+as JSON-valued extensions and persisted explicitly.
 
 ```rust
 pub struct Node {
@@ -149,12 +149,18 @@ pub struct Node {
     pub host: Option<String>,
     pub path: Option<String>,
     pub name: Option<String>,
-    pub extensions: Option<BTreeMap<String, String>>,
+    pub extensions: Option<BTreeMap<String, serde_json::Value>>,
     pub raw_config: String,
 }
 ```
 
 Node is also the source for `NodeDedupKey` (see below).
+
+URL parsers preserve repeated query parameters as JSON arrays. VMess preserves
+native JSON booleans, numbers, arrays, and objects. The v2 dedup key includes
+this deterministic extension map, so configurations that differ in a
+wire-affecting parameter do not collapse into one row. Legacy rows are
+backfilled from `raw_config` during schema initialization.
 
 ## Normalization
 

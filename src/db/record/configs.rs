@@ -53,6 +53,7 @@ pub struct ConfigRecord {
     pub path: Option<String>,
     pub name: Option<String>,
     pub raw_config: String,
+    pub extensions_json: Option<String>,
     pub is_active: bool,
     pub is_enabled: bool,
     pub is_deleted: bool,
@@ -91,7 +92,11 @@ pub fn node_from_record(config: &ConfigRecord) -> Result<crate::model::Node, cra
         host: config.host.clone(),
         path: config.path.clone(),
         name: config.name.clone(),
-        extensions: extensions_from_raw(&config.raw_config),
+        extensions: config
+            .extensions_json
+            .as_deref()
+            .and_then(|value| serde_json::from_str(value).ok())
+            .or_else(|| extensions_from_raw(&config.raw_config)),
         raw_config: config.raw_config.clone(),
     })
 }
@@ -100,7 +105,9 @@ pub fn node_from_record(config: &ConfigRecord) -> Result<crate::model::Node, cra
 /// `fp`, `flow`, `alpn`, `mode`). Recover them by re-parsing the original link
 /// so runtime config generation can build REALITY/flow settings. The DB columns
 /// remain authoritative for every other field.
-fn extensions_from_raw(raw_config: &str) -> Option<std::collections::BTreeMap<String, String>> {
+fn extensions_from_raw(
+    raw_config: &str,
+) -> Option<std::collections::BTreeMap<String, serde_json::Value>> {
     crate::config::parse_link(raw_config)
         .ok()
         .flatten()
@@ -134,6 +141,7 @@ mod tests {
                 encryption=none&security=reality&type=xhttp&path=%2F&sni=www.yahoo.com&\
                 fp=chrome&pbk=test-pbk&sid=79aac70f&flow=xtls-rprx-vision#node"
                 .to_string(),
+            extensions_json: None,
             is_active: false,
             is_enabled: true,
             is_deleted: false,
@@ -151,11 +159,20 @@ mod tests {
             .extensions
             .expect("extensions recovered from raw_config");
 
-        assert_eq!(extensions.get("pbk").map(String::as_str), Some("test-pbk"));
-        assert_eq!(extensions.get("sid").map(String::as_str), Some("79aac70f"));
-        assert_eq!(extensions.get("fp").map(String::as_str), Some("chrome"));
         assert_eq!(
-            extensions.get("flow").map(String::as_str),
+            extensions.get("pbk").and_then(|value| value.as_str()),
+            Some("test-pbk")
+        );
+        assert_eq!(
+            extensions.get("sid").and_then(|value| value.as_str()),
+            Some("79aac70f")
+        );
+        assert_eq!(
+            extensions.get("fp").and_then(|value| value.as_str()),
+            Some("chrome")
+        );
+        assert_eq!(
+            extensions.get("flow").and_then(|value| value.as_str()),
             Some("xtls-rprx-vision")
         );
     }

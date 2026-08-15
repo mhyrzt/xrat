@@ -1,4 +1,5 @@
 use percent_encoding::percent_decode_str;
+use std::collections::{BTreeMap, HashSet};
 use url::{Url, form_urlencoded};
 
 use super::ConfigParseError;
@@ -7,6 +8,35 @@ pub fn parse_query_pairs(query: &str) -> std::collections::HashMap<String, Strin
     form_urlencoded::parse(query.as_bytes())
         .into_owned()
         .collect()
+}
+
+pub fn query_extensions(
+    query: &str,
+    structural_keys: &[&str],
+) -> Option<BTreeMap<String, serde_json::Value>> {
+    let structural = structural_keys.iter().copied().collect::<HashSet<_>>();
+    let mut extensions = BTreeMap::new();
+    for (key, value) in form_urlencoded::parse(query.as_bytes()).into_owned() {
+        if structural.contains(key.as_str()) {
+            continue;
+        }
+        match extensions.remove(&key) {
+            None => {
+                extensions.insert(key, serde_json::Value::String(value));
+            }
+            Some(serde_json::Value::Array(mut values)) => {
+                values.push(serde_json::Value::String(value));
+                extensions.insert(key, serde_json::Value::Array(values));
+            }
+            Some(previous) => {
+                extensions.insert(
+                    key,
+                    serde_json::Value::Array(vec![previous, serde_json::Value::String(value)]),
+                );
+            }
+        }
+    }
+    (!extensions.is_empty()).then_some(extensions)
 }
 
 pub fn required_string(
@@ -30,12 +60,12 @@ pub fn username_or_none(url: &Url) -> Option<String> {
     if url.username().is_empty() {
         None
     } else {
-        Some(url.username().to_string())
+        Some(percent_decode(url.username()))
     }
 }
 
 pub fn password_or_none(url: &Url) -> Option<String> {
-    url.password().map(ToOwned::to_owned)
+    url.password().map(percent_decode)
 }
 
 pub fn percent_decode(value: &str) -> String {

@@ -4,7 +4,7 @@ use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::parsing_helpers::{
-    empty_to_none, parse_query_pairs, percent_decode, username_or_none,
+    empty_to_none, parse_query_pairs, percent_decode, query_extensions, username_or_none,
 };
 
 pub fn parse_trojan(line: &str) -> Result<Node, ConfigParseError> {
@@ -40,7 +40,10 @@ pub fn parse_trojan(line: &str) -> Result<Node, ConfigParseError> {
         host: query.get("host").cloned(),
         path: empty_to_none(percent_decode(path)),
         name: fragment.and_then(empty_to_none),
-        extensions: None,
+        extensions: query_extensions(
+            parsed.query().unwrap_or_default(),
+            &["type", "security", "sni", "host", "path"],
+        ),
         raw_config: line.to_string(),
     })
 }

@@ -703,6 +703,7 @@ mod tests {
                 path: None,
                 name: Some("main".to_string()),
                 raw_config: "vless://uuid@example.com:443#main".to_string(),
+                extensions_json: None,
                 is_active: true,
                 is_enabled: true,
                 is_deleted: false,

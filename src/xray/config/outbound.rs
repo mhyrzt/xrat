@@ -27,12 +27,13 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "encryption": "none"
             });
             if let Some(flow) = node
-                .extensions
-                .as_ref()
-                .and_then(|extensions| extensions.get("flow"))
+                .extension_string("flow")
                 .filter(|value| !value.is_empty())
             {
                 user["flow"] = json!(flow);
+            }
+            if let Some(encryption) = node.extension_string("encryption") {
+                user["encryption"] = json!(encryption);
             }
             Ok(json!({
                 "vnext": [{
@@ -50,21 +51,26 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                     "port": node.port,
                     "users": [{
                         "id": uuid,
-                        "alterId": 0,
-                        "security": "auto"
+                        "alterId": node.extension_value("aid").cloned().unwrap_or_else(|| json!(0)),
+                        "security": node.extension_string("scy").or_else(|| node.extension_string("security")).unwrap_or_else(|| "auto".to_string())
                     }]
                 }]
             }))
         }
         Protocol::Trojan => {
             let password = node.password.as_ref().ok_or("trojan requires password")?;
-            Ok(json!({
-                "servers": [{
-                    "address": node.address,
-                    "port": node.port,
-                    "password": password
-                }]
-            }))
+            let mut server = json!({
+                "address": node.address,
+                "port": node.port,
+                "password": password
+            });
+            if let Some(flow) = node
+                .extension_string("flow")
+                .filter(|value| !value.is_empty())
+            {
+                server["flow"] = json!(flow);
+            }
+            Ok(json!({"servers": [server]}))
         }
         Protocol::Ss => {
             let password = node

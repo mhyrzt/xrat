@@ -58,6 +58,7 @@ pub struct Mux {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamSettings {
+    #[serde(rename = "method")]
     pub network: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub security: Option<String>,
@@ -68,11 +69,15 @@ pub struct StreamSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ws_settings: Option<WsSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tcp_settings: Option<TcpSettings>,
+    pub raw_settings: Option<RawSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kcp_settings: Option<KcpSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grpc_settings: Option<GrpcSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xhttp_settings: Option<XhttpSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub httpupgrade_settings: Option<HttpUpgradeSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sockopt: Option<Sockopt>,
 }
@@ -104,6 +109,7 @@ pub struct TlsSettings {
 #[serde(rename_all = "camelCase")]
 pub struct RealitySettings {
     pub server_name: String,
+    #[serde(rename = "password")]
     pub public_key: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub short_id: Option<String>,
@@ -111,6 +117,8 @@ pub struct RealitySettings {
     pub spider_x: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mldsa65_verify: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,6 +129,8 @@ pub struct XhttpSettings {
     pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,16 +138,59 @@ pub struct WsSettings {
     pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
+    #[serde(rename = "heartbeatPeriod", skip_serializing_if = "Option::is_none")]
+    pub heartbeat_period: Option<u64>,
+    #[serde(rename = "maxEarlyData", skip_serializing_if = "Option::is_none")]
+    pub max_early_data: Option<u64>,
+    #[serde(
+        rename = "earlyDataHeaderName",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub early_data_header_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TcpSettings {
+pub struct RawSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub header: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct KcpSettings {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mtu: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tti: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uplink_capacity: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub downlink_capacity: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub congestion: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_buffer_size: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub write_buffer_size: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrpcSettings {
     pub service_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub multi_mode: Option<bool>,
+    #[serde(rename = "idle_timeout", skip_serializing_if = "Option::is_none")]
+    pub idle_timeout: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HttpUpgradeSettings {
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headers: Option<HashMap<String, String>>,
 }

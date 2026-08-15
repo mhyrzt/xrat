@@ -182,7 +182,7 @@ fn socks_upstream_gets_minimal_stream_settings_for_sockopt() {
     let config = generate_probe_config_with_options(&node, 10808, &options).unwrap();
 
     let stream = config.outbounds[0].stream_settings.as_ref().unwrap();
-    assert_eq!(stream.network, "tcp");
+    assert_eq!(stream.network, "raw");
     assert_eq!(
         stream.sockopt.as_ref().unwrap().interface.as_deref(),
         Some("eth0")
@@ -280,7 +280,7 @@ fn test_generate_vmess_ws_config() {
     assert_eq!(config.outbounds[0].protocol, "vmess");
 
     let stream = config.outbounds[0].stream_settings.as_ref().unwrap();
-    assert_eq!(stream.network, "ws");
+    assert_eq!(stream.network, "websocket");
     assert!(stream.ws_settings.is_some());
 }
 
@@ -316,9 +316,9 @@ fn serializes_stream_settings_with_xray_camel_case_key() {
 #[test]
 fn generates_xhttp_stream_with_tls_fingerprint_and_alpn() {
     let mut extensions = std::collections::BTreeMap::new();
-    extensions.insert("fp".to_string(), "chrome".to_string());
-    extensions.insert("alpn".to_string(), "h2".to_string());
-    extensions.insert("mode".to_string(), "auto".to_string());
+    extensions.insert("fp".to_string(), serde_json::json!("chrome"));
+    extensions.insert("alpn".to_string(), serde_json::json!("h2"));
+    extensions.insert("mode".to_string(), serde_json::json!("auto"));
 
     let node = Node {
         protocol: Protocol::Vless,
@@ -356,10 +356,10 @@ fn generates_xhttp_stream_with_tls_fingerprint_and_alpn() {
 #[test]
 fn generates_reality_stream_with_settings_and_flow() {
     let mut extensions = std::collections::BTreeMap::new();
-    extensions.insert("pbk".to_string(), "test-public-key".to_string());
-    extensions.insert("sid".to_string(), "0123abcd".to_string());
-    extensions.insert("spx".to_string(), "/".to_string());
-    extensions.insert("flow".to_string(), "xtls-rprx-vision".to_string());
+    extensions.insert("pbk".to_string(), serde_json::json!("test-public-key"));
+    extensions.insert("sid".to_string(), serde_json::json!("0123abcd"));
+    extensions.insert("spx".to_string(), serde_json::json!("/"));
+    extensions.insert("flow".to_string(), serde_json::json!("xtls-rprx-vision"));
 
     let node = Node {
         protocol: Protocol::Vless,
@@ -426,4 +426,93 @@ fn generates_http_only_runtime_config() {
     assert_eq!(config.inbounds.len(), 1);
     assert_eq!(config.inbounds[0].protocol, "http");
     assert_eq!(config.inbounds[0].port, 18080);
+}
+
+#[test]
+fn emits_current_reality_and_transport_field_names() {
+    let mut node = vless_tls_node();
+    node.tls = Some("reality".to_string());
+    node.extensions = Some(std::collections::BTreeMap::from([
+        ("pbk".to_string(), serde_json::json!("key")),
+        ("sid".to_string(), serde_json::json!("abcd")),
+    ]));
+
+    let config = generate_probe_config(&node, 10808).unwrap();
+    let json = serde_json::to_value(&config.outbounds[0]).unwrap();
+    assert_eq!(json["streamSettings"]["method"], "raw");
+    assert_eq!(json["streamSettings"]["realitySettings"]["password"], "key");
+    assert!(
+        json["streamSettings"]["realitySettings"]
+            .get("publicKey")
+            .is_none()
+    );
+}
+
+#[test]
+fn generates_grpc_mkcp_and_httpupgrade_settings() {
+    let mut grpc = vless_tls_node();
+    grpc.network = "grpc".to_string();
+    grpc.extensions = Some(std::collections::BTreeMap::from([
+        ("serviceName".to_string(), serde_json::json!("xrat")),
+        ("multiMode".to_string(), serde_json::json!(true)),
+    ]));
+    let grpc_json = serde_json::to_value(generate_probe_config(&grpc, 10808).unwrap()).unwrap();
+    assert_eq!(
+        grpc_json["outbounds"][0]["streamSettings"]["grpcSettings"]["serviceName"],
+        "xrat"
+    );
+    assert_eq!(
+        grpc_json["outbounds"][0]["streamSettings"]["grpcSettings"]["multiMode"],
+        true
+    );
+
+    let mut mkcp = vless_tls_node();
+    mkcp.network = "kcp".to_string();
+    mkcp.tls = None;
+    mkcp.extensions = Some(std::collections::BTreeMap::from([
+        ("mtu".to_string(), serde_json::json!(1350)),
+        ("congestion".to_string(), serde_json::json!(true)),
+    ]));
+    let mkcp_json = serde_json::to_value(generate_probe_config(&mkcp, 10809).unwrap()).unwrap();
+    assert_eq!(
+        mkcp_json["outbounds"][0]["streamSettings"]["method"],
+        "mkcp"
+    );
+    assert_eq!(
+        mkcp_json["outbounds"][0]["streamSettings"]["kcpSettings"]["mtu"],
+        1350
+    );
+
+    let mut upgrade = vless_tls_node();
+    upgrade.network = "httpupgrade".to_string();
+    upgrade.path = Some("/upgrade".to_string());
+    upgrade.host = Some("cdn.example.com".to_string());
+    let upgrade_json =
+        serde_json::to_value(generate_probe_config(&upgrade, 10810).unwrap()).unwrap();
+    assert_eq!(
+        upgrade_json["outbounds"][0]["streamSettings"]["httpupgradeSettings"]["path"],
+        "/upgrade"
+    );
+}
+
+#[test]
+fn rejects_removed_transports_and_unknown_wire_parameters() {
+    let mut node = vless_tls_node();
+    node.network = "h2".to_string();
+    assert!(
+        generate_probe_config(&node, 10808)
+            .unwrap_err()
+            .contains("removed Xray transport")
+    );
+
+    node.network = "ws".to_string();
+    node.extensions = Some(std::collections::BTreeMap::from([(
+        "futureWireOption".to_string(),
+        serde_json::json!("on"),
+    )]));
+    assert!(
+        generate_probe_config(&node, 10808)
+            .unwrap_err()
+            .contains("futureWireOption")
+    );
 }

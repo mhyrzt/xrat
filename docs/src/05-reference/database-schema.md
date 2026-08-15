@@ -8,7 +8,7 @@ across both backends.
 | Table                  | Version                                  | Description                   |
 | ---------------------- | ---------------------------------------- | ----------------------------- |
 | `subscriptions`        | 0001                                     | Import source tracking        |
-| `configs`              | 0001, 0003, 0015                         | Stored proxy nodes            |
+| `configs`              | 0001, 0003, 0015, 0019, 0021, 0022       | Stored proxy nodes            |
 | `connection_tests`     | 0001, 0002, 0008, 0009, 0010             | Test results per config       |
 | `connection_test_runs` | 0007                                     | Groups test results into runs |
 | `runtime_sessions`     | 0001, 0004, 0005, 0006, 0012, 0013, 0014 | Proxy process lifecycle       |
@@ -73,6 +73,7 @@ CREATE TABLE configs (
     path TEXT,
     name TEXT,
     raw_config TEXT NOT NULL,
+    extensions_json TEXT,
     is_active INTEGER NOT NULL DEFAULT 0,
     is_enabled INTEGER NOT NULL DEFAULT 1,
     is_deleted INTEGER NOT NULL DEFAULT 0,
@@ -103,6 +104,7 @@ CREATE TABLE configs (
 | `path`            | TEXT      | Path (WebSocket/gRPC/TCP)                                 |
 | `name`            | TEXT      | Display name                                              |
 | `raw_config`      | TEXT      | Original raw config line                                  |
+| `extensions_json` | TEXT      | Preserved non-structural link/VMess JSON parameters       |
 | `is_active`       | BOOLEAN   | Currently active runtime config                           |
 | `is_enabled`      | BOOLEAN   | Included in bulk operations                               |
 | `imported_at`     | TIMESTAMP | Import timestamp                                          |
@@ -152,31 +154,31 @@ CREATE TABLE connection_tests (
 );
 ```
 
-| Column              | Type      | Description                |
-| ------------------- | --------- | -------------------------- |
-| `id`                | INTEGER   | Primary key                |
-| `run_id`            | INTEGER   | FK to connection_test_runs |
-| `config_id`         | INTEGER   | FK to configs              |
-| `icmp_ok`           | BOOLEAN   | ICMP ping success          |
-| `icmp_ms`           | INTEGER   | ICMP latency               |
-| `tcp_ok`            | BOOLEAN   | TCP connect success        |
-| `tcp_ms`            | INTEGER   | TCP latency                |
-| `real_delay_ok`     | BOOLEAN   | HTTP round-trip success    |
-| `real_delay_ms`     | INTEGER   | HTTP round-trip latency    |
-| `connect_ms`        | INTEGER   | TCP connect time           |
-| `ttfb_ms`           | INTEGER   | Time to first byte         |
-| `http_status`       | INTEGER   | HTTP response status       |
-| `download_mbps`     | REAL      | Download throughput        |
-| `upload_mbps`       | REAL      | Upload throughput          |
-| `failure_kind`      | TEXT      | Failure classification     |
-| `failure_reason`    | TEXT      | Human-readable error       |
-| `dial_endpoint_ip`            | TEXT      | Resolved dial-endpoint IP        |
-| `dial_endpoint_location`      | TEXT      | Dial-endpoint GeoIP location     |
-| `dial_endpoint_country`       | TEXT      | Dial-endpoint country ISO code   |
-| `dial_endpoint_asn`           | TEXT      | Dial-endpoint ASN identifier     |
-| `dial_endpoint_geoip_source`  | TEXT      | Lookup provenance (`literal_ip`/`dial_dns`) |
-| `dial_endpoint_fronting`      | TEXT      | Detected CDN/relay provider (hint) |
-| `tested_at`         | TIMESTAMP | Test timestamp             |
+| Column                       | Type      | Description                                 |
+| ---------------------------- | --------- | ------------------------------------------- |
+| `id`                         | INTEGER   | Primary key                                 |
+| `run_id`                     | INTEGER   | FK to connection_test_runs                  |
+| `config_id`                  | INTEGER   | FK to configs                               |
+| `icmp_ok`                    | BOOLEAN   | ICMP ping success                           |
+| `icmp_ms`                    | INTEGER   | ICMP latency                                |
+| `tcp_ok`                     | BOOLEAN   | TCP connect success                         |
+| `tcp_ms`                     | INTEGER   | TCP latency                                 |
+| `real_delay_ok`              | BOOLEAN   | HTTP round-trip success                     |
+| `real_delay_ms`              | INTEGER   | HTTP round-trip latency                     |
+| `connect_ms`                 | INTEGER   | TCP connect time                            |
+| `ttfb_ms`                    | INTEGER   | Time to first byte                          |
+| `http_status`                | INTEGER   | HTTP response status                        |
+| `download_mbps`              | REAL      | Download throughput                         |
+| `upload_mbps`                | REAL      | Upload throughput                           |
+| `failure_kind`               | TEXT      | Failure classification                      |
+| `failure_reason`             | TEXT      | Human-readable error                        |
+| `dial_endpoint_ip`           | TEXT      | Resolved dial-endpoint IP                   |
+| `dial_endpoint_location`     | TEXT      | Dial-endpoint GeoIP location                |
+| `dial_endpoint_country`      | TEXT      | Dial-endpoint country ISO code              |
+| `dial_endpoint_asn`          | TEXT      | Dial-endpoint ASN identifier                |
+| `dial_endpoint_geoip_source` | TEXT      | Lookup provenance (`literal_ip`/`dial_dns`) |
+| `dial_endpoint_fronting`     | TEXT      | Detected CDN/relay provider (hint)          |
+| `tested_at`                  | TIMESTAMP | Test timestamp                              |
 
 **Indexes**:
 

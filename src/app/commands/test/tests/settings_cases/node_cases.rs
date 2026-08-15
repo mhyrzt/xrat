@@ -21,6 +21,7 @@ fn rebuilds_node_from_config_record() {
         path: Some("/socket".to_string()),
         name: Some("node".to_string()),
         raw_config: "vmess://payload".to_string(),
+        extensions_json: None,
         is_active: false,
         is_enabled: true,
         is_deleted: false,

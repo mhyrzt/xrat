@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::model::Protocol;
@@ -16,11 +17,12 @@ pub struct NodeDedupKey {
     pub sni: Option<String>,
     pub host: Option<String>,
     pub path: Option<String>,
+    pub extensions: Option<BTreeMap<String, serde_json::Value>>,
 }
 
 impl fmt::Display for NodeDedupKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("v1")?;
+        f.write_str("v2")?;
         write_required(f, "protocol", self.protocol.as_str())?;
         write_required(f, "address", &self.address)?;
         write_required(f, "port", &self.port.to_string())?;
@@ -33,6 +35,13 @@ impl fmt::Display for NodeDedupKey {
         write_optional(f, "sni", self.sni.as_deref())?;
         write_optional(f, "host", self.host.as_deref())?;
         write_optional(f, "path", self.path.as_deref())?;
+        let extensions = self
+            .extensions
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|_| fmt::Error)?;
+        write_optional(f, "extensions", extensions.as_deref())?;
         Ok(())
     }
 }

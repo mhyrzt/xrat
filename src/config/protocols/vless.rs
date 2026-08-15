@@ -1,11 +1,10 @@
-use std::collections::BTreeMap;
 use url::Url;
 
 use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::parsing_helpers::{
-    empty_to_none, parse_query_pairs, percent_decode, username_or_none,
+    empty_to_none, parse_query_pairs, percent_decode, query_extensions, username_or_none,
 };
 
 pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
@@ -21,14 +20,10 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
     let fragment = parsed.fragment().map(percent_decode);
     let path = query.get("path").map(String::as_str).unwrap_or_default();
 
-    let mut extensions = BTreeMap::new();
-    for key in ["fp", "alpn", "mode", "flow", "pbk", "sid", "spx"] {
-        if let Some(value) = query.get(key)
-            && !value.is_empty()
-        {
-            extensions.insert(key.to_string(), value.clone());
-        }
-    }
+    let extensions = query_extensions(
+        parsed.query().unwrap_or_default(),
+        &["type", "security", "sni", "host", "path"],
+    );
 
     Ok(Node {
         protocol: Protocol::Vless,
@@ -47,11 +42,7 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
         host: query.get("host").cloned(),
         path: empty_to_none(percent_decode(path)),
         name: fragment.and_then(empty_to_none),
-        extensions: if extensions.is_empty() {
-            None
-        } else {
-            Some(extensions)
-        },
+        extensions,
         raw_config: line.to_string(),
     })
 }

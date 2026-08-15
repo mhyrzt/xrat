@@ -1,5 +1,6 @@
 use super::super::parse_text;
 use crate::model::Protocol;
+use base64::Engine;
 
 #[test]
 fn parses_vless_like_python_reference() {
@@ -27,9 +28,18 @@ fn captures_vless_xhttp_extensions() {
     let node = &nodes[0];
     assert_eq!(node.network, "xhttp");
     let extensions = node.extensions.as_ref().unwrap();
-    assert_eq!(extensions.get("fp").map(String::as_str), Some("chrome"));
-    assert_eq!(extensions.get("alpn").map(String::as_str), Some("h2"));
-    assert_eq!(extensions.get("mode").map(String::as_str), Some("auto"));
+    assert_eq!(
+        extensions.get("fp").and_then(|value| value.as_str()),
+        Some("chrome")
+    );
+    assert_eq!(
+        extensions.get("alpn").and_then(|value| value.as_str()),
+        Some("h2")
+    );
+    assert_eq!(
+        extensions.get("mode").and_then(|value| value.as_str()),
+        Some("auto")
+    );
 }
 
 #[test]
@@ -137,4 +147,40 @@ fn normalizes_hy2_defaults() {
     assert_eq!(node.network, "udp");
     assert_eq!(node.tls.as_deref(), Some("tls"));
     assert_eq!(node.name, None);
+}
+
+#[test]
+fn preserves_repeated_unknown_query_parameters() {
+    let nodes =
+        parse_text("vless://uuid@example.com:443?type=ws&security=tls&custom=one&custom=two#Node");
+    assert_eq!(
+        nodes[0].extension_value("custom"),
+        Some(&serde_json::json!(["one", "two"]))
+    );
+}
+
+#[test]
+fn preserves_native_vmess_extension_values() {
+    let payload = serde_json::json!({
+        "add": "example.com",
+        "port": "443",
+        "id": "uuid",
+        "net": "grpc",
+        "aid": 0,
+        "scy": "auto",
+        "customFlag": true
+    });
+    let encoded = base64::engine::general_purpose::STANDARD.encode(payload.to_string());
+    let nodes = parse_text(&format!("vmess://{encoded}"));
+    assert_eq!(nodes[0].extension_value("aid"), Some(&serde_json::json!(0)));
+    assert_eq!(
+        nodes[0].extension_value("customFlag"),
+        Some(&serde_json::json!(true))
+    );
+}
+
+#[test]
+fn percent_decodes_trojan_password() {
+    let nodes = parse_text("trojan://p%40ss%3Aword@example.com:443#Node");
+    assert_eq!(nodes[0].password.as_deref(), Some("p@ss:word"));
 }

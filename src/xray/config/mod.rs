@@ -8,7 +8,7 @@ use crate::model::Node;
 
 pub use tuning::{FragmentOptions, MuxOptions, XrayGenOptions};
 pub use types::{
-    GrpcSettings, Inbound, LogConfig, Outbound, StreamSettings, TcpSettings, TlsSettings,
+    GrpcSettings, Inbound, LogConfig, Outbound, RawSettings, StreamSettings, TlsSettings,
     WsSettings, XrayConfig,
 };
 

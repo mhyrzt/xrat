@@ -15,8 +15,21 @@ pub fn build_hy2_outbound(node: &Node) -> Result<serde_json::Value, String> {
         }
     });
 
-    let options = if let Some(extensions) = &node.extensions {
-        extensions.clone()
+    let options: std::collections::BTreeMap<String, String> = if node.extensions.is_some() {
+        [
+            "insecure",
+            "alpn",
+            "obfs",
+            "obfs-password",
+            "upmbps",
+            "downmbps",
+        ]
+        .into_iter()
+        .filter_map(|key| {
+            node.extension_string(key)
+                .map(|value| (key.to_string(), value))
+        })
+        .collect()
     } else {
         let parsed = Url::parse(&node.raw_config).map_err(|error| error.to_string())?;
         parsed

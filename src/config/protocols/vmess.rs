@@ -10,6 +10,18 @@ pub fn parse_vmess(line: &str) -> Result<Node, ConfigParseError> {
 
     let address = required_string(&data, "add")?;
     let port: u16 = required_string(&data, "port")?.parse()?;
+    let extensions = data.as_object().and_then(|object| {
+        let mut extensions = object
+            .clone()
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for key in [
+            "add", "port", "id", "net", "tls", "sni", "host", "path", "ps",
+        ] {
+            extensions.remove(key);
+        }
+        (!extensions.is_empty()).then_some(extensions)
+    });
 
     Ok(Node {
         protocol: Protocol::Vmess,
@@ -25,7 +37,7 @@ pub fn parse_vmess(line: &str) -> Result<Node, ConfigParseError> {
         host: optional_string(&data, "host"),
         path: optional_string(&data, "path"),
         name: optional_string(&data, "ps"),
-        extensions: None,
+        extensions,
         raw_config: line.to_string(),
     })
 }

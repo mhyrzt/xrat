@@ -22,7 +22,7 @@ pub async fn import_nodes(
         match pool {
             DbPool::Sqlite(pool) => {
                 let mut builder = QueryBuilder::<Sqlite>::new(
-                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
+                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, extensions_json) ",
                 );
                 push_node_values(&mut builder, subscription_id, &refs, nodes);
                 push_upsert_clause(&mut builder, "CURRENT_TIMESTAMP");
@@ -30,7 +30,7 @@ pub async fn import_nodes(
             }
             DbPool::Postgres(pool) => {
                 let mut builder = QueryBuilder::<Postgres>::new(
-                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config) ",
+                    "INSERT INTO configs (ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, extensions_json) ",
                 );
                 push_node_values(&mut builder, subscription_id, &refs, nodes);
                 push_upsert_clause(&mut builder, "CURRENT_TIMESTAMP::TEXT");
@@ -111,6 +111,7 @@ fn push_node_values<'args, DB>(
     &'args Option<String>: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     &'args String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     String: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
+    Option<String>: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
 {
     builder.push_values(refs.iter().zip(nodes), |mut row, (config_ref, node)| {
         row.push_bind(config_ref.as_str())
@@ -129,7 +130,12 @@ fn push_node_values<'args, DB>(
             .push_bind(&node.host)
             .push_bind(&node.path)
             .push_bind(&node.name)
-            .push_bind(&node.raw_config);
+            .push_bind(&node.raw_config)
+            .push_bind(
+                node.extensions
+                    .as_ref()
+                    .and_then(|extensions| serde_json::to_string(extensions).ok()),
+            );
     });
 }
 
@@ -155,6 +161,7 @@ where
                 path = excluded.path,
                 name = excluded.name,
                 raw_config = excluded.raw_config,
+                extensions_json = excluded.extensions_json,
                 is_deleted = FALSE,
                 deleted_at = NULL,
                 imported_at = "#,

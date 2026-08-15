@@ -16,11 +16,12 @@ fn formats_as_versioned_length_prefixed_key() {
         sni: Some("cdn.example.com".to_string()),
         host: Some("cdn.example.com".to_string()),
         path: Some("/ray".to_string()),
+        extensions: None,
     };
 
     assert_eq!(
         key.to_string(),
-        "v1|protocol=5:vless|address=11:example.com|port=3:443|username=-|uuid=8:uuid|123|password=-|method=-|network=2:ws|tls=3:tls|sni=15:cdn.example.com|host=15:cdn.example.com|path=4:/ray"
+        "v2|protocol=5:vless|address=11:example.com|port=3:443|username=-|uuid=8:uuid|123|password=-|method=-|network=2:ws|tls=3:tls|sni=15:cdn.example.com|host=15:cdn.example.com|path=4:/ray|extensions=-"
     );
 }
 
@@ -39,6 +40,7 @@ fn distinguishes_none_from_empty_string() {
         sni: None,
         host: None,
         path: None,
+        extensions: None,
     };
     let empty_key = NodeDedupKey {
         password: Some(String::new()),
@@ -64,6 +66,7 @@ fn handles_unicode_multibyte_characters() {
         sni: None,
         host: None,
         path: Some("/路径".to_string()),
+        extensions: None,
     };
 
     let output = key.to_string();
@@ -92,6 +95,7 @@ fn handles_special_characters_in_fields() {
         sni: None,
         host: None,
         path: None,
+        extensions: None,
     };
 
     let output = key.to_string();
@@ -115,6 +119,7 @@ fn handles_port_boundary_values() {
         sni: None,
         host: None,
         path: None,
+        extensions: None,
     };
     let max_key = NodeDedupKey {
         port: u16::MAX,

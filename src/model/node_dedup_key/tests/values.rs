@@ -27,6 +27,7 @@ fn covers_all_protocol_variants() {
             sni: None,
             host: None,
             path: None,
+            extensions: None,
         };
 
         let output = key.to_string();
@@ -55,6 +56,7 @@ fn produces_identical_keys_for_equivalent_configs() {
         sni: Some("sni.example.com".to_string()),
         host: Some("host.example.com".to_string()),
         path: Some("/path".to_string()),
+        extensions: None,
     };
 
     let key2 = key1.clone();
@@ -77,6 +79,7 @@ fn distinguishes_different_network_types() {
         sni: None,
         host: None,
         path: None,
+        extensions: None,
     };
 
     let ws_key = NodeDedupKey {
@@ -108,6 +111,7 @@ fn handles_all_optional_fields_present() {
         sni: Some("sni.example.com".to_string()),
         host: Some("host.example.com".to_string()),
         path: Some("/path".to_string()),
+        extensions: Some(Default::default()),
     };
 
     let output = key.to_string();
@@ -133,9 +137,10 @@ fn handles_all_optional_fields_absent() {
         sni: None,
         host: None,
         path: None,
+        extensions: None,
     };
 
     let output = key.to_string();
     let none_count = output.matches("=-").count();
-    assert_eq!(none_count, 8, "Should have 8 None fields");
+    assert_eq!(none_count, 9, "Should have 9 None fields");
 }

@@ -1,9 +1,10 @@
 ---
 id: TASK-1
 title: 'High, P1: Preserve and faithfully regenerate unknown config parameters'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-05 14:43'
+updated_date: '2026-08-15 00:23'
 labels:
   - legacy-import
   - bugfix
@@ -243,3 +244,29 @@ http-family transports.
 - Validate `sni`/`host` on parse, as xray-knife does, to fail early on garbage
   entries (the junk `info` / `2087` addresses we saw would be caught here).
 <!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [x] #1 All non-structural link and VMess JSON parameters are preserved with native values and repeated URL keys
+- [x] #2 Persisted extensions survive database round trips and legacy rows recover them from raw links without changing identity
+- [x] #3 Generated Xray configs faithfully cover raw, xhttp, mKCP, gRPC, WebSocket, and HTTPUpgrade or reject unsupported wire-affecting settings clearly
+- [x] #4 Tests cover parser, persistence, deduplication, generation, percent-decoding, and fail-loud diagnostics
+<!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Replace string-only extension storage with deterministic JSON values and capture all non-structural parameters. 2. Persist extensions with a backward-compatible migration and include them in canonical deduplication while retaining raw-link fallback for legacy rows. 3. Generate supported current Xray transports and security fields, normalize aliases, and reject unsupported or incomplete settings. 4. Add regression tests and update config documentation.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Implemented JSON-valued extension capture for all link parsers, v2 deduplication, SQLite/PostgreSQL extension persistence with legacy raw-link backfill, current Xray transport/security generation, and fail-loud validation for unsupported wire settings. Updated protocol, generation, import, and database docs. Validation: just fmt ci passed (737 tests; clippy with -D warnings; Rust/Markdown/SQL formatting).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Preserved non-structural config parameters end to end and made Xray runtime generation faithful for supported current transports, with explicit errors for unsupported configurations. Added migration 0022 for both backends, checksum coverage, legacy backfill, and regression tests.
+<!-- SECTION:FINAL_SUMMARY:END -->

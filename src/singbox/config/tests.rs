@@ -77,9 +77,9 @@ fn generates_hy2_runtime_config_with_multiple_local_inbounds() {
 #[test]
 fn prefers_protocol_extensions_when_present() {
     let mut extensions = BTreeMap::new();
-    extensions.insert("insecure".to_string(), "1".to_string());
-    extensions.insert("obfs".to_string(), "salamander".to_string());
-    extensions.insert("obfs-password".to_string(), "pwd".to_string());
+    extensions.insert("insecure".to_string(), serde_json::json!("1"));
+    extensions.insert("obfs".to_string(), serde_json::json!("salamander"));
+    extensions.insert("obfs-password".to_string(), serde_json::json!("pwd"));
 
     let node = Node {
         protocol: Protocol::Hy2,
@@ -105,7 +105,7 @@ fn prefers_protocol_extensions_when_present() {
     assert_eq!(outbound["obfs"]["password"], "pwd");
 }
 
-fn hy2_node(extensions: Option<BTreeMap<String, String>>) -> Node {
+fn hy2_node(extensions: Option<BTreeMap<String, serde_json::Value>>) -> Node {
     Node {
         protocol: Protocol::Hy2,
         address: "hy2.example.com".to_string(),

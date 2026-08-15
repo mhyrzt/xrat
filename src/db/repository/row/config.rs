@@ -30,6 +30,7 @@ where
         path: row.get("path"),
         name: row.get("name"),
         raw_config: row.get("raw_config"),
+        extensions_json: row.get("extensions_json"),
         is_active: row.get::<i64, _>("is_active") != 0,
         is_enabled: row.get::<i64, _>("is_enabled") != 0,
         is_deleted: row.get::<i64, _>("is_deleted") != 0,

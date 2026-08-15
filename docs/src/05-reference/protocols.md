@@ -31,28 +31,34 @@ vless://<uuid>@<address>:<port>?type=<network>&security=<tls>&sni=<sni>&host=<ho
 
 **Fields**:
 
-| Field      | Location | Required | Description                                                |
-| ---------- | -------- | -------- | ---------------------------------------------------------- |
-| `uuid`     | userinfo | Yes      | VLESS user ID                                              |
-| `address`  | host     | Yes      | Server address                                             |
-| `port`     | port     | Yes      | Server port                                                |
-| `type`     | query    | No       | Network type (`tcp`, `ws`, `grpc`, `xhttp`), default `tcp` |
-| `security` | query    | No       | Security mode (`tls`, `reality`, `none`), default `none`   |
-| `sni`      | query    | No       | SNI hostname                                               |
-| `host`     | query    | No       | Host header (WebSocket)                                    |
-| `path`     | query    | No       | Path (WebSocket, gRPC, TCP)                                |
-| `flow`     | query    | No       | Flow control, e.g. `xtls-rprx-vision`                      |
-| `fp`       | query    | No       | uTLS fingerprint, e.g. `chrome` (REALITY defaults `chrome`)|
-| `alpn`     | query    | No       | Comma-separated ALPN list (TLS)                            |
-| `mode`     | query    | No       | xhttp/gRPC mode, e.g. `packet-up`                          |
-| `pbk`      | query    | REALITY  | REALITY public key (required when `security=reality`)      |
-| `sid`      | query    | No       | REALITY short ID                                           |
-| `spx`      | query    | No       | REALITY spiderX path                                       |
-| `name`     | fragment | No       | Display name                                               |
+| Field      | Location | Required | Description                                                 |
+| ---------- | -------- | -------- | ----------------------------------------------------------- |
+| `uuid`     | userinfo | Yes      | VLESS user ID                                               |
+| `address`  | host     | Yes      | Server address                                              |
+| `port`     | port     | Yes      | Server port                                                 |
+| `type`     | query    | No       | Network type (`tcp`, `ws`, `grpc`, `xhttp`), default `tcp`  |
+| `security` | query    | No       | Security mode (`tls`, `reality`, `none`), default `none`    |
+| `sni`      | query    | No       | SNI hostname                                                |
+| `host`     | query    | No       | Host header (WebSocket)                                     |
+| `path`     | query    | No       | Path (WebSocket, gRPC, TCP)                                 |
+| `flow`     | query    | No       | Flow control, e.g. `xtls-rprx-vision`                       |
+| `fp`       | query    | No       | uTLS fingerprint, e.g. `chrome` (REALITY defaults `chrome`) |
+| `alpn`     | query    | No       | Comma-separated ALPN list (TLS)                             |
+| `mode`     | query    | No       | xhttp/gRPC mode, e.g. `packet-up`                           |
+| `pbk`      | query    | REALITY  | REALITY public key (required when `security=reality`)       |
+| `sid`      | query    | No       | REALITY short ID                                            |
+| `spx`      | query    | No       | REALITY spiderX path                                        |
+| `name`     | fragment | No       | Display name                                                |
 
-**REALITY**: when `security=reality`, xrat builds `realitySettings` from `pbk`,
-`sid`, `spx`, `fp`, and `sni`. The public key (`pbk`) is required; without it
-Xray rejects the outbound.
+**REALITY**: when `security=reality`, xrat builds current Xray `realitySettings`
+from `pbk`/`password`, `sid`, `spx`, `fp`, and `sni`. The share-link public key
+is emitted as Xray's current `password` field and is required. REALITY is
+accepted only with raw, xhttp, or gRPC transports.
+
+All non-structural query parameters are preserved. xrat generates current raw,
+WebSocket, gRPC, xhttp, mKCP, and HTTPUpgrade settings when representable and
+fails with a named unsupported-parameter/transport error instead of silently
+dropping a wire-affecting value.
 
 **Examples**:
 

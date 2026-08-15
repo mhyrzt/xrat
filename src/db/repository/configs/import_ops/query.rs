@@ -29,7 +29,7 @@ pub async fn resolve_ref_prefix(pool: &DbPool, prefix: &str) -> crate::db::Resul
     })
 }
 
-pub const CONFIG_COLUMNS: &str = "id, ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, is_active, is_enabled, is_deleted, deleted_at, imported_at, created_at, updated_at";
+pub const CONFIG_COLUMNS: &str = "id, ref, subscription_id, dedup_key, protocol, address, port, username, uuid, password, method, network, tls, sni, host, path, name, raw_config, extensions_json, is_active, is_enabled, is_deleted, deleted_at, imported_at, created_at, updated_at";
 
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {

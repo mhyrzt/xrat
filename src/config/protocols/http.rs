@@ -4,7 +4,7 @@ use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::parsing_helpers::{
-    empty_to_none, password_or_none, percent_decode, username_or_none,
+    empty_to_none, password_or_none, percent_decode, query_extensions, username_or_none,
 };
 
 pub fn parse_http(line: &str) -> Result<Node, ConfigParseError> {
@@ -34,7 +34,7 @@ pub fn parse_http(line: &str) -> Result<Node, ConfigParseError> {
             .fragment()
             .map(percent_decode)
             .and_then(empty_to_none),
-        extensions: None,
+        extensions: query_extensions(parsed.query().unwrap_or_default(), &[]),
         raw_config: line.to_string(),
     })
 }

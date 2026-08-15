@@ -4,7 +4,7 @@ use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 use crate::support::decode::b64_decode_text;
 
-use super::super::parsing_helpers::{empty_to_none, percent_decode};
+use super::super::parsing_helpers::{empty_to_none, percent_decode, query_extensions};
 
 pub fn parse_ss(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;
@@ -42,7 +42,7 @@ pub fn parse_ss(line: &str) -> Result<Node, ConfigParseError> {
             .fragment()
             .map(percent_decode)
             .and_then(empty_to_none),
-        extensions: None,
+        extensions: query_extensions(parsed.query().unwrap_or_default(), &[]),
         raw_config: line.to_string(),
     })
 }

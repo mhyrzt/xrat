@@ -270,14 +270,16 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
     // Network-specific settings
     StreamSettings {
-        network,           // "tcp" | "ws" | "grpc" | "xhttp"
+        method,            // "raw" | "websocket" | "grpc" | "xhttp" | "mkcp" | "httpupgrade"
         security,          // "tls" | "reality" | "none" | None
         tls_settings,      // serverName, fingerprint, alpn
-        reality_settings,  // serverName, publicKey, shortId, spiderX, fingerprint
+        reality_settings,  // serverName, password, shortId, spiderX, fingerprint
         ws_settings,       // path, headers (Host)
-        tcp_settings,      // HTTP header obfuscation
-        grpc_settings,     // service_name
-        xhttp_settings,    // host, path, mode
+        raw_settings,      // HTTP header obfuscation
+        kcp_settings,      // current mKCP transport fields
+        grpc_settings,     // serviceName, multiMode, authority, idle_timeout
+        xhttp_settings,    // host, path, mode, extra
+        httpupgrade_settings,
     }
 }
 ```
@@ -286,7 +288,7 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
 ```json
 {
-  "network": "tcp",
+  "method": "raw",
   "security": "tls",
   "tlsSettings": {
     "serverName": "cdn.example.com",
@@ -299,7 +301,7 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
 ```json
 {
-  "network": "ws",
+  "method": "websocket",
   "security": "tls",
   "tlsSettings": {
     "serverName": "cdn.example.com"
@@ -317,7 +319,7 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
 ```json
 {
-  "network": "grpc",
+  "method": "grpc",
   "grpcSettings": {
     "serviceName": "service"
   }
@@ -326,16 +328,16 @@ fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> 
 
 #### REALITY Settings
 
-Built when `security=reality`, using the VLESS extensions (`pbk`, `sid`, `spx`,
-`fp`) and `sni`:
+Built when `security=reality`, using preserved extensions (`pbk`/`password`,
+`sid`, `spx`, `fp`) and `sni`:
 
 ```json
 {
-  "network": "xhttp",
+  "method": "xhttp",
   "security": "reality",
   "realitySettings": {
     "serverName": "www.example.com",
-    "publicKey": "PUBLICKEY",
+    "password": "PUBLICKEY",
     "shortId": "SHORTID",
     "spiderX": "/",
     "fingerprint": "chrome"
@@ -352,8 +354,8 @@ Built when `security=reality`, using the VLESS extensions (`pbk`, `sid`, `spx`,
 
 ```json
 {
-  "network": "tcp",
-  "tcpSettings": {
+  "method": "raw",
+  "rawSettings": {
     "header": {
       "type": "http",
       "request": {

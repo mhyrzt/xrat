@@ -105,20 +105,22 @@ fn build_fragment_outbound(fragment: &FragmentOptions) -> Outbound {
     }
 }
 
-/// Borrow the outbound's stream settings, creating a minimal `tcp` block when
+/// Borrow the outbound's stream settings, creating a minimal `raw` block when
 /// the upstream protocol (socks/http) produced none, so a `sockopt` can attach.
 fn stream_settings_mut(outbound: &mut Outbound) -> &mut StreamSettings {
     outbound
         .stream_settings
         .get_or_insert_with(|| StreamSettings {
-            network: "tcp".to_string(),
+            network: "raw".to_string(),
             security: None,
             tls_settings: None,
             reality_settings: None,
             ws_settings: None,
-            tcp_settings: None,
+            raw_settings: None,
+            kcp_settings: None,
             grpc_settings: None,
             xhttp_settings: None,
+            httpupgrade_settings: None,
             sockopt: None,
         })
 }

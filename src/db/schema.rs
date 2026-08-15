@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use sqlx::migrate::MigrateError;
 use sqlx::migrate::{Migration, MigrationType};
-use sqlx::{PgPool, SqlitePool};
+use sqlx::{PgPool, Row, SqlitePool};
 
 use crate::db::DbError;
 
@@ -15,6 +15,7 @@ pub async fn init_sqlite(pool: &SqlitePool) -> crate::db::Result<()> {
         .run(pool)
         .await
         .map_err(|err| migration_error("SQLite", err))?;
+    backfill_sqlite_config_extensions(pool).await?;
     Ok(())
 }
 
@@ -24,6 +25,55 @@ pub async fn init_postgres(pool: &PgPool) -> crate::db::Result<()> {
         .run(pool)
         .await
         .map_err(|err| migration_error("PostgreSQL", err))?;
+    backfill_postgres_config_extensions(pool).await?;
+    Ok(())
+}
+
+async fn backfill_sqlite_config_extensions(pool: &SqlitePool) -> crate::db::Result<()> {
+    let rows = sqlx::query("SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%'")
+        .fetch_all(pool)
+        .await?;
+    for row in rows {
+        let id: i64 = row.get("id");
+        let raw_config: String = row.get("raw_config");
+        let Some(node) = crate::config::parse_link(&raw_config).ok().flatten() else {
+            continue;
+        };
+        let extensions_json = node
+            .extensions
+            .as_ref()
+            .and_then(|extensions| serde_json::to_string(extensions).ok());
+        sqlx::query("UPDATE configs SET dedup_key = ?1, extensions_json = ?2 WHERE id = ?3")
+            .bind(node.dedup_key_string())
+            .bind(extensions_json)
+            .bind(id)
+            .execute(pool)
+            .await?;
+    }
+    Ok(())
+}
+
+async fn backfill_postgres_config_extensions(pool: &PgPool) -> crate::db::Result<()> {
+    let rows = sqlx::query("SELECT id, raw_config FROM configs WHERE dedup_key LIKE 'v1%'")
+        .fetch_all(pool)
+        .await?;
+    for row in rows {
+        let id: i64 = row.get("id");
+        let raw_config: String = row.get("raw_config");
+        let Some(node) = crate::config::parse_link(&raw_config).ok().flatten() else {
+            continue;
+        };
+        let extensions_json = node
+            .extensions
+            .as_ref()
+            .and_then(|extensions| serde_json::to_string(extensions).ok());
+        sqlx::query("UPDATE configs SET dedup_key = $1, extensions_json = $2 WHERE id = $3")
+            .bind(node.dedup_key_string())
+            .bind(extensions_json)
+            .bind(id)
+            .execute(pool)
+            .await?;
+    }
     Ok(())
 }
 
@@ -333,6 +383,30 @@ mod tests {
         init_sqlite(&pool)
             .await
             .expect("re-running the migrator must be a no-op, not an error");
+    }
+
+    #[tokio::test]
+    async fn sqlite_init_backfills_config_extensions_and_v2_dedup_key() {
+        let pool = memory_pool().await;
+        init_sqlite(&pool).await.expect("first migration run");
+        let raw_config = "vless://2f2d0c0d-334b-4f0a-8a42-d090618c9f55@example.com:443?type=ws&security=tls&foo=bar#legacy";
+        sqlx::query(
+            "INSERT INTO configs (dedup_key, protocol, address, port, uuid, network, tls, name, raw_config) VALUES ('v1|legacy', 'vless', 'example.com', 443, '2f2d0c0d-334b-4f0a-8a42-d090618c9f55', 'ws', 'tls', 'legacy', ?)",
+        )
+        .bind(raw_config)
+        .execute(&pool)
+        .await
+        .expect("legacy config should insert");
+
+        init_sqlite(&pool).await.expect("backfill should succeed");
+
+        let (dedup_key, extensions_json): (String, Option<String>) =
+            sqlx::query_as("SELECT dedup_key, extensions_json FROM configs")
+                .fetch_one(&pool)
+                .await
+                .expect("backfilled config should load");
+        assert!(dedup_key.starts_with("v2|"));
+        assert_eq!(extensions_json.as_deref(), Some(r#"{"foo":"bar"}"#));
     }
 
     async fn seed_migrations_table(pool: &SqlitePool) {
