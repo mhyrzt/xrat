@@ -1,11 +1,11 @@
 ---
 id: TASK-65
 title: Recover dedup backfill and release v0.16.1
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-08-15 13:17'
-updated_date: '2026-08-15 13:30'
+updated_date: '2026-08-15 13:46'
 labels:
   - bug
   - release
