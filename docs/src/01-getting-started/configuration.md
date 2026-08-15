@@ -178,6 +178,12 @@ enabled = true
 timeout = 5000
 ```
 
+Routing rules affect managed sessions, including daemon rotation, but not
+connection-test probes. Direct rules are evaluated before block rules. Xray and
+V2Ray support all four routing lists; sing-box currently supports domain rules
+and IP/CIDR rules, and rejects `geosite`/`geoip` entries until rule-set
+translation is available.
+
 ## Secret Values
 
 Sensitive fields accept either a literal string or an environment variable

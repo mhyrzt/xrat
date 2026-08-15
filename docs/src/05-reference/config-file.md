@@ -404,21 +404,32 @@ geosite = []
 geoip = []
 ```
 
-| Field              | Type     | Default        | Description                     |
-| ------------------ | -------- | -------------- | ------------------------------- |
-| `domain_strategy`  | enum     | `IPIfNonMatch` | Xray domain resolution strategy |
-| `[direct].domain`  | string[] | `[]`           | Direct-route domains            |
-| `[direct].ip`      | string[] | `[]`           | Direct-route IPs                |
-| `[direct].geosite` | string[] | `[]`           | Direct-route geosite categories |
-| `[direct].geoip`   | string[] | `[]`           | Direct-route geoip categories   |
-| `[block].domain`   | string[] | `[]`           | Blocked domains                 |
-| `[block].ip`       | string[] | `[]`           | Blocked IPs                     |
-| `[block].geosite`  | string[] | `[]`           | Blocked geosite categories      |
-| `[block].geoip`    | string[] | `[]`           | Blocked geoip categories        |
+| Field              | Type     | Default        | Description                                   |
+| ------------------ | -------- | -------------- | --------------------------------------------- |
+| `domain_strategy`  | enum     | `IPIfNonMatch` | Xray/V2Ray domain resolution strategy         |
+| `[direct].domain`  | string[] | `[]`           | Domains routed without the proxy              |
+| `[direct].ip`      | string[] | `[]`           | IP addresses/CIDRs routed without the proxy   |
+| `[direct].geosite` | string[] | `[]`           | Xray/V2Ray geosite categories routed directly |
+| `[direct].geoip`   | string[] | `[]`           | Xray/V2Ray GeoIP categories routed directly   |
+| `[block].domain`   | string[] | `[]`           | Domains rejected by the runtime               |
+| `[block].ip`       | string[] | `[]`           | IP addresses/CIDRs rejected by the runtime    |
+| `[block].geosite`  | string[] | `[]`           | Xray/V2Ray geosite categories rejected        |
+| `[block].geoip`    | string[] | `[]`           | Xray/V2Ray GeoIP categories rejected          |
+
+These rules apply to managed sessions started by `connect`, rotation, or the
+daemon. Probe and test configs remain proxy-only. Xray/V2Ray receives separate
+domain and IP rules, followed by `freedom` and `blackhole` outbounds as needed.
+Direct rules precede block rules, so direct wins when both lists match.
+
+For sing-box, `domain` supports bare keyword rules and the `full:`, `domain:`,
+`keyword:`, and `regexp:` forms; `ip` supports addresses and CIDRs. sing-box
+`geosite`/`geoip` rule-set translation is not yet available, so xrat rejects
+those entries instead of silently omitting them. `domain_strategy` is
+Xray/V2Ray-only.
 
 The generated PAC file inlines only curated `domain` entries and IPv4 CIDRs from
 `ip` lists. `geosite` and `geoip` lists stay in the proxy engine config and are
-not expanded into PAC.
+not expanded into PAC. PAC support remains a subset of managed-runtime routing.
 
 ---
 

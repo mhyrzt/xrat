@@ -295,6 +295,14 @@ domains_excluded = []
 ips_excluded = []
 ```
 
+## Routing
+
+Managed sessions apply `[routing.direct]` before `[routing.block]`, with the
+proxy as the default route. Xray/V2Ray supports domain, IP/CIDR, geosite, and
+GeoIP rules. sing-box supports domain and IP/CIDR rules; xrat reports an error
+for sing-box geosite/GeoIP entries until rule-set translation is available.
+Connection-test probes intentionally remain proxy-only.
+
 ## Logging
 
 Configure proxy process logging:

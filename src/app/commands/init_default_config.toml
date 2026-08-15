@@ -284,13 +284,16 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 
 
 # -----------------------------------------------------------------
-# [routing] — split routing rules applied to generated configs and PAC
+# [routing] — direct/block rules for managed runtime sessions and PAC
 # -----------------------------------------------------------------
 # [routing]
-# # Xray domain strategy: "AsIs", "IPIfNonMatch", or "IPOnDemand".
+# # Xray/V2Ray domain strategy: "AsIs", "IPIfNonMatch", or "IPOnDemand".
+# # sing-box ignores domain_strategy.
 # domain_strategy = "IPIfNonMatch"
 # # PAC inlines only curated domain entries and IPv4 CIDRs from domain/ip lists.
-# # geosite/geoip lists stay in the engine config and are not expanded into PAC.
+# # geosite/geoip are Xray/V2Ray-only and are not expanded into PAC.
+# # Runtime direct rules precede block rules, so direct wins on overlap.
+# # Probe/test configs remain proxy-only.
 # # Send matching traffic directly (bypass the proxy).
 # [routing.direct]
 # domain = ["example.test"]
