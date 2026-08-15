@@ -26,14 +26,14 @@ Usage: install.sh [OPTIONS]
 
 This installer downloads/verifies/places the xrat binary, then hands off to
 `xrat setup` for post-install setup (init, daemon, completions, man pages,
-and desktop integration).
+desktop integration, and optional user-local proxy-core installation).
 
 Options:
   --from-source       Build xrat from this checkout instead of downloading a release
   --install-dir DIR   Binary install directory (default: $HOME/.local/bin)
   --no-desktop        Skip installing the desktop launcher and icons
   --linger            Enable boot-before-login daemon start (Linux; implies daemon)
-  -y, --yes           Skip prompts and accept setup defaults
+  -y, --yes           Accept setup defaults (installs Xray and sing-box)
   -h, --help          Show this help
 
 EOF
@@ -186,7 +186,14 @@ run_setup() {
 
     step "Handing off to xrat setup (^_^)"
     echo
-    "$INSTALL_DIR/xrat" "${setup_args[@]}"
+    if [[ "$ASSUME_YES" == "1" || -t 0 ]]; then
+        "$INSTALL_DIR/xrat" "${setup_args[@]}"
+    elif [[ -r /dev/tty && -w /dev/tty ]]; then
+        "$INSTALL_DIR/xrat" "${setup_args[@]}" < /dev/tty
+    else
+        warn "No interactive terminal is available; skipping guided setup."
+        warn "Run '$INSTALL_DIR/xrat setup' from a terminal, or reinstall with --yes."
+    fi
 }
 
 main() {

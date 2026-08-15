@@ -10,8 +10,6 @@ use crate::app::context::AppContext;
 use crate::cli::DaemonInstallArgs;
 use crate::support::platform;
 
-pub const STEP_XRAY: &str = "xray";
-pub const STEP_SINGBOX: &str = "sing-box";
 pub const STEP_INIT: &str = "init";
 pub const STEP_DAEMON: &str = "daemon";
 pub const STEP_LINGER: &str = "linger";
@@ -20,60 +18,6 @@ pub const STEP_MANPAGES: &str = "man pages";
 pub const STEP_DESKTOP: &str = "desktop";
 pub const STEP_TUI_SHIM: &str = "xratui";
 pub const STEP_PATH: &str = "PATH";
-
-const XRAY_HINT: &str = "install xray-core: https://github.com/XTLS/Xray-core/releases";
-const SINGBOX_HINT: &str =
-    "optional; install sing-box: https://github.com/SagerNet/sing-box/releases";
-
-// ---------------------------------------------------------------------------
-// Dependencies
-// ---------------------------------------------------------------------------
-
-pub fn probe_dependency(name: &'static str, required: bool, hint: &str) -> StepOutcome {
-    match platform::binary_on_path(name) {
-        Some(path) => {
-            let detail = match binary_version(&path) {
-                Some(version) => format!("{} ({version})", path.display()),
-                None => path.display().to_string(),
-            };
-            StepOutcome::new(name, StepStatus::Done, required).with_detail(detail)
-        }
-        None => StepOutcome::new(name, StepStatus::Missing, required).with_detail(hint.to_string()),
-    }
-}
-
-/// Run `<binary> version` and extract the first semantic version it prints,
-/// mirroring how `install.sh` reported tool versions.
-fn binary_version(path: &std::path::Path) -> Option<String> {
-    let output = std::process::Command::new(path)
-        .arg("version")
-        .output()
-        .ok()?;
-    let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
-    text.push_str(&String::from_utf8_lossy(&output.stderr));
-    extract_semver(&text)
-}
-
-fn extract_semver(text: &str) -> Option<String> {
-    for token in text.split(|ch: char| !(ch.is_ascii_digit() || ch == '.')) {
-        let mut parts = token.split('.');
-        let has_two_numeric_parts = token.contains('.')
-            && parts.clone().count() >= 2
-            && parts.all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit()));
-        if has_two_numeric_parts {
-            return Some(format!("v{token}"));
-        }
-    }
-    None
-}
-
-pub fn probe_xray() -> StepOutcome {
-    probe_dependency(STEP_XRAY, true, XRAY_HINT)
-}
-
-pub fn probe_singbox() -> StepOutcome {
-    probe_dependency(STEP_SINGBOX, false, SINGBOX_HINT)
-}
 
 // ---------------------------------------------------------------------------
 // init

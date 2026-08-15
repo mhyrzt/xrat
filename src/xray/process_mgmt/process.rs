@@ -46,7 +46,9 @@ pub async fn spawn_detached(
 
     let stdout = File::create(&paths.stdout_path)?;
     let stderr = File::create(&paths.stderr_path)?;
-    let mut child = Command::new(binary_path)
+    let mut command = Command::new(binary_path);
+    configure_asset_path(&mut command, binary_path);
+    let mut child = command
         .arg("run")
         .arg("-c")
         .arg(&paths.config_path)
@@ -69,6 +71,18 @@ pub async fn spawn_detached(
             Err(error.with_process_stderr(&paths.stderr_path))
         }
     }
+}
+
+fn configure_asset_path(command: &mut Command, binary_path: &Path) {
+    let Some(directory) = crate::support::platform::managed_core_asset_dir(binary_path) else {
+        return;
+    };
+    let variable = if binary_path.file_name().and_then(|name| name.to_str()) == Some("v2ray") {
+        "V2RAY_LOCATION_ASSET"
+    } else {
+        "XRAY_LOCATION_ASSET"
+    };
+    command.env(variable, directory);
 }
 
 async fn wait_for_ready(

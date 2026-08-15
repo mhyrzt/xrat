@@ -65,6 +65,16 @@ pub(super) fn preflight_runtime(
     temporary.as_file_mut().flush()?;
     let path = temporary.path();
     let mut command = Command::new(&launch.binary_path);
+    if let Some(directory) = crate::support::platform::managed_core_asset_dir(&launch.binary_path) {
+        let variable = match launch.validator {
+            RuntimeValidator::V2ray => "V2RAY_LOCATION_ASSET",
+            RuntimeValidator::Xray => "XRAY_LOCATION_ASSET",
+            RuntimeValidator::Singbox => "",
+        };
+        if !variable.is_empty() {
+            command.env(variable, directory);
+        }
+    }
     match launch.validator {
         RuntimeValidator::Xray => {
             command.arg("run").arg("-test").arg("-c").arg(path);

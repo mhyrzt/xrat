@@ -15,6 +15,8 @@ pub enum StepStatus {
     Skipped,
     /// A required or expected piece is missing (reported by `--check`).
     Missing,
+    /// A usable dependency is installed, but a newer release is available.
+    UpdateAvailable,
     /// The step attempted work and failed.
     Failed,
 }
@@ -26,6 +28,7 @@ impl StepStatus {
             StepStatus::AlreadyDone => "already done",
             StepStatus::Skipped => "skipped",
             StepStatus::Missing => "missing",
+            StepStatus::UpdateAvailable => "update available",
             StepStatus::Failed => "failed",
         }
     }
@@ -36,6 +39,7 @@ impl StepStatus {
             StepStatus::AlreadyDone => Style::Green,
             StepStatus::Skipped => Style::Dim,
             StepStatus::Missing => Style::Yellow,
+            StepStatus::UpdateAvailable => Style::Yellow,
             StepStatus::Failed => Style::Red,
         }
     }
@@ -46,6 +50,7 @@ impl StepStatus {
             StepStatus::AlreadyDone => "✔",
             StepStatus::Skipped => "‧",
             StepStatus::Missing => "✖",
+            StepStatus::UpdateAvailable => "↑",
             StepStatus::Failed => "✖",
         }
     }
@@ -177,6 +182,13 @@ mod tests {
         assert!(table.contains("daemon"));
         assert!(table.contains("done"));
         assert!(table.contains("missing"));
+    }
+
+    #[test]
+    fn update_available_is_machine_readable_and_non_blocking() {
+        let outcomes = [StepOutcome::new("xray", StepStatus::UpdateAvailable, true)];
+        assert!(render_json(&outcomes).unwrap().contains("update_available"));
+        assert!(!has_blocking_failure(&outcomes));
     }
 
     #[test]

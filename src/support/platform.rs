@@ -152,6 +152,20 @@ pub fn xdg_config_home() -> Option<PathBuf> {
         .or_else(|| home_dir().map(|home| home.join(".config")))
 }
 
+/// Return the isolated asset directory for a core installed by `xrat setup`.
+pub fn managed_core_asset_dir(binary_path: &Path) -> Option<&Path> {
+    let directory = binary_path.parent()?;
+    let cores = directory.parent()?;
+    if cores.file_name().and_then(|name| name.to_str()) != Some("cores") {
+        return None;
+    }
+    let xrat = cores.parent()?;
+    if xrat.file_name().and_then(|name| name.to_str()) != Some("xrat") {
+        return None;
+    }
+    Some(directory)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,5 +208,15 @@ mod tests {
         assert_eq!(binary_in(&joined, "xrat-fake-binary"), Some(binary.clone()));
         assert_eq!(binary_in(&joined, "xrat-missing-binary"), None);
         std::fs::remove_file(&binary).ok();
+    }
+
+    #[test]
+    fn recognizes_managed_core_asset_directory() {
+        let path = Path::new("/home/user/.local/share/xrat/cores/xray/xray");
+        assert_eq!(
+            managed_core_asset_dir(path),
+            Some(Path::new("/home/user/.local/share/xrat/cores/xray"))
+        );
+        assert_eq!(managed_core_asset_dir(Path::new("/usr/bin/xray")), None);
     }
 }

@@ -2,6 +2,7 @@
 //! (init, dependency checks, daemon, linger, completions, man pages, desktop,
 //! xratui shortcut, PATH) and supports a read-only `--check` diagnostic mode.
 
+mod cores;
 mod desktop;
 mod report;
 mod steps;
@@ -16,15 +17,18 @@ use report::{StepOutcome, StepStatus};
 
 pub async fn run(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
     if args.check {
-        return check(context, args);
+        return check(context, args).await;
     }
     apply(context, args).await
 }
 
-fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
-    let outcomes = vec![
-        steps::probe_xray(),
-        steps::probe_singbox(),
+async fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
+    let mut outcomes = cores::probe_all(context)
+        .await
+        .iter()
+        .map(dependency_check_outcome)
+        .collect::<Vec<_>>();
+    outcomes.extend([
         steps::probe_init(context),
         steps::probe_daemon(),
         steps::probe_linger(),
@@ -33,7 +37,7 @@ fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {
         desktop::probe(),
         steps::probe_tui_shim(),
         steps::probe_path(),
-    ];
+    ]);
 
     match args.format {
         SetupFormat::Json => println!("{}", report::render_json(&outcomes)?),
@@ -54,16 +58,14 @@ async fn apply(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()>
 
     let mut outcomes = Vec::new();
 
-    // Dependencies: xray is required, sing-box is optional.
     report::print_section("Dependencies");
-    let xray = emit(steps::probe_xray());
-    let xray_missing = xray.status == StepStatus::Missing;
-    outcomes.push(xray);
-    outcomes.push(emit(steps::probe_singbox()));
+    for probe in cores::probe_all(context).await {
+        outcomes.push(emit(apply_dependency(context, args, probe).await));
+    }
 
-    if xray_missing {
+    if report::has_blocking_failure(&outcomes) {
         return Err(crate::app::AppError::InvalidArgument(
-            "xray-core is required but was not found on PATH; install xray-core and re-run `xrat setup`"
+            "xray-core is required; install it through the setup prompt or re-run `xrat setup`"
                 .to_string(),
         ));
     }
@@ -111,6 +113,101 @@ async fn apply(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()>
 
     record_event(context, &outcomes).await;
     Ok(())
+}
+
+fn dependency_check_outcome(probe: &cores::CoreProbe) -> StepOutcome {
+    let status = if probe.missing() {
+        StepStatus::Missing
+    } else if probe.outdated() {
+        StepStatus::UpdateAvailable
+    } else {
+        StepStatus::Done
+    };
+    StepOutcome::new(probe.kind.name(), status, probe.kind.required()).with_detail(probe.detail())
+}
+
+async fn apply_dependency(
+    context: &AppContext,
+    args: &SetupArgs,
+    probe: cores::CoreProbe,
+) -> StepOutcome {
+    let required = probe.kind.required();
+    let status_without_change = if probe.missing() {
+        StepStatus::Missing
+    } else if probe.outdated() {
+        StepStatus::UpdateAvailable
+    } else {
+        StepStatus::AlreadyDone
+    };
+    let Some(release) = probe.latest.as_ref().ok() else {
+        return StepOutcome::new(probe.kind.name(), status_without_change, required)
+            .with_detail(probe.detail());
+    };
+    if !probe.missing() && !probe.outdated() {
+        return StepOutcome::new(probe.kind.name(), status_without_change, required)
+            .with_detail(probe.detail());
+    }
+
+    let should_change = if args.yes {
+        unattended_dependency_change(probe.kind, probe.missing())
+    } else {
+        let prompt = dependency_prompt(&probe, release);
+        output::confirm_default(prompt, !probe.missing() || probe.kind.unattended_default())
+            .unwrap_or(false)
+    };
+    if !should_change {
+        return StepOutcome::new(probe.kind.name(), status_without_change, required)
+            .with_detail(probe.detail());
+    }
+
+    match cores::install(context, probe.kind, release).await {
+        Ok(installed) => {
+            let mut detail = format!(
+                "{} (v{}; managed)",
+                installed.binary_path.display(),
+                installed.version
+            );
+            if let Some(warning) = installed.cli_link_warning {
+                detail.push_str(&format!("; {warning}"));
+            }
+            StepOutcome::new(probe.kind.name(), StepStatus::Done, required).with_detail(detail)
+        }
+        Err(error) => {
+            StepOutcome::new(probe.kind.name(), StepStatus::Failed, required).with_detail(error)
+        }
+    }
+}
+
+fn unattended_dependency_change(kind: cores::CoreKind, missing: bool) -> bool {
+    !missing || kind.unattended_default()
+}
+
+fn dependency_prompt(probe: &cores::CoreProbe, release: &cores::CoreRelease) -> String {
+    if probe.missing() {
+        return format!(
+            "Install {} v{} as a user-local managed core?",
+            probe.kind.name(),
+            release.version
+        );
+    }
+    let current = probe
+        .version
+        .as_ref()
+        .map(|version| format!("v{version}"))
+        .unwrap_or_else(|| "the installed version".to_string());
+    if probe.managed {
+        format!(
+            "Upgrade {} {current} to v{}?",
+            probe.kind.name(),
+            release.version
+        )
+    } else {
+        format!(
+            "Keep the external {} untouched and adopt managed v{} instead of {current}?",
+            probe.kind.name(),
+            release.version
+        )
+    }
 }
 
 fn want_daemon(args: &SetupArgs) -> bool {
@@ -178,4 +275,23 @@ async fn record_event(context: &AppContext, outcomes: &[StepOutcome]) {
         detail,
     )
     .await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unattended_setup_installs_recommended_missing_cores() {
+        assert!(unattended_dependency_change(cores::CoreKind::Xray, true));
+        assert!(unattended_dependency_change(cores::CoreKind::SingBox, true));
+        assert!(!unattended_dependency_change(cores::CoreKind::V2Ray, true));
+    }
+
+    #[test]
+    fn unattended_setup_updates_any_installed_core() {
+        for kind in cores::CORE_KINDS {
+            assert!(unattended_dependency_change(kind, false));
+        }
+    }
 }

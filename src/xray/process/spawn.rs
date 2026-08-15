@@ -41,7 +41,9 @@ impl XrayProcess {
             .map(|inbound| inbound.port)
             .unwrap_or(0);
 
-        let child = Command::new(binary_path)
+        let mut command = Command::new(binary_path);
+        configure_asset_path(&mut command, binary_path);
+        let child = command
             .arg("run")
             .arg("-c")
             .arg(&config_path)
@@ -130,6 +132,18 @@ impl XrayProcess {
             super::diagnostics::summarize_xray_failure(&output)
         }
     }
+}
+
+fn configure_asset_path(command: &mut Command, binary_path: &Path) {
+    let Some(directory) = crate::support::platform::managed_core_asset_dir(binary_path) else {
+        return;
+    };
+    let variable = if binary_path.file_name().and_then(|name| name.to_str()) == Some("v2ray") {
+        "V2RAY_LOCATION_ASSET"
+    } else {
+        "XRAY_LOCATION_ASSET"
+    };
+    command.env(variable, directory);
 }
 
 impl Drop for XrayProcess {

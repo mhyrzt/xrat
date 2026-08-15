@@ -159,17 +159,26 @@ pub(crate) fn empty_message(message: impl AsRef<str>) -> String {
 /// Prompt for a destructive confirmation. Defaults to No; a non-interactive
 /// stdin (no TTY) is treated as a denial so scripts must pass an explicit flag.
 pub(crate) fn confirm(prompt: impl AsRef<str>) -> io::Result<bool> {
+    confirm_default(prompt, false)
+}
+
+pub(crate) fn confirm_default(prompt: impl AsRef<str>, default: bool) -> io::Result<bool> {
     if !std::io::stdin().is_terminal() {
         return Ok(false);
     }
 
-    print!("{} [y/N] ", prompt.as_ref());
+    let choices = if default { "Y/n" } else { "y/N" };
+    print!("{} [{choices}] ", prompt.as_ref());
     io::stdout().flush()?;
 
     let mut answer = String::new();
     io::stdin().lock().read_line(&mut answer)?;
     let answer = answer.trim().to_ascii_lowercase();
-    Ok(answer == "y" || answer == "yes")
+    if answer.is_empty() {
+        Ok(default)
+    } else {
+        Ok(answer == "y" || answer == "yes")
+    }
 }
 
 pub(crate) fn dash(value: Option<&str>) -> String {

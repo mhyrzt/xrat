@@ -2,7 +2,7 @@ use clap::{Args, ValueEnum};
 
 #[derive(Debug, Args)]
 #[command(
-    about = "Run post-install setup: init, daemon, completions, man pages, xratui shortcut, and desktop integration."
+    about = "Run post-install setup: proxy cores, init, daemon, completions, man pages, xratui shortcut, and desktop integration."
 )]
 pub struct SetupArgs {
     /// Accept all recommended defaults without prompting.

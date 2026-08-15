@@ -12,7 +12,7 @@ pub enum Command {
     #[command(about = "Initialize config directory, config file, and database.")]
     Init(InitArgs),
     #[command(
-        about = "Run post-install setup: init, daemon, completions, man pages, and desktop integration."
+        about = "Run post-install setup: proxy cores, init, daemon, completions, man pages, and desktop integration."
     )]
     Setup(SetupArgs),
     #[command(about = "Import a subscription URL, file, or raw text into SQLite.")]

@@ -19,6 +19,7 @@ mod testing;
 
 pub(crate) use editor::{
     ConfigEditSession, EditableSetting, SettingEffect, SettingKind, SettingValue,
+    update_runtime_binary_path,
 };
 
 pub use database::{

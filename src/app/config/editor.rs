@@ -350,6 +350,29 @@ impl ConfigEditSession {
     }
 }
 
+pub(crate) fn update_runtime_binary_path(
+    config_path: &Path,
+    key: &str,
+    binary_path: &Path,
+) -> Result<(), String> {
+    let value = binary_path
+        .to_str()
+        .ok_or_else(|| "managed binary path is not valid UTF-8".to_string())?;
+    let contents = fs::read_to_string(config_path)
+        .map_err(|error| format!("could not read {}: {error}", config_path.display()))?;
+    let mut document = contents
+        .parse::<DocumentMut>()
+        .map_err(|error| format!("config is not valid TOML: {error}"))?;
+    set_path(&mut document, &format!("paths.{key}"), toml_value(value));
+    let candidate = document.to_string();
+    let config: AppConfig = toml::from_str(&candidate)
+        .map_err(|error| format!("updated config is invalid: {error}"))?;
+    if let Some(diagnostic) = crate::app::commands::validate::validate_app_config(&config).first() {
+        return Err(diagnostic.clone());
+    }
+    atomic_write(config_path, candidate.as_bytes())
+}
+
 fn operational_values(config: &AppConfig) -> Result<serde_json::Value, String> {
     let mut root = serde_json::Map::new();
     insert_serialized(&mut root, "runtime", &config.runtime)?;
@@ -686,6 +709,21 @@ mod tests {
         fs::write(&path, contents).expect("config should be written");
         let session = ConfigEditSession::open(&path).expect("session should open");
         (root, session)
+    }
+
+    #[test]
+    fn updates_runtime_binary_path_without_losing_comments() {
+        let root = tempfile::tempdir().expect("temp directory should be created");
+        let path = root.path().join("config.toml");
+        fs::write(&path, "# keep me\n[runtime]\nengine = \"xray\"\n")
+            .expect("config should be written");
+
+        update_runtime_binary_path(&path, "xray", Path::new("/tmp/managed/xray"))
+            .expect("path should update");
+
+        let contents = fs::read_to_string(path).expect("config should be readable");
+        assert!(contents.contains("# keep me"));
+        assert!(contents.contains("xray = \"/tmp/managed/xray\""));
     }
 
     #[test]
