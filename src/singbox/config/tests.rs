@@ -1,9 +1,13 @@
 use super::{
-    SingboxInbound, SingboxRouteList, SingboxRoutingOptions, generate_singbox_probe_config,
-    generate_singbox_runtime_config,
+    SingboxDnsConfig, SingboxInbound, SingboxRouteList, SingboxRoutingOptions,
+    generate_singbox_probe_config, generate_singbox_runtime_config,
+    generate_singbox_runtime_config_with_dns,
 };
 use crate::model::{Node, Protocol};
 use std::collections::BTreeMap;
+use std::io::Write;
+use std::process::Command;
+use tempfile::NamedTempFile;
 
 #[test]
 fn generates_hy2_singbox_config_with_optional_fields() {
@@ -76,6 +80,91 @@ fn generates_hy2_runtime_config_with_multiple_local_inbounds() {
     assert_eq!(value["inbounds"][1]["type"], "http");
     assert_eq!(value["outbounds"][0]["type"], "hysteria2");
     assert!(value.get("experimental").is_none());
+}
+
+#[test]
+fn generates_runtime_dns_without_adding_it_to_probes() {
+    let node = hy2_node(None);
+    let dns = SingboxDnsConfig {
+        servers: vec![
+            serde_json::json!({
+                "type": "udp",
+                "tag": "xrat-dns-0",
+                "server": "8.8.8.8",
+                "server_port": 53,
+            }),
+            serde_json::json!({
+                "type": "hosts",
+                "tag": "xrat-dns-hosts",
+                "predefined": {"example.test": "192.0.2.10"},
+            }),
+        ],
+        rules: vec![
+            serde_json::json!({
+                "domain": ["example.test"],
+                "action": "route",
+                "server": "xrat-dns-hosts",
+            }),
+            serde_json::json!({
+                "ip_accept_any": true,
+                "action": "route",
+                "server": "xrat-dns-hosts",
+            }),
+        ],
+        final_server: "xrat-dns-0".to_string(),
+        strategy: Some("ipv4_only".to_string()),
+        disable_cache: Some(true),
+    };
+
+    let config =
+        generate_singbox_runtime_config_with_dns(&node, Vec::new(), None, None, Some(&dns))
+            .expect("runtime DNS should be attached");
+    let value = serde_json::to_value(config).expect("config should serialize");
+    assert_eq!(value["dns"]["final"], "xrat-dns-0");
+    assert_eq!(value["dns"]["strategy"], "ipv4_only");
+    assert_eq!(value["dns"]["disable_cache"], true);
+
+    let probe = generate_singbox_probe_config(&node, 1080).unwrap();
+    assert!(serde_json::to_value(probe).unwrap().get("dns").is_none());
+}
+
+#[test]
+fn native_singbox_validator_accepts_generated_dns_config() {
+    if Command::new("sing-box").arg("version").output().is_err() {
+        return;
+    }
+
+    let node = hy2_node(None);
+    let dns = SingboxDnsConfig {
+        servers: vec![serde_json::json!({
+            "type": "udp",
+            "tag": "xrat-dns-0",
+            "server": "8.8.8.8",
+            "server_port": 53,
+        })],
+        rules: Vec::new(),
+        final_server: "xrat-dns-0".to_string(),
+        strategy: Some("ipv4_only".to_string()),
+        disable_cache: Some(true),
+    };
+    let config =
+        generate_singbox_runtime_config_with_dns(&node, Vec::new(), None, None, Some(&dns))
+            .expect("runtime config should generate");
+    let mut file = NamedTempFile::new().unwrap();
+    file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
+        .unwrap();
+    file.flush().unwrap();
+
+    let output = Command::new("sing-box")
+        .args(["check", "-c"])
+        .arg(file.path())
+        .output()
+        .expect("sing-box should start");
+    assert!(
+        output.status.success(),
+        "sing-box rejected generated DNS config: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]

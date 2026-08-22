@@ -8,8 +8,8 @@ pub(super) use crate::app::AppError;
 pub(super) use crate::app::config::defaults;
 pub(super) use crate::app::context::AppContext;
 pub(super) use crate::app::runtime_tuning::{
-    apply_xray_routing_options, build_singbox_routing_options, build_xray_gen_options,
-    resolve_listen_interface_addr,
+    apply_xray_dns_options, apply_xray_routing_options, build_singbox_dns_options,
+    build_singbox_routing_options, build_xray_gen_options, resolve_listen_interface_addr,
 };
 pub(super) use crate::db::{
     ConfigListFilter, ConfigRecord, RuntimeSessionInsert, RuntimeSessionRecord,
@@ -18,7 +18,7 @@ pub(super) use crate::db::{
 pub(super) use crate::model::Protocol;
 pub(super) use crate::singbox::{
     SingboxClashApi, SingboxConfig, SingboxInbound, SingboxInboundUser,
-    generate_singbox_runtime_config, process_mgmt as singbox_runtime,
+    generate_singbox_runtime_config_with_dns, process_mgmt as singbox_runtime,
 };
 pub(super) use crate::xray::config::{Inbound, enable_stats_api};
 pub(super) use crate::xray::{

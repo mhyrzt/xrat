@@ -20,6 +20,7 @@ pub struct XrayGenOptions {
     pub mark: Option<i64>,
     pub bind_address: Option<String>,
     pub routing: Option<super::routing::XrayRoutingOptions>,
+    pub dns: Option<super::types::XrayDnsConfig>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +52,10 @@ impl XrayGenOptions {
 /// it is validated and warned about at the call site instead of silently
 /// emitted.
 pub fn apply_runtime_tuning(config: &mut XrayConfig, options: &XrayGenOptions) {
+    if let Some(dns) = &options.dns {
+        config.dns = Some(dns.clone());
+    }
+
     if options.is_noop() {
         return;
     }

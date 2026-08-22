@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::xray::parsing::core::{ApiObject, PolicyObject};
 
@@ -9,6 +9,8 @@ pub struct XrayConfig {
     pub inbounds: Vec<Inbound>,
     pub outbounds: Vec<Outbound>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub dns: Option<XrayDnsConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub api: Option<ApiObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stats: Option<serde_json::Value>,
@@ -16,6 +18,27 @@ pub struct XrayConfig {
     pub policy: Option<PolicyObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub routing: Option<RoutingConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct XrayDnsConfig {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub servers: Vec<String>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub hosts: BTreeMap<String, XrayDnsHostValue>,
+    pub query_strategy: String,
+    pub use_system_hosts: bool,
+    pub disable_cache: bool,
+    pub disable_fallback: bool,
+    pub enable_parallel_query: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum XrayDnsHostValue {
+    One(String),
+    Many(Vec<String>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

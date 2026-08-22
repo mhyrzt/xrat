@@ -51,6 +51,7 @@ impl<'a> RuntimeService<'a> {
         }
 
         let mut gen_options = build_xray_gen_options(runtime);
+        apply_xray_dns_options(&mut gen_options, &self.context.app_config.dns)?;
         apply_xray_routing_options(&mut gen_options, &self.context.app_config.routing);
         if gen_options.bind_address.is_some() {
             tracing::warn!(
@@ -171,8 +172,15 @@ impl<'a> RuntimeService<'a> {
             secret: None,
         });
         let routing = build_singbox_routing_options(&self.context.app_config.routing);
-        let config = generate_singbox_runtime_config(node, inbounds, clash_api, Some(&routing))
-            .map_err(AppError::InvalidArgument)?;
+        let dns = build_singbox_dns_options(&self.context.app_config.dns)?;
+        let config = generate_singbox_runtime_config_with_dns(
+            node,
+            inbounds,
+            clash_api,
+            Some(&routing),
+            dns.as_ref(),
+        )
+        .map_err(AppError::InvalidArgument)?;
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)
         } else if let Some((host, port)) = http {

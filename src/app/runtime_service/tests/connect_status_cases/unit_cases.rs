@@ -1,4 +1,5 @@
 use super::*;
+use crate::app::config::DnsHostValue;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
@@ -169,6 +170,62 @@ async fn managed_xray_launch_applies_configured_routing() {
     );
     assert_eq!(value["routing"]["rules"][2]["outboundTag"], "block");
     assert_eq!(value["routing"]["rules"][2]["ip"][0], "203.0.113.0/24");
+}
+
+#[tokio::test]
+async fn managed_xray_launch_applies_configured_dns() {
+    let mut context = test_context().await;
+    context.app_config.dns.query_strategy = "UseIPv4".to_string();
+    context.app_config.dns.servers = vec!["8.8.8.8".to_string()];
+    context.app_config.dns.use_system_hosts = false;
+    context.app_config.dns.hosts.insert(
+        "full:example.test".to_string(),
+        DnsHostValue::One("192.0.2.10".to_string()),
+    );
+    let imported = imported_config(&context, test_node()).await;
+    let service = RuntimeService::new(&context);
+
+    let launch = service
+        .resolve_launch(&imported)
+        .expect("Xray launch should resolve with DNS");
+    let RuntimeLaunchConfig::Xray(config) = launch.config else {
+        panic!("expected an Xray runtime config");
+    };
+    let value = serde_json::to_value(config).expect("config should serialize");
+
+    assert_eq!(value["dns"]["queryStrategy"], "UseIPv4");
+    assert_eq!(value["dns"]["servers"], serde_json::json!(["8.8.8.8"]));
+    assert_eq!(value["dns"]["hosts"]["full:example.test"], "192.0.2.10");
+}
+
+#[tokio::test]
+async fn managed_singbox_launch_applies_configured_dns() {
+    let mut context = test_context().await;
+    context.app_config.dns.query_strategy = "UseIPv4".to_string();
+    context.app_config.dns.servers = vec!["8.8.8.8".to_string()];
+    context.app_config.dns.use_system_hosts = false;
+    context.app_config.dns.hosts.insert(
+        "full:example.test".to_string(),
+        DnsHostValue::One("192.0.2.10".to_string()),
+    );
+    let imported = imported_config(&context, hy2_node()).await;
+    let service = RuntimeService::new(&context);
+
+    let launch = service
+        .resolve_launch(&imported)
+        .expect("sing-box launch should resolve with DNS");
+    let RuntimeLaunchConfig::Singbox(config) = launch.config else {
+        panic!("expected a sing-box runtime config");
+    };
+    let value = serde_json::to_value(config).expect("config should serialize");
+
+    assert_eq!(value["dns"]["strategy"], "ipv4_only");
+    assert_eq!(value["dns"]["final"], "xrat-dns-0");
+    assert_eq!(value["dns"]["servers"][1]["type"], "hosts");
+    assert_eq!(
+        value["dns"]["rules"][0]["domain"],
+        serde_json::json!(["example.test"])
+    );
 }
 
 #[tokio::test]

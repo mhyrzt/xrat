@@ -32,6 +32,7 @@ async fn test_xray_process_lifecycle() {
             stream_settings: None,
             mux: None,
         }],
+        dns: None,
         api: None,
         stats: None,
         policy: None,

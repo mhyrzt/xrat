@@ -13,9 +13,24 @@ pub struct SingboxConfig {
     pub inbounds: Vec<SingboxInbound>,
     pub outbounds: Vec<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub dns: Option<SingboxDnsConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub route: Option<SingboxRoute>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental: Option<SingboxExperimental>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SingboxDnsConfig {
+    pub servers: Vec<serde_json::Value>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<serde_json::Value>,
+    #[serde(rename = "final")]
+    pub final_server: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strategy: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disable_cache: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +130,7 @@ pub fn generate_singbox_probe_config(
             outbound,
             serde_json::json!({"type": "direct", "tag": "direct"}),
         ],
+        dns: None,
         route: None,
         experimental: None,
     })
@@ -125,6 +141,16 @@ pub fn generate_singbox_runtime_config(
     inbounds: Vec<SingboxInbound>,
     clash_api: Option<SingboxClashApi>,
     routing: Option<&SingboxRoutingOptions>,
+) -> Result<SingboxConfig, String> {
+    generate_singbox_runtime_config_with_dns(node, inbounds, clash_api, routing, None)
+}
+
+pub fn generate_singbox_runtime_config_with_dns(
+    node: &Node,
+    inbounds: Vec<SingboxInbound>,
+    clash_api: Option<SingboxClashApi>,
+    routing: Option<&SingboxRoutingOptions>,
+    dns: Option<&SingboxDnsConfig>,
 ) -> Result<SingboxConfig, String> {
     let outbound = match node.protocol {
         Protocol::Hy2 => hy2::build_hy2_outbound(node)?,
@@ -155,6 +181,7 @@ pub fn generate_singbox_runtime_config(
         },
         inbounds,
         outbounds,
+        dns: dns.cloned(),
         route,
         experimental: clash_api.map(|clash_api| SingboxExperimental { clash_api }),
     })

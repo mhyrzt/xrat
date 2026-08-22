@@ -11,7 +11,7 @@ pub use routing::{XrayRouteList, XrayRoutingOptions};
 pub use tuning::{FragmentOptions, MuxOptions, XrayGenOptions};
 pub use types::{
     GrpcSettings, Inbound, LogConfig, Outbound, RawSettings, RoutingConfig, RoutingRule,
-    StreamSettings, TlsSettings, WsSettings, XrayConfig,
+    StreamSettings, TlsSettings, WsSettings, XrayConfig, XrayDnsConfig, XrayDnsHostValue,
 };
 
 pub fn generate_probe_config(node: &Node, local_port: u16) -> Result<XrayConfig, String> {
