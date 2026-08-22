@@ -152,9 +152,9 @@ geosite = []
 geoip = []
 
 [dns]
-# Xray DNS queryStrategy. Supported values: "UseIP", "UseIPv4", "UseIPv6", "UseSystem", "default"
+# Xray/V2Ray DNS queryStrategy. sing-box custom DNS requires UseIPv4 or UseIPv6.
 query_strategy = "UseSystem"
-# DNS servers used in generated Xray runtime config.
+# DNS servers used in generated runtime config; URI support differs by engine.
 servers = [
     "8.8.8.8",
     "https://1.1.1.1/dns-query",

@@ -480,11 +480,14 @@ parse_mode = "strict" # "strict" | "lenient" | "auto"
 
 ## [dns]
 
-DNS configuration for generated Xray configs.
+DNS configuration for generated managed-runtime configs. Xray/V2Ray receives
+the complete Xray DNS object. sing-box receives modern typed DNS servers and
+only the options that have a faithful equivalent. Probe configurations remain
+proxy-only.
 
 ```toml
 [dns]
-query_strategy = "UseSystem" # "UseIP" | "UseIPv4" | "UseIPv6" | "UseSystem"
+query_strategy = "UseIPv4" # "UseIP" | "UseIPv4" | "UseIPv6" | "UseSystem"
 servers = [
     "8.8.8.8",
     "https://1.1.1.1/dns-query",
@@ -495,8 +498,8 @@ disable_fallback = false
 enable_parallel_query = true
 
 [dns.hosts]
-"domain:example.test" = "127.0.0.1"
-"domain:lan.test" = ["192.168.1.10", "192.168.1.11"]
+"full:example.test" = "127.0.0.1"
+"full:lan.test" = ["192.168.1.10", "192.168.1.11"]
 ```
 
 | Field                   | Type     | Default     | Description             |
@@ -507,7 +510,20 @@ enable_parallel_query = true
 | `disable_cache`         | boolean  | `false`     | Disable DNS cache       |
 | `disable_fallback`      | boolean  | `false`     | Disable fallback DNS    |
 | `enable_parallel_query` | boolean  | `true`      | Enable parallel queries |
-| `[hosts]`               | map      | -           | Static DNS entries      |
+| `[dns.hosts]`           | map      | -           | Static DNS entries      |
+
+Xray/V2Ray accepts the four documented `query_strategy` values and the
+documented Xray server URI forms. The generated JSON uses Xray field names
+such as `queryStrategy`, `useSystemHosts`, and `disableFallback`.
+
+sing-box uses typed `local`, `udp`, `tcp`, `tls`, `quic`, `https`, `h3`, and
+`hosts` servers. A generated sing-box DNS block requires `UseIPv4` or
+`UseIPv6`; `UseIP` and `UseSystem` have no exact modern sing-box equivalent and
+are rejected when custom DNS settings would be emitted. Plain and `full:` host
+keys are supported; `domain:`, keyword, regexp, geosite, and other advanced
+host keys remain Xray/V2Ray-only. `disable_fallback` and
+`enable_parallel_query = false` are also Xray/V2Ray-only. Unsupported
+sing-box input fails before the managed process is started.
 
 ---
 

@@ -312,9 +312,11 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 # [dns] — DNS resolution for the active session
 # -----------------------------------------------------------------
 # [dns]
-# # Xray query strategy: "UseSystem", "UseIP", "UseIPv4", or "UseIPv6".
+# # Xray/V2Ray query strategy: "UseSystem", "UseIP", "UseIPv4", or "UseIPv6".
+# # sing-box requires UseIPv4 or UseIPv6 when custom DNS is emitted.
 # query_strategy = "UseSystem"
-# # Upstream DNS servers (e.g. "1.1.1.1", "https://dns.google/dns-query").
+# # Upstream DNS servers. Xray/V2Ray accepts its documented URI forms; sing-box
+# # translates supported forms to modern typed DNS servers.
 # servers = []
 # # Use the system hosts file.
 # use_system_hosts = true
@@ -323,7 +325,7 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 # enable_parallel_query = true
 # # Static host overrides.
 # [dns.hosts]
-# "domain:example.test" = "127.0.0.1"
+# "full:example.test" = "127.0.0.1"
 
 
 # -----------------------------------------------------------------

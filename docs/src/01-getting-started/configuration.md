@@ -140,7 +140,7 @@ geoip = "https://example.com/geoip.dat"
 parse_mode = "strict"
 
 [dns]
-query_strategy = "UseSystem"
+query_strategy = "UseIPv4"
 servers = ["8.8.8.8", "https://1.1.1.1/dns-query"]
 use_system_hosts = true
 disable_cache = false
@@ -148,7 +148,11 @@ disable_fallback = false
 enable_parallel_query = true
 
 [dns.hosts]
-"domain:example.test" = "127.0.0.1"
+"full:example.test" = "127.0.0.1"
+
+# DNS settings are applied to managed runtimes. Xray/V2Ray supports the full
+# section; sing-box uses modern typed servers and exact/plain or full: hosts.
+# Unsupported sing-box strategies or server/host forms fail before launch.
 
 [testing]
 concurrency = 0

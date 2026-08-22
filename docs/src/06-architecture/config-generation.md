@@ -548,7 +548,10 @@ The parser can read:
 
 - **Log**: access, error, loglevel, dns_log, mask_address
 - **API**: tag, listen, services
-- **DNS**: hosts, servers, client_ip, query_strategy, cache/fallback settings
+- **DNS**: managed Xray/V2Ray configs receive hosts, servers, query strategy,
+  and cache/fallback settings; managed sing-box configs receive validated
+  modern typed servers, supported strategies, cache settings, and exact hosts.
+  Probe configs remain proxy-only.
 - **Routing**: domain_strategy, rules, balancers
 - **Policy**: levels (handshake, connIdle, etc.), system stats
 - **Inbounds**: various protocol inbounds with full settings
