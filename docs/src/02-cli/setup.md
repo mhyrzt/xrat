@@ -68,6 +68,8 @@ releases. Setup requires the release asset's published SHA-256 digest and
 validates the staged binary's reported version before replacing a managed
 copy. It never overwrites an externally installed or package-managed binary;
 accepting an update for one installs and adopts a managed copy instead.
+Interactive downloads show byte progress; redirected and machine-readable
+flows suppress terminal progress rendering.
 
 ## Example: guided setup
 

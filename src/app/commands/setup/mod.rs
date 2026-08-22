@@ -160,7 +160,8 @@ async fn apply_dependency(
             .with_detail(probe.detail());
     }
 
-    match cores::install(context, probe.kind, release).await {
+    let progress_enabled = args.format == SetupFormat::Table;
+    match cores::install(context, probe.kind, release, progress_enabled).await {
         Ok(installed) => {
             let mut detail = format!(
                 "{} (v{}; managed)",

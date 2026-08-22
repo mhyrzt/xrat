@@ -36,9 +36,24 @@ impl CliProgress {
         content_length: Option<u64>,
         message: impl Into<String>,
     ) -> Self {
+        let message = message.into();
+        let Some(content_length) = content_length else {
+            if !should_enable(enabled, std::io::stderr().is_terminal()) {
+                return Self::disabled();
+            }
+
+            let bar = ProgressBar::new_spinner();
+            let style = ProgressStyle::with_template("{spinner:.green} {msg} {bytes}")
+                .unwrap_or_else(|_| ProgressStyle::default_spinner());
+            bar.set_style(style);
+            bar.set_message(message);
+            bar.enable_steady_tick(Duration::from_millis(100));
+            return Self { bar: Some(bar) };
+        };
+
         Self::bar_with_template(
             enabled,
-            content_length.unwrap_or(0),
+            content_length,
             message,
             "{spinner:.green} {msg} [{bar:32.cyan/blue}] {bytes}/{total_bytes}",
         )
@@ -145,5 +160,14 @@ mod tests {
         assert!(!should_enable(false, true));
         assert!(!should_enable(true, false));
         assert!(!should_enable(false, false));
+    }
+
+    #[test]
+    fn disabled_byte_progress_handles_unknown_length() {
+        assert!(
+            CliProgress::bytes_bar(false, None, "download")
+                .bar
+                .is_none()
+        );
     }
 }

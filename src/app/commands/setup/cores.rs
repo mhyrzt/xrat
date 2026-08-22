@@ -9,6 +9,7 @@ use semver::Version;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
+use crate::app::commands::progress::CliProgress;
 use crate::app::config;
 use crate::app::context::AppContext;
 use crate::support::platform;
@@ -309,17 +310,70 @@ pub(super) async fn install(
     context: &AppContext,
     kind: CoreKind,
     release: &CoreRelease,
+    progress_enabled: bool,
+) -> Result<InstallResult, String> {
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        asset = %release.asset.name,
+        "proxy core installation started"
+    );
+    let result = install_inner(context, kind, release, progress_enabled).await;
+    if let Err(error) = &result {
+        tracing::error!(
+            core = kind.name(),
+            version = %release.version,
+            error = %error,
+            "proxy core installation failed"
+        );
+    }
+    result
+}
+
+async fn install_inner(
+    context: &AppContext,
+    kind: CoreKind,
+    release: &CoreRelease,
+    progress_enabled: bool,
 ) -> Result<InstallResult, String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(120))
         .user_agent(concat!("xrat/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|error| error.to_string())?;
-    let response = client
-        .get(&release.asset.url)
-        .send()
-        .await
-        .map_err(|error| format!("could not download {}: {error}", release.asset.name))?;
+    let bytes = download_archive(&client, kind, release, progress_enabled).await?;
+    install_archive(context, kind, release, &bytes)
+}
+
+async fn download_archive(
+    client: &reqwest::Client,
+    kind: CoreKind,
+    release: &CoreRelease,
+    progress_enabled: bool,
+) -> Result<Vec<u8>, String> {
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        asset = %release.asset.name,
+        "proxy core download started"
+    );
+    let connection_progress = CliProgress::spinner(
+        progress_enabled,
+        format!("starting {} v{} download", kind.name(), release.version),
+    );
+    let mut response = match client.get(&release.asset.url).send().await {
+        Ok(response) => {
+            connection_progress.finish_and_clear();
+            response
+        }
+        Err(error) => {
+            connection_progress.abandon_with_message(format!("{} download failed", kind.name()));
+            return Err(format!(
+                "could not download {}: {error}",
+                release.asset.name
+            ));
+        }
+    };
     if !response.status().is_success() {
         return Err(format!(
             "could not download {}: HTTP {}",
@@ -327,8 +381,38 @@ pub(super) async fn install(
             response.status()
         ));
     }
-    let bytes = response.bytes().await.map_err(|error| error.to_string())?;
-    install_archive(context, kind, release, &bytes)
+    let content_length = response.content_length();
+    let progress = CliProgress::bytes_bar(
+        progress_enabled,
+        content_length,
+        format!("downloading {} v{}", kind.name(), release.version),
+    );
+    let mut bytes = Vec::new();
+    loop {
+        match response.chunk().await {
+            Ok(Some(chunk)) => {
+                bytes.extend_from_slice(&chunk);
+                progress.inc(chunk.len() as u64);
+            }
+            Ok(None) => break,
+            Err(error) => {
+                progress.abandon_with_message(format!("{} download failed", kind.name()));
+                return Err(format!(
+                    "could not download {}: {error}",
+                    release.asset.name
+                ));
+            }
+        }
+    }
+    progress.finish_with_message(format!("downloaded {} v{}", kind.name(), release.version));
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        bytes = bytes.len(),
+        content_length = ?content_length,
+        "proxy core download completed"
+    );
+    Ok(bytes)
 }
 
 fn install_archive(
@@ -337,7 +421,17 @@ fn install_archive(
     release: &CoreRelease,
     bytes: &[u8],
 ) -> Result<InstallResult, String> {
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        "verifying proxy core checksum"
+    );
     verify_checksum(&release.asset, bytes)?;
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        "proxy core checksum verified"
+    );
 
     let root = managed_root()?;
     fs::create_dir_all(&root)
@@ -348,7 +442,17 @@ fn install_archive(
         .map_err(|error| format!("could not create staging directory: {error}"))?;
     let payload = staging.path().join("payload");
     fs::create_dir(&payload).map_err(|error| error.to_string())?;
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        "extracting proxy core archive"
+    );
     extract_archive(kind, bytes, &payload)?;
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        "proxy core archive extracted"
+    );
 
     let staged_binary = payload.join(kind.name());
     set_executable(&staged_binary)?;
@@ -361,8 +465,19 @@ fn install_archive(
             release.tag
         ));
     }
+    tracing::info!(
+        core = kind.name(),
+        version = %staged_version,
+        "staged proxy core validated"
+    );
 
     let target = root.join(kind.name());
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        path = %target.display(),
+        "activating managed proxy core"
+    );
     replace_directory(&payload, &target)?;
     let binary_path = target.join(kind.name());
     let cli_link_warning = ensure_cli_link(kind, &binary_path, &root)?;
@@ -372,6 +487,12 @@ fn install_archive(
         &binary_path,
     )
     .map_err(|error| format!("installed core but could not update config: {error}"))?;
+    tracing::info!(
+        core = kind.name(),
+        version = %staged_version,
+        path = %binary_path.display(),
+        "managed proxy core activated"
+    );
 
     Ok(InstallResult {
         binary_path,
@@ -572,6 +693,55 @@ mod tests {
     use super::*;
     use flate2::Compression;
     use flate2::write::GzEncoder;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    async fn serve_once(response: &'static [u8]) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 1024];
+            let _ = socket.read(&mut request).await;
+            socket.write_all(response).await.unwrap();
+        });
+        format!("http://{address}/core")
+    }
+
+    fn test_release(url: String) -> CoreRelease {
+        CoreRelease {
+            version: Version::new(5, 52, 0),
+            tag: "v5.52.0".to_string(),
+            asset: ReleaseAsset {
+                name: "v2ray.zip".to_string(),
+                url,
+                sha256: "0".repeat(64),
+            },
+        }
+    }
+
+    #[tokio::test]
+    async fn streams_downloads_with_known_and_unknown_lengths() {
+        let client = reqwest::Client::new();
+        let responses: [(&[u8], &[u8]); 2] = [
+            (
+                b"HTTP/1.1 200 OK\r\nContent-Length: 11\r\nConnection: close\r\n\r\nhello world",
+                b"hello world",
+            ),
+            (
+                b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n",
+                b"hello world",
+            ),
+        ];
+
+        for (response, expected) in responses {
+            let release = test_release(serve_once(response).await);
+            let bytes = download_archive(&client, CoreKind::V2Ray, &release, false)
+                .await
+                .unwrap();
+            assert_eq!(bytes, expected);
+        }
+    }
 
     #[test]
     fn parses_versions_from_supported_core_output() {
