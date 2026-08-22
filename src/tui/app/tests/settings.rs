@@ -76,21 +76,16 @@ fn reset_is_ignored_while_sections_pane_is_focused() {
 }
 
 #[test]
-fn unavailable_dns_settings_cannot_be_changed() {
+fn dns_settings_can_be_changed() {
     let (_root, mut app) = app_with_settings("[dns]\nquery_strategy = \"UseSystem\"\n");
     focus_setting(&mut app, "dns.query_strategy");
 
     app.apply(TuiAction::SettingsSubmit);
 
     let modal = app.settings_modal.as_ref().expect("modal");
-    assert!(!modal.session.is_dirty());
+    assert!(modal.session.is_dirty());
     assert!(modal.editing.is_none());
-    assert!(
-        modal
-            .notice
-            .as_deref()
-            .is_some_and(|notice| notice.contains("not yet applied"))
-    );
+    assert!(modal.notice.is_none());
 }
 
 #[test]

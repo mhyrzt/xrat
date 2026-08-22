@@ -195,11 +195,6 @@ impl TuiApp {
         let Some(setting_index) = modal.selected_setting_index() else {
             return;
         };
-        if let Some(reason) = modal.session.settings[setting_index].unavailable_reason() {
-            modal.notice = Some(reason.to_string());
-            modal.error = None;
-            return;
-        }
         let setting = &mut modal.session.settings[setting_index];
         match setting.kind {
             SettingKind::Bool => {
@@ -235,11 +230,6 @@ impl TuiApp {
         let Some(setting_index) = modal.selected_setting_index() else {
             return;
         };
-        if let Some(reason) = modal.session.settings[setting_index].unavailable_reason() {
-            modal.notice = Some(reason.to_string());
-            modal.error = None;
-            return;
-        }
         if !modal.session.settings[setting_index].cycle_enum(direction)
             && matches!(
                 modal.session.settings[setting_index].value,
@@ -262,11 +252,6 @@ impl TuiApp {
         let Some(setting_index) = modal.selected_setting_index() else {
             return;
         };
-        if let Some(reason) = modal.session.settings[setting_index].unavailable_reason() {
-            modal.notice = Some(reason.to_string());
-            modal.error = None;
-            return;
-        }
         modal.session.settings[setting_index].reset_to_default();
         modal.error = None;
         modal.notice = None;

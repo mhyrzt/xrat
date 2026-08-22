@@ -145,12 +145,6 @@ impl EditableSetting {
         &self.default_value
     }
 
-    pub(crate) fn unavailable_reason(&self) -> Option<&'static str> {
-        self.path
-            .starts_with("dns.")
-            .then_some("DNS settings are not yet applied to generated runtime configurations.")
-    }
-
     pub(crate) fn possible_values(&self) -> String {
         match &self.kind {
             SettingKind::Bool => "✓ enabled · ✗ disabled".to_string(),
@@ -829,7 +823,7 @@ mod tests {
     }
 
     #[test]
-    fn settings_expose_origin_default_and_availability_metadata() {
+    fn settings_expose_origin_and_default_metadata() {
         let (_root, session) = session("[runtime.socks]\nport = 1080\n");
         let port = session
             .settings
@@ -844,8 +838,8 @@ mod tests {
 
         assert!(port.is_explicit());
         assert_eq!(port.default_value(), &SettingValue::Integer(18200));
-        assert!(port.unavailable_reason().is_none());
-        assert!(dns.unavailable_reason().is_some());
+        assert!(!dns.is_explicit());
+        assert_eq!(dns.default_value(), &SettingValue::List(Vec::new()));
     }
 
     #[test]

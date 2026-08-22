@@ -412,15 +412,12 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         let selected = position == modal.field_index;
         let state = settings_state_marker(setting);
         let marker = if selected { "›" } else { " " };
-        let unavailable = setting.unavailable_reason().is_some();
         let label_style = if selected {
             theme::accent_style().bold()
-        } else if unavailable {
-            theme::muted_style()
         } else {
             theme::chrome_style()
         };
-        let value_style = if selected && !unavailable {
+        let value_style = if selected {
             theme::accent_style()
         } else {
             theme::muted_style()
@@ -449,11 +446,6 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             &setting.value,
             matches!(setting.kind, SettingKind::Secret),
         );
-        let value = if unavailable {
-            format!("{value} · inactive")
-        } else {
-            value
-        };
         field_rows.push((
             Some(position),
             Line::from(vec![
@@ -501,18 +493,14 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         let setting = &modal.session.settings[index];
         let secret = matches!(setting.kind, SettingKind::Secret);
         let default_value = settings_value_display(&setting.path, setting.default_value(), secret);
-        let (applies, applies_style) = if let Some(reason) = setting.unavailable_reason() {
-            (format!("inactive — {reason}"), theme::failure_style())
-        } else {
-            (
-                format!(
-                    "{} — {}",
-                    setting.effect.label(),
-                    setting.effect.help_text()
-                ),
-                theme::chrome_style(),
-            )
-        };
+        let (applies, applies_style) = (
+            format!(
+                "{} — {}",
+                setting.effect.label(),
+                setting.effect.help_text()
+            ),
+            theme::chrome_style(),
+        );
         let help_lines = vec![
             Line::from(vec![
                 Span::styled("Description  ", theme::accent_style().bold()),
@@ -689,9 +677,6 @@ fn settings_section_tree_label(section: &str, sections: &[String]) -> String {
     label.push_str(&settings_section_name(
         parts.last().copied().unwrap_or(section),
     ));
-    if section == "dns" {
-        label.push_str(" · inactive");
-    }
     label
 }
 
@@ -1188,10 +1173,7 @@ mod tests {
             "Authentication"
         );
         assert_eq!(settings_section_name("dns"), "DNS");
-        assert_eq!(
-            settings_section_tree_label("dns", &sections),
-            "DNS · inactive"
-        );
+        assert_eq!(settings_section_tree_label("dns", &sections), "DNS");
         assert_eq!(
             settings_value_display(
                 "runtime.sniffing.domains_excluded",
@@ -1323,7 +1305,7 @@ mod tests {
     }
 
     #[test]
-    fn settings_help_shows_origin_default_and_dns_availability() {
+    fn settings_help_shows_origin_default_and_dns_effect() {
         let root = tempfile::tempdir().expect("temp directory should be created");
         let path = root.path().join("config.toml");
         fs::write(&path, "[dns]\nquery_strategy = \"UseSystem\"\n")
@@ -1357,13 +1339,13 @@ mod tests {
             .iter()
             .map(|cell| cell.symbol())
             .collect();
-        assert!(rendered.contains("DNS · inactive"));
+        assert!(rendered.contains("DNS"));
         assert!(rendered.contains("Default"));
         assert!(rendered.contains("Source"));
         assert!(rendered.contains("Legend"));
         assert!(rendered.contains("+ explicit override"));
         assert!(rendered.contains("explicit override"));
-        assert!(rendered.contains("not yet applied"));
+        assert!(rendered.contains("runtime restart"));
     }
 
     #[test]

@@ -351,13 +351,13 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "geoip = [\"cn\"]",
         ),
         "dns.query_strategy" => help(
-            "Controls which address families the generated DNS resolver requests.",
-            "",
+            "Controls which address families the generated DNS resolver requests. sing-box custom DNS requires UseIPv4 or UseIPv6.",
+            "UseIP, UseIPv4, UseIPv6, or UseSystem; sing-box rejects UseIP/UseSystem when DNS is emitted.",
             "query_strategy = \"UseSystem\"",
         ),
         "dns.servers" => help(
-            "Sets upstream DNS resolvers used by generated proxy configurations.",
-            "Comma-separated IP, hostname, HTTPS, or other engine-supported DNS endpoints.",
+            "Sets upstream DNS resolvers used by generated managed-runtime configurations.",
+            "Comma-separated IP, hostname, HTTPS, or other engine-supported DNS endpoints; unsupported sing-box forms fail before launch.",
             "servers = [\"1.1.1.1\", \"https://dns.google/dns-query\"]",
         ),
         "dns.use_system_hosts" => help(
