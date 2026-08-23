@@ -171,6 +171,12 @@ terminal response status. A loop or longer chain fails the test. With
 `3xx` response to pass when configured; later redirect behavior, including a
 possible loop, is intentionally not inspected.
 
+The `[dns]` settings are applied to the Xray probe configuration used by
+real-delay, download, and upload tests. This controls how Xray resolves the
+remote test endpoint through the proxy. The DNS block is omitted when all DNS
+settings have their defaults. ICMP and TCP stages are direct checks and do not
+use this configuration.
+
 ### Output
 
 - `real_delay_ok` — boolean success
@@ -181,7 +187,8 @@ possible loop, is intentionally not inspected.
 
 ### Probe Config
 
-The probe config uses a minimal setup:
+The probe config uses a minimal setup. When `[dns]` is non-default, the
+generated JSON also contains the configured Xray `dns` object:
 
 ```json
 {

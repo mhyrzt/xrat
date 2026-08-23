@@ -67,7 +67,7 @@ fn default_options_leave_config_unchanged() {
 }
 
 #[test]
-fn managed_runtime_emits_xray_dns_and_probe_stays_proxy_only() {
+fn managed_and_probe_configs_emit_xray_dns() {
     let node = vless_tls_node();
     let mut hosts = BTreeMap::new();
     hosts.insert(
@@ -106,8 +106,10 @@ fn managed_runtime_emits_xray_dns_and_probe_stays_proxy_only() {
     serde_json::from_value::<crate::xray::parsing::core::DnsObject>(runtime_json["dns"].clone())
         .expect("generated Xray DNS object should satisfy the parser schema");
 
-    let probe = generate_probe_config(&node, 1080).unwrap();
-    assert!(serde_json::to_value(probe).unwrap().get("dns").is_none());
+    let probe = generate_probe_config_with_options(&node, 1080, &options).unwrap();
+    let probe_json = serde_json::to_value(probe).unwrap();
+    assert_eq!(probe_json["dns"]["queryStrategy"], "UseIPv4");
+    assert_eq!(probe_json["dns"]["useSystemHosts"], true);
 }
 
 #[test]
@@ -129,13 +131,7 @@ fn native_xray_validator_accepts_generated_dns_config() {
         }),
         ..Default::default()
     };
-    let config = generate_runtime_config_for_inbounds_with_options(
-        &node,
-        Some(("127.0.0.1", 1080, true)),
-        None,
-        &options,
-    )
-    .unwrap();
+    let config = generate_probe_config_with_options(&node, 1080, &options).unwrap();
     let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
     file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
         .unwrap();

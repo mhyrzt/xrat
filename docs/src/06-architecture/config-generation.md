@@ -453,7 +453,8 @@ enabled.
 
 The same `XrayGenOptions` is threaded into probe config generation
 (`generate_probe_config_with_options`) so `xrat test`/`scan` exercise the same
-outbound behavior as the managed runtime.
+outbound and DNS behavior as the managed runtime. Probe configs still omit
+managed-runtime routing rules.
 
 ## sing-box Config Generation
 
@@ -548,10 +549,10 @@ The parser can read:
 
 - **Log**: access, error, loglevel, dns_log, mask_address
 - **API**: tag, listen, services
-- **DNS**: managed Xray/V2Ray configs receive hosts, servers, query strategy,
-  and cache/fallback settings; managed sing-box configs receive validated
-  modern typed servers, supported strategies, cache settings, and exact hosts.
-  Probe configs remain proxy-only.
+- **DNS**: managed and Xray probe configs receive hosts, servers, query
+  strategy, and cache/fallback settings; managed sing-box configs receive
+  validated modern typed servers, supported strategies, cache settings, and
+  exact hosts. Probe configs remain routing-free.
 - **Routing**: domain_strategy, rules, balancers
 - **Policy**: levels (handshake, connIdle, etc.), system stats
 - **Inbounds**: various protocol inbounds with full settings

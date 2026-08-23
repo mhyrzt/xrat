@@ -150,9 +150,10 @@ enable_parallel_query = true
 [dns.hosts]
 "full:example.test" = "127.0.0.1"
 
-# DNS settings are applied to managed runtimes. Xray/V2Ray supports the full
-# section; sing-box uses modern typed servers and exact/plain or full: hosts.
-# Unsupported sing-box strategies or server/host forms fail before launch.
+# DNS settings are applied to managed runtimes and Xray probe tests. Xray/V2Ray
+# supports the full section; sing-box uses modern typed servers and exact/plain
+# or full: hosts. Unsupported sing-box strategies or server/host forms fail
+# before launch.
 
 [testing]
 concurrency = 0

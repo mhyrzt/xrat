@@ -480,10 +480,11 @@ parse_mode = "strict" # "strict" | "lenient" | "auto"
 
 ## [dns]
 
-DNS configuration for generated managed-runtime configs. Xray/V2Ray receives
-the complete Xray DNS object. sing-box receives modern typed DNS servers and
-only the options that have a faithful equivalent. Probe configurations remain
-proxy-only.
+DNS configuration for generated managed-runtime configs and Xray probe configs
+used by `xrat test`/`scan`. Xray/V2Ray receives the complete Xray DNS object.
+sing-box receives modern typed DNS servers and only the options that have a
+faithful equivalent. Probe configurations remain proxy-only for routing; their
+Xray configs include this DNS object when the settings are non-default.
 
 ```toml
 [dns]

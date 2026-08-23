@@ -55,6 +55,8 @@ pub(crate) fn resolve_test_settings(
         "GeoLite2-ASN.mmdb",
     );
     let geoip_lookup = geoip::build_lookup_chain(app_config, runtime_paths)?;
+    let mut gen_options = crate::app::runtime_tuning::build_xray_gen_options(&app_config.runtime);
+    crate::app::runtime_tuning::apply_xray_dns_options(&mut gen_options, &app_config.dns)?;
 
     Ok(ResolvedTestSettings {
         stage_order: app_config.testing.order.clone(),
@@ -104,6 +106,6 @@ pub(crate) fn resolve_test_settings(
         geoip_city_path,
         geoip_asn_path,
         geoip_lookup,
-        gen_options: crate::app::runtime_tuning::build_xray_gen_options(&app_config.runtime),
+        gen_options,
     })
 }

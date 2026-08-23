@@ -55,6 +55,27 @@ fn resolves_test_settings_from_app_config() {
     );
     assert_eq!(settings.failure_policy, TestFailurePolicy::Continue);
     assert_eq!(settings.geoip_lookup.backend_name(), "mmdb");
+    assert!(settings.gen_options.dns.is_none());
+}
+
+#[test]
+fn applies_dns_settings_to_xray_probe_options() {
+    let app_config = AppConfig {
+        dns: crate::app::config::DnsSettings {
+            query_strategy: "UseIPv4".to_string(),
+            servers: vec!["8.8.8.8".to_string()],
+            ..Default::default()
+        },
+        ..AppConfig::default()
+    };
+
+    let settings = resolve_test_settings(&test_args(Some(1)), &app_config, &test_runtime_paths())
+        .expect("settings");
+    let dns = serde_json::to_value(settings.gen_options.dns.expect("probe DNS"))
+        .expect("DNS should serialize");
+
+    assert_eq!(dns["queryStrategy"], "UseIPv4");
+    assert_eq!(dns["servers"], serde_json::json!(["8.8.8.8"]));
 }
 
 #[test]

@@ -309,7 +309,7 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 
 
 # -----------------------------------------------------------------
-# [dns] — DNS resolution for the active session
+# [dns] — DNS resolution for managed runtimes and Xray probe tests
 # -----------------------------------------------------------------
 # [dns]
 # # Xray/V2Ray query strategy: "UseSystem", "UseIP", "UseIPv4", or "UseIPv6".
