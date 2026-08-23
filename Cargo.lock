@@ -4930,7 +4930,7 @@ dependencies = [
 
 [[package]]
 name = "xrat"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "arboard",
  "async-trait",

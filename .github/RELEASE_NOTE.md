@@ -1,51 +1,48 @@
-## xrat v0.17.0
+## xrat v0.18.0
 
-This release adds verified user-local installation and upgrades for Xray,
-sing-box, and V2Ray, and restores native preflight validation with Xray 26.3.27.
+This release applies configured DNS behavior to managed proxy runtimes and Xray
+connection probes, exposes DNS settings in the TUI, and makes managed core
+downloads visibly progress.
 
-### Managed proxy cores
+### Managed DNS
 
-- **Install without root access.** `xrat setup` can install Xray, sing-box, and
-  V2Ray under `~/.local/share/xrat/cores` and expose safe CLI links through
-  `~/.local/bin`.
-- **Use verified official releases.** Setup discovers the latest stable release
-  from each core's official GitHub repository, requires its published SHA-256
-  digest, verifies the staged binary version, and replaces managed copies
-  atomically. A failed update leaves the previous core usable.
-- **Preserve system packages.** Existing external or package-managed binaries
-  are detected and never overwritten. Accepting an update installs an isolated
-  managed copy and records its path in `config.toml`.
-- **Keep assets isolated.** Managed Xray and V2Ray processes receive their own
-  GeoIP and Geosite asset directories during validation, testing, and runtime
-  startup.
+- **Apply DNS settings to every managed engine.** Xray and V2Ray receive the
+  complete configured DNS object. sing-box receives validated modern typed DNS
+  servers, supported query strategies, cache settings, and exact host mappings.
+- **Fail safely on unsupported sing-box mappings.** Strategies, server forms,
+  host patterns, and fallback options without faithful modern sing-box
+  equivalents are rejected before the managed process starts instead of being
+  silently ignored.
+- **Keep defaults minimal.** Runtime DNS blocks are omitted when the DNS section
+  remains at its defaults, preserving engine-native behavior for unchanged
+  installations.
 
-### Setup behavior
+### Testing and configuration
 
-- `xrat setup --check` reports missing, current, and outdated cores. An
-  `update_available` result is visible in table and JSON output without making
-  an otherwise healthy check fail.
-- `xrat setup --yes` installs missing Xray and sing-box, skips an absent V2Ray,
-  and upgrades installed outdated cores.
-- Release lookup failures do not disable an installed core; setup reports that
-  the update check failed and keeps the detected binary available.
-- The piped `install.sh` flow reconnects setup prompts to the controlling
-  terminal. When no terminal is available, it prints a clear unattended
-  fallback instead of silently consuming closed standard input.
+- Xray probe configs used by real-delay, download, and upload tests now include
+  non-default `[dns]` settings. Direct ICMP and TCP checks remain unaffected.
+- The TUI settings editor now exposes the existing DNS fields, including server
+  lists and static host mappings, with the same validation used by file-based
+  configuration.
+- The generated default configuration and user documentation now distinguish
+  the complete Xray/V2Ray support from sing-box's validated support subset.
 
-### Xray compatibility
+### Setup feedback
 
-- Native runtime preflight files now retain a `.json` suffix. Xray 26.3.27 uses
-  the filename to select its config parser and previously rejected the
-  extensionless temporary files with exit status 23, preventing connection and
-  rotation even when the generated configuration was valid.
+- Interactive managed-core downloads now show byte progress, so larger Xray,
+  sing-box, and V2Ray archives no longer make `xrat setup` appear frozen.
+- Redirected and machine-readable setup flows suppress progress rendering to
+  keep their output stable.
 
 ### Upgrade notes
 
 - No database migration is required, and existing `config.toml` files remain
-  compatible.
-- Run `xrat setup --check` to inspect installed core versions. Run `xrat setup`
-  to adopt managed copies interactively.
-- Existing external Xray, sing-box, and V2Ray installations remain selected
-  until an installation or update is explicitly accepted.
+  syntactically compatible.
+- Existing non-default `[dns]` settings now affect managed runtime and Xray
+  probe generation. Review them before upgrading if they were previously kept
+  only as documentation or future configuration.
+- Custom sing-box DNS requires `UseIPv4` or `UseIPv6` and supported server/host
+  forms. Unsupported values now produce an actionable pre-launch error; use the
+  documented support matrix when adapting an existing configuration.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.16.1...v0.17.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.17.0...v0.18.0
