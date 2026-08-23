@@ -1,3 +1,4 @@
+mod extensions;
 mod generator;
 mod outbound;
 mod routing;

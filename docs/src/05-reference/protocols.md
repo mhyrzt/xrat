@@ -60,6 +60,19 @@ WebSocket, gRPC, xhttp, mKCP, and HTTPUpgrade settings when representable and
 fails with a named unsupported-parameter/transport error instead of silently
 dropping a wire-affecting value.
 
+For xhttp, current flat parameters use Xray's camelCase names, including
+`xPaddingBytes`, `xPaddingObfsMode`, `noGRPCHeader`, `noSSEHeader`, `headers`,
+`xmux`, and `downloadSettings`. The compatibility aliases `x_padding_bytes` and
+the URL-encoded `x_padding%20bytes` are also accepted for `xPaddingBytes`.
+
+Newer Xray xhttp options can be passed in the URL-encoded `extra` query
+parameter as a JSON object. Fields inside `extra` are preserved so links can use
+options introduced by newer Xray versions. A canonical flat parameter overrides
+the same field in `extra`; `extra` overrides compatibility aliases. Unknown flat
+parameters, malformed values, repeated singular parameters, and conflicting
+aliases are rejected. Whether a future field works at runtime still depends on
+the installed Xray version.
+
 **Examples**:
 
 ```
@@ -67,6 +80,7 @@ vless://uuid-123@example.com:443?type=ws&security=tls&sni=cdn.example.com&path=%
 vless://uuid-456@example.com:443?type=tcp#Direct
 vless://uuid-789@example.com:8443?type=grpc&serviceName=service#gRPC%20Node
 vless://uuid-abc@example.com:8080?type=xhttp&security=reality&sni=www.example.com&pbk=PUBLICKEY&sid=SHORTID&fp=chrome&flow=xtls-rprx-vision#REALITY%20Node
+vless://uuid-def@example.com:443?type=xhttp&mode=auto&xPaddingBytes=100-1000&extra=%7B%22noSSEHeader%22%3Atrue%7D#XHTTP%20Node
 ```
 
 **Engine**: Xray (auto), Xray (explicit)

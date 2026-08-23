@@ -1,89 +1,17 @@
 use serde_json::json;
 use std::collections::HashMap;
 
+use super::extensions::ExtensionResolver;
 use super::types::{
     GrpcSettings, HttpUpgradeSettings, KcpSettings, RawSettings, RealitySettings, StreamSettings,
     TlsSettings, WsSettings, XhttpSettings,
 };
 use crate::model::{Node, Protocol};
 
-fn extension(node: &Node, key: &str) -> Option<String> {
-    node.extension_string(key)
-}
-
-fn extension_bool(node: &Node, key: &str) -> Option<bool> {
-    match node.extension_value(key)? {
-        serde_json::Value::Bool(value) => Some(*value),
-        serde_json::Value::Number(value) => value.as_i64().map(|value| value != 0),
-        serde_json::Value::String(value) => match value.to_ascii_lowercase().as_str() {
-            "1" | "true" => Some(true),
-            "0" | "false" => Some(false),
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
-fn extension_u64(node: &Node, key: &str) -> Option<u64> {
-    node.extension_value(key).and_then(|value| {
-        value
-            .as_u64()
-            .or_else(|| value.as_str().and_then(|value| value.parse().ok()))
-    })
-}
-
-fn validate_extensions(node: &Node) -> Result<(), String> {
-    let Some(extensions) = &node.extensions else {
-        return Ok(());
-    };
-    const SUPPORTED: &[&str] = &[
-        "aid",
-        "allowInsecure",
-        "alpn",
-        "authority",
-        "congestion",
-        "downlinkCapacity",
-        "ed",
-        "eh",
-        "encryption",
-        "extra",
-        "flow",
-        "fp",
-        "headerType",
-        "heartbeatPeriod",
-        "idleTimeout",
-        "idle_timeout",
-        "insecure",
-        "mldsa65Verify",
-        "mode",
-        "mtu",
-        "multiMode",
-        "password",
-        "pbk",
-        "readBufferSize",
-        "scy",
-        "security",
-        "serviceName",
-        "sid",
-        "spx",
-        "tti",
-        "type",
-        "uplinkCapacity",
-        "v",
-        "writeBufferSize",
-    ];
-    const METADATA: &[&str] = &["email", "group", "name", "remark", "remarks"];
-    for key in extensions.keys() {
-        if !SUPPORTED.contains(&key.as_str()) && !METADATA.contains(&key.as_str()) {
-            return Err(format!(
-                "unsupported link parameter {key:?}; refusing to generate a potentially incomplete runtime config"
-            ));
-        }
-    }
-    Ok(())
-}
-
-pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> {
+pub(super) fn build_stream_settings(
+    node: &Node,
+    extensions: &mut ExtensionResolver,
+) -> Result<Option<StreamSettings>, String> {
     let network = match node.network.to_ascii_lowercase().as_str() {
         "" | "tcp" | "raw" => "raw",
         "ws" | "websocket" => "websocket",
@@ -106,8 +34,6 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
     if matches!(node.protocol, Protocol::Socks5 | Protocol::Http) {
         return Ok(None);
     }
-    validate_extensions(node)?;
-
     let security = match node.tls.as_deref().unwrap_or("none") {
         "" | "none" => Some("none".to_string()),
         "tls" => Some("tls".to_string()),
@@ -122,7 +48,7 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         value => return Err(format!("unsupported Xray transport security {value:?}")),
     };
     let tls_settings = if node.tls.as_deref() == Some("tls") {
-        let alpn = extension(node, "alpn").map(|value| {
+        let alpn = extensions.string("alpn")?.map(|value| {
             value
                 .split(',')
                 .map(|part| part.trim().to_string())
@@ -131,9 +57,8 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         });
         Some(TlsSettings {
             server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
-            allow_insecure: extension_bool(node, "allowInsecure")
-                .or_else(|| extension_bool(node, "insecure")),
-            fingerprint: extension(node, "fp"),
+            allow_insecure: extensions.alias_bool("allowInsecure", &["insecure"])?,
+            fingerprint: extensions.string("fp")?,
             alpn: alpn.filter(|parts| !parts.is_empty()),
         })
     } else {
@@ -141,17 +66,21 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
     };
 
     let reality_settings = if node.tls.as_deref() == Some("reality") {
-        let public_key = extension(node, "password")
-            .or_else(|| extension(node, "pbk"))
+        let public_key = extensions
+            .alias_string("password", &["pbk"])?
             .filter(|value| !value.is_empty())
             .ok_or("REALITY requires password (link parameter pbk/password)")?;
         Some(RealitySettings {
             server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
             public_key,
-            short_id: extension(node, "sid"),
-            spider_x: extension(node, "spx"),
-            fingerprint: Some(extension(node, "fp").unwrap_or_else(|| "chrome".to_string())),
-            mldsa65_verify: extension(node, "mldsa65Verify"),
+            short_id: extensions.string("sid")?,
+            spider_x: extensions.string("spx")?,
+            fingerprint: Some(
+                extensions
+                    .string("fp")?
+                    .unwrap_or_else(|| "chrome".to_string()),
+            ),
+            mldsa65_verify: extensions.string("mldsa65Verify")?,
         })
     } else {
         None
@@ -169,66 +98,78 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
             } else {
                 Some(headers)
             },
-            heartbeat_period: extension_u64(node, "heartbeatPeriod"),
-            max_early_data: extension_u64(node, "ed"),
-            early_data_header_name: extension(node, "eh"),
+            heartbeat_period: extensions.u64("heartbeatPeriod")?,
+            max_early_data: extensions.u64("ed")?,
+            early_data_header_name: extensions.string("eh")?,
         })
     } else {
         None
     };
 
     let grpc_settings = if network == "grpc" {
+        let mode = extensions.string("mode")?;
         Some(GrpcSettings {
-            service_name: extension(node, "serviceName")
+            service_name: extensions
+                .string("serviceName")?
                 .or_else(|| node.path.clone())
                 .unwrap_or_default(),
-            authority: extension(node, "authority"),
-            multi_mode: extension_bool(node, "multiMode")
-                .or_else(|| extension(node, "mode").map(|value| value == "multi")),
-            idle_timeout: extension_u64(node, "idle_timeout")
-                .or_else(|| extension_u64(node, "idleTimeout")),
+            authority: extensions.string("authority")?,
+            multi_mode: extensions
+                .boolean("multiMode")?
+                .or_else(|| mode.map(|value| value == "multi")),
+            idle_timeout: extensions.alias_u64("idleTimeout", &["idle_timeout"])?,
         })
     } else {
         None
     };
 
-    let raw_settings =
-        if network == "raw" && extension(node, "headerType").as_deref() == Some("http") {
-            Some(RawSettings {
-                header: Some(json!({
-                    "type": "http",
-                    "request": {
-                        "path": [node.path.as_deref().unwrap_or("/")]
-                    }
-                })),
-            })
-        } else {
-            None
-        };
+    let raw_header_type = if network == "raw" {
+        extensions.alias_string("headerType", &["type"])?
+    } else {
+        None
+    };
+    if let Some(header_type) = raw_header_type.as_deref()
+        && !matches!(header_type, "none" | "http")
+    {
+        return Err(format!("unsupported Xray raw header type {header_type:?}"));
+    }
+    let raw_settings = if network == "raw" && raw_header_type.as_deref() == Some("http") {
+        Some(RawSettings {
+            header: Some(json!({
+                "type": "http",
+                "request": {
+                    "path": [node.path.as_deref().unwrap_or("/")]
+                }
+            })),
+        })
+    } else {
+        None
+    };
 
     let xhttp_settings = if network == "xhttp" {
+        let mode = extensions.string("mode")?;
         Some(XhttpSettings {
             host: node.host.clone(),
             path: node.path.clone().unwrap_or_else(|| "/".to_string()),
-            mode: extension(node, "mode"),
-            extra: node.extension_value("extra").cloned(),
+            extra: build_xhttp_extra(node, mode.as_deref(), extensions)?,
+            mode,
         })
     } else {
         None
     };
 
     let kcp_settings = if network == "mkcp" {
-        if node.extension_value("seed").is_some() || node.extension_value("headerType").is_some() {
+        if extensions.value("seed").is_some() || extensions.value("headerType").is_some() {
             return Err("current Xray mKCP no longer supports seed/headerType".to_string());
         }
         Some(KcpSettings {
-            mtu: extension_u64(node, "mtu"),
-            tti: extension_u64(node, "tti"),
-            uplink_capacity: extension_u64(node, "uplinkCapacity"),
-            downlink_capacity: extension_u64(node, "downlinkCapacity"),
-            congestion: extension_bool(node, "congestion"),
-            read_buffer_size: extension_u64(node, "readBufferSize"),
-            write_buffer_size: extension_u64(node, "writeBufferSize"),
+            mtu: extensions.u64("mtu")?,
+            tti: extensions.u64("tti")?,
+            uplink_capacity: extensions.u64("uplinkCapacity")?,
+            downlink_capacity: extensions.u64("downlinkCapacity")?,
+            congestion: extensions.boolean("congestion")?,
+            read_buffer_size: extensions.u64("readBufferSize")?,
+            write_buffer_size: extensions.u64("writeBufferSize")?,
         })
     } else {
         None
@@ -257,4 +198,85 @@ pub(super) fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings
         httpupgrade_settings,
         sockopt: None,
     }))
+}
+
+fn build_xhttp_extra(
+    node: &Node,
+    mode: Option<&str>,
+    extensions: &mut ExtensionResolver,
+) -> Result<Option<serde_json::Value>, String> {
+    let mut extra = serde_json::Map::new();
+
+    if let Some(value) = extensions.alias_string("x_padding_bytes", &["x_padding bytes"])? {
+        extra.insert("xPaddingBytes".to_string(), json!(value));
+    }
+    if let Some(official) = extensions.object("extra")? {
+        extra.extend(official);
+    }
+
+    for key in [
+        "xPaddingBytes",
+        "xPaddingKey",
+        "xPaddingHeader",
+        "xPaddingPlacement",
+        "xPaddingMethod",
+        "uplinkHTTPMethod",
+        "sessionIDPlacement",
+        "sessionIDKey",
+        "sessionIDTable",
+        "sessionIDLength",
+        "seqPlacement",
+        "seqKey",
+        "uplinkDataPlacement",
+        "uplinkDataKey",
+        "uplinkChunkSize",
+        "scMaxEachPostBytes",
+        "scMinPostsIntervalMs",
+        "scStreamUpServerSecs",
+    ] {
+        if let Some(value) = extensions.string(key)? {
+            extra.insert(key.to_string(), json!(value));
+        }
+    }
+    for key in ["xPaddingObfsMode", "noGRPCHeader", "noSSEHeader"] {
+        if let Some(value) = extensions.boolean(key)? {
+            extra.insert(key.to_string(), json!(value));
+        }
+    }
+    for key in ["scMaxBufferedPosts", "serverMaxHeaderBytes"] {
+        if let Some(value) = extensions.i64(key)? {
+            extra.insert(key.to_string(), json!(value));
+        }
+    }
+    for key in ["headers", "xmux", "downloadSettings"] {
+        if let Some(value) = extensions.object(key)? {
+            extra.insert(key.to_string(), serde_json::Value::Object(value));
+        }
+    }
+
+    remove_matching_structural(&mut extra, "host", node.host.as_deref())?;
+    remove_matching_structural(
+        &mut extra,
+        "path",
+        Some(node.path.as_deref().unwrap_or("/")),
+    )?;
+    remove_matching_structural(&mut extra, "mode", mode)?;
+
+    Ok((!extra.is_empty()).then_some(serde_json::Value::Object(extra)))
+}
+
+fn remove_matching_structural(
+    extra: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    outer: Option<&str>,
+) -> Result<(), String> {
+    let Some(value) = extra.remove(key) else {
+        return Ok(());
+    };
+    if value.as_str() == outer {
+        return Ok(());
+    }
+    Err(format!(
+        "XHTTP `extra.{key}` conflicts with the outer link parameter"
+    ))
 }

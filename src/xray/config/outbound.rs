@@ -1,13 +1,16 @@
 use serde_json::json;
 
+use super::extensions::ExtensionResolver;
 use super::stream::build_stream_settings;
 use super::types::Outbound;
 use crate::model::{Node, Protocol};
 
 pub(super) fn node_to_outbound(node: &Node, tag: &str) -> Result<Outbound, String> {
     let protocol = node.protocol.as_str().to_string();
-    let settings = build_outbound_settings(node)?;
-    let stream_settings = build_stream_settings(node)?;
+    let mut extensions = ExtensionResolver::new(node);
+    let settings = build_outbound_settings(node, &mut extensions)?;
+    let stream_settings = build_stream_settings(node, &mut extensions)?;
+    extensions.finish()?;
 
     Ok(Outbound {
         tag: tag.to_string(),
@@ -18,7 +21,10 @@ pub(super) fn node_to_outbound(node: &Node, tag: &str) -> Result<Outbound, Strin
     })
 }
 
-fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
+fn build_outbound_settings(
+    node: &Node,
+    extensions: &mut ExtensionResolver,
+) -> Result<serde_json::Value, String> {
     match node.protocol {
         Protocol::Vless => {
             let uuid = node.uuid.as_ref().ok_or("vless requires uuid")?;
@@ -26,13 +32,10 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "id": uuid,
                 "encryption": "none"
             });
-            if let Some(flow) = node
-                .extension_string("flow")
-                .filter(|value| !value.is_empty())
-            {
+            if let Some(flow) = extensions.string("flow")?.filter(|value| !value.is_empty()) {
                 user["flow"] = json!(flow);
             }
-            if let Some(encryption) = node.extension_string("encryption") {
+            if let Some(encryption) = extensions.string("encryption")? {
                 user["encryption"] = json!(encryption);
             }
             Ok(json!({
@@ -51,8 +54,8 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                     "port": node.port,
                     "users": [{
                         "id": uuid,
-                        "alterId": node.extension_value("aid").cloned().unwrap_or_else(|| json!(0)),
-                        "security": node.extension_string("scy").or_else(|| node.extension_string("security")).unwrap_or_else(|| "auto".to_string())
+                        "alterId": extensions.u64("aid")?.unwrap_or(0),
+                        "security": extensions.alias_string("scy", &["security"])?.unwrap_or_else(|| "auto".to_string())
                     }]
                 }]
             }))
@@ -64,10 +67,7 @@ fn build_outbound_settings(node: &Node) -> Result<serde_json::Value, String> {
                 "port": node.port,
                 "password": password
             });
-            if let Some(flow) = node
-                .extension_string("flow")
-                .filter(|value| !value.is_empty())
-            {
+            if let Some(flow) = extensions.string("flow")?.filter(|value| !value.is_empty()) {
                 server["flow"] = json!(flow);
             }
             Ok(json!({"servers": [server]}))

@@ -3,6 +3,7 @@ use super::{
     generate_runtime_config, generate_runtime_config_for_inbounds,
     generate_runtime_config_for_inbounds_with_options,
 };
+use crate::config::parse_link;
 use crate::model::{Node, Protocol};
 use crate::xray::config::{
     FragmentOptions, MuxOptions, XrayDnsConfig, XrayDnsHostValue, XrayGenOptions, XrayRouteList,
@@ -560,6 +561,113 @@ fn generates_xhttp_stream_with_tls_fingerprint_and_alpn() {
     assert_eq!(tls.server_name, "cdn.example.com");
     assert_eq!(tls.fingerprint.as_deref(), Some("chrome"));
     assert_eq!(tls.alpn.as_deref(), Some(&["h2".to_string()][..]));
+}
+
+#[test]
+fn vless_xhttp_link_merges_alias_extra_and_canonical_parameters() {
+    let link = concat!(
+        "vless://test-uuid@example.com:443?type=xhttp&security=tls&mode=auto",
+        "&x_padding%20bytes=1-2&x_padding_bytes=1-2",
+        "&extra=%7B%22futureOption%22%3Atrue%2C%22xPaddingBytes%22%3A%223-4%22%7D",
+        "&xPaddingBytes=5-6&noSSEHeader=true#XHTTP"
+    );
+    let node = parse_link(link).unwrap().unwrap();
+    let config = generate_probe_config(&node, 10808).unwrap();
+    let json = serde_json::to_value(config).unwrap();
+    let extra = &json["outbounds"][0]["streamSettings"]["xhttpSettings"]["extra"];
+
+    assert_eq!(extra["xPaddingBytes"], "5-6");
+    assert_eq!(extra["noSSEHeader"], true);
+    assert_eq!(extra["futureOption"], true);
+}
+
+#[test]
+fn xhttp_padding_aliases_are_supported_individually() {
+    for parameter in ["x_padding%20bytes", "x_padding_bytes", "xPaddingBytes"] {
+        let link =
+            format!("vless://test-uuid@example.com:443?type=xhttp&{parameter}=100-200#XHTTP");
+        let node = parse_link(&link).unwrap().unwrap();
+        let config = generate_probe_config(&node, 10808).unwrap();
+        let json = serde_json::to_value(config).unwrap();
+        assert_eq!(
+            json["outbounds"][0]["streamSettings"]["xhttpSettings"]["extra"]["xPaddingBytes"],
+            "100-200"
+        );
+    }
+}
+
+#[test]
+fn xhttp_rejects_malformed_repeated_conflicting_and_unknown_parameters() {
+    for (query, expected) in [
+        ("extra=not-json", "valid JSON"),
+        ("extra=%5B1%2C2%5D", "JSON object"),
+        ("noSSEHeader=maybe", "must be true"),
+        ("xPaddingBytes=1&xPaddingBytes=2", "must not be repeated"),
+        (
+            "x_padding_bytes=1-2&x_padding%20bytes=3-4",
+            "conflicting link parameters",
+        ),
+        ("futureFlatOption=on", "JSON `extra` parameter"),
+    ] {
+        let link = format!("vless://test-uuid@example.com:443?type=xhttp&{query}#XHTTP");
+        let node = parse_link(&link).unwrap().unwrap();
+        let error = generate_probe_config(&node, 10808).unwrap_err();
+        assert!(error.contains(expected), "unexpected error: {error}");
+    }
+}
+
+#[test]
+fn xhttp_rejects_conflicting_structural_fields_inside_extra() {
+    let link = concat!(
+        "vless://test-uuid@example.com:443?type=xhttp&path=%2Fouter",
+        "&extra=%7B%22path%22%3A%22%2Finner%22%7D#XHTTP"
+    );
+    let node = parse_link(link).unwrap().unwrap();
+    assert!(
+        generate_probe_config(&node, 10808)
+            .unwrap_err()
+            .contains("extra.path")
+    );
+}
+
+#[test]
+fn rejects_parameters_used_by_the_wrong_transport() {
+    let node =
+        parse_link("vless://test-uuid@example.com:443?type=ws&security=tls&mtu=1350#WebSocket")
+            .unwrap()
+            .unwrap();
+    let error = generate_probe_config(&node, 10808).unwrap_err();
+    assert!(error.contains("mtu"), "unexpected error: {error}");
+}
+
+#[test]
+fn native_xray_validator_accepts_generated_xhttp_config() {
+    if Command::new("xray").arg("version").output().is_err() {
+        return;
+    }
+
+    let link = concat!(
+        "vless://test-uuid@example.com:443?type=xhttp&security=tls&mode=auto",
+        "&xPaddingBytes=100-200&noSSEHeader=true#XHTTP"
+    );
+    let node = parse_link(link).unwrap().unwrap();
+    let config = generate_probe_config(&node, 10808).unwrap();
+    let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+    file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
+        .unwrap();
+    file.flush().unwrap();
+
+    let output = Command::new("xray")
+        .args(["run", "-test", "-c"])
+        .arg(file.path())
+        .output()
+        .expect("xray should start");
+    assert!(
+        output.status.success(),
+        "xray rejected generated XHTTP config: stderr={}, stdout={}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
 }
 
 #[test]

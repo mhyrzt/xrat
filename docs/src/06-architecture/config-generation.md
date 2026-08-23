@@ -257,7 +257,10 @@ Error: hysteria2/hy2 is not supported by xray config generator
 
 ### Stream Settings
 
-Generated based on node fields:
+Generated based on node fields. A shared extension resolver removes a parameter
+only when the protocol, security, or transport builder consumes and validates
+it. Generation fails if anything remains, preventing a newly preserved query
+parameter from being silently omitted or used by the wrong transport.
 
 ```rust
 fn build_stream_settings(node: &Node) -> Result<Option<StreamSettings>, String> {
@@ -346,6 +349,27 @@ Built when `security=reality`, using preserved extensions (`pbk`/`password`,
     "host": "www.example.com",
     "path": "/",
     "mode": "packet-up"
+  }
+}
+```
+
+#### XHTTP Extra Settings
+
+The xhttp builder merges compatibility padding aliases, the official JSON
+`extra` object, and known camelCase flat parameters in that order. Nested
+unknown fields remain intact for forward compatibility. Outer `host`, `path`,
+and `mode` are authoritative; conflicting copies inside `extra` are rejected.
+
+```json
+{
+  "method": "xhttp",
+  "xhttpSettings": {
+    "path": "/",
+    "mode": "auto",
+    "extra": {
+      "xPaddingBytes": "100-1000",
+      "noSSEHeader": true
+    }
   }
 }
 ```

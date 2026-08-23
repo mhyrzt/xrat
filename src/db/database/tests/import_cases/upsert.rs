@@ -41,6 +41,10 @@ async fn import_round_trip_preserves_json_extensions_without_raw_link_fallback()
     node.extensions = Some(std::collections::BTreeMap::from([
         ("multiMode".to_string(), serde_json::json!(true)),
         ("header".to_string(), serde_json::json!(["first", "second"])),
+        (
+            "extra".to_string(),
+            serde_json::json!({"futureOption": {"enabled": true}}),
+        ),
     ]));
 
     db.import_nodes(&source, &[node.clone()])
