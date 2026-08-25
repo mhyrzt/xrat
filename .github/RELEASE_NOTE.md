@@ -1,37 +1,40 @@
-## xrat v0.18.1
+## xrat v0.18.2
 
-This patch release fixes VLESS XHTTP links that use extended transport
-parameters and prevents supported-looking Xray link options from being silently
-dropped during runtime config generation.
+This patch release restores XHTTP and other non-RAW transports on older
+Xray-core versions and adds an explicit command for installing managed proxy
+cores from their official releases.
 
-### XHTTP compatibility
+### Xray transport compatibility
 
-- **Generate official XHTTP extras.** JSON supplied through the `extra` query
-  parameter is decoded and emitted as `xhttpSettings.extra`, preserving nested
-  options supported by newer Xray-core versions.
-- **Support common padding spellings.** `xPaddingBytes`, `x_padding_bytes`, and
-  the URL-encoded `x_padding%20bytes` alias all generate the canonical
-  `xPaddingBytes` field.
-- **Map current flat fields safely.** Supported XHTTP strings, booleans,
-  integers, headers, xmux settings, and download settings are validated and
-  merged with documented precedence.
+- **Support both transport selector names.** Generated `streamSettings` now
+  carries identical `network` and `method` values. Older Xray-core versions use
+  `network`, while newer versions can use the renamed `method` field.
+- **Prevent silent RAW fallback.** Xray versions that do not recognize `method`
+  can now select XHTTP, WebSocket, gRPC, mKCP, and HTTPUpgrade correctly instead
+  of ignoring the transport selector and defaulting to RAW.
+- **Expand regression coverage.** Generated transport selectors are checked
+  across RAW and representative non-RAW configurations, including native XHTTP
+  validation with Xray-core.
 
-### Safer link handling
+### Managed proxy-core installation
 
-- Xray link parameters are accepted only when the relevant protocol, security,
-  or transport builder consumes them with the expected type.
-- Unknown flat parameters, malformed JSON, repeated singular values,
-  conflicting aliases, and parameters used with the wrong transport now return
-  actionable errors instead of producing incomplete runtime configs.
-- Future XHTTP fields can be carried inside the typed JSON `extra` object. Their
-  runtime availability still depends on the installed Xray-core version.
+- **Install cores explicitly.** Use `xrat install xray`, `xrat install v2ray`,
+  or `xrat install sing-box` to install a managed core from its official GitHub
+  releases.
+- **Choose a release.** Installation defaults to the latest stable release,
+  accepts an exact version through `--version`, and supports the newest
+  published prerelease through `--prerelease`.
+- **Verify and persist installs.** Downloads show interactive progress, verify
+  the published SHA-256 digest, validate and atomically install the binary, and
+  update the matching path in `config.toml`.
+- **Improve observability.** Completion output and `xrat logs` identify the
+  selected core, installed version, binary path, and updated configuration path.
 
 ### Upgrade notes
 
-- No database migration or configuration-file change is required.
-- Existing XHTTP links using the reported padding aliases should work without
-  modification.
-- Put newly introduced XHTTP options inside the URL-encoded JSON `extra`
-  parameter when xrat does not yet recognize their flat form.
+- No database migration or manual configuration change is required.
+- Users running XHTTP or another non-RAW transport with an older Xray-core
+  version should upgrade XRAT to avoid the silent RAW fallback.
+- Managed core installation supports Linux and macOS on x86-64 and ARM64.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.18.0...v0.18.1
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.18.1...v0.18.2
