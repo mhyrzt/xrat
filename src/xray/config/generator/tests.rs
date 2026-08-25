@@ -604,6 +604,23 @@ fn xhttp_padding_aliases_are_supported_individually() {
 }
 
 #[test]
+fn xhttp_ignores_neutral_legacy_header_type() {
+    let baseline = parse_link("vless://test-uuid@example.com:443?type=xhttp#XHTTP")
+        .unwrap()
+        .unwrap();
+    let baseline = serde_json::to_value(generate_probe_config(&baseline, 10808).unwrap()).unwrap();
+
+    for header_type in ["", "none"] {
+        let link =
+            format!("vless://test-uuid@example.com:443?type=xhttp&headerType={header_type}#XHTTP");
+        let node = parse_link(&link).unwrap().unwrap();
+        let config = serde_json::to_value(generate_probe_config(&node, 10808).unwrap()).unwrap();
+
+        assert_eq!(config, baseline);
+    }
+}
+
+#[test]
 fn xhttp_rejects_malformed_repeated_conflicting_and_unknown_parameters() {
     for (query, expected) in [
         ("extra=not-json", "valid JSON"),
@@ -614,6 +631,7 @@ fn xhttp_rejects_malformed_repeated_conflicting_and_unknown_parameters() {
             "x_padding_bytes=1-2&x_padding%20bytes=3-4",
             "conflicting link parameters",
         ),
+        ("headerType=http", "headerType"),
         ("futureFlatOption=on", "JSON `extra` parameter"),
     ] {
         let link = format!("vless://test-uuid@example.com:443?type=xhttp&{query}#XHTTP");

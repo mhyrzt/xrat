@@ -147,6 +147,13 @@ pub(super) fn build_stream_settings(
     };
 
     let xhttp_settings = if network == "xhttp" {
+        if let Some(header_type) = extensions.string("headerType")?
+            && !matches!(header_type.as_str(), "" | "none")
+        {
+            return Err(format!(
+                "unsupported XHTTP link parameter \"headerType\" value {header_type:?}"
+            ));
+        }
         let mode = extensions.string("mode")?;
         Some(XhttpSettings {
             host: node.host.clone(),
