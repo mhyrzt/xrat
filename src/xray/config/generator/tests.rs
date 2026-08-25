@@ -53,6 +53,11 @@ fn socks_node() -> Node {
     }
 }
 
+fn assert_transport_selectors(stream: &serde_json::Value, expected: &str) {
+    assert_eq!(stream["network"], expected);
+    assert_eq!(stream["method"], expected);
+}
+
 #[test]
 fn default_options_leave_config_unchanged() {
     let node = vless_tls_node();
@@ -552,6 +557,8 @@ fn generates_xhttp_stream_with_tls_fingerprint_and_alpn() {
     let stream = config.outbounds[0].stream_settings.as_ref().unwrap();
 
     assert_eq!(stream.network, "xhttp");
+    let json = serde_json::to_value(&config.outbounds[0]).unwrap();
+    assert_transport_selectors(&json["streamSettings"], "xhttp");
     let xhttp = stream.xhttp_settings.as_ref().unwrap();
     assert_eq!(xhttp.host.as_deref(), Some("cdn.example.com"));
     assert_eq!(xhttp.path, "/");
@@ -652,6 +659,8 @@ fn native_xray_validator_accepts_generated_xhttp_config() {
     );
     let node = parse_link(link).unwrap().unwrap();
     let config = generate_probe_config(&node, 10808).unwrap();
+    let json = serde_json::to_value(&config).unwrap();
+    assert_transport_selectors(&json["outbounds"][0]["streamSettings"], "xhttp");
     let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
     file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
         .unwrap();
@@ -756,7 +765,7 @@ fn emits_current_reality_and_transport_field_names() {
 
     let config = generate_probe_config(&node, 10808).unwrap();
     let json = serde_json::to_value(&config.outbounds[0]).unwrap();
-    assert_eq!(json["streamSettings"]["method"], "raw");
+    assert_transport_selectors(&json["streamSettings"], "raw");
     assert_eq!(json["streamSettings"]["realitySettings"]["password"], "key");
     assert!(
         json["streamSettings"]["realitySettings"]
@@ -774,6 +783,7 @@ fn generates_grpc_mkcp_and_httpupgrade_settings() {
         ("multiMode".to_string(), serde_json::json!(true)),
     ]));
     let grpc_json = serde_json::to_value(generate_probe_config(&grpc, 10808).unwrap()).unwrap();
+    assert_transport_selectors(&grpc_json["outbounds"][0]["streamSettings"], "grpc");
     assert_eq!(
         grpc_json["outbounds"][0]["streamSettings"]["grpcSettings"]["serviceName"],
         "xrat"
@@ -791,10 +801,7 @@ fn generates_grpc_mkcp_and_httpupgrade_settings() {
         ("congestion".to_string(), serde_json::json!(true)),
     ]));
     let mkcp_json = serde_json::to_value(generate_probe_config(&mkcp, 10809).unwrap()).unwrap();
-    assert_eq!(
-        mkcp_json["outbounds"][0]["streamSettings"]["method"],
-        "mkcp"
-    );
+    assert_transport_selectors(&mkcp_json["outbounds"][0]["streamSettings"], "mkcp");
     assert_eq!(
         mkcp_json["outbounds"][0]["streamSettings"]["kcpSettings"]["mtu"],
         1350
@@ -806,6 +813,10 @@ fn generates_grpc_mkcp_and_httpupgrade_settings() {
     upgrade.host = Some("cdn.example.com".to_string());
     let upgrade_json =
         serde_json::to_value(generate_probe_config(&upgrade, 10810).unwrap()).unwrap();
+    assert_transport_selectors(
+        &upgrade_json["outbounds"][0]["streamSettings"],
+        "httpupgrade",
+    );
     assert_eq!(
         upgrade_json["outbounds"][0]["streamSettings"]["httpupgradeSettings"]["path"],
         "/upgrade"

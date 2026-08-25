@@ -187,6 +187,7 @@ pub(super) fn build_stream_settings(
 
     Ok(Some(StreamSettings {
         network: network.to_string(),
+        method: network.to_string(),
         security,
         tls_settings,
         reality_settings,

@@ -103,8 +103,9 @@ pub struct Mux {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamSettings {
-    #[serde(rename = "method")]
     pub network: String,
+    #[serde(rename = "method")]
+    pub(super) method: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub security: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

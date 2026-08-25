@@ -132,6 +132,7 @@ fn stream_settings_mut(outbound: &mut Outbound) -> &mut StreamSettings {
         .stream_settings
         .get_or_insert_with(|| StreamSettings {
             network: "raw".to_string(),
+            method: "raw".to_string(),
             security: None,
             tls_settings: None,
             reality_settings: None,
