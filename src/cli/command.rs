@@ -2,9 +2,10 @@ use clap::Subcommand;
 
 use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DbArgs, DeleteArgs, DisableArgs,
-    DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, ListArgs, LogsArgs, ManpageArgs,
-    ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs, SetupArgs,
-    ShowArgs, StatusArgs, TestArgs, TuiArgs, UpdateArgs, UpgradeArgs, ValidateArgs, VersionArgs,
+    DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, InstallArgs, ListArgs, LogsArgs,
+    ManpageArgs, ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs,
+    SetupArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs, UpdateArgs, UpgradeArgs, ValidateArgs,
+    VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -15,6 +16,8 @@ pub enum Command {
         about = "Run post-install setup: proxy cores, init, daemon, completions, man pages, and desktop integration."
     )]
     Setup(SetupArgs),
+    #[command(about = "Install Xray, V2Ray, or sing-box from its upstream release repository.")]
+    Install(InstallArgs),
     #[command(about = "Import a subscription URL, file, or raw text into SQLite.")]
     Import(ImportArgs),
     #[command(about = "Add a single config URI directly to SQLite.")]

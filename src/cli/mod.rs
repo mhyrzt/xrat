@@ -8,6 +8,7 @@ mod disconnect;
 mod geoip;
 mod import;
 mod init;
+mod install;
 mod lifecycle;
 mod list;
 mod logs;
@@ -45,6 +46,7 @@ pub use geoip::{
 };
 pub use import::ImportArgs;
 pub use init::InitArgs;
+pub use install::{InstallArgs, InstallCore};
 pub use lifecycle::{
     DeleteArgs, DeleteConfigArgs, DeleteSubscriptionArgs, DeleteTarget, DisableArgs, EnableArgs,
     RestoreArgs, ShowArgs, ShowConfigArgs, ShowSubscriptionArgs, ShowTarget,

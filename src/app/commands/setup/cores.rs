@@ -40,7 +40,7 @@ impl CoreKind {
         }
     }
 
-    fn repository(self) -> &'static str {
+    pub(super) fn repository(self) -> &'static str {
         match self {
             Self::Xray => "XTLS/Xray-core",
             Self::SingBox => "SagerNet/sing-box",
@@ -127,6 +127,8 @@ pub(super) struct InstallResult {
 #[derive(Deserialize)]
 struct GithubRelease {
     tag_name: String,
+    prerelease: bool,
+    created_at: String,
     assets: Vec<GithubAsset>,
 }
 
@@ -197,11 +199,25 @@ fn resolve_installed_path(configured: &Path) -> Option<PathBuf> {
 }
 
 async fn fetch_latest(client: &reqwest::Client, kind: CoreKind) -> Result<CoreRelease, String> {
+    fetch_release(client, kind, None, false).await
+}
+
+pub(super) async fn fetch_release(
+    client: &reqwest::Client,
+    kind: CoreKind,
+    version: Option<&Version>,
+    prerelease: bool,
+) -> Result<CoreRelease, String> {
+    let selector = if prerelease {
+        "latest prerelease".to_string()
+    } else if let Some(version) = version {
+        format!("v{version}")
+    } else {
+        "latest stable".to_string()
+    };
+    tracing::info!(core = kind.name(), %selector, "resolving proxy core release");
     let response = client
-        .get(format!(
-            "https://api.github.com/repos/{}/releases/latest",
-            kind.repository()
-        ))
+        .get(release_api_url(kind, version, prerelease))
         .send()
         .await
         .map_err(|error| error.to_string())?;
@@ -209,8 +225,55 @@ async fn fetch_latest(client: &reqwest::Client, kind: CoreKind) -> Result<CoreRe
         return Err(format!("GitHub returned HTTP {}", response.status()));
     }
     let body = response.text().await.map_err(|error| error.to_string())?;
-    let payload: GithubRelease = serde_json::from_str(&body).map_err(|error| error.to_string())?;
-    release_from_payload(kind, payload)
+    let payload = if prerelease {
+        let releases: Vec<GithubRelease> =
+            serde_json::from_str(&body).map_err(|error| error.to_string())?;
+        newest_prerelease(releases)
+            .ok_or_else(|| format!("{} has no published prerelease", kind.repository()))?
+    } else {
+        serde_json::from_str(&body).map_err(|error| error.to_string())?
+    };
+    let release = release_from_payload(kind, payload)?;
+    if let Some(version) = version
+        && release.version != *version
+    {
+        return Err(format!(
+            "GitHub returned v{} when v{version} was requested",
+            release.version
+        ));
+    }
+    tracing::info!(
+        core = kind.name(),
+        version = %release.version,
+        tag = %release.tag,
+        asset = %release.asset.name,
+        %selector,
+        "proxy core release resolved"
+    );
+    Ok(release)
+}
+
+fn release_api_url(kind: CoreKind, version: Option<&Version>, prerelease: bool) -> String {
+    if prerelease {
+        return format!(
+            "https://api.github.com/repos/{}/releases?per_page=100",
+            kind.repository()
+        );
+    }
+    let release = version
+        .map(|version| format!("tags/v{version}"))
+        .unwrap_or_else(|| "latest".to_string());
+    format!(
+        "https://api.github.com/repos/{}/releases/{release}",
+        kind.repository()
+    )
+}
+
+fn newest_prerelease(releases: Vec<GithubRelease>) -> Option<GithubRelease> {
+    releases
+        .into_iter()
+        .filter(|release| release.prerelease)
+        .max_by(|left, right| left.created_at.cmp(&right.created_at))
 }
 
 fn release_from_payload(kind: CoreKind, payload: GithubRelease) -> Result<CoreRelease, String> {
@@ -760,6 +823,47 @@ mod tests {
     }
 
     #[test]
+    fn builds_latest_and_pinned_release_api_urls() {
+        assert_eq!(
+            release_api_url(CoreKind::Xray, None, false),
+            "https://api.github.com/repos/XTLS/Xray-core/releases/latest"
+        );
+        assert_eq!(
+            release_api_url(CoreKind::SingBox, Some(&Version::new(1, 13, 2)), false,),
+            "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v1.13.2"
+        );
+        assert_eq!(
+            release_api_url(CoreKind::V2Ray, Some(&Version::new(5, 52, 0)), false),
+            "https://api.github.com/repos/v2fly/v2ray-core/releases/tags/v5.52.0"
+        );
+        assert_eq!(
+            release_api_url(CoreKind::Xray, None, true),
+            "https://api.github.com/repos/XTLS/Xray-core/releases?per_page=100"
+        );
+    }
+
+    #[test]
+    fn selects_newest_published_prerelease_by_creation_time() {
+        let releases = [
+            ("v26.3.27", false, "2026-03-27T00:00:00Z"),
+            ("v26.6.1", true, "2026-06-01T00:00:00Z"),
+            ("v26.7.28", true, "2026-07-28T00:00:00Z"),
+        ]
+        .into_iter()
+        .map(|(tag, prerelease, created_at)| GithubRelease {
+            tag_name: tag.to_string(),
+            prerelease,
+            created_at: created_at.to_string(),
+            assets: Vec::new(),
+        })
+        .collect();
+
+        let selected = newest_prerelease(releases).unwrap();
+
+        assert_eq!(selected.tag_name, "v26.7.28");
+    }
+
+    #[test]
     fn rejects_missing_or_invalid_release_digest() {
         assert!(parse_sha256(None).is_err());
         assert!(parse_sha256(Some("sha256:nope")).is_err());
@@ -782,6 +886,8 @@ mod tests {
         let name = asset_name(CoreKind::SingBox, &version).unwrap();
         let payload = GithubRelease {
             tag_name: "v1.13.18".to_string(),
+            prerelease: false,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
             assets: vec![GithubAsset {
                 name,
                 browser_download_url: "https://example.invalid/sing-box.tar.gz".to_string(),

@@ -10,7 +10,7 @@ mod steps;
 use crate::app::commands::output;
 use crate::app::context::AppContext;
 use crate::app::events;
-use crate::cli::{SetupArgs, SetupFormat};
+use crate::cli::{InstallArgs, InstallCore, SetupArgs, SetupFormat};
 use crate::support::platform;
 
 use report::{StepOutcome, StepStatus};
@@ -20,6 +20,88 @@ pub async fn run(context: &AppContext, args: &SetupArgs) -> crate::app::Result<(
         return check(context, args).await;
     }
     apply(context, args).await
+}
+
+pub async fn install(context: &AppContext, args: &InstallArgs) -> crate::app::Result<()> {
+    let kind = match args.core {
+        InstallCore::Xray => cores::CoreKind::Xray,
+        InstallCore::V2Ray => cores::CoreKind::V2Ray,
+        InstallCore::SingBox => cores::CoreKind::SingBox,
+    };
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent(concat!("xrat/", env!("CARGO_PKG_VERSION")))
+        .build()?;
+    let release = cores::fetch_release(&client, kind, args.version.as_ref(), args.prerelease)
+        .await
+        .map_err(crate::app::AppError::InvalidArgument)?;
+    let color = output::color_enabled();
+    let channel = if args.prerelease {
+        "prerelease"
+    } else if args.version.is_some() {
+        "pinned release"
+    } else {
+        "latest stable"
+    };
+    println!(
+        "{}",
+        output::notice(
+            format!(
+                "Installing {} v{} ({channel}) from {}.",
+                kind.name(),
+                release.version,
+                kind.repository()
+            ),
+            color,
+        )
+    );
+    let installed = cores::install(context, kind, &release, true)
+        .await
+        .map_err(crate::app::AppError::InvalidArgument)?;
+
+    println!("{}", output::success("Proxy core installed.", color));
+    println!(
+        "{}",
+        output::format_kv(
+            None,
+            &[
+                ("core", kind.name().to_string()),
+                ("version", format!("v{}", installed.version)),
+                ("binary", installed.binary_path.display().to_string()),
+                (
+                    "config",
+                    context.runtime_paths.config_path.display().to_string(),
+                ),
+            ],
+            color,
+        )
+    );
+    if let Some(warning) = installed.cli_link_warning {
+        println!("{}", output::warn(warning, color));
+    }
+
+    events::record(
+        &context.db,
+        events::LEVEL_INFO,
+        events::SOURCE_SETUP,
+        "core_installed",
+        format!("Installed {} v{}", kind.name(), installed.version),
+        None,
+        None,
+        Some(
+            serde_json::json!({
+                "core": kind.name(),
+                "version": installed.version.to_string(),
+                "binary_path": installed.binary_path,
+                "config_path": context.runtime_paths.config_path,
+                "release_channel": channel,
+            })
+            .to_string(),
+        ),
+    )
+    .await;
+
+    Ok(())
 }
 
 async fn check(context: &AppContext, args: &SetupArgs) -> crate::app::Result<()> {

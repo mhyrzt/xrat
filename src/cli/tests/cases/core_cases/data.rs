@@ -74,6 +74,7 @@ fn parses_import_subcommand_with_global_flags() {
         | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Setup(_)
+        | Command::Install(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
             panic!("expected import command")
@@ -179,6 +180,7 @@ fn parses_add_subcommand() {
         | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Setup(_)
+        | Command::Install(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
             panic!("expected add command")
@@ -235,6 +237,7 @@ fn parses_list_subscriptions_alias() {
         | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Setup(_)
+        | Command::Install(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
             panic!("expected list command")
@@ -299,6 +302,7 @@ fn parses_list_config_filters() {
         | Command::Mmdb(_)
         | Command::Init(_)
         | Command::Setup(_)
+        | Command::Install(_)
         | Command::Manpage(_)
         | Command::Completions(_) => {
             panic!("expected list command")
