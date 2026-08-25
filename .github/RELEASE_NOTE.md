@@ -1,40 +1,23 @@
-## xrat v0.18.2
+## xrat v0.18.3
 
-This patch release restores XHTTP and other non-RAW transports on older
-Xray-core versions and adds an explicit command for installing managed proxy
-cores from their official releases.
+This patch release restores XHTTP links exported by clients and subscription
+panels that append the inert legacy parameter `headerType=none`.
 
-### Xray transport compatibility
+### XHTTP link compatibility
 
-- **Support both transport selector names.** Generated `streamSettings` now
-  carries identical `network` and `method` values. Older Xray-core versions use
-  `network`, while newer versions can use the renamed `method` field.
-- **Prevent silent RAW fallback.** Xray versions that do not recognize `method`
-  can now select XHTTP, WebSocket, gRPC, mKCP, and HTTPUpgrade correctly instead
-  of ignoring the transport selector and defaulting to RAW.
-- **Expand regression coverage.** Generated transport selectors are checked
-  across RAW and representative non-RAW configurations, including native XHTTP
-  validation with Xray-core.
-
-### Managed proxy-core installation
-
-- **Install cores explicitly.** Use `xrat install xray`, `xrat install v2ray`,
-  or `xrat install sing-box` to install a managed core from its official GitHub
-  releases.
-- **Choose a release.** Installation defaults to the latest stable release,
-  accepts an exact version through `--version`, and supports the newest
-  published prerelease through `--prerelease`.
-- **Verify and persist installs.** Downloads show interactive progress, verify
-  the published SHA-256 digest, validate and atomically install the binary, and
-  update the matching path in `config.toml`.
-- **Improve observability.** Completion output and `xrat logs` identify the
-  selected core, installed version, binary path, and updated configuration path.
+- **Accept neutral legacy defaults.** XHTTP links with an absent, empty, or
+  `none` header type now generate identical runtime transport settings.
+- **Preserve strict validation.** Non-neutral `headerType` values remain
+  rejected for XHTTP because the field belongs to other transports. Future
+  XHTTP fields must still be carried in the URL-encoded JSON `extra` parameter.
+- **Cover the compatibility boundary.** Regression tests verify both accepted
+  neutral values and rejected non-neutral values.
 
 ### Upgrade notes
 
 - No database migration or manual configuration change is required.
-- Users running XHTTP or another non-RAW transport with an older Xray-core
-  version should upgrade XRAT to avoid the silent RAW fallback.
-- Managed core installation supports Linux and macOS on x86-64 and ARM64.
+- Users seeing `unsupported link parameter "headerType" for transport "xhttp"`
+  should upgrade XRAT; existing imported configurations do not need to be
+  re-imported.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.18.1...v0.18.2
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.18.2...v0.18.3
