@@ -126,12 +126,14 @@ Runtime engine and proxy process configuration.
 ```toml
 [runtime]
 engine = "xray"     # "xray" | "v2ray" | "sing-box"
+xray_compatibility = "auto" # "auto" | "stable" | "prerelease"
 replace_active_session = true
 ```
 
 | Field                    | Type    | Default | Description                                                                                                                       |
 | ------------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `engine`                 | enum    | `xray`  | Managed runtime engine. Hy2 configs auto-select sing-box; non-Hy2 configs use Xray/V2Ray unless supported by the selected engine. |
+| `xray_compatibility`     | enum    | `auto`  | Xray schema target. `auto` detects v26.7.28 prerelease; explicit `stable`/`prerelease` overrides detection.                       |
 | `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                                                    |
 
 ---

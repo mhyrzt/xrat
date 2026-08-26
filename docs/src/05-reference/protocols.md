@@ -48,6 +48,11 @@ vless://<uuid>@<address>:<port>?type=<network>&security=<tls>&sni=<sni>&host=<ho
 | `pbk`      | query    | REALITY  | REALITY public key (required when `security=reality`)       |
 | `sid`      | query    | No       | REALITY short ID                                            |
 | `spx`      | query    | No       | REALITY spiderX path                                        |
+| `pqv`      | query    | No       | REALITY ML-DSA-65 verification key                          |
+| `ech`      | query    | TLS      | TLS ECH configuration list                                  |
+| `pcs`      | query    | TLS      | Pinned peer certificate SHA-256                             |
+| `vcn`      | query    | TLS      | Peer certificate verification name                          |
+| `fm`       | query    | No       | Percent-encoded JSON object for `streamSettings.finalmask`  |
 | `name`     | fragment | No       | Display name                                                |
 
 **REALITY**: when `security=reality`, xrat builds current Xray `realitySettings`
@@ -93,7 +98,17 @@ Legacy protocol with encryption, from V2Ray.
 
 **Scheme**: `vmess://`
 
-**Format**:
+**Current AEAD URL format**:
+
+```
+vmess://<uuid>@<address>:<port>?type=<network>&security=<tls>&encryption=<cipher>&sni=<sni>&host=<host>&path=<path>#<name>
+```
+
+The URL form uses the same normalized transport, TLS, REALITY, and `fm` fields
+as VLESS. Its UUID, host, and port are required, and duplicate query keys are
+rejected. `encryption` defaults to `auto` when omitted.
+
+**Legacy format** (still supported):
 
 ```
 vmess://<base64-json>
@@ -130,6 +145,7 @@ vmess://<base64-json>
 **Example**:
 
 ```
+vmess://00000000-0000-0000-0000-000000000001@example.com:443?type=ws&security=tls&encryption=auto&host=cdn.example.com&path=%2Fvmess#VMess%20AEAD
 vmess://eyJhZGQiOiJleGFtcGxlLmNvbSIsInBvcnQiOiI0NDMiLCJpZCI6InV1aWQtNDU2IiwibmV0Ijoid3MiLCJ0bHMiOiJ0bHMiLCJzbmkiOiJlZGdlLmV4YW1wbGUuY29tIiwiaG9zdCI6Imhvc3QuZXhhbXBsZS5jb20iLCJwYXRoIjoiL3ZtZXNzIiwicHMiOiJWTWVzcyBOb2RlIn0=
 ```
 

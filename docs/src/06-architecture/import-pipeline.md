@@ -156,8 +156,9 @@ pub struct Node {
 
 Node is also the source for `NodeDedupKey` (see below).
 
-URL parsers preserve repeated query parameters as JSON arrays. VMess preserves
-native JSON booleans, numbers, arrays, and objects. The v2 dedup key includes
+URL-form VLESS and VMess parsers reject repeated query parameters because the
+official share-link format defines each field as singular. Legacy VMess JSON
+preserves native booleans, numbers, arrays, and objects. The v2 dedup key includes
 this deterministic extension map, so configurations that differ in a
 wire-affecting parameter do not collapse into one row. Legacy rows are
 backfilled from `raw_config` during schema initialization.
