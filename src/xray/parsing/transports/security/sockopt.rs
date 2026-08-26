@@ -6,13 +6,14 @@ use crate::xray::parsing::shared::DomainStrategy;
 #[serde(rename_all = "camelCase")]
 pub struct HappyEyeballsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub try_delay_ms: Option<i32>,
+    pub try_delay_ms: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub prioritize_i_pv6: Option<bool>,
+    #[serde(rename = "prioritizeIPv6")]
+    pub prioritize_ipv6: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub interleave: Option<i32>,
+    pub interleave: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_concurrent_try: Option<i32>,
+    pub max_concurrent_try: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,13 +22,15 @@ pub struct CustomSockoptObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub system: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub network: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub level: Option<serde_json::Value>,
+    pub level: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub opt: Option<serde_json::Value>,
+    pub opt: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<serde_json::Value>,
+    pub value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +40,8 @@ pub struct SockoptObject {
     pub mark: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcp_max_seg: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tcp_window_clamp: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcp_fast_open: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,6 +64,16 @@ pub struct SockoptObject {
     pub tcp_congestion: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tcpcongestion: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub penetrate: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tcpMptcp")]
+    pub tcp_mptcp: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address_port_strategy: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "trustedXForwardedFor")]
+    pub trusted_x_forwarded_for: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interface: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

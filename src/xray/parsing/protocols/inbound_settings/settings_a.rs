@@ -2,21 +2,28 @@ use serde::{Deserialize, Serialize};
 
 use super::super::clients::*;
 use super::super::common::{FallbackObject, HttpAccountObject};
-use crate::xray::parsing::shared::{Address, Network};
+use crate::xray::parsing::shared::{Address, Network, deserialize_optional_string_list};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InboundSettingsDokodemo {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<Address>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub port: Option<u16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<Network>,
+    #[serde(alias = "address", skip_serializing_if = "Option::is_none")]
+    pub rewrite_address: Option<Address>,
+    #[serde(alias = "port", skip_serializing_if = "Option::is_none")]
+    pub rewrite_port: Option<u16>,
+    #[serde(
+        alias = "network",
+        default,
+        deserialize_with = "deserialize_optional_string_list",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_network: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub follow_redirect: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_level: Option<i32>,
+    pub user_level: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port_map: Option<std::collections::HashMap<String, u16>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,7 +34,7 @@ pub struct InboundSettingsHttp {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_transparent: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_level: Option<i32>,
+    pub user_level: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +55,7 @@ pub struct InboundSettingsShadowsocks {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub level: Option<i32>,
+    pub level: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,7 +74,7 @@ pub struct InboundSettingsSocks {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ip: Option<Address>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_level: Option<i32>,
+    pub user_level: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -14,15 +14,15 @@ pub enum Network {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum StreamNetwork {
-    #[serde(rename = "raw")]
+    #[serde(rename = "raw", alias = "tcp")]
     Raw,
-    #[serde(rename = "xhttp")]
+    #[serde(rename = "xhttp", alias = "splithttp")]
     Xhttp,
-    #[serde(rename = "kcp")]
+    #[serde(rename = "mkcp", alias = "kcp")]
     Kcp,
     #[serde(rename = "grpc")]
     Grpc,
-    #[serde(rename = "ws")]
+    #[serde(rename = "websocket", alias = "ws")]
     Ws,
     #[serde(rename = "httpupgrade")]
     HttpUpgrade,

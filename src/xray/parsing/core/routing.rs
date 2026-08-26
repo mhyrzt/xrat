@@ -8,7 +8,7 @@ use crate::xray::parsing::shared::{DurationString, PortValue};
 pub struct RoutingWebhookObject {
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub deduplication: Option<i32>,
+    pub deduplication: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
 }
@@ -17,6 +17,13 @@ pub struct RoutingWebhookObject {
 #[serde(rename_all = "camelCase")]
 pub struct RuleObject {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "domains")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub domain: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ip: Option<Vec<String>>,
@@ -27,10 +34,24 @@ pub struct RuleObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub local_port: Option<PortValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<String>,
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
+    pub network: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "sourceIP", alias = "source")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub source_ip: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "localIP")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub local_ip: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<Vec<String>>,
@@ -69,8 +90,9 @@ pub struct RoutingCostObject {
 #[serde(rename_all = "camelCase")]
 pub struct RoutingStrategySettingsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expected: Option<i32>,
+    pub expected: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "maxRTT")]
     pub max_rtt: Option<DurationString>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tolerance: Option<f64>,

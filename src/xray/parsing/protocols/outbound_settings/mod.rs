@@ -3,10 +3,14 @@ mod proxy;
 mod tunnel;
 
 pub use basic::{
-    BlackholeResponse, OutboundSettingsBlackhole, OutboundSettingsDns, OutboundSettingsFreedom,
+    BlackholeResponse, DnsOutboundRule, FreedomFinalRule, OutboundSettingsBlackhole,
+    OutboundSettingsDns, OutboundSettingsFreedom,
 };
-pub use proxy::{OutboundSettingsHttp, OutboundSettingsShadowsocks, OutboundSettingsSocks};
+pub use proxy::{
+    OutboundHttpConfig, OutboundSettingsHttp, OutboundSettingsShadowsocks, OutboundSettingsSocks,
+    OutboundShadowsocksConfig, OutboundSocksConfig,
+};
 pub use tunnel::{
-    OutboundSettingsHysteria, OutboundSettingsLoopback, OutboundSettingsTrojan,
-    OutboundSettingsVless, OutboundSettingsVmess, OutboundSettingsWireguard,
+    OutboundSettingsHysteria, OutboundSettingsLoopback, OutboundSettingsWireguard,
+    OutboundTrojanConfig, OutboundVlessConfig, OutboundVmessConfig,
 };

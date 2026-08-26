@@ -7,6 +7,7 @@ pub enum ApiServiceName {
     StatsService,
     RoutingService,
     ReflectionService,
+    ObservatoryService,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

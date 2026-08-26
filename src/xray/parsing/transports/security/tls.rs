@@ -25,11 +25,11 @@ pub struct TlsCertificateObject {
 #[serde(rename_all = "camelCase")]
 pub struct LimitFallbackObject {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub after_bytes: Option<i64>,
+    pub after_bytes: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bytes_per_sec: Option<i64>,
+    pub bytes_per_sec: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub burst_bytes_per_sec: Option<i64>,
+    pub burst_bytes_per_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,7 +58,26 @@ pub struct TlsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pinned_peer_certificate_chain_sha256: Option<Vec<String>>,
+    pub curve_preferences: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pinnedPeerCertSha256")]
+    pub pinned_peer_cert_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verify_peer_cert_by_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verify_peer_cert_in_names: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub master_key_log: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "echServerKeys")]
+    pub ech_server_keys: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "echConfigList")]
+    pub ech_config_list: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "echForceQuery")]
+    pub ech_force_query: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "echSockopt")]
+    pub ech_sockopt: Option<super::SockoptObject>,
 }

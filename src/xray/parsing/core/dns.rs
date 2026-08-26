@@ -17,15 +17,29 @@ pub struct DnsServerObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub port: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub domains: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "expectedIPs", alias = "expectIPs")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub expected_i_ps: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "unexpectedIPs")]
+    #[serde(
+        default,
+        deserialize_with = "crate::xray::parsing::shared::deserialize_optional_string_list"
+    )]
     pub unexpected_i_ps: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skip_fallback: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout_ms: Option<i32>,
+    pub timeout_ms: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -37,7 +51,8 @@ pub struct DnsServerObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub serve_stale: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub serve_expired_ttl: Option<i32>,
+    #[serde(rename = "serveExpiredTTL")]
+    pub serve_expired_ttl: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub final_query: Option<bool>,
 }
@@ -73,7 +88,8 @@ pub struct DnsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub serve_stale: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub serve_expired_ttl: Option<i32>,
+    #[serde(rename = "serveExpiredTTL")]
+    pub serve_expired_ttl: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
 }

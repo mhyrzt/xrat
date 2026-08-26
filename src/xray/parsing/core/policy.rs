@@ -5,13 +5,13 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub struct LevelPolicyObject {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub handshake: Option<i32>,
+    pub handshake: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub conn_idle: Option<i32>,
+    pub conn_idle: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub uplink_only: Option<i32>,
+    pub uplink_only: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub downlink_only: Option<i32>,
+    pub downlink_only: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stats_user_uplink: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

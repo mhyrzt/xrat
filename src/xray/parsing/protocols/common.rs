@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::xray::parsing::shared::Int32Range;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HttpAccountObject {
@@ -24,9 +26,11 @@ pub struct FallbackObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub dest: Option<String>,
+    pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub xver: Option<i32>,
+    pub dest: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xver: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,9 +39,11 @@ pub struct FragmentObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub packets: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub length: Option<String>,
+    pub length: Option<Int32Range>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub interval: Option<String>,
+    pub interval: Option<Int32Range>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_split: Option<Int32Range>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +54,9 @@ pub struct NoiseObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub packet: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub delay: Option<String>,
+    pub delay: Option<Int32Range>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apply_to: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +67,7 @@ pub struct WireguardPeerObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pre_shared_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub keep_alive: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_i_ps: Option<Vec<String>>,
+    pub keep_alive: Option<u32>,
+    #[serde(rename = "allowedIPs", skip_serializing_if = "Option::is_none")]
+    pub allowed_ips: Option<Vec<String>>,
 }

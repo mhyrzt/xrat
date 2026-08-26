@@ -10,13 +10,13 @@ pub struct WebSocketObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_early_data: Option<i32>,
+    pub accept_proxy_protocol: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub use_browser_forwarding: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub early_data_header_name: Option<String>,
+    pub heartbeat_period: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,40 +30,53 @@ pub struct RawObject {
 #[serde(rename_all = "camelCase")]
 pub struct KcpObject {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub mtu: Option<i32>,
+    pub mtu: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tti: Option<i32>,
+    pub tti: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub uplink_capacity: Option<i32>,
+    pub uplink_capacity: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub downlink_capacity: Option<i32>,
+    pub downlink_capacity: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub congestion: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub read_buffer_size: Option<i32>,
+    pub read_buffer_size: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub write_buffer_size: Option<i32>,
+    pub write_buffer_size: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub header: Option<HashMap<String, serde_json::Value>>,
+    pub header: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwnd_multiplier: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_sending_window: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrpcObject {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub authority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub service_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multi_mode: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "idle_timeout")]
     pub idle_timeout: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "health_check_timeout")]
     pub health_check_timeout: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "permit_without_stream")]
     pub permit_without_stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "initial_windows_size")]
     pub initial_windows_size: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "user_agent")]
+    pub user_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,6 +88,8 @@ pub struct HttpUpgradeObject {
     pub host: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accept_proxy_protocol: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +117,12 @@ pub struct FinalMaskObject {
 #[serde(rename_all = "camelCase")]
 pub struct StreamSettingsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<StreamNetwork>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<StreamNetwork>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub security: Option<Security>,
@@ -110,8 +131,10 @@ pub struct StreamSettingsObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reality_settings: Option<RealityObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "tcpSettings")]
     pub raw_settings: Option<RawObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "splithttpSettings")]
     pub xhttp_settings: Option<XHttpSettingsObject>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kcp_settings: Option<KcpObject>,
@@ -129,4 +152,10 @@ pub struct StreamSettingsObject {
     pub finalmask: Option<FinalMaskObject>,
 }
 
-pub type TransportObject = StreamSettingsObject;
+impl StreamSettingsObject {
+    pub fn effective_network(&self) -> Option<&StreamNetwork> {
+        self.method.as_ref().or(self.network.as_ref())
+    }
+}
+
+pub type TransportObject = HashMap<String, serde_json::Value>;

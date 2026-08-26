@@ -52,6 +52,7 @@ fn test_parse_features() {
 #[test]
 fn test_serialize_to_json() {
     let config = XrayConfig {
+        env: None,
         version: None,
         log: Some(LogObject {
             access: Some("/var/log/access.log".to_string()),
@@ -73,6 +74,8 @@ fn test_serialize_to_json() {
         metrics: None,
         observatory: None,
         burst_observatory: None,
+        geodata: None,
+        source: None,
     };
 
     let json = config.to_json().unwrap();

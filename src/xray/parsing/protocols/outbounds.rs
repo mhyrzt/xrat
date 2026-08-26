@@ -14,6 +14,7 @@ pub struct MuxObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xudp_concurrency: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "xudpProxyUDP443")]
     pub xudp_proxy_udp443: Option<String>,
 }
 
@@ -45,7 +46,7 @@ pub struct BaseOutboundObject {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "protocol", rename_all = "lowercase")]
 pub enum OutboundObject {
-    #[serde(rename = "blackhole")]
+    #[serde(rename = "blackhole", alias = "block")]
     Blackhole {
         #[serde(flatten)]
         base: BaseOutboundObject,
@@ -59,7 +60,7 @@ pub enum OutboundObject {
         #[serde(skip_serializing_if = "Option::is_none")]
         settings: Option<OutboundSettingsDns>,
     },
-    #[serde(rename = "freedom")]
+    #[serde(rename = "freedom", alias = "direct")]
     Freedom {
         #[serde(flatten)]
         base: BaseOutboundObject,
@@ -70,7 +71,7 @@ pub enum OutboundObject {
     Http {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsHttp,
+        settings: OutboundHttpConfig,
     },
     #[serde(rename = "hysteria")]
     Hysteria {
@@ -88,31 +89,31 @@ pub enum OutboundObject {
     Shadowsocks {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsShadowsocks,
+        settings: OutboundShadowsocksConfig,
     },
     #[serde(rename = "socks")]
     Socks {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsSocks,
+        settings: OutboundSocksConfig,
     },
     #[serde(rename = "trojan")]
     Trojan {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsTrojan,
+        settings: OutboundTrojanConfig,
     },
     #[serde(rename = "vless")]
     Vless {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsVless,
+        settings: OutboundVlessConfig,
     },
     #[serde(rename = "vmess")]
     Vmess {
         #[serde(flatten)]
         base: BaseOutboundObject,
-        settings: OutboundSettingsVmess,
+        settings: OutboundVmessConfig,
     },
     #[serde(rename = "wireguard")]
     Wireguard {

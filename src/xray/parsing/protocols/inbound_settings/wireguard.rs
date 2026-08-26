@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct WireguardInboundPeerObject {
     pub public_key: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_i_ps: Option<Vec<String>>,
+    #[serde(rename = "allowedIPs", skip_serializing_if = "Option::is_none")]
+    pub allowed_ips: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +13,6 @@ pub struct WireguardInboundPeerObject {
 pub struct InboundSettingsWireguard {
     pub secret_key: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub mtu: Option<i32>,
+    pub mtu: Option<u32>,
     pub peers: Vec<WireguardInboundPeerObject>,
 }

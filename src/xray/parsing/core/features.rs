@@ -42,7 +42,7 @@ pub struct ReverseObject {
 pub struct FakeDnsPoolObject {
     pub ip_pool: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pool_size: Option<i32>,
+    pub pool_size: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,8 +55,10 @@ pub enum FakeDnsObject {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsObject {
-    pub tag: String,
-    pub listen: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub listen: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +66,7 @@ pub struct MetricsObject {
 pub struct ObservatoryObject {
     pub subject_selector: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "probeURL")]
     pub probe_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub probe_interval: Option<DurationString>,
@@ -93,4 +96,24 @@ pub struct PingConfigObject {
 pub struct BurstObservatoryObject {
     pub subject_selector: Vec<String>,
     pub ping_config: PingConfigObject,
+}
+
+pub type EnvObject = HashMap<String, String>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeodataAssetObject {
+    pub url: String,
+    pub file: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeodataObject {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cron: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outbound: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assets: Option<Vec<GeodataAssetObject>>,
 }
