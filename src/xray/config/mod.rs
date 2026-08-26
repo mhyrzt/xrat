@@ -9,7 +9,9 @@ mod types;
 use crate::model::Node;
 
 pub use routing::{XrayRouteList, XrayRoutingOptions};
-pub use tuning::{FragmentOptions, MuxOptions, XrayGenOptions};
+pub use tuning::{
+    FragmentOptions, MuxOptions, XrayCompatibilityPolicy, XrayCompatibilityTarget, XrayGenOptions,
+};
 pub use types::{
     GrpcSettings, Inbound, LogConfig, Outbound, RawSettings, RoutingConfig, RoutingRule,
     StreamSettings, TlsSettings, WsSettings, XrayConfig, XrayDnsConfig, XrayDnsHostValue,

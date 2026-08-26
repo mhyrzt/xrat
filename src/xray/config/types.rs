@@ -103,8 +103,9 @@ pub struct Mux {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamSettings {
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub network: String,
-    #[serde(rename = "method")]
+    #[serde(rename = "method", skip_serializing_if = "String::is_empty")]
     pub(super) method: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub security: Option<String>,
@@ -124,6 +125,8 @@ pub struct StreamSettings {
     pub xhttp_settings: Option<XhttpSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub httpupgrade_settings: Option<HttpUpgradeSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finalmask: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sockopt: Option<Sockopt>,
 }
@@ -149,6 +152,15 @@ pub struct TlsSettings {
     pub fingerprint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alpn: Option<Vec<String>>,
+    #[serde(rename = "echConfigList", skip_serializing_if = "Option::is_none")]
+    pub ech_config_list: Option<String>,
+    #[serde(
+        rename = "pinnedPeerCertSha256",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub pinned_peer_cert_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verify_peer_cert_by_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,18 +193,13 @@ pub struct XhttpSettings {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsSettings {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
     pub path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
     #[serde(rename = "heartbeatPeriod", skip_serializing_if = "Option::is_none")]
     pub heartbeat_period: Option<u64>,
-    #[serde(rename = "maxEarlyData", skip_serializing_if = "Option::is_none")]
-    pub max_early_data: Option<u64>,
-    #[serde(
-        rename = "earlyDataHeaderName",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub early_data_header_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,6 +225,14 @@ pub struct KcpSettings {
     pub read_buffer_size: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub write_buffer_size: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub header: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seed: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwnd_multiplier: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_sending_window: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,6 +245,23 @@ pub struct GrpcSettings {
     pub multi_mode: Option<bool>,
     #[serde(rename = "idle_timeout", skip_serializing_if = "Option::is_none")]
     pub idle_timeout: Option<u64>,
+    #[serde(
+        rename = "health_check_timeout",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub health_check_timeout: Option<u64>,
+    #[serde(
+        rename = "permit_without_stream",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub permit_without_stream: Option<bool>,
+    #[serde(
+        rename = "initial_windows_size",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub initial_windows_size: Option<i64>,
+    #[serde(rename = "user_agent", skip_serializing_if = "Option::is_none")]
+    pub user_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,4 +271,9 @@ pub struct HttpUpgradeSettings {
     pub host: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<HashMap<String, String>>,
+    #[serde(
+        rename = "acceptProxyProtocol",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub accept_proxy_protocol: Option<bool>,
 }

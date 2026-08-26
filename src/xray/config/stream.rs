@@ -1,6 +1,7 @@
 use serde_json::json;
 use std::collections::HashMap;
 
+use super::XrayCompatibilityTarget;
 use super::extensions::ExtensionResolver;
 use super::types::{
     GrpcSettings, HttpUpgradeSettings, KcpSettings, RawSettings, RealitySettings, StreamSettings,
@@ -11,6 +12,7 @@ use crate::model::{Node, Protocol};
 pub(super) fn build_stream_settings(
     node: &Node,
     extensions: &mut ExtensionResolver,
+    compatibility: XrayCompatibilityTarget,
 ) -> Result<Option<StreamSettings>, String> {
     let network = match node.network.to_ascii_lowercase().as_str() {
         "" | "tcp" | "raw" => "raw",
@@ -55,11 +57,20 @@ pub(super) fn build_stream_settings(
                 .filter(|part| !part.is_empty())
                 .collect::<Vec<_>>()
         });
+        let allow_insecure = extensions.alias_bool("allowInsecure", &["insecure"])?;
+        if matches!(compatibility, XrayCompatibilityTarget::PrereleaseV26_7_28)
+            && allow_insecure.is_some()
+        {
+            return Err("allowInsecure is not supported by Xray prerelease v26.7.28".to_string());
+        }
         Some(TlsSettings {
             server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
-            allow_insecure: extensions.alias_bool("allowInsecure", &["insecure"])?,
+            allow_insecure,
             fingerprint: extensions.string("fp")?,
             alpn: alpn.filter(|parts| !parts.is_empty()),
+            ech_config_list: extensions.string("ech")?,
+            pinned_peer_cert_sha256: extensions.string("pcs")?,
+            verify_peer_cert_by_name: extensions.string("vcn")?,
         })
     } else {
         None
@@ -80,7 +91,7 @@ pub(super) fn build_stream_settings(
                     .string("fp")?
                     .unwrap_or_else(|| "chrome".to_string()),
             ),
-            mldsa65_verify: extensions.string("mldsa65Verify")?,
+            mldsa65_verify: extensions.alias_string("mldsa65Verify", &["pqv"])?,
         })
     } else {
         None
@@ -92,15 +103,14 @@ pub(super) fn build_stream_settings(
             headers.insert("Host".to_string(), host.clone());
         }
         Some(WsSettings {
-            path: node.path.clone().unwrap_or_else(|| "/".to_string()),
+            host: node.host.clone(),
+            path: websocket_path(node, extensions)?,
             headers: if headers.is_empty() {
                 None
             } else {
                 Some(headers)
             },
             heartbeat_period: extensions.u64("heartbeatPeriod")?,
-            max_early_data: extensions.u64("ed")?,
-            early_data_header_name: extensions.string("eh")?,
         })
     } else {
         None
@@ -118,6 +128,14 @@ pub(super) fn build_stream_settings(
                 .boolean("multiMode")?
                 .or_else(|| mode.map(|value| value == "multi")),
             idle_timeout: extensions.alias_u64("idleTimeout", &["idle_timeout"])?,
+            health_check_timeout: extensions
+                .alias_u64("healthCheckTimeout", &["health_check_timeout"])?,
+            permit_without_stream: extensions
+                .alias_bool("permitWithoutStream", &["permit_without_stream"])?,
+            initial_windows_size: extensions
+                .i64("initial_windows_size")?
+                .or(extensions.i64("initialWindowsSize")?),
+            user_agent: extensions.alias_string("userAgent", &["user_agent"])?,
         })
     } else {
         None
@@ -166,17 +184,53 @@ pub(super) fn build_stream_settings(
     };
 
     let kcp_settings = if network == "mkcp" {
-        if extensions.value("seed").is_some() || extensions.value("headerType").is_some() {
-            return Err("current Xray mKCP no longer supports seed/headerType".to_string());
+        let seed = extensions.string("seed")?;
+        let header_type = extensions.string("headerType")?;
+        let congestion = extensions.boolean("congestion")?;
+        let read_buffer_size = extensions.u64("readBufferSize")?;
+        let write_buffer_size = extensions.u64("writeBufferSize")?;
+        let cwnd_multiplier = extensions.u64("cwndMultiplier")?;
+        let max_sending_window = extensions.u64("maxSendingWindow")?;
+        match compatibility {
+            XrayCompatibilityTarget::StableV26_3_27
+                if cwnd_multiplier.is_some() || max_sending_window.is_some() =>
+            {
+                return Err(
+                    "cwndMultiplier/maxSendingWindow require Xray prerelease v26.7.28".to_string(),
+                );
+            }
+            XrayCompatibilityTarget::StableV26_3_27 if seed.is_some() || header_type.is_some() => {
+                return Err(
+                    "seed/headerType are parsed by Xray v26.3.27 but rejected during build; use finalmask instead"
+                        .to_string(),
+                );
+            }
+            XrayCompatibilityTarget::PrereleaseV26_7_28
+                if seed.is_some()
+                    || header_type.is_some()
+                    || congestion.is_some()
+                    || read_buffer_size.is_some()
+                    || write_buffer_size.is_some() =>
+            {
+                return Err(
+                    "seed/headerType/congestion/buffer settings are not supported by Xray prerelease v26.7.28"
+                        .to_string(),
+                );
+            }
+            _ => {}
         }
         Some(KcpSettings {
             mtu: extensions.u64("mtu")?,
             tti: extensions.u64("tti")?,
             uplink_capacity: extensions.u64("uplinkCapacity")?,
             downlink_capacity: extensions.u64("downlinkCapacity")?,
-            congestion: extensions.boolean("congestion")?,
-            read_buffer_size: extensions.u64("readBufferSize")?,
-            write_buffer_size: extensions.u64("writeBufferSize")?,
+            congestion,
+            read_buffer_size,
+            write_buffer_size,
+            header: header_type.map(|kind| json!({"type": kind})),
+            seed,
+            cwnd_multiplier,
+            max_sending_window,
         })
     } else {
         None
@@ -186,15 +240,22 @@ pub(super) fn build_stream_settings(
         path: node.path.clone().unwrap_or_else(|| "/".to_string()),
         host: node.host.clone(),
         headers: None,
+        accept_proxy_protocol: None,
     });
 
     if network == "hysteria" {
         return Err("Xray Hysteria links require complete hysteriaSettings and are not representable by common share links".to_string());
     }
 
+    let finalmask = extensions.object("fm")?.map(serde_json::Value::Object);
+
     Ok(Some(StreamSettings {
-        network: network.to_string(),
-        method: network.to_string(),
+        network: matches!(compatibility, XrayCompatibilityTarget::StableV26_3_27)
+            .then(|| network.to_string())
+            .unwrap_or_default(),
+        method: matches!(compatibility, XrayCompatibilityTarget::PrereleaseV26_7_28)
+            .then(|| network.to_string())
+            .unwrap_or_default(),
         security,
         tls_settings,
         reality_settings,
@@ -204,8 +265,18 @@ pub(super) fn build_stream_settings(
         grpc_settings,
         xhttp_settings,
         httpupgrade_settings,
+        finalmask,
         sockopt: None,
     }))
+}
+
+fn websocket_path(node: &Node, extensions: &mut ExtensionResolver) -> Result<String, String> {
+    let mut path = node.path.clone().unwrap_or_else(|| "/".to_string());
+    if let Some(early_data) = extensions.u64("ed")? {
+        path.push(if path.contains('?') { '&' } else { '?' });
+        path.push_str(&format!("ed={early_data}"));
+    }
+    Ok(path)
 }
 
 fn build_xhttp_extra(

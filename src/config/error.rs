@@ -23,6 +23,13 @@ pub enum ConfigParseError {
         context: &'static str,
         key: &'static str,
     },
+    #[error("duplicate query parameter: {0}")]
+    DuplicateQueryParameter(String),
+    #[error("invalid {field}: {message}")]
+    InvalidField {
+        field: &'static str,
+        message: String,
+    },
     #[error("unsupported config scheme: {0}")]
     UnsupportedScheme(String),
 }

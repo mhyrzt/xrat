@@ -4,11 +4,13 @@ use crate::config::ConfigParseError;
 use crate::model::{Node, Protocol};
 
 use super::super::parsing_helpers::{
-    empty_to_none, parse_query_pairs, percent_decode, query_extensions, username_or_none,
+    empty_to_none, parse_query_pairs, percent_decode, query_extensions,
+    reject_duplicate_query_parameters, username_or_none,
 };
 
 pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
     let parsed = Url::parse(line)?;
+    reject_duplicate_query_parameters(parsed.query().unwrap_or_default())?;
     let address = parsed
         .host_str()
         .ok_or(ConfigParseError::MissingAddressOrPort)?
@@ -25,12 +27,17 @@ pub fn parse_vless(line: &str) -> Result<Node, ConfigParseError> {
         &["type", "security", "sni", "host", "path"],
     );
 
+    let uuid = username_or_none(&parsed).ok_or(ConfigParseError::MissingRequiredField {
+        context: "VLESS URL",
+        key: "id",
+    })?;
+
     Ok(Node {
         protocol: Protocol::Vless,
         address,
         port,
         username: None,
-        uuid: username_or_none(&parsed),
+        uuid: Some(uuid),
         password: None,
         method: None,
         network: query

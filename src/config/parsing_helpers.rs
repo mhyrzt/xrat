@@ -10,6 +10,17 @@ pub fn parse_query_pairs(query: &str) -> std::collections::HashMap<String, Strin
         .collect()
 }
 
+pub fn reject_duplicate_query_parameters(query: &str) -> Result<(), ConfigParseError> {
+    let mut seen = HashSet::new();
+    for (key, _) in form_urlencoded::parse(query.as_bytes()) {
+        let key = key.into_owned();
+        if !seen.insert(key.clone()) {
+            return Err(ConfigParseError::DuplicateQueryParameter(key));
+        }
+    }
+    Ok(())
+}
+
 pub fn query_extensions(
     query: &str,
     structural_keys: &[&str],

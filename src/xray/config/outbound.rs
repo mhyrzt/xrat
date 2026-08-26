@@ -1,15 +1,20 @@
 use serde_json::json;
 
+use super::XrayCompatibilityTarget;
 use super::extensions::ExtensionResolver;
 use super::stream::build_stream_settings;
 use super::types::Outbound;
 use crate::model::{Node, Protocol};
 
-pub(super) fn node_to_outbound(node: &Node, tag: &str) -> Result<Outbound, String> {
+pub(super) fn node_to_outbound(
+    node: &Node,
+    tag: &str,
+    compatibility: XrayCompatibilityTarget,
+) -> Result<Outbound, String> {
     let protocol = node.protocol.as_str().to_string();
     let mut extensions = ExtensionResolver::new(node);
     let settings = build_outbound_settings(node, &mut extensions)?;
-    let stream_settings = build_stream_settings(node, &mut extensions)?;
+    let stream_settings = build_stream_settings(node, &mut extensions, compatibility)?;
     extensions.finish()?;
 
     Ok(Outbound {
@@ -55,7 +60,7 @@ fn build_outbound_settings(
                     "users": [{
                         "id": uuid,
                         "alterId": extensions.u64("aid")?.unwrap_or(0),
-                        "security": extensions.alias_string("scy", &["security"])?.unwrap_or_else(|| "auto".to_string())
+                        "security": extensions.alias_string("encryption", &["scy", "security"])?.unwrap_or_else(|| "auto".to_string())
                     }]
                 }]
             }))

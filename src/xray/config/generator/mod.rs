@@ -26,7 +26,7 @@ pub fn generate_probe_config_with_options(
         settings: Some(json!({"udp": false})),
     };
 
-    let outbound = node_to_outbound(node, "proxy")?;
+    let outbound = node_to_outbound(node, "proxy", options.compatibility)?;
 
     let mut config = XrayConfig {
         log: LogConfig {
@@ -81,7 +81,7 @@ pub fn generate_runtime_config_for_inbounds_with_options(
     options: &XrayGenOptions,
 ) -> Result<XrayConfig, String> {
     let inbounds = build_inbounds(socks, http);
-    let outbound = node_to_outbound(node, "proxy")?;
+    let outbound = node_to_outbound(node, "proxy", options.compatibility)?;
 
     let mut config = XrayConfig {
         log: LogConfig {

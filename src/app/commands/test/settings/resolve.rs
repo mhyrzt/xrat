@@ -55,7 +55,12 @@ pub(crate) fn resolve_test_settings(
         "GeoLite2-ASN.mmdb",
     );
     let geoip_lookup = geoip::build_lookup_chain(app_config, runtime_paths)?;
+    let xray_binary_path = resolve_engine_binary_path(app_config, runtime_paths);
     let mut gen_options = crate::app::runtime_tuning::build_xray_gen_options(&app_config.runtime);
+    gen_options.compatibility = crate::app::runtime_tuning::detect_xray_compatibility(
+        app_config.runtime.xray_compatibility,
+        &xray_binary_path,
+    );
     crate::app::runtime_tuning::apply_xray_dns_options(&mut gen_options, &app_config.dns)?;
 
     Ok(ResolvedTestSettings {
@@ -72,7 +77,7 @@ pub(crate) fn resolve_test_settings(
             .clone()
             .unwrap_or_else(|| app_config.testing.download.url.clone()),
         upload_url: args.upload_url.clone(),
-        xray_binary_path: resolve_engine_binary_path(app_config, runtime_paths),
+        xray_binary_path,
         icmp_timeout: Duration::from_millis(
             args.icmp_timeout_ms
                 .unwrap_or(app_config.testing.icmp.timeout),

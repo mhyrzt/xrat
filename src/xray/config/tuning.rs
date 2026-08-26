@@ -4,6 +4,7 @@
 //! are applied as a post-build mutation of the generated config rather than
 //! threaded through node-to-outbound conversion.
 
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use super::types::{Mux, Outbound, Sockopt, StreamSettings, XrayConfig};
@@ -12,8 +13,25 @@ const FRAGMENT_TAG: &str = "fragment";
 
 /// Resolved outbound tuning for a single generated config. Empty by default so
 /// the generated config is unchanged unless the user opts in.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum XrayCompatibilityTarget {
+    #[default]
+    StableV26_3_27,
+    PrereleaseV26_7_28,
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum XrayCompatibilityPolicy {
+    #[default]
+    Auto,
+    Stable,
+    Prerelease,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct XrayGenOptions {
+    pub compatibility: XrayCompatibilityTarget,
     pub mux: Option<MuxOptions>,
     pub fragment: Option<FragmentOptions>,
     pub interface: Option<String>,
@@ -132,7 +150,7 @@ fn stream_settings_mut(outbound: &mut Outbound) -> &mut StreamSettings {
         .stream_settings
         .get_or_insert_with(|| StreamSettings {
             network: "raw".to_string(),
-            method: "raw".to_string(),
+            method: String::new(),
             security: None,
             tls_settings: None,
             reality_settings: None,
@@ -142,6 +160,7 @@ fn stream_settings_mut(outbound: &mut Outbound) -> &mut StreamSettings {
             grpc_settings: None,
             xhttp_settings: None,
             httpupgrade_settings: None,
+            finalmask: None,
             sockopt: None,
         })
 }

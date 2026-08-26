@@ -12,6 +12,7 @@ impl Default for RuntimeSettings {
     fn default() -> Self {
         Self {
             engine: defaults::DEFAULT_RUNTIME_ENGINE.to_string(),
+            xray_compatibility: Default::default(),
             replace_active_session: defaults::DEFAULT_REPLACE_ACTIVE_SESSION,
             rotation: RotationSettings::default(),
             log: LogSettings::default(),

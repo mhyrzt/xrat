@@ -2,13 +2,15 @@
 //! options, plus inbound `listen_interface` resolution.
 
 use std::net::IpAddr;
+use std::path::Path;
+use std::process::Command;
 
 use crate::app::AppError;
 use crate::app::config::{DnsHostValue, DnsSettings, RouteList, RoutingSettings, RuntimeSettings};
 use crate::singbox::{SingboxDnsConfig, SingboxRouteList, SingboxRoutingOptions};
 use crate::xray::{
-    FragmentOptions, MuxOptions, XrayDnsConfig, XrayDnsHostValue, XrayGenOptions, XrayRouteList,
-    XrayRoutingOptions,
+    FragmentOptions, MuxOptions, XrayCompatibilityPolicy, XrayCompatibilityTarget, XrayDnsConfig,
+    XrayDnsHostValue, XrayGenOptions, XrayRouteList, XrayRoutingOptions,
 };
 use serde_json::{Value, json};
 use url::Url;
@@ -31,6 +33,12 @@ pub(crate) fn build_xray_gen_options(runtime: &RuntimeSettings) -> XrayGenOption
     });
 
     XrayGenOptions {
+        compatibility: match runtime.xray_compatibility {
+            XrayCompatibilityPolicy::Prerelease => XrayCompatibilityTarget::PrereleaseV26_7_28,
+            XrayCompatibilityPolicy::Auto | XrayCompatibilityPolicy::Stable => {
+                XrayCompatibilityTarget::StableV26_3_27
+            }
+        },
         mux,
         fragment,
         interface: non_empty(&runtime.network.interface),
@@ -38,6 +46,25 @@ pub(crate) fn build_xray_gen_options(runtime: &RuntimeSettings) -> XrayGenOption
         bind_address: non_empty(&runtime.network.bind_address),
         routing: None,
         dns: None,
+    }
+}
+
+pub(crate) fn detect_xray_compatibility(
+    policy: XrayCompatibilityPolicy,
+    binary_path: &Path,
+) -> XrayCompatibilityTarget {
+    match policy {
+        XrayCompatibilityPolicy::Stable => XrayCompatibilityTarget::StableV26_3_27,
+        XrayCompatibilityPolicy::Prerelease => XrayCompatibilityTarget::PrereleaseV26_7_28,
+        XrayCompatibilityPolicy::Auto => Command::new(binary_path)
+            .arg("version")
+            .output()
+            .ok()
+            .filter(|output| output.status.success())
+            .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+            .filter(|version| version.contains("26.7.28"))
+            .map(|_| XrayCompatibilityTarget::PrereleaseV26_7_28)
+            .unwrap_or(XrayCompatibilityTarget::StableV26_3_27),
     }
 }
 

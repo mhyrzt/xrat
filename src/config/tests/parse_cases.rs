@@ -1,4 +1,4 @@
-use super::super::parse_text;
+use super::super::{parse_link, parse_text};
 use crate::model::Protocol;
 use base64::Engine;
 
@@ -150,12 +150,53 @@ fn normalizes_hy2_defaults() {
 }
 
 #[test]
-fn preserves_repeated_unknown_query_parameters() {
-    let nodes =
-        parse_text("vless://uuid@example.com:443?type=ws&security=tls&custom=one&custom=two#Node");
+fn rejects_repeated_query_parameters() {
+    let error =
+        parse_link("vless://uuid@example.com:443?type=ws&security=tls&custom=one&custom=two#Node")
+            .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("duplicate query parameter: custom")
+    );
+}
+
+#[test]
+fn parses_standard_vmess_aead_url() {
+    let input = "vmess://00000000-0000-0000-0000-000000000001@example.com:443?type=ws&security=tls&encryption=auto&sni=cdn.example.com&host=cdn.example.com&path=%2Fsocket&ech=config&pcs=pin&vcn=peer.example&fm=%7B%22type%22%3A%22x%22%7D#VMess%20AEAD";
+    let node = parse_link(input).unwrap().unwrap();
+    assert_eq!(node.protocol, Protocol::Vmess);
+    assert_eq!(node.address, "example.com");
+    assert_eq!(node.port, 443);
     assert_eq!(
-        nodes[0].extension_value("custom"),
-        Some(&serde_json::json!(["one", "two"]))
+        node.uuid.as_deref(),
+        Some("00000000-0000-0000-0000-000000000001")
+    );
+    assert_eq!(node.network, "ws");
+    assert_eq!(node.path.as_deref(), Some("/socket"));
+    assert_eq!(node.name.as_deref(), Some("VMess AEAD"));
+    assert_eq!(
+        node.extension_value("encryption"),
+        Some(&serde_json::json!("auto"))
+    );
+    assert_eq!(
+        node.extension_value("fm"),
+        Some(&serde_json::json!("{\"type\":\"x\"}"))
+    );
+}
+
+#[test]
+fn vmess_url_requires_valid_uuid_and_unique_fields() {
+    let invalid = parse_link("vmess://not-a-uuid@example.com:443?type=raw").unwrap_err();
+    assert!(invalid.to_string().contains("invalid VMess id"));
+
+    let duplicate =
+        parse_link("vmess://00000000-0000-0000-0000-000000000001@example.com:443?type=raw&type=ws")
+            .unwrap_err();
+    assert!(
+        duplicate
+            .to_string()
+            .contains("duplicate query parameter: type")
     );
 }
 

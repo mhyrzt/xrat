@@ -554,6 +554,7 @@ fn setting_kind(path: &str, value: &SettingValue) -> SettingKind {
 fn enum_options(path: &str) -> Option<&'static [&'static str]> {
     match path {
         "runtime.engine" => Some(&["xray", "v2ray", "sing-box"]),
+        "runtime.xray_compatibility" => Some(&["auto", "stable", "prerelease"]),
         "runtime.log.level" => Some(&["debug", "info", "warning", "error", "none"]),
         "runtime.shadowsocks.method" => Some(&[
             "aes-128-gcm",

@@ -6,8 +6,8 @@ use super::{
 use crate::config::parse_link;
 use crate::model::{Node, Protocol};
 use crate::xray::config::{
-    FragmentOptions, MuxOptions, XrayDnsConfig, XrayDnsHostValue, XrayGenOptions, XrayRouteList,
-    XrayRoutingOptions,
+    FragmentOptions, MuxOptions, XrayCompatibilityTarget, XrayDnsConfig, XrayDnsHostValue,
+    XrayGenOptions, XrayRouteList, XrayRoutingOptions,
 };
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -55,7 +55,52 @@ fn socks_node() -> Node {
 
 fn assert_transport_selectors(stream: &serde_json::Value, expected: &str) {
     assert_eq!(stream["network"], expected);
-    assert_eq!(stream["method"], expected);
+    assert!(stream.get("method").is_none());
+}
+
+#[test]
+fn compatibility_target_selects_transport_key_and_mkcp_schema() {
+    let stable =
+        parse_link("vless://test-uuid@127.0.0.1:443?type=mkcp&congestion=true&readBufferSize=4")
+            .unwrap()
+            .unwrap();
+    let stable = generate_probe_config(&stable, 1080).unwrap();
+    let stable = serde_json::to_value(&stable.outbounds[0]).unwrap();
+    assert_eq!(stable["streamSettings"]["network"], "mkcp");
+    assert!(stable["streamSettings"].get("method").is_none());
+    assert_eq!(stable["streamSettings"]["kcpSettings"]["congestion"], true);
+    assert_eq!(stable["streamSettings"]["kcpSettings"]["readBufferSize"], 4);
+
+    let prerelease = parse_link(
+        "vless://test-uuid@127.0.0.1:443?type=mkcp&cwndMultiplier=2&maxSendingWindow=2048",
+    )
+    .unwrap()
+    .unwrap();
+    let options = XrayGenOptions {
+        compatibility: XrayCompatibilityTarget::PrereleaseV26_7_28,
+        ..Default::default()
+    };
+    let prerelease = generate_probe_config_with_options(&prerelease, 1080, &options).unwrap();
+    let prerelease = serde_json::to_value(&prerelease.outbounds[0]).unwrap();
+    assert_eq!(prerelease["streamSettings"]["method"], "mkcp");
+    assert!(prerelease["streamSettings"].get("network").is_none());
+    assert_eq!(
+        prerelease["streamSettings"]["kcpSettings"]["cwndMultiplier"],
+        2
+    );
+    assert_eq!(
+        prerelease["streamSettings"]["kcpSettings"]["maxSendingWindow"],
+        2048
+    );
+}
+
+#[test]
+fn stable_mkcp_rejects_legacy_seed_and_header_at_generation() {
+    let node = parse_link("vless://test-uuid@127.0.0.1:443?type=mkcp&seed=legacy&headerType=none")
+        .unwrap()
+        .unwrap();
+    let error = generate_probe_config(&node, 1080).unwrap_err();
+    assert!(error.contains("parsed by Xray v26.3.27 but rejected during build"));
 }
 
 #[test]
@@ -70,6 +115,63 @@ fn default_options_leave_config_unchanged() {
     assert_eq!(baseline_json, tuned_json);
     assert_eq!(tuned.outbounds.len(), 1);
     assert!(tuned_json["outbounds"][0].get("mux").is_none());
+}
+
+#[test]
+fn generated_runtime_config_satisfies_strict_xray_schema() {
+    let config = generate_runtime_config(&vless_tls_node(), 1080, Some(8080)).unwrap();
+    let json = serde_json::to_string(&config).unwrap();
+    crate::xray::parsing::XrayConfig::from_json_strict(&json).unwrap();
+}
+
+#[test]
+fn official_share_link_security_extensions_generate_runtime_fields() {
+    let node = parse_link("vless://00000000-0000-0000-0000-000000000001@example.com:443?type=ws&security=tls&sni=cdn.example.com&ech=config-list&pcs=certificate-pin&vcn=peer.example&fm=%7B%22type%22%3A%22x%22%7D")
+        .unwrap()
+        .unwrap();
+    let config = generate_probe_config(&node, 1080).unwrap();
+    let stream = serde_json::to_value(&config.outbounds[0].stream_settings).unwrap();
+    assert_eq!(stream["tlsSettings"]["echConfigList"], "config-list");
+    assert_eq!(
+        stream["tlsSettings"]["pinnedPeerCertSha256"],
+        "certificate-pin"
+    );
+    assert_eq!(
+        stream["tlsSettings"]["verifyPeerCertByName"],
+        "peer.example"
+    );
+    assert_eq!(stream["finalmask"]["type"], "x");
+
+    let reality = parse_link("vless://00000000-0000-0000-0000-000000000001@example.com:443?type=raw&security=reality&sni=cdn.example.com&pbk=public-key&pqv=post-quantum-key")
+        .unwrap()
+        .unwrap();
+    let config = generate_probe_config(&reality, 1080).unwrap();
+    let stream = serde_json::to_value(&config.outbounds[0].stream_settings).unwrap();
+    assert_eq!(
+        stream["realitySettings"]["mldsa65Verify"],
+        "post-quantum-key"
+    );
+}
+
+#[test]
+fn malformed_finalmask_and_removed_allow_insecure_fail_explicitly() {
+    let malformed = parse_link(
+        "vless://00000000-0000-0000-0000-000000000001@example.com:443?type=raw&fm=not-json",
+    )
+    .unwrap()
+    .unwrap();
+    let error = generate_probe_config(&malformed, 1080).unwrap_err();
+    assert!(error.contains("link parameter \"fm\" must contain valid JSON"));
+
+    let insecure = parse_link("vless://00000000-0000-0000-0000-000000000001@example.com:443?type=raw&security=tls&allowInsecure=1")
+        .unwrap()
+        .unwrap();
+    let options = XrayGenOptions {
+        compatibility: XrayCompatibilityTarget::PrereleaseV26_7_28,
+        ..Default::default()
+    };
+    let error = generate_probe_config_with_options(&insecure, 1080, &options).unwrap_err();
+    assert!(error.contains("allowInsecure is not supported"));
 }
 
 #[test]
@@ -151,6 +253,61 @@ fn native_xray_validator_accepts_generated_dns_config() {
     assert!(
         output.status.success(),
         "xray rejected generated DNS config: stderr={}, stdout={}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
+}
+
+#[test]
+fn native_xray_validators_accept_targeted_mkcp_configs() {
+    let stable_binary = std::env::var_os("XRAT_STABLE_XRAY")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from("xray"));
+    if Command::new(&stable_binary)
+        .arg("version")
+        .output()
+        .is_err()
+    {
+        return;
+    }
+    let stable_node = parse_link(
+        "vless://00000000-0000-0000-0000-000000000001@127.0.0.1:443?type=mkcp&congestion=true&readBufferSize=4",
+    )
+    .unwrap()
+    .unwrap();
+    let stable = generate_probe_config(&stable_node, 1080).unwrap();
+    assert_native_xray_config(&stable_binary, &stable);
+
+    let Some(prerelease_binary) = std::env::var_os("XRAT_PRERELEASE_XRAY") else {
+        return;
+    };
+    let prerelease_node = parse_link(
+        "vless://00000000-0000-0000-0000-000000000001@127.0.0.1:443?type=mkcp&cwndMultiplier=2&maxSendingWindow=2048",
+    )
+    .unwrap()
+    .unwrap();
+    let options = XrayGenOptions {
+        compatibility: XrayCompatibilityTarget::PrereleaseV26_7_28,
+        ..Default::default()
+    };
+    let prerelease = generate_probe_config_with_options(&prerelease_node, 1080, &options).unwrap();
+    assert_native_xray_config(std::path::Path::new(&prerelease_binary), &prerelease);
+}
+
+fn assert_native_xray_config(binary: &std::path::Path, config: &crate::xray::config::XrayConfig) {
+    let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+    file.write_all(serde_json::to_string(config).unwrap().as_bytes())
+        .unwrap();
+    file.flush().unwrap();
+    let output = Command::new(binary)
+        .args(["run", "-test", "-c"])
+        .arg(file.path())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{} rejected generated config: stderr={}, stdout={}",
+        binary.display(),
         String::from_utf8_lossy(&output.stderr),
         String::from_utf8_lossy(&output.stdout)
     );
@@ -626,7 +783,10 @@ fn xhttp_rejects_malformed_repeated_conflicting_and_unknown_parameters() {
         ("extra=not-json", "valid JSON"),
         ("extra=%5B1%2C2%5D", "JSON object"),
         ("noSSEHeader=maybe", "must be true"),
-        ("xPaddingBytes=1&xPaddingBytes=2", "must not be repeated"),
+        (
+            "xPaddingBytes=1&xPaddingBytes=2",
+            "duplicate query parameter",
+        ),
         (
             "x_padding_bytes=1-2&x_padding%20bytes=3-4",
             "conflicting link parameters",
@@ -635,8 +795,11 @@ fn xhttp_rejects_malformed_repeated_conflicting_and_unknown_parameters() {
         ("futureFlatOption=on", "JSON `extra` parameter"),
     ] {
         let link = format!("vless://test-uuid@example.com:443?type=xhttp&{query}#XHTTP");
-        let node = parse_link(&link).unwrap().unwrap();
-        let error = generate_probe_config(&node, 10808).unwrap_err();
+        let error = match parse_link(&link) {
+            Ok(Some(node)) => generate_probe_config(&node, 10808).unwrap_err(),
+            Err(error) => error.to_string(),
+            Ok(None) => panic!("link was not parsed"),
+        };
         assert!(error.contains(expected), "unexpected error: {error}");
     }
 }

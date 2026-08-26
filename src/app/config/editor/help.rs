@@ -30,6 +30,11 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "",
             "engine = \"xray\"",
         ),
+        "runtime.xray_compatibility" => help(
+            "Selects the Xray schema emitted by runtime configuration generation.",
+            "auto, stable, or prerelease.",
+            "xray_compatibility = \"auto\"",
+        ),
         "runtime.replace_active_session" => help(
             "Allows a new connection to replace the currently active managed session.",
             "",

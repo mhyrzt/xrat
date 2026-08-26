@@ -3,11 +3,13 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use super::super::SecretString;
+use crate::xray::XrayCompatibilityPolicy;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct RuntimeSettings {
     pub engine: String,
+    pub xray_compatibility: XrayCompatibilityPolicy,
     pub replace_active_session: bool,
     pub rotation: RotationSettings,
     pub log: LogSettings,

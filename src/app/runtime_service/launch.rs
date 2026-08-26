@@ -50,7 +50,16 @@ impl<'a> RuntimeService<'a> {
             return self.resolve_singbox_launch(&node, socks, http, shadowsocks);
         }
 
+        let binary_path = match runtime.engine.as_str() {
+            "xray" => self.context.runtime_paths.xray_path.clone(),
+            "v2ray" => self.context.runtime_paths.v2ray_path.clone(),
+            other => PathBuf::from(other),
+        };
         let mut gen_options = build_xray_gen_options(runtime);
+        gen_options.compatibility = crate::app::runtime_tuning::detect_xray_compatibility(
+            runtime.xray_compatibility,
+            &binary_path,
+        );
         apply_xray_dns_options(&mut gen_options, &self.context.app_config.dns)?;
         apply_xray_routing_options(&mut gen_options, &self.context.app_config.routing);
         if gen_options.bind_address.is_some() {
@@ -88,12 +97,6 @@ impl<'a> RuntimeService<'a> {
         } else {
             unreachable!("validated at least one inbound")
         };
-        let binary_path = match runtime.engine.as_str() {
-            "xray" => self.context.runtime_paths.xray_path.clone(),
-            "v2ray" => self.context.runtime_paths.v2ray_path.clone(),
-            other => PathBuf::from(other),
-        };
-
         Ok(ResolvedLaunch {
             binary_path,
             config: RuntimeLaunchConfig::Xray(xray_config),
