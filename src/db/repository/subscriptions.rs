@@ -293,7 +293,9 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
             subscriptions.updated_at,
             COUNT(configs.id) AS config_count
         FROM subscriptions
-        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        LEFT JOIN configs
+            ON configs.subscription_id = subscriptions.id
+            AND configs.is_deleted = 0
         WHERE subscriptions.id = ?1
         GROUP BY
             subscriptions.id,
@@ -315,7 +317,9 @@ pub async fn get_by_id(pool: &DbPool, id: i64) -> crate::db::Result<Option<Subsc
             subscriptions.updated_at,
             COUNT(configs.id) AS config_count
         FROM subscriptions
-        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        LEFT JOIN configs
+            ON configs.subscription_id = subscriptions.id
+            AND configs.is_deleted = 0
         WHERE subscriptions.id = $1
         GROUP BY
             subscriptions.id,
@@ -353,7 +357,9 @@ pub async fn list(pool: &DbPool) -> crate::db::Result<Vec<SubscriptionRecord>> {
             subscriptions.updated_at,
             COUNT(configs.id) AS config_count
         FROM subscriptions
-        LEFT JOIN configs ON configs.subscription_id = subscriptions.id
+        LEFT JOIN configs
+            ON configs.subscription_id = subscriptions.id
+            AND configs.is_deleted = 0
         GROUP BY
             subscriptions.id,
             subscriptions.ref,

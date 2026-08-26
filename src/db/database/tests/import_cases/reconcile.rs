@@ -45,6 +45,15 @@ async fn refresh_soft_deletes_provider_removed_configs() {
     assert_eq!(active.len(), 1);
     assert_eq!(active[0].address, "a.example.com");
 
+    let subscriptions = db.list_subscriptions().await.expect("list subscriptions");
+    assert_eq!(subscriptions[0].config_count, 1);
+    let subscription = db
+        .get_subscription_by_id(subscriptions[0].id)
+        .await
+        .expect("get subscription")
+        .expect("subscription should exist");
+    assert_eq!(subscription.config_count, 1);
+
     let all = db
         .list_configs(&ConfigListFilter {
             include_deleted: true,
@@ -53,6 +62,19 @@ async fn refresh_soft_deletes_provider_removed_configs() {
         .await
         .expect("list all");
     assert_eq!(all.len(), 2, "removed config is soft-deleted, not purged");
+
+    db.delete_config(active[0].id)
+        .await
+        .expect("delete remaining active config");
+    let subscriptions = db.list_subscriptions().await.expect("list subscriptions");
+    assert_eq!(subscriptions.len(), 1);
+    assert_eq!(subscriptions[0].config_count, 0);
+    let subscription = db
+        .get_subscription_by_id(subscriptions[0].id)
+        .await
+        .expect("get subscription")
+        .expect("subscription should remain listed");
+    assert_eq!(subscription.config_count, 0);
 
     let _ = std::fs::remove_file(db_path);
 }
