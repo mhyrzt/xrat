@@ -12,8 +12,9 @@ Set Padding 4
 Set CursorBlink true
 Set Framerate 60
 
-Env TERM "xterm-256color"
+Env TERM "xterm-direct"
 Env COLORTERM "truecolor"
 Env LANG "en_US.UTF-8"
 Env LC_ALL "en_US.UTF-8"
-Env FORCE_COLOR "1"
+Env NO_COLOR ""
+Env FORCE_COLOR "3"
