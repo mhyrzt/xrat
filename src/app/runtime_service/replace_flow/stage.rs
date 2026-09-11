@@ -13,6 +13,7 @@ impl<'a> RuntimeService<'a> {
             )));
         }
 
+        crate::app::runtime_service::log_retention::cleanup(self.context).await;
         let session_id = self
             .context
             .db

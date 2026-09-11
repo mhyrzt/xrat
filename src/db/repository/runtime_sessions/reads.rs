@@ -1,5 +1,18 @@
 use super::*;
 
+pub async fn get_expired_log_session_ids(pool: &DbPool) -> crate::db::Result<Vec<i64>> {
+    let sql =
+        "SELECT id FROM runtime_sessions WHERE status IN ('stopped', 'failed') ORDER BY id DESC";
+    match pool {
+        DbPool::Sqlite(pool) => Ok(sqlx::query_scalar(&format!("{sql} LIMIT -1 OFFSET 10"))
+            .fetch_all(pool)
+            .await?),
+        DbPool::Postgres(pool) => Ok(sqlx::query_scalar(&format!("{sql} OFFSET 10"))
+            .fetch_all(pool)
+            .await?),
+    }
+}
+
 pub async fn get_count(pool: &DbPool) -> crate::db::Result<i64> {
     match pool {
         DbPool::Sqlite(pool) => Ok(sqlx::query_scalar::<_, i64>(

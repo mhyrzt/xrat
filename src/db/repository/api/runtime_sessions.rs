@@ -98,3 +98,6 @@ pub async fn update_runtime_session_failure_tracking(
     )
     .await
 }
+pub async fn get_expired_runtime_log_session_ids(pool: &DbPool) -> crate::db::Result<Vec<i64>> {
+    runtime_sessions::get_expired_log_session_ids(pool).await
+}

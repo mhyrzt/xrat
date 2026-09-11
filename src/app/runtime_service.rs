@@ -1,6 +1,7 @@
 mod connect;
 mod helpers;
 mod launch;
+pub(crate) mod log_retention;
 mod reattach;
 mod replace_flow;
 mod session_state;

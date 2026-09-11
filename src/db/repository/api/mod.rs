@@ -23,10 +23,10 @@ pub use connection_tests::{
 pub use events::{clear_events, events_after, list_events, record_event};
 pub use geoip_cache::{get_fresh_geoip_cache, upsert_geoip_cache};
 pub use runtime_sessions::{
-    get_latest_runtime_session, get_latest_runtime_session_for_config, get_running_runtime_session,
-    get_runtime_session_count, insert_runtime_session, mark_runtime_session_stopped,
-    update_runtime_session_failure_tracking, update_runtime_session_state,
-    update_runtime_session_transition_metadata,
+    get_expired_runtime_log_session_ids, get_latest_runtime_session,
+    get_latest_runtime_session_for_config, get_running_runtime_session, get_runtime_session_count,
+    insert_runtime_session, mark_runtime_session_stopped, update_runtime_session_failure_tracking,
+    update_runtime_session_state, update_runtime_session_transition_metadata,
 };
 pub use subscriptions::{
     delete_subscription_with_configs, get_subscription_by_id, get_subscription_count,

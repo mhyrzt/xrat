@@ -2,6 +2,10 @@ use super::Database;
 use super::types::*;
 
 impl Database {
+    pub async fn get_expired_runtime_log_session_ids(&self) -> crate::db::Result<Vec<i64>> {
+        repository::get_expired_runtime_log_session_ids(&self.pool).await
+    }
+
     pub async fn get_runtime_session_count(&self) -> crate::db::Result<i64> {
         repository::get_runtime_session_count(&self.pool).await
     }

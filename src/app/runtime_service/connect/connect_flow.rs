@@ -45,6 +45,7 @@ impl<'a> RuntimeService<'a> {
             }
             ActiveSessionState::None => self.resolve_launch(&config)?,
         };
+        crate::app::runtime_service::log_retention::cleanup(self.context).await;
         let session_id = self
             .context
             .db

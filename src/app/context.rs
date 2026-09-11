@@ -17,11 +17,13 @@ impl AppContext {
     pub async fn build(args: &cli::Cli) -> crate::app::Result<Self> {
         let (runtime_paths, app_config) = paths::resolve_runtime(args)?;
         let db = Database::connect(&runtime_paths.database_config).await?;
-        Ok(Self {
+        let context = Self {
             db,
             app_config,
             runtime_paths,
-        })
+        };
+        crate::app::runtime_service::log_retention::cleanup(&context).await;
+        Ok(context)
     }
 }
 

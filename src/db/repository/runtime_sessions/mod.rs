@@ -7,7 +7,9 @@ mod writes;
 
 const RUNTIME_SESSION_COLUMNS: &str = "id, config_id, status, socks_host, socks_port, http_host, http_port, shadowsocks_host, shadowsocks_port, process_id, failure_reason, owner_kind, owner_instance_id, last_transition_reason_code, last_transition_reason_detail, last_transition_origin, cooldown_until, last_failed_at, last_failed_reason_code, started_at, stopped_at, created_at, updated_at";
 
-pub use reads::{get_count, get_latest, get_latest_for_config, get_running};
+pub use reads::{
+    get_count, get_expired_log_session_ids, get_latest, get_latest_for_config, get_running,
+};
 pub use writes::{
     insert, mark_stopped, update_failure_tracking, update_state, update_transition_metadata,
 };
