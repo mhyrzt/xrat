@@ -66,8 +66,18 @@ xrat logs clear [--yes]
 `xrat logs clear` permanently deletes every row from the `events` table. It
 prompts for confirmation first; pass `--yes` to skip the prompt (useful in
 scripts). This only clears the structured **app events** in the database —
-engine and daemon log files are left untouched, since they rotate with their
-runtime sessions.
+engine and daemon log files are left untouched by this command.
+
+XRAT automatically removes managed stdout/stderr logs for completed sessions
+older than the 10 newest completed sessions. Cleanup runs at application startup
+and before connections and runtime replacements. It covers both Xray/V2Ray and
+sing-box session logs in the runtime directory, including files accumulated
+before upgrading. Starting, running, and stopping sessions are protected.
+Cleanup failures produce warnings without blocking normal operations.
+
+This retention policy does not cap the size of an active log, rotate `daemon.log`,
+or remove generated JSON configs, custom engine logs, or files whose sessions
+are absent from the database.
 
 The TUI exposes the same database clear from the logs card via the `C p` clear
 chord, kept distinct from any view-only buffer clears.
