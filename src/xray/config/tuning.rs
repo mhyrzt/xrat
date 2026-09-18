@@ -160,6 +160,7 @@ fn stream_settings_mut(outbound: &mut Outbound) -> &mut StreamSettings {
             grpc_settings: None,
             xhttp_settings: None,
             httpupgrade_settings: None,
+            hysteria_settings: None,
             finalmask: None,
             sockopt: None,
         })

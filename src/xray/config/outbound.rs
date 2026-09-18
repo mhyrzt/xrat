@@ -11,7 +11,11 @@ pub(super) fn node_to_outbound(
     tag: &str,
     compatibility: XrayCompatibilityTarget,
 ) -> Result<Outbound, String> {
-    let protocol = node.protocol.as_str().to_string();
+    let protocol = if node.protocol == Protocol::Hy2 {
+        "hysteria".to_string()
+    } else {
+        node.protocol.as_str().to_string()
+    };
     let mut extensions = ExtensionResolver::new(node);
     let settings = build_outbound_settings(node, &mut extensions)?;
     let stream_settings = build_stream_settings(node, &mut extensions, compatibility)?;
@@ -126,6 +130,10 @@ fn build_outbound_settings(
                 "servers": [server]
             }))
         }
-        Protocol::Hy2 => Err("hysteria2/hy2 is not supported by xray config generator".to_string()),
+        Protocol::Hy2 => Ok(json!({
+            "version": 2,
+            "address": node.address,
+            "port": node.port
+        })),
     }
 }

@@ -59,6 +59,129 @@ fn assert_transport_selectors(stream: &serde_json::Value, expected: &str) {
 }
 
 #[test]
+fn generates_native_hy2_probe_and_runtime_configs() {
+    let node =
+        parse_link("hy2://secret@example.com:443?sni=edge.example.com&alpn=h3,h2&insecure=1#hy2")
+            .unwrap()
+            .unwrap();
+    let probe = generate_probe_config(&node, 10808).unwrap();
+    let runtime = generate_runtime_config(&node, 10809, None).unwrap();
+    for config in [probe, runtime] {
+        let outbound = serde_json::to_value(&config.outbounds[0]).unwrap();
+        assert_eq!(outbound["protocol"], "hysteria");
+        assert_eq!(
+            outbound["settings"],
+            serde_json::json!({
+                "version": 2, "address": "example.com", "port": 443
+            })
+        );
+        assert_eq!(outbound["streamSettings"]["network"], "hysteria");
+        assert_eq!(
+            outbound["streamSettings"]["hysteriaSettings"],
+            serde_json::json!({"version": 2, "auth": "secret"})
+        );
+        assert_eq!(outbound["streamSettings"]["security"], "tls");
+        assert_eq!(
+            outbound["streamSettings"]["tlsSettings"]["serverName"],
+            "edge.example.com"
+        );
+        assert_eq!(
+            outbound["streamSettings"]["tlsSettings"]["alpn"],
+            serde_json::json!(["h3", "h2"])
+        );
+        assert_eq!(
+            outbound["streamSettings"]["tlsSettings"]["allowInsecure"],
+            true
+        );
+    }
+}
+
+#[test]
+fn hy2_xray_rejects_unrepresentable_options_and_missing_auth() {
+    for option in [
+        "obfs=salamander",
+        "obfs-password=pwd",
+        "upmbps=20",
+        "downmbps=80",
+    ] {
+        let node = parse_link(&format!("hy2://secret@example.com:443?{option}"))
+            .unwrap()
+            .unwrap();
+        let error = generate_probe_config(&node, 10808).unwrap_err();
+        assert!(error.contains(option.split('=').next().unwrap()), "{error}");
+    }
+    let node = parse_link("hy2://example.com:443").unwrap().unwrap();
+    assert!(
+        generate_probe_config(&node, 10808)
+            .unwrap_err()
+            .contains("authentication password")
+    );
+    let node = parse_link("hy2://secret@example.com:443?pinSHA256=abc")
+        .unwrap()
+        .unwrap();
+    assert!(
+        generate_probe_config(&node, 10808)
+            .unwrap_err()
+            .contains("patched Xray version")
+    );
+}
+
+#[test]
+fn native_xray_validator_accepts_hy2_probe_and_runtime() {
+    if Command::new("xray").arg("version").output().is_err() {
+        return;
+    }
+    let node = parse_link("hy2://secret@example.com:443?sni=edge.example.com&alpn=h3")
+        .unwrap()
+        .unwrap();
+    let configs = [
+        generate_probe_config(&node, 10808).unwrap(),
+        generate_runtime_config(&node, 10809, Some(10810)).unwrap(),
+    ];
+    for config in configs {
+        let mut file = tempfile::Builder::new().suffix(".json").tempfile().unwrap();
+        file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
+            .unwrap();
+        file.flush().unwrap();
+        let output = Command::new("xray")
+            .args(["run", "-test", "-c"])
+            .arg(file.path())
+            .output()
+            .expect("xray should start");
+        assert!(
+            output.status.success(),
+            "xray rejected native Hy2 config: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+#[test]
+fn hy2_maps_ech_and_patched_xray_certificate_pin() {
+    let pin = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let node = parse_link(&format!(
+        "hy2://secret@example.com:443?pinSHA256={pin}&ech=YWJj"
+    ))
+    .unwrap()
+    .unwrap();
+    let options = XrayGenOptions {
+        compatibility: XrayCompatibilityTarget::PrereleaseV26_7_28,
+        ..Default::default()
+    };
+    let config = generate_probe_config_with_options(&node, 10808, &options).unwrap();
+    let outbound = serde_json::to_value(&config.outbounds[0]).unwrap();
+    assert_eq!(outbound["streamSettings"]["method"], "hysteria");
+    assert_eq!(
+        outbound["streamSettings"]["tlsSettings"]["pinnedPeerCertSha256"],
+        pin
+    );
+    assert_eq!(
+        outbound["streamSettings"]["tlsSettings"]["echConfigList"],
+        "YWJj"
+    );
+}
+
+#[test]
 fn compatibility_target_selects_transport_key_and_mkcp_schema() {
     let stable =
         parse_link("vless://test-uuid@127.0.0.1:443?type=mkcp&congestion=true&readBufferSize=4")

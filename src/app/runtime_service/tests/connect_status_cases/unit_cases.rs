@@ -125,7 +125,7 @@ fn maps_wildcard_bind_hosts_to_loopback_for_readiness() {
 }
 
 #[tokio::test]
-async fn hy2_launch_auto_selects_singbox_runtime() {
+async fn hy2_launch_uses_configured_xray_runtime() {
     let context = test_context().await;
     let config = imported_config(&context, hy2_node()).await;
     let service = RuntimeService::new(&context);
@@ -134,9 +134,9 @@ async fn hy2_launch_auto_selects_singbox_runtime() {
         .resolve_launch(&config)
         .expect("hy2 launch should resolve");
 
-    assert_eq!(launch.binary_path, context.runtime_paths.sing_box_path);
+    assert_eq!(launch.binary_path, context.runtime_paths.xray_path);
     assert_eq!(launch.ready_port, context.app_config.runtime.socks.port);
-    assert!(matches!(launch.config, RuntimeLaunchConfig::Singbox(_)));
+    assert!(matches!(launch.config, RuntimeLaunchConfig::Xray(_)));
     assert_eq!(
         launch.endpoints.socks,
         Some(RuntimeEndpoint {
@@ -144,6 +144,30 @@ async fn hy2_launch_auto_selects_singbox_runtime() {
             port: context.app_config.runtime.socks.port,
         })
     );
+}
+
+#[tokio::test]
+async fn hy2_launch_uses_configured_singbox_runtime() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
+    let config = imported_config(&context, hy2_node()).await;
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .unwrap();
+    assert_eq!(launch.binary_path, context.runtime_paths.sing_box_path);
+    assert!(matches!(launch.config, RuntimeLaunchConfig::Singbox(_)));
+}
+
+#[tokio::test]
+async fn hy2_launch_rejects_configured_v2ray_runtime() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "v2ray".to_string();
+    let config = imported_config(&context, hy2_node()).await;
+    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+        Ok(_) => panic!("V2Ray should reject Hy2"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("V2Ray does not support it"));
 }
 
 #[tokio::test]
@@ -201,6 +225,7 @@ async fn managed_xray_launch_applies_configured_dns() {
 #[tokio::test]
 async fn managed_singbox_launch_applies_configured_dns() {
     let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
     context.app_config.dns.query_strategy = "UseIPv4".to_string();
     context.app_config.dns.servers = vec!["8.8.8.8".to_string()];
     context.app_config.dns.use_system_hosts = false;

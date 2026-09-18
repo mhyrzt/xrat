@@ -14,6 +14,9 @@ pub(super) fn build_stream_settings(
     extensions: &mut ExtensionResolver,
     compatibility: XrayCompatibilityTarget,
 ) -> Result<Option<StreamSettings>, String> {
+    if node.protocol == Protocol::Hy2 {
+        return build_hy2_stream_settings(node, extensions, compatibility).map(Some);
+    }
     let network = match node.network.to_ascii_lowercase().as_str() {
         "" | "tcp" | "raw" => "raw",
         "ws" | "websocket" => "websocket",
@@ -265,9 +268,82 @@ pub(super) fn build_stream_settings(
         grpc_settings,
         xhttp_settings,
         httpupgrade_settings,
+        hysteria_settings: None,
         finalmask,
         sockopt: None,
     }))
+}
+
+fn build_hy2_stream_settings(
+    node: &Node,
+    extensions: &mut ExtensionResolver,
+    compatibility: XrayCompatibilityTarget,
+) -> Result<StreamSettings, String> {
+    if node.network != "udp" && node.network != "hysteria" {
+        return Err(format!(
+            "Hy2 requires udp/hysteria transport, got {:?}",
+            node.network
+        ));
+    }
+    if node.tls.as_deref() != Some("tls") {
+        return Err("Hy2 requires TLS for Xray Hysteria transport".to_string());
+    }
+    let auth = node
+        .password
+        .as_deref()
+        .filter(|value| !value.is_empty())
+        .ok_or("Hy2 requires a non-empty authentication password")?;
+    let allow_insecure = extensions.alias_bool("allowInsecure", &["insecure"])?;
+    if matches!(compatibility, XrayCompatibilityTarget::PrereleaseV26_7_28)
+        && allow_insecure.is_some()
+    {
+        return Err("allowInsecure is not supported by Xray prerelease v26.7.28".to_string());
+    }
+    let alpn = extensions
+        .string("alpn")?
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .filter(|values| !values.is_empty());
+    let pin_sha256 = extensions.string("pinSHA256")?;
+    if pin_sha256.is_some() && matches!(compatibility, XrayCompatibilityTarget::StableV26_3_27) {
+        return Err("pinSHA256 requires a patched Xray version (v26.7.11 or newer); stable v26.3.27 has a certificate-pinning vulnerability".to_string());
+    }
+    let ech = extensions.string("ech")?;
+    let tls_settings = TlsSettings {
+        server_name: node.sni.clone().unwrap_or_else(|| node.address.clone()),
+        allow_insecure,
+        fingerprint: None,
+        alpn,
+        ech_config_list: ech,
+        pinned_peer_cert_sha256: pin_sha256,
+        verify_peer_cert_by_name: None,
+    };
+    Ok(StreamSettings {
+        network: matches!(compatibility, XrayCompatibilityTarget::StableV26_3_27)
+            .then(|| "hysteria".to_string())
+            .unwrap_or_default(),
+        method: matches!(compatibility, XrayCompatibilityTarget::PrereleaseV26_7_28)
+            .then(|| "hysteria".to_string())
+            .unwrap_or_default(),
+        security: Some("tls".to_string()),
+        tls_settings: Some(tls_settings),
+        reality_settings: None,
+        ws_settings: None,
+        raw_settings: None,
+        kcp_settings: None,
+        grpc_settings: None,
+        xhttp_settings: None,
+        httpupgrade_settings: None,
+        hysteria_settings: Some(json!({"version": 2, "auth": auth})),
+        finalmask: None,
+        sockopt: None,
+    })
 }
 
 fn websocket_path(node: &Node, extensions: &mut ExtensionResolver) -> Result<String, String> {

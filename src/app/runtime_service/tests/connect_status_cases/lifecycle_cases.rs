@@ -68,6 +68,7 @@ async fn connect_and_disconnect_persist_direct_transition_metadata() {
 #[tokio::test]
 async fn connect_hy2_uses_managed_singbox_runtime() {
     let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
     let config = import_hy2_config(&context).await;
 
     write_fake_runtime_script(&context);

@@ -30,7 +30,7 @@ preferred. Install Xray system-wide:
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 ```
 
-Install sing-box if you need Hysteria2 (`hy2`) managed runtime support:
+Install sing-box if you choose `[runtime].engine = "sing-box"` for Hysteria2 (`hy2`):
 
 ```bash
 curl -fsSL https://sing-box.app/install.sh | sh

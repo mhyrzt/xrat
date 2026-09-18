@@ -246,12 +246,13 @@ fn resolve_runtime_engine(
     configured_engine: &str,
     node: &crate::model::Node,
 ) -> crate::app::Result<RuntimeEngine> {
-    if matches!(node.protocol, Protocol::Hy2) {
-        return Ok(RuntimeEngine::Singbox);
-    }
-
     match configured_engine {
-        "xray" | "v2ray" => Ok(RuntimeEngine::Xray),
+        "xray" => Ok(RuntimeEngine::Xray),
+        "v2ray" if matches!(node.protocol, Protocol::Hy2) => Err(AppError::InvalidArgument(
+            "Hysteria2 requires Xray or sing-box; V2Ray does not support it".to_string(),
+        )),
+        "v2ray" => Ok(RuntimeEngine::Xray),
+        "sing-box" if matches!(node.protocol, Protocol::Hy2) => Ok(RuntimeEngine::Singbox),
         "sing-box" => Err(AppError::InvalidArgument(format!(
             "managed sing-box runtime currently supports hy2 configs only; protocol {} cannot be connected with [runtime].engine = \"sing-box\" yet",
             node.protocol

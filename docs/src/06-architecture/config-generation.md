@@ -27,7 +27,8 @@ flowchart LR
 
     NODE --> ENGINE
     ENGINE -- "VLESS, VMess, Trojan<br/>SS, SOCKS5, HTTP" --> XGEN
-    ENGINE -- "Hysteria2" --> SGEN
+    ENGINE -- "Hysteria2 auto/sing-box" --> SGEN
+    ENGINE -- "Hysteria2 explicit xray" --> XGEN
     XGEN --> XOUT
     SGEN --> SOUT
 ```
@@ -249,11 +250,16 @@ to the user entry:
 
 #### Hysteria2
 
-Hysteria2 is not supported by Xray. Returns an error if attempted:
-
-```
-Error: hysteria2/hy2 is not supported by xray config generator
-```
+Hysteria2 maps to Xray's `hysteria` outbound with `settings.version = 2`,
+`settings.address`, and `settings.port`. The stream uses Hysteria transport,
+TLS, and `hysteriaSettings` with `version = 2` and the URI authentication
+password. Xray 26.3.27 uses `streamSettings.network = "hysteria"`; the newer
+compatibility target uses `streamSettings.method = "hysteria"`. SNI, ALPN,
+`insecure`, and ECH map to TLS settings when the selected Xray version supports
+them. `pinSHA256` maps to `pinnedPeerCertSha256` only on the patched prerelease
+compatibility target; stable v26.3.27 is rejected for this field. Obfuscation,
+bandwidth, and unknown URI options fail config generation rather than being
+silently discarded.
 
 ### Stream Settings
 
@@ -542,14 +548,7 @@ pub fn resolve_engine(mode: EngineMode, protocol: Protocol) -> Result<ResolvedEn
                 Ok(ResolvedEngine::Xray)
             }
         }
-        EngineMode::Xray => {
-            if matches!(protocol, Protocol::Hy2) {
-                return Err(ConfigParseError::UnsupportedScheme(
-                    "hysteria2/hy2 is not compatible with xray engine".to_string()
-                ));
-            }
-            Ok(ResolvedEngine::Xray)
-        }
+        EngineMode::Xray => Ok(ResolvedEngine::Xray),
         EngineMode::SingBox => Ok(ResolvedEngine::SingBox),
     }
 }

@@ -28,7 +28,7 @@ xrat supports 7 proxy protocols:
 - **Trojan** — TLS-based proxy that mimics HTTPS
 - **HTTP/HTTPS** — standard HTTP proxy
 - **SOCKS5** — classic SOCKS protocol
-- **Hysteria2** — QUIC-based protocol (via sing-box)
+- **Hysteria2** — QUIC-based protocol (via Xray or sing-box)
 
 ### Dual Database Backend
 

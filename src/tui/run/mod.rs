@@ -82,7 +82,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 || last_stats_poll.elapsed() >= Duration::from_secs(5);
             if poll_due {
                 tasks::spawn_poll_stats(
-                    stats_engine_for(&app, &context.app_config.runtime.engine),
+                    stats_engine_for(&context.app_config.runtime.engine),
                     stats_settings.host.clone(),
                     stats_settings.port,
                     app.data.runtime.session_id,
@@ -564,19 +564,8 @@ fn set_import_error(app: &mut TuiApp, error: &str) {
     }
 }
 
-/// Resolve which stats backend to sample. Hy2 always runs on managed sing-box;
-/// otherwise the configured runtime engine decides. Mirrors the engine
-/// selection in `resolve_runtime_engine`.
-fn stats_engine_for(app: &TuiApp, configured_engine: &str) -> tasks::StatsEngine {
-    let active_protocol = app
-        .data
-        .runtime
-        .active_config_id
-        .and_then(|id| app.data.configs.iter().find(|config| config.id == id))
-        .map(|config| config.protocol.to_ascii_lowercase());
-    if active_protocol.as_deref() == Some("hy2") {
-        return tasks::StatsEngine::Singbox;
-    }
+/// Match the stats backend to the configured managed runtime engine.
+fn stats_engine_for(configured_engine: &str) -> tasks::StatsEngine {
     match configured_engine {
         "sing-box" => tasks::StatsEngine::Singbox,
         _ => tasks::StatsEngine::Xray,

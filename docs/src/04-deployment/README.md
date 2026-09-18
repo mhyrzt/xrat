@@ -56,8 +56,8 @@ sing_box = "/usr/local/bin/sing-box"
 ```
 
 Managed runtime process lifecycle uses Xray/V2Ray for their supported protocols.
-Hysteria2 (`hy2`) configs are launched through sing-box automatically because
-Xray/V2Ray cannot generate a compatible runtime config for them.
+Hysteria2 (`hy2`) uses native Xray or sing-box according to `[runtime].engine`.
+V2Ray does not support Hysteria2. Xray rejects Hy2 URI options it cannot map.
 
 ## Security Considerations
 

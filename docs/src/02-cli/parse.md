@@ -26,7 +26,7 @@ xrat parse [input] [flags]
 | Mode       | Behavior                                              |
 | ---------- | ----------------------------------------------------- |
 | `auto`     | Uses sing-box for hysteria2, xray for everything else |
-| `xray`     | Always use Xray-core (rejects hysteria2)              |
+| `xray`     | Use Xray-core, including native Hysteria2 generation  |
 | `sing-box` | Always use sing-box                                   |
 
 This engine choice only affects parse-time validation and `--json` runtime

@@ -126,6 +126,8 @@ pub struct StreamSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub httpupgrade_settings: Option<HttpUpgradeSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub hysteria_settings: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub finalmask: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sockopt: Option<Sockopt>,

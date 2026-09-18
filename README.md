@@ -66,9 +66,10 @@ xrat setup
 Launch the TUI with `xratui` (or `xrat tui`).
 
 XRAT manages external proxy engines: Xray is the default, V2Ray is an
-alternative, and Hysteria2 uses sing-box automatically. Setup can install
-managed copies of the cores; they do not need to be installed beforehand.
-General sing-box runtime support for other protocols is still incomplete.
+alternative, and Hysteria2 runs through Xray or sing-box as configured. Setup
+can install managed copies of the cores; they do not need to be installed
+beforehand. General sing-box runtime support for other protocols is still
+incomplete.
 
 See the [installation guide](docs/src/01-getting-started/installation.md) for
 manual downloads, Docker, and building from a checkout.
@@ -359,7 +360,7 @@ see the [CLI reference](docs/src/02-cli/README.md).
 ## More to explore
 
 - **Protocol support:** VLESS, VMess, Trojan, Shadowsocks, HTTP/HTTPS, and
-  SOCKS5 through Xray; Hysteria2 through sing-box. See
+  SOCKS5 and Hysteria2 through Xray; Hysteria2 also works through sing-box. See
   [protocol details](docs/src/05-reference/protocols.md).
 - **CDN scanning:** compare candidate edge IPs for TCP reachability and latency,
   then revisit saved results. See [scanning](docs/src/02-cli/scan.md).

@@ -337,13 +337,13 @@ engine = "xray"  # "xray" | "v2ray" | "sing-box"
 
 | Engine     | Binary     | Protocols                                                                                   |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------- |
-| `xray`     | `xray`     | All except Hysteria2                                                                        |
+| `xray`     | `xray`     | All listed protocols, including native Hysteria2 when its fields are representable          |
 | `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                             |
 | `sing-box` | `sing-box` | Managed Hysteria2 runtime sessions; other protocols currently require Xray/V2Ray generators |
 
-Hysteria2 (`hy2`) configs are selected for sing-box automatically, even when
-`engine = "xray"`, because Xray/V2Ray cannot generate a compatible Hysteria2
-runtime config. Non-Hysteria2 configs with `engine = "sing-box"` fail with an
+Hysteria2 (`hy2`) uses the configured Xray or sing-box runtime engine. V2Ray
+rejects Hysteria2. Xray generation rejects unsupported Hy2 URI options before
+launch. Non-Hysteria2 configs with `engine = "sing-box"` fail with an
 unsupported-combination error until their sing-box runtime generators are added.
 
 ## Related

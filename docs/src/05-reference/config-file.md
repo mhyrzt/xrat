@@ -132,7 +132,7 @@ replace_active_session = true
 
 | Field                    | Type    | Default | Description                                                                                                                       |
 | ------------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `engine`                 | enum    | `xray`  | Managed runtime engine. Hy2 configs auto-select sing-box; non-Hy2 configs use Xray/V2Ray unless supported by the selected engine. |
+| `engine`                 | enum    | `xray`  | Managed runtime engine. Hy2 uses Xray or sing-box as configured; V2Ray rejects Hy2.                                              |
 | `xray_compatibility`     | enum    | `auto`  | Xray schema target. `auto` detects v26.7.28 prerelease; explicit `stable`/`prerelease` overrides detection.                       |
 | `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                                                    |
 

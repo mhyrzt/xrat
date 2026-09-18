@@ -82,14 +82,7 @@ pub fn resolve_engine(
                 Ok(ResolvedEngine::Xray)
             }
         }
-        EngineMode::Xray => {
-            if matches!(protocol, Protocol::Hy2) {
-                return Err(ConfigParseError::UnsupportedScheme(
-                    "hysteria2/hy2 is not compatible with xray engine".to_string(),
-                ));
-            }
-            Ok(ResolvedEngine::Xray)
-        }
+        EngineMode::Xray => Ok(ResolvedEngine::Xray),
         EngineMode::SingBox => Ok(ResolvedEngine::SingBox),
     }
 }
@@ -104,6 +97,14 @@ mod tests {
             .expect("hy2 parse should pass")
             .expect("entry should exist");
         assert!(matches!(parsed.engine, ResolvedEngine::SingBox));
+    }
+
+    #[test]
+    fn resolves_explicit_xray_engine_for_hy2_link() {
+        let parsed = parse_single("hysteria2://secret@example.com:443#n", EngineMode::Xray)
+            .expect("hy2 parse should pass")
+            .expect("entry should exist");
+        assert!(matches!(parsed.engine, ResolvedEngine::Xray));
     }
 
     #[test]

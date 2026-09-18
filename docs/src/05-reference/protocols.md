@@ -334,7 +334,7 @@ hy2://password@example.com:8443#Simple%20HY2
 hysteria2://password@example.com:443#Alias
 ```
 
-**Engine**: sing-box (auto), sing-box (explicit)
+**Engine**: sing-box (`xrat parse --engine auto`), Xray (`--engine xray`), or sing-box (`--engine sing-box`). The managed runtime follows `[runtime].engine`: Xray and sing-box support Hysteria2; V2Ray does not. Xray generation rejects URI options that have no supported native mapping, including obfuscation and bandwidth parameters.
 
 ---
 
@@ -356,7 +356,7 @@ Engine selection is automatic but configurable.
 
 ### Xray Mode
 
-All protocols except Hysteria2. Errors on Hysteria2.
+All listed protocols, including Hysteria2 when its URI fields can be represented by Xray.
 
 ### sing-box Mode
 
