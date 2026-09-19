@@ -159,6 +159,48 @@ async fn hy2_launch_uses_configured_singbox_runtime() {
 }
 
 #[tokio::test]
+async fn singbox_launch_rejects_socks_udp_disabled() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
+    context.app_config.runtime.socks.udp = false;
+    let config = imported_config(&context, hy2_node()).await;
+
+    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+        Ok(_) => panic!("sing-box cannot disable SOCKS UDP independently"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("runtime.socks].udp = false"));
+}
+
+#[tokio::test]
+async fn singbox_launch_rejects_non_loopback_clash_api_and_port_collisions() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
+    context.app_config.runtime.stats.enabled = true;
+    context.app_config.runtime.stats.host = "0.0.0.0".to_string();
+    let config = imported_config(&context, hy2_node()).await;
+
+    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+        Ok(_) => panic!("non-loopback Clash API must be rejected"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("beyond loopback"));
+
+    context.app_config.runtime.stats.host = "127.0.0.1".to_string();
+    context.app_config.runtime.stats.port = context.app_config.runtime.socks.port;
+    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+        Ok(_) => panic!("Clash API/socks port collision must be rejected"),
+        Err(error) => error,
+    };
+    assert!(
+        error
+            .to_string()
+            .contains("collides with [runtime.socks].port")
+    );
+}
+
+#[tokio::test]
 async fn hy2_launch_rejects_configured_v2ray_runtime() {
     let mut context = test_context().await;
     context.app_config.runtime.engine = "v2ray".to_string();
@@ -254,18 +296,19 @@ async fn managed_singbox_launch_applies_configured_dns() {
 }
 
 #[tokio::test]
-async fn configured_singbox_rejects_non_hy2_until_runtime_generation_exists() {
+async fn configured_singbox_supports_vless_runtime_generation() {
     let mut context = test_context().await;
     context.app_config.runtime.engine = "sing-box".to_string();
     let config = imported_config(&context, test_node()).await;
     let service = RuntimeService::new(&context);
 
-    let error = match service.resolve_launch(&config) {
-        Ok(_) => panic!("non-hy2 sing-box launch should fail"),
-        Err(error) => error,
+    let launch = service
+        .resolve_launch(&config)
+        .expect("VLESS sing-box launch");
+    let RuntimeLaunchConfig::Singbox(config) = launch.config else {
+        panic!("expected sing-box config");
     };
-
-    assert!(error.to_string().contains("supports hy2 configs only"));
+    assert_eq!(config.outbounds[0]["type"], "vless");
 }
 
 fn runtime_session_with_status(status: RuntimeSessionStatus) -> RuntimeSessionRecord {

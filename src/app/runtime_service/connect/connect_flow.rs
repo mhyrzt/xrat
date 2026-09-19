@@ -21,7 +21,7 @@ impl<'a> RuntimeService<'a> {
             )));
         }
 
-        let launch = match self.active_session_state().await? {
+        let (launch, replace_running) = match self.active_session_state().await? {
             ActiveSessionState::Running(session) => {
                 if !self.context.app_config.runtime.replace_active_session {
                     tracing::warn!(
@@ -31,20 +31,23 @@ impl<'a> RuntimeService<'a> {
                     return Err(AppError::RuntimeSessionAlreadyActive);
                 }
 
-                let launch = self.resolve_launch(&config)?;
-                preflight_runtime(&launch, &self.context.runtime_paths.runtime_dir)?;
-                self.disconnect().await?;
-                launch
+                (self.resolve_launch(&config)?, true)
             }
             ActiveSessionState::Stale(session) => {
                 tracing::warn!(
                     session_id = session.id,
                     "stale runtime session was reconciled before connect"
                 );
-                self.resolve_launch(&config)?
+                (self.resolve_launch(&config)?, false)
             }
-            ActiveSessionState::None => self.resolve_launch(&config)?,
+            ActiveSessionState::None => (self.resolve_launch(&config)?, false),
         };
+        // Validate the replacement before tearing down a healthy session so a
+        // failed preflight leaves the running runtime untouched.
+        preflight_runtime(&launch, &self.context.runtime_paths.runtime_dir)?;
+        if replace_running {
+            self.disconnect().await?;
+        }
         crate::app::runtime_service::log_retention::cleanup(self.context).await;
         let session_id = self
             .context

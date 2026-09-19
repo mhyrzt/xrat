@@ -486,6 +486,58 @@ mod tests {
     }
 
     #[test]
+    fn singbox_dns_outputs_pass_native_check_for_each_server_type() {
+        use std::io::Write;
+        use std::process::Command;
+        use tempfile::NamedTempFile;
+
+        if Command::new("sing-box").arg("version").output().is_err() {
+            return;
+        }
+
+        let dns = DnsSettings {
+            query_strategy: "UseIPv4".to_string(),
+            servers: vec![
+                "udp://1.1.1.1".to_string(),
+                "tcp://1.1.1.1".to_string(),
+                "tls://1.1.1.1:853".to_string(),
+                "quic://1.1.1.1:853".to_string(),
+                "https://1.1.1.1/dns-query".to_string(),
+                "h3://1.1.1.1/dns-query".to_string(),
+                "localhost".to_string(),
+            ],
+            use_system_hosts: false,
+            ..Default::default()
+        };
+        let output = build_singbox_dns_options(&dns)
+            .expect("supported DNS servers should map")
+            .expect("non-default DNS should emit");
+        let dns_value = serde_json::to_value(output).unwrap();
+
+        let config = serde_json::json!({
+            "log": {"level": "warn"},
+            "inbounds": [],
+            "outbounds": [{"type": "direct", "tag": "direct"}],
+            "dns": dns_value,
+            "route": {"rules": [], "final": "direct", "default_domain_resolver": "xrat-dns-0"},
+        });
+        let mut file = NamedTempFile::with_suffix(".json").unwrap();
+        file.write_all(serde_json::to_string_pretty(&config).unwrap().as_bytes())
+            .unwrap();
+        file.flush().unwrap();
+        let output = Command::new("sing-box")
+            .args(["check", "-c"])
+            .arg(file.path())
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
     fn singbox_dns_mapping_uses_typed_servers_and_safe_fallbacks() {
         let mut dns = DnsSettings {
             query_strategy: "UseIPv4".to_string(),

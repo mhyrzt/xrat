@@ -134,23 +134,3 @@ async fn connect_preflight_failure_keeps_running_session() {
     let _ = child.kill();
     let _ = child.wait();
 }
-
-#[tokio::test]
-async fn connect_rejects_non_hy2_sing_box_runtime_until_generation_exists() {
-    let mut context = test_context().await;
-    context.app_config.runtime.engine = "sing-box".to_string();
-    let config = import_single_config(&context).await;
-
-    let result = RuntimeService::new(&context)
-        .connect(ConnectRequest {
-            config_id: config.id,
-        })
-        .await;
-
-    match result {
-        Err(AppError::InvalidArgument(message)) => {
-            assert!(message.contains("supports hy2 configs only"));
-        }
-        other => panic!("expected invalid argument, got {other:?}"),
-    }
-}

@@ -66,6 +66,10 @@ import socket
 import sys
 import time
 
+if sys.argv[1:] == ["version", "--name"]:
+    print("1.13.21")
+    sys.exit(0)
+
 config_path = None
 for i, arg in enumerate(sys.argv):
     if arg == "-c" and i + 1 < len(sys.argv):
@@ -76,6 +80,9 @@ if config_path is None:
 
 with open(config_path, "r", encoding="utf-8") as f:
     cfg = json.load(f)
+
+if "check" in sys.argv:
+    sys.exit(0)
 
 inbound = cfg["inbounds"][0]
 host = inbound.get("listen", "127.0.0.1")

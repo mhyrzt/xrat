@@ -133,50 +133,69 @@ impl<'a> RuntimeService<'a> {
     ) -> crate::app::Result<ResolvedLaunch> {
         let mut inbounds = Vec::new();
         if let Some((host, port, udp)) = socks {
-            inbounds.push(SingboxInbound {
-                kind: "socks".to_string(),
-                tag: "socks-in".to_string(),
-                listen: host.to_string(),
-                listen_port: port,
-                network: udp.then_some("udp".to_string()),
-                method: None,
-                password: None,
-                users: self.singbox_socks_users()?,
-            });
+            if !udp {
+                return Err(AppError::InvalidArgument(
+                    "[runtime.socks].udp = false cannot be represented by sing-box 1.13; use Xray/V2Ray or enable UDP"
+                        .to_string(),
+                ));
+            }
+            inbounds.push(SingboxInbound::socks(
+                "socks-in",
+                host,
+                port,
+                self.singbox_socks_users()?,
+            ));
         }
         if let Some((host, port)) = http {
-            inbounds.push(SingboxInbound {
-                kind: "http".to_string(),
-                tag: "http-in".to_string(),
-                listen: host.to_string(),
-                listen_port: port,
-                network: None,
-                method: None,
-                password: None,
-                users: None,
-            });
+            inbounds.push(SingboxInbound::http("http-in", host, port));
         }
         if let Some((host, port, method, password, network)) = &shadowsocks {
-            inbounds.push(SingboxInbound {
-                kind: "shadowsocks".to_string(),
-                tag: "shadowsocks-in".to_string(),
-                listen: (*host).to_string(),
-                listen_port: *port,
-                network: Some((*network).to_string()),
-                method: Some((*method).to_string()),
-                password: Some(password.clone()),
-                users: None,
-            });
+            inbounds.push(
+                SingboxInbound::shadowsocks(
+                    "shadowsocks-in",
+                    *host,
+                    *port,
+                    *network,
+                    *method,
+                    password.clone(),
+                )
+                .map_err(AppError::InvalidArgument)?,
+            );
         }
 
         let stats = &self.context.app_config.runtime.stats;
-        let clash_api = stats.enabled.then(|| SingboxClashApi {
-            external_controller: format!("{}:{}", stats.host, stats.port),
-            secret: None,
-        });
+        let clash_api = if stats.enabled {
+            if !is_loopback_listener(&stats.host) {
+                return Err(AppError::InvalidArgument(format!(
+                    "[runtime.stats].host = \"{}\" would expose the sing-box Clash API beyond loopback; use 127.0.0.1, ::1, or localhost",
+                    stats.host
+                )));
+            }
+            for (label, port) in [
+                ("[runtime.socks].port", socks.map(|(_, port, _)| port)),
+                ("[runtime.http].port", http.map(|(_, port)| port)),
+                (
+                    "[runtime.shadowsocks].port",
+                    shadowsocks.as_ref().map(|(_, port, _, _, _)| *port),
+                ),
+            ] {
+                if port == Some(stats.port) {
+                    return Err(AppError::InvalidArgument(format!(
+                        "[runtime.stats].port {} collides with {label} for the sing-box Clash API",
+                        stats.port
+                    )));
+                }
+            }
+            Some(SingboxClashApi {
+                external_controller: format!("{}:{}", stats.host, stats.port),
+                secret: None,
+            })
+        } else {
+            None
+        };
         let routing = build_singbox_routing_options(&self.context.app_config.routing);
         let dns = build_singbox_dns_options(&self.context.app_config.dns)?;
-        let config = generate_singbox_runtime_config_with_dns(
+        let mut config = generate_singbox_runtime_config_with_dns(
             node,
             inbounds,
             clash_api,
@@ -184,6 +203,14 @@ impl<'a> RuntimeService<'a> {
             dns.as_ref(),
         )
         .map_err(AppError::InvalidArgument)?;
+        if config.has_rule_sets() {
+            let cache_path = self
+                .context
+                .runtime_paths
+                .runtime_dir
+                .join("singbox-cache.db");
+            config.enable_cache_file(cache_path.display().to_string());
+        }
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)
         } else if let Some((host, port)) = http {
@@ -242,6 +269,14 @@ enum RuntimeEngine {
     Singbox,
 }
 
+fn is_loopback_listener(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host
+            .trim_matches(|character| character == '[' || character == ']')
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|address| address.is_loopback())
+}
+
 fn resolve_runtime_engine(
     configured_engine: &str,
     node: &crate::model::Node,
@@ -252,11 +287,7 @@ fn resolve_runtime_engine(
             "Hysteria2 requires Xray or sing-box; V2Ray does not support it".to_string(),
         )),
         "v2ray" => Ok(RuntimeEngine::Xray),
-        "sing-box" if matches!(node.protocol, Protocol::Hy2) => Ok(RuntimeEngine::Singbox),
-        "sing-box" => Err(AppError::InvalidArgument(format!(
-            "managed sing-box runtime currently supports hy2 configs only; protocol {} cannot be connected with [runtime].engine = \"sing-box\" yet",
-            node.protocol
-        ))),
+        "sing-box" => Ok(RuntimeEngine::Singbox),
         other => Err(AppError::InvalidArgument(format!(
             "unsupported runtime engine \"{other}\""
         ))),

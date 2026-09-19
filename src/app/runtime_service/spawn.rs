@@ -52,6 +52,9 @@ pub(super) fn preflight_runtime(
     launch: &ResolvedLaunch,
     runtime_dir: &std::path::Path,
 ) -> crate::app::Result<()> {
+    if matches!(launch.validator, RuntimeValidator::Singbox) {
+        crate::singbox::ensure_supported_binary(&launch.binary_path)?;
+    }
     std::fs::create_dir_all(runtime_dir)?;
     let mut temporary = tempfile::Builder::new()
         .prefix(".xrat-preflight-")
