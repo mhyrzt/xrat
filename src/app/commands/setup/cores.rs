@@ -16,6 +16,11 @@ use crate::support::platform;
 
 pub(super) const CORE_KINDS: [CoreKind; 3] = [CoreKind::Xray, CoreKind::SingBox, CoreKind::V2Ray];
 
+/// Managed sing-box installs track the pinned conformance release so the
+/// installed binary matches the v1.13.21 validation target. The runtime still
+/// accepts any stable 1.13.x binary; this only controls what setup installs.
+pub(super) const PINNED_SINGBOX_VERSION: &str = "1.13.21";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum CoreKind {
     Xray,
@@ -96,6 +101,11 @@ impl CoreProbe {
             .map(|path| path.display().to_string())
             .unwrap_or_else(|| "not installed".to_string());
         let ownership = if self.managed { "managed" } else { "external" };
+        let channel = if self.kind == CoreKind::SingBox {
+            "pinned"
+        } else {
+            "latest"
+        };
         let current = self
             .version
             .as_ref()
@@ -104,11 +114,11 @@ impl CoreProbe {
         match &self.latest {
             Ok(latest) if self.path.is_some() => {
                 format!(
-                    "{location} ({current}; latest v{}; {ownership})",
+                    "{location} ({current}; {channel} v{}; {ownership})",
                     latest.version
                 )
             }
-            Ok(latest) => format!("{location} (latest v{})", latest.version),
+            Ok(latest) => format!("{location} ({channel} v{})", latest.version),
             Err(error) if self.path.is_some() => {
                 format!("{location} ({current}; {ownership}; update check failed: {error})")
             }
@@ -208,6 +218,12 @@ pub(super) async fn fetch_release(
     version: Option<&Version>,
     prerelease: bool,
 ) -> Result<CoreRelease, String> {
+    let pinned = default_version(kind);
+    let version = if version.is_none() && !prerelease {
+        pinned.as_ref()
+    } else {
+        version
+    };
     let selector = if prerelease {
         "latest prerelease".to_string()
     } else if let Some(version) = version {
@@ -251,6 +267,15 @@ pub(super) async fn fetch_release(
         "proxy core release resolved"
     );
     Ok(release)
+}
+
+/// The default release to install when the caller does not pin a version.
+/// Only sing-box is pinned; Xray and V2Ray track latest stable.
+fn default_version(kind: CoreKind) -> Option<Version> {
+    (kind == CoreKind::SingBox).then(|| {
+        Version::parse(PINNED_SINGBOX_VERSION)
+            .expect("PINNED_SINGBOX_VERSION must be a valid semantic version")
+    })
 }
 
 fn release_api_url(kind: CoreKind, version: Option<&Version>, prerelease: bool) -> String {
@@ -819,6 +844,24 @@ mod tests {
         assert_eq!(
             parse_version("V2Ray 5.52.0 (V2Fly)"),
             Some(Version::new(5, 52, 0))
+        );
+    }
+
+    #[test]
+    fn pins_the_managed_sing_box_release() {
+        assert_eq!(
+            default_version(CoreKind::SingBox),
+            Some(Version::new(1, 13, 21))
+        );
+        assert_eq!(default_version(CoreKind::Xray), None);
+        assert_eq!(default_version(CoreKind::V2Ray), None);
+        assert_eq!(
+            release_api_url(
+                CoreKind::SingBox,
+                default_version(CoreKind::SingBox).as_ref(),
+                false,
+            ),
+            "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v1.13.21"
         );
     }
 

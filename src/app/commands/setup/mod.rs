@@ -38,7 +38,7 @@ pub async fn install(context: &AppContext, args: &InstallArgs) -> crate::app::Re
     let color = output::color_enabled();
     let channel = if args.prerelease {
         "prerelease"
-    } else if args.version.is_some() {
+    } else if args.version.is_some() || kind == cores::CoreKind::SingBox {
         "pinned release"
     } else {
         "latest stable"
