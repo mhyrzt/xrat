@@ -5,6 +5,7 @@ status: To Do
 assignee:
   - '@mhyrzt'
 created_date: '2026-08-30 17:51'
+updated_date: '2026-09-19 22:23'
 labels:
   - sing-box
   - rule-set
@@ -34,6 +35,14 @@ Define download, storage, freshness, format, and cleanup behavior for sing-box 1
 - [ ] #4 Xray and sing-box assets cannot be confused by filename or path resolution
 - [ ] #5 Setup, status, and documentation expose rule-set availability
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decision research (2026-09-20): sing-box local rule-sets must be .srs (binary) or source JSON, not Xray .dat. If the remote approach in TASK-100 is accepted this task becomes the offline/asset-cache fallback rather than the default path. Scope stays: deterministic per-user paths, atomic updates, freshness/corruption diagnostics, and setup/status exposure.
+
+Status update (2026-09-20): TASK-100 shipped using remote SagerNet rule-sets with experimental.cache_file, so local .srs asset management is no longer required for the feature. This task remains open only as an optional offline/asset-cache follow-up; recommend closing it as superseded unless offline rule-sets are needed.
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

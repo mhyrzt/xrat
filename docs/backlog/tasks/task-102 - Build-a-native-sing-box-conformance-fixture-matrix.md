@@ -5,7 +5,7 @@ status: To Do
 assignee:
   - '@mhyrzt'
 created_date: '2026-08-30 15:36'
-updated_date: '2026-08-30 17:52'
+updated_date: '2026-09-19 23:21'
 labels:
   - sing-box
   - testing
@@ -42,6 +42,12 @@ Expand native validation from a small optional DNS smoke test into a determinist
 - [ ] #4 CI or release verification runs the matrix against the pinned supported sing-box version
 - [ ] #5 A schema or native-validator rejection identifies the exact fixture and emitted JSON
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Policy update (2026-09-20): the fixture matrix should cover the tested range >=1.13.0,<1.15.0 rather than only 1.13.x, while the pinned conformance target stays v1.13.21.
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

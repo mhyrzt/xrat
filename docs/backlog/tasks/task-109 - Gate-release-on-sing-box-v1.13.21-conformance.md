@@ -5,6 +5,7 @@ status: To Do
 assignee:
   - '@mhyrzt'
 created_date: '2026-08-30 17:52'
+updated_date: '2026-09-19 23:21'
 labels:
   - sing-box
   - ci
@@ -33,6 +34,12 @@ Add a deterministic release/CI gate that obtains the pinned official sing-box v1
 - [ ] #4 Failures retain the fixture name, generated JSON, command output, and sing-box version
 - [ ] #5 Release documentation records the validated sing-box version
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Policy update (2026-09-20): the release gate must fail on pre-1.13 binaries and on any fixture rejected by the pinned v1.13.21 binary. A newer binary outside the tested range is accepted at runtime with a warning, so the gate should also run the matrix against a 1.14.x binary once TASK-117 lands.
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
