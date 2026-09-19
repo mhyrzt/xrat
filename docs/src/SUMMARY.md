@@ -54,6 +54,7 @@
 - [Architecture](06-architecture/README.md)
   - [Module Structure](06-architecture/module-structure.md)
   - [Config Generation](06-architecture/config-generation.md)
+  - [sing-box Compatibility](06-architecture/singbox-compatibility.md)
   - [Import Pipeline](06-architecture/import-pipeline.md)
   - [Daemon Architecture](06-architecture/daemon-architecture.md)
   - [Runtime Lifecycle](06-architecture/runtime-lifecycle.md)
