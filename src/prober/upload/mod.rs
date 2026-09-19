@@ -2,14 +2,15 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::model::Node;
-use crate::xray::{XrayGenOptions, generate_probe_config_with_options};
+use crate::prober::probe::{ProbeEngineKind, ProbeProcess};
+use crate::xray::XrayGenOptions;
 
 use super::FailureKind;
 
 mod classify;
 mod request;
 
-pub use classify::{classify_request_error, classify_xray_error};
+pub use classify::classify_request_error;
 use request::{find_available_port, make_proxied_upload};
 
 #[derive(Debug, Clone)]
@@ -24,8 +25,9 @@ pub struct UploadResult {
 pub async fn upload_speed_check(
     node: &Node,
     test_url: &str,
-    xray_binary_path: &Path,
-    xray_startup_timeout: Duration,
+    engine: ProbeEngineKind,
+    binary_path: &Path,
+    startup_timeout: Duration,
     request_timeout: Duration,
     payload_bytes: usize,
     gen_options: &XrayGenOptions,
@@ -42,28 +44,18 @@ pub async fn upload_speed_check(
         }
     };
 
-    let config = match generate_probe_config_with_options(node, local_port, gen_options) {
-        Ok(config) => config,
-        Err(error) => {
-            return UploadResult {
-                success: false,
-                mbps: None,
-                failure_kind: Some(FailureKind::Process),
-                failure_reason: Some(format!("Failed to generate config: {error}")),
-            };
-        }
-    };
-
-    let process = match crate::xray::XrayProcess::spawn_with_binary(
-        xray_binary_path,
-        &config,
-        xray_startup_timeout,
+    let process = match ProbeProcess::spawn(
+        node,
+        local_port,
+        engine,
+        binary_path,
+        gen_options,
+        startup_timeout,
     )
     .await
     {
         Ok(process) => process,
-        Err(error) => {
-            let (kind, reason) = classify_xray_error(&error);
+        Err((kind, reason)) => {
             return UploadResult {
                 success: false,
                 mbps: None,

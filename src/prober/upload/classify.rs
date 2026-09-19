@@ -1,27 +1,4 @@
-use crate::xray::XrayProcessError;
-
 use super::FailureKind;
-
-pub fn classify_xray_error(error: &XrayProcessError) -> (FailureKind, String) {
-    match error {
-        XrayProcessError::SpawnError(_) => (
-            FailureKind::Process,
-            format!("Failed to spawn xray: {error}"),
-        ),
-        XrayProcessError::StartupTimeout => {
-            (FailureKind::Timeout, "Xray startup timeout".to_string())
-        }
-        XrayProcessError::ProcessExited(stderr) => (
-            FailureKind::Process,
-            format!("Xray process exited unexpectedly: {stderr}"),
-        ),
-        XrayProcessError::PortNotReady(_) => (
-            FailureKind::Process,
-            format!("Xray port not ready: {error}"),
-        ),
-        _ => (FailureKind::Process, format!("Xray error: {error}")),
-    }
-}
 
 pub fn classify_request_error(error: &reqwest::Error) -> (FailureKind, String) {
     if error.is_timeout() {

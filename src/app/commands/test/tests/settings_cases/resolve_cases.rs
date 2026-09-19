@@ -59,6 +59,24 @@ fn resolves_test_settings_from_app_config() {
 }
 
 #[test]
+fn rejects_an_unsupported_singbox_test_binary_before_probe_setup() {
+    let app_config = AppConfig {
+        runtime: crate::app::config::RuntimeSettings {
+            engine: "sing-box".to_string(),
+            ..Default::default()
+        },
+        ..AppConfig::default()
+    };
+    let mut runtime_paths = test_runtime_paths();
+    runtime_paths.sing_box_path = "/definitely-not-installed/sing-box".into();
+
+    let error = resolve_test_settings(&test_args(Some(1)), &app_config, &runtime_paths)
+        .expect_err("unavailable sing-box must be rejected before probe setup");
+
+    assert!(error.to_string().contains("detected version unavailable"));
+}
+
+#[test]
 fn applies_dns_settings_to_xray_probe_options() {
     let app_config = AppConfig {
         dns: crate::app::config::DnsSettings {

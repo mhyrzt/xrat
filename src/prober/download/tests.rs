@@ -35,6 +35,7 @@ async fn download_speed_check_rejects_invalid_config() {
     let result = download_speed_check(
         &node,
         crate::app::config::defaults::DEFAULT_DOWNLOAD_TEST_URL,
+        crate::prober::ProbeEngineKind::Xray,
         Path::new("xray"),
         Duration::from_secs(5),
         Duration::from_secs(10),

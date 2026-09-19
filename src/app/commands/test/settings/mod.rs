@@ -37,6 +37,7 @@ pub(crate) struct ResolvedTestSettings {
     pub(crate) download_url: String,
     pub(crate) upload_url: Option<String>,
     pub(crate) xray_binary_path: PathBuf,
+    pub(crate) probe_engine: crate::prober::ProbeEngineKind,
     pub(crate) icmp_timeout: Duration,
     pub(crate) tcp_timeout: Duration,
     pub(crate) xray_startup_timeout: Duration,

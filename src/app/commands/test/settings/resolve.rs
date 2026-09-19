@@ -7,6 +7,9 @@ pub(crate) fn resolve_test_settings(
     app_config: &AppConfig,
     runtime_paths: &RuntimePaths,
 ) -> crate::app::Result<ResolvedTestSettings> {
+    if app_config.runtime.engine == "sing-box" {
+        crate::singbox::ensure_supported_binary(&runtime_paths.sing_box_path)?;
+    }
     let concurrency = args.concurrency.unwrap_or(app_config.testing.concurrency);
     if concurrency < 0 {
         return Err(AppError::InvalidArgument(
@@ -56,6 +59,11 @@ pub(crate) fn resolve_test_settings(
     );
     let geoip_lookup = geoip::build_lookup_chain(app_config, runtime_paths)?;
     let xray_binary_path = resolve_engine_binary_path(app_config, runtime_paths);
+    let probe_engine = if app_config.runtime.engine == "sing-box" {
+        crate::prober::ProbeEngineKind::Singbox
+    } else {
+        crate::prober::ProbeEngineKind::Xray
+    };
     let mut gen_options = crate::app::runtime_tuning::build_xray_gen_options(&app_config.runtime);
     gen_options.compatibility = crate::app::runtime_tuning::detect_xray_compatibility(
         app_config.runtime.xray_compatibility,
@@ -78,6 +86,7 @@ pub(crate) fn resolve_test_settings(
             .unwrap_or_else(|| app_config.testing.download.url.clone()),
         upload_url: args.upload_url.clone(),
         xray_binary_path,
+        probe_engine,
         icmp_timeout: Duration::from_millis(
             args.icmp_timeout_ms
                 .unwrap_or(app_config.testing.icmp.timeout),

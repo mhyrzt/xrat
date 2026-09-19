@@ -70,6 +70,7 @@ pub(crate) async fn run_real_delay_stage(
     let real_delay_result = real_delay_check(
         node,
         &settings.real_delay_url,
+        settings.probe_engine,
         &settings.xray_binary_path,
         settings.xray_startup_timeout,
         settings.real_delay_timeout,

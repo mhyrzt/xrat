@@ -73,6 +73,7 @@ async fn test_real_delay_check_invalid_config() {
     let result = real_delay_check(
         &node,
         crate::app::config::defaults::DEFAULT_REAL_DELAY_TEST_URL,
+        crate::prober::ProbeEngineKind::Xray,
         Path::new("xray"),
         Duration::from_secs(5),
         Duration::from_secs(10),

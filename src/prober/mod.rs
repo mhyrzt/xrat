@@ -1,11 +1,13 @@
 pub mod download;
 pub mod icmp;
+pub mod probe;
 pub mod real_delay;
 pub mod tcp;
 pub mod upload;
 
 pub use download::{DownloadResult, download_speed_check};
 pub use icmp::{IcmpResult, icmp_ping};
+pub use probe::{ProbeEngineKind, ProbeProcess};
 pub use real_delay::{AcceptedHttpStatuses, RealDelayResult, real_delay_check};
 pub use tcp::{TcpResult, tcp_check};
 pub use upload::{UploadResult, upload_speed_check};

@@ -14,6 +14,7 @@ pub(crate) async fn run_download_stage(
     let download_result = download_speed_check(
         node,
         &settings.download_url,
+        settings.probe_engine,
         &settings.xray_binary_path,
         settings.xray_startup_timeout,
         settings.download_timeout,
@@ -59,6 +60,7 @@ pub(crate) async fn run_upload_stage(
     let upload_result = upload_speed_check(
         node,
         upload_url,
+        settings.probe_engine,
         &settings.xray_binary_path,
         settings.xray_startup_timeout,
         settings.upload_timeout,

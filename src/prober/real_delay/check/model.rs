@@ -10,3 +10,17 @@ pub struct RealDelayResult {
     pub failure_kind: Option<FailureKind>,
     pub failure_reason: Option<String>,
 }
+
+impl RealDelayResult {
+    pub fn failure(kind: FailureKind, reason: String) -> Self {
+        Self {
+            success: false,
+            latency_ms: None,
+            ttfb_ms: None,
+            http_status: None,
+            dial_endpoint_ip: None,
+            failure_kind: Some(kind),
+            failure_reason: Some(reason),
+        }
+    }
+}
