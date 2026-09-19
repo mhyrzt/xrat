@@ -185,9 +185,15 @@ timeout = 5000
 
 Routing rules affect managed sessions, including daemon rotation, but not
 connection-test probes. Direct rules are evaluated before block rules. Xray and
-V2Ray support all four routing lists; sing-box currently supports domain rules
-and IP/CIDR rules, and rejects `geosite`/`geoip` entries until rule-set
-translation is available.
+V2Ray support all four routing lists. sing-box supports domain rules, IP/CIDR
+rules, and `geosite`/`geoip` entries through remote SagerNet rule-sets cached
+under the runtime directory; Xray's local `.dat` assets are not reused.
+
+Managed sing-box sessions and sing-box probes require a sing-box `>=1.13.0`
+binary. Newer versions are accepted; conformance fixtures cover
+`>=1.13.0, <1.15.0` and versions outside that range log a warning. `xrat setup`
+installs the pinned `v1.13.21` release. See the
+[sing-box compatibility contract](../06-architecture/singbox-compatibility.md).
 
 ## Secret Values
 

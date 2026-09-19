@@ -7,13 +7,13 @@ fields, and engine routing.
 
 | Protocol    | URI Scheme                | Xray | sing-box | Parser |
 | ----------- | ------------------------- | ---- | -------- | ------ |
-| VLESS       | `vless://`                | Yes  | No       | Yes    |
-| VMess       | `vmess://`                | Yes  | No       | Yes    |
-| Shadowsocks | `ss://`                   | Yes  | No       | Yes    |
-| Trojan      | `trojan://`               | Yes  | No       | Yes    |
-| HTTP        | `http://` / `https://`    | Yes  | No       | Yes    |
-| SOCKS5      | `socks5://`               | Yes  | No       | Yes    |
-| Hysteria2   | `hysteria2://` / `hy2://` | No   | Yes      | Yes    |
+| VLESS       | `vless://`                | Yes  | Yes      | Yes    |
+| VMess       | `vmess://`                | Yes  | Yes      | Yes    |
+| Shadowsocks | `ss://`                   | Yes  | Yes      | Yes    |
+| Trojan      | `trojan://`               | Yes  | Yes      | Yes    |
+| HTTP        | `http://` / `https://`    | Yes  | Yes      | Yes    |
+| SOCKS5      | `socks5://`               | Yes  | Yes      | Yes    |
+| Hysteria2   | `hysteria2://` / `hy2://` | Yes  | Yes      | Yes    |
 
 ---
 
@@ -88,7 +88,7 @@ vless://uuid-abc@example.com:8080?type=xhttp&security=reality&sni=www.example.co
 vless://uuid-def@example.com:443?type=xhttp&mode=auto&xPaddingBytes=100-1000&extra=%7B%22noSSEHeader%22%3Atrue%7D#XHTTP%20Node
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -149,7 +149,7 @@ vmess://00000000-0000-0000-0000-000000000001@example.com:443?type=ws&security=tl
 vmess://eyJhZGQiOiJleGFtcGxlLmNvbSIsInBvcnQiOiI0NDMiLCJpZCI6InV1aWQtNDU2IiwibmV0Ijoid3MiLCJ0bHMiOiJ0bHMiLCJzbmkiOiJlZGdlLmV4YW1wbGUuY29tIiwiaG9zdCI6Imhvc3QuZXhhbXBsZS5jb20iLCJwYXRoIjoiL3ZtZXNzIiwicHMiOiJWTWVzcyBOb2RlIn0=
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -184,7 +184,7 @@ ss://<base64(method:password)>@<address>:<port>#<name>
 ss://YWVzLTI1Ni1nY206c2VjcmV0@example.com:8388#SS%20Node
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -221,7 +221,7 @@ trojan://<password>@<address>:<port>?type=<network>&sni=<sni>&host=<host>&path=<
 trojan://password@example.com:443?type=ws&sni=cdn.example.com&path=%2Ftrojan#Trojan%20Node
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -257,7 +257,7 @@ http://user:pass@example.com:8080#HTTP%20Node
 https://example.com:443#HTTPS%20Node
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -290,7 +290,7 @@ socks5://user:pass@example.com:1080#SOCKS%20Node
 socks5://example.com:1080#Anonymous
 ```
 
-**Engine**: Xray (auto), Xray (explicit)
+**Engine**: Xray (auto), Xray or sing-box (explicit)
 
 ---
 
@@ -334,7 +334,11 @@ hy2://password@example.com:8443#Simple%20HY2
 hysteria2://password@example.com:443#Alias
 ```
 
-**Engine**: sing-box (`xrat parse --engine auto`), Xray (`--engine xray`), or sing-box (`--engine sing-box`). The managed runtime follows `[runtime].engine`: Xray and sing-box support Hysteria2; V2Ray does not. Xray generation rejects URI options that have no supported native mapping, including obfuscation and bandwidth parameters.
+**Engine**: sing-box (`xrat parse --engine auto`), Xray (`--engine xray`), or
+sing-box (`--engine sing-box`). The managed runtime follows `[runtime].engine`:
+Xray and sing-box support Hysteria2; V2Ray does not. Xray generation rejects URI
+options that have no supported native mapping, including obfuscation and
+bandwidth parameters.
 
 ---
 
@@ -356,11 +360,17 @@ Engine selection is automatic but configurable.
 
 ### Xray Mode
 
-All listed protocols, including Hysteria2 when its URI fields can be represented by Xray.
+All listed protocols, including Hysteria2 when its URI fields can be represented
+by Xray.
 
 ### sing-box Mode
 
-All protocols use sing-box (currently only Hysteria2 fully implemented).
+All protocols use sing-box generation. Each outbound maps to documented sing-box
+1.13 fields; unsupported link parameters and transports fail with a named error
+before launch instead of being dropped. The managed runtime and `xrat test` both
+require a sing-box `>=1.13.0` binary; newer versions are accepted with a warning
+outside the tested `>=1.13.0, <1.15.0` range, and the conformance target is
+`v1.13.21`.
 
 ### Checking Engine
 
@@ -368,6 +378,49 @@ All protocols use sing-box (currently only Hysteria2 fully implemented).
 xrat parse --engine auto "vless://uuid@example.com:443"
 xrat parse --engine sing-box "hy2://password@example.com:443"
 ```
+
+## Engine and Stage Support
+
+Every protocol xrat imports can be parsed, shown, probed, and run through a
+managed Xray, V2Ray (except Hysteria2), or sing-box runtime. `xrat test` and
+`xrat scan` probe with the binary selected by `[runtime].engine`; the sing-box
+probe path generates a sing-box probe config and spawns `sing-box run -c`.
+
+| Protocol    | Import / `parse` | `show` / parse JSON | Probe (Xray/V2Ray) | Probe (sing-box) | Managed runtime (Xray/V2Ray) | Managed runtime (sing-box) |
+| ----------- | ---------------- | ------------------- | ------------------ | ---------------- | ---------------------------- | -------------------------- |
+| VLESS       | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| VMess       | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| Shadowsocks | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| Trojan      | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| HTTP        | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| SOCKS5      | Yes              | Yes                 | Yes                | Yes              | Yes                          | Yes                        |
+| Hysteria2   | Yes              | Yes                 | No (V2Ray)         | Yes              | Yes (Xray)                   | Yes                        |
+
+Managed sing-box sessions and sing-box probes require a sing-box `>=1.13.0`
+binary. Newer versions are accepted; the tested conformance range is
+`>=1.13.0, <1.15.0` with `v1.13.21` pinned, and versions outside it log a
+warning. A pre-1.13 or unavailable binary is rejected before a config is written
+or a process starts.
+
+## sing-box Limitations and Expected Errors
+
+| Area                 | Supported                                                                           | Rejected with                                                                    | Alternative                                               |
+| -------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| SOCKS inbound        | TCP and UDP together                                                                | `[runtime.socks].udp = false cannot be represented by sing-box 1.13`             | enable UDP or use Xray/V2Ray                              |
+| HTTP / Shadowsocks   | HTTP has no auth settings; Shadowsocks validates method and password                | `unsupported Shadowsocks inbound method ...` / `requires a password`             | fix the config or use Xray/V2Ray                          |
+| TLS / transports     | SNI, insecure, ALPN, uTLS fingerprint, REALITY, ws, grpc, http, httpupgrade, quic   | `unsupported sing-box transport "..."` / `unsupported sing-box TLS security ...` | use a supported transport or Xray/V2Ray                   |
+| REALITY              | Requires `pbk`, 0-16 hex `sid`; uTLS is enabled automatically                       | `REALITY requires pbk/password public key`                                       | provide `pbk`/`sid` or use Xray                           |
+| Shadowsocks outbound | Documented AEAD/2022 and legacy methods; 2022 keys are length-checked               | `unsupported Shadowsocks method ...` / `requires a 16-byte key`                  | use a supported method or Xray/V2Ray                      |
+| DNS                  | Typed udp/tcp/tls/quic/https/h3/local/hosts; UseIPv4/UseIPv6                        | `... has no exact modern sing-box equivalent` / `disable_fallback ...`           | use UseIPv4/UseIPv6 and remove Xray-only flags            |
+| Routing              | Exact/suffix/keyword/regex domains, IP/CIDR, and `geosite`/`geoip` remote rule-sets | `... is not translatable to sing-box` / `not a valid rule-set category name`     | remove the entry or use Xray/V2Ray                        |
+| Clash API / stats    | Loopback controller, port distinct from local inbounds                              | `would expose the sing-box Clash API beyond loopback`                            | set `[runtime.stats].host` to `127.0.0.1`/`::1`/localhost |
+| Version              | sing-box `>=1.13.0` (tested `>=1.13.0, <1.15.0`)                                    | `unsupported sing-box binary at ...; supported range is >=1.13.0`                | install sing-box v1.13.21 or newer                        |
+
+`geosite`/`geoip` categories map to remote SagerNet rule-sets
+(`sing-geosite`/`sing-geoip`) referenced from the generated route. Remote
+rule-sets are downloaded on first use and cached under the runtime directory via
+`experimental.cache_file`; they require network access and cannot reuse Xray's
+local `.dat` assets.
 
 ## Normalized Fields
 

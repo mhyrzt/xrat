@@ -490,28 +490,105 @@ managed-runtime routing rules.
 
 Located in `src/singbox/config/`.
 
+The [sing-box compatibility contract](singbox-compatibility.md) defines the
+supported version range, the v1.13.21 conformance target, and the authoritative
+source for every emitted section. Do not add a field from memory or infer it
+from an Xray shape: verify the relevant tagged sing-box option type and
+configuration documentation first.
+
 ### Supported Protocols
 
-Currently only **Hysteria2** is implemented.
+Managed sing-box output supports every protocol xrat imports: **VLESS**,
+**VMess**, **Trojan**, **Shadowsocks**, **HTTP** (CONNECT), **SOCKS5**, and
+**Hysteria2**. Each protocol maps only documented v1.13 fields through the
+shared TLS/transport builder; unsupported or lossy link parameters fail before
+process launch instead of being dropped.
 
-### Hysteria2 Config
+Outbound builders live next to this module:
 
-```rust
-pub fn generate_probe_config(node: &Node, local_port: u16) -> Result<Value, String>
-pub fn generate_runtime_config(node: &Node, socks_port: u16) -> Result<Value, String>
-```
+| Protocol      | Builder     | Notes                                                                     |
+| ------------- | ----------- | ------------------------------------------------------------------------- |
+| Hysteria2     | `hy2.rs`    | password, `tcp`/`udp`, SNI, insecure, ALPN, Salamander, integer bandwidth |
+| VLESS         | `vless.rs`  | UUID, `xtls-rprx-vision`, `packet_encoding`, TLS/REALITY, transports      |
+| VMess         | `vmess.rs`  | UUID, `security`, `alter_id`, `packet_encoding`, TLS, transports          |
+| Trojan        | `trojan.rs` | password, TLS, transports                                                 |
+| Shadowsocks   | `simple.rs` | method validation, password, `tcp`/`udp`                                  |
+| HTTP / SOCKS5 | `simple.rs` | credentials and HTTPS-only TLS                                            |
+
+`transport.rs` owns the shared outbound TLS and V2Ray transport mapping
+(WebSocket, gRPC, HTTP, HTTPUpgrade, QUIC). REALITY always enables uTLS, as
+required by sing-box, and validates the public key and short ID.
+
+Routing `geosite`/`geoip` categories become remote SagerNet
+`sing-geosite`/`sing-geoip` `.srs` rule-sets referenced from the generated
+route. When any rule-set is present the runtime enables
+`experimental.cache_file` under the runtime directory so downloads persist. Xray
+`.dat` assets are never reused.
+
+### Probe Processes
+
+`xrat test` and `scan` choose the probe binary from `[runtime].engine`.
+`src/prober/probe.rs` spawns either `xray`/`v2ray` with an Xray probe config or
+`sing-box` with `generate_singbox_probe_config`, using the same `run -c`
+invocation as the managed runtime. A sing-box probe config is rejected by
+configuration validation before any process starts, so unsupported link
+parameters surface as `process` failures with the builder's diagnostic.
+
+The managed sing-box `experimental.clash_api` controller must bind a loopback
+host and a port distinct from the local SOCKS, HTTP, and Shadowsocks inbounds;
+other combinations fail before launch. Whenever DNS is generated the config also
+carries `route.default_domain_resolver`, which sing-box 1.13 requires once any
+DNS server or outbound dials by name.
+
+### Conformance Coverage
+
+Each generated section has an owning module and a native `sing-box check`
+fixture:
+
+| Generated section              | Owning module                                           | Conformance fixture                                          |
+| ------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------ |
+| Outbound protocols             | `src/singbox/config/{vless,vmess,trojan,simple,hy2}.rs` | per-protocol native checks                                   |
+| TLS / V2Ray transport          | `src/singbox/config/transport.rs`                       | VLESS ws/grpc/httpupgrade/h2 native checks                   |
+| Managed inbounds               | `src/singbox/config/mod.rs`                             | `native_singbox_validator_accepts_each_managed_inbound`      |
+| DNS servers and hosts rules    | `src/app/runtime_tuning.rs`                             | `singbox_dns_outputs_pass_native_check_for_each_server_type` |
+| Route rules and Clash API      | `src/singbox/config/mod.rs`                             | `native_singbox_validator_accepts_routing_and_clash_api`     |
+| Remote geosite/geoip rule-sets | `src/singbox/config/mod.rs`                             | `native_singbox_validator_accepts_remote_rule_sets`          |
+| Probe process                  | `src/prober/probe.rs`, `src/singbox/probe.rs`           | `prober::probe` unit tests                                   |
+
+The [compatibility contract](singbox-compatibility.md) and the fixture matrix in
+TASK-102/TASK-109 are the authority for the supported version range and the
+pinned conformance target.
 
 ### Probe Config
 
+```rust
+pub fn generate_singbox_probe_config(node: &Node, local_port: u16) -> Result<SingboxConfig, String>
+pub fn generate_singbox_runtime_config(
+    node: &Node,
+    inbounds: Vec<SingboxInbound>,
+    clash_api: Option<SingboxClashApi>,
+    routing: Option<&SingboxRoutingOptions>,
+) -> Result<SingboxConfig, String>
+pub fn generate_singbox_runtime_config_with_dns(
+    node: &Node,
+    inbounds: Vec<SingboxInbound>,
+    clash_api: Option<SingboxClashApi>,
+    routing: Option<&SingboxRoutingOptions>,
+    dns: Option<&SingboxDnsConfig>,
+) -> Result<SingboxConfig, String>
+```
+
+### Probe Config Shape
+
 ```json
 {
-  "log": { "level": "warn" },
+  "log": { "level": "warn", "timestamp": true },
   "inbounds": [
     {
       "type": "socks",
       "tag": "socks-in",
       "listen": "127.0.0.1",
-      "listen_port": <local_port>
+      "listen_port": 1080
     }
   ],
   "outbounds": [
@@ -521,6 +598,7 @@ pub fn generate_runtime_config(node: &Node, socks_port: u16) -> Result<Value, St
       "server": "example.com",
       "server_port": 443,
       "password": "secret",
+      "network": "udp",
       "tls": {
         "enabled": true,
         "server_name": "cdn.example.com"

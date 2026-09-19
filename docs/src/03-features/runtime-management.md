@@ -196,9 +196,9 @@ When the daemon starts, it reconciles stale sessions:
 1. **Find stale sessions** — Query for `running` sessions with no `stopped_at`
 2. **Check PID liveness** — For each stale session, check if PID is still
    running
-3. **Verify process identity** — Compare the process executable and command
-   line (queried via `sysinfo`, so it works across Linux/macOS/BSD) with the
-   expected runtime engine and session config
+3. **Verify process identity** — Compare the process executable and command line
+   (queried via `sysinfo`, so it works across Linux/macOS/BSD) with the expected
+   runtime engine and session config
 4. **Reattach or mark failed**:
    - PID alive + cmdline matches → reattach (keep as `running`)
    - PID alive + cmdline mismatch → mark as `failed` (different process reused
@@ -335,16 +335,18 @@ Choose the proxy engine in `config.toml`:
 engine = "xray"  # "xray" | "v2ray" | "sing-box"
 ```
 
-| Engine     | Binary     | Protocols                                                                                   |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------- |
-| `xray`     | `xray`     | All listed protocols, including native Hysteria2 when its fields are representable          |
-| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                             |
-| `sing-box` | `sing-box` | Managed Hysteria2 runtime sessions; other protocols currently require Xray/V2Ray generators |
+| Engine     | Binary     | Protocols                                                                          |
+| ---------- | ---------- | ---------------------------------------------------------------------------------- |
+| `xray`     | `xray`     | All listed protocols, including native Hysteria2 when its fields are representable |
+| `v2ray`    | `v2ray`    | VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5                                    |
+| `sing-box` | `sing-box` | All listed protocols (VLESS, VMess, Shadowsocks, Trojan, HTTP, SOCKS5, Hysteria2)  |
 
-Hysteria2 (`hy2`) uses the configured Xray or sing-box runtime engine. V2Ray
-rejects Hysteria2. Xray generation rejects unsupported Hy2 URI options before
-launch. Non-Hysteria2 configs with `engine = "sing-box"` fail with an
-unsupported-combination error until their sing-box runtime generators are added.
+Every protocol has a managed sing-box generator. `sing-box` sessions and
+`xrat test --engine sing-box` require a sing-box `>=1.13.0` binary; newer
+versions are accepted and the pinned conformance target is `v1.13.21`. Link
+parameters that cannot be represented exactly, unsupported ciphers/transports,
+and a non-loopback stats controller are rejected before launch. Xray generation
+still rejects unsupported Hy2 URI options, and V2Ray rejects Hysteria2.
 
 ## Related
 
