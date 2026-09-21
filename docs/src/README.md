@@ -51,10 +51,10 @@ serve stored configs through an authenticated HTTP API.
 - **Generate** shell completions, man pages, Docker images, and self-upgrade
   from releases or source.
 
-[SagerNet/sing-box](https://github.com/sagernet/sing-box) support covers
-sing-box JSON preview and managed Hysteria2 runtime sessions. Hy2 configs use
-Xray or sing-box according to `[runtime].engine`; V2Ray cannot run them. The
-`xrat parse --engine auto` preview still selects sing-box for Hy2.
+[SagerNet/sing-box](https://github.com/sagernet/sing-box) supports managed
+sessions and test probes for every imported protocol. Hy2 configs use Xray or
+sing-box according to `[runtime].engine`; V2Ray cannot run them. The
+`xrat parse --engine auto` preview selects sing-box for Hy2.
 
 ## Sections
 

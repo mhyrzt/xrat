@@ -9,8 +9,7 @@ use crate::app::{AppError, Result};
 /// not blocked by a hard ceiling; preflight still runs `sing-box check` with the
 /// actual binary before any process starts.
 const MINIMUM_VERSION: Version = Version::new(1, 13, 0);
-/// Range exercised by the conformance fixtures. Versions outside it are accepted
-/// with a warning rather than rejected.
+/// Planned conformance range. Versions outside it are accepted with a warning.
 const TESTED_RANGE: &str = ">=1.13.0, <1.15.0";
 
 pub(crate) fn ensure_supported_binary(binary_path: &Path) -> Result<Version> {
@@ -80,7 +79,7 @@ fn warn_untested_version(binary_path: &Path, version: &Version) {
         binary = %binary_path.display(),
         detected = %version,
         tested_range = TESTED_RANGE,
-        "sing-box version is outside the tested range; generated configs are validated by preflight but not covered by conformance fixtures"
+        "sing-box version is outside the planned conformance range; managed configs are validated by preflight"
     );
 }
 

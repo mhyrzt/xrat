@@ -369,7 +369,7 @@ All protocols use sing-box generation. Each outbound maps to documented sing-box
 1.13 fields; unsupported link parameters and transports fail with a named error
 before launch instead of being dropped. The managed runtime and `xrat test` both
 require a sing-box `>=1.13.0` binary; newer versions are accepted with a warning
-outside the tested `>=1.13.0, <1.15.0` range, and the conformance target is
+outside the planned `>=1.13.0, <1.15.0` conformance range, and the target is
 `v1.13.21`.
 
 ### Checking Engine
@@ -382,8 +382,8 @@ xrat parse --engine sing-box "hy2://password@example.com:443"
 ## Engine and Stage Support
 
 Every protocol xrat imports can be parsed, shown, probed, and run through a
-managed Xray, V2Ray (except Hysteria2), or sing-box runtime. `xrat test` and
-`xrat scan` probe with the binary selected by `[runtime].engine`; the sing-box
+managed Xray, V2Ray (except Hysteria2), or sing-box runtime. `xrat test`
+probes with the binary selected by `[runtime].engine`; the sing-box
 probe path generates a sing-box probe config and spawns `sing-box run -c`.
 
 | Protocol    | Import / `parse` | `show` / parse JSON | Probe (Xray/V2Ray) | Probe (sing-box) | Managed runtime (Xray/V2Ray) | Managed runtime (sing-box) |
@@ -397,7 +397,7 @@ probe path generates a sing-box probe config and spawns `sing-box run -c`.
 | Hysteria2   | Yes              | Yes                 | No (V2Ray)         | Yes              | Yes (Xray)                   | Yes                        |
 
 Managed sing-box sessions and sing-box probes require a sing-box `>=1.13.0`
-binary. Newer versions are accepted; the tested conformance range is
+binary. Newer versions are accepted; the planned conformance range is
 `>=1.13.0, <1.15.0` with `v1.13.21` pinned, and versions outside it log a
 warning. A pre-1.13 or unavailable binary is rejected before a config is written
 or a process starts.
@@ -414,7 +414,7 @@ or a process starts.
 | DNS                  | Typed udp/tcp/tls/quic/https/h3/local/hosts; UseIPv4/UseIPv6                        | `... has no exact modern sing-box equivalent` / `disable_fallback ...`           | use UseIPv4/UseIPv6 and remove Xray-only flags            |
 | Routing              | Exact/suffix/keyword/regex domains, IP/CIDR, and `geosite`/`geoip` remote rule-sets | `... is not translatable to sing-box` / `not a valid rule-set category name`     | remove the entry or use Xray/V2Ray                        |
 | Clash API / stats    | Loopback controller, port distinct from local inbounds                              | `would expose the sing-box Clash API beyond loopback`                            | set `[runtime.stats].host` to `127.0.0.1`/`::1`/localhost |
-| Version              | sing-box `>=1.13.0` (tested `>=1.13.0, <1.15.0`)                                    | `unsupported sing-box binary at ...; supported range is >=1.13.0`                | install sing-box v1.13.21 or newer                        |
+| Version              | sing-box `>=1.13.0` (planned conformance range `>=1.13.0, <1.15.0`)                | `unsupported sing-box binary at ...; supported range is >=1.13.0`                | install sing-box v1.13.21 or newer                        |
 
 `geosite`/`geoip` categories map to remote SagerNet rule-sets
 (`sing-geosite`/`sing-geoip`) referenced from the generated route. Remote

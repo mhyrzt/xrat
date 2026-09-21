@@ -70,7 +70,8 @@ alternative, and sing-box is available for every supported protocol (VLESS,
 VMess, Shadowsocks, Trojan, HTTP, SOCKS5, and Hysteria2). Setup can install
 managed copies of the cores; they do not need to be installed beforehand.
 Managed sing-box use requires a sing-box `>=1.13.0` binary; newer versions are
-accepted, with conformance fixtures covering `>=1.13.0, <1.15.0`.
+accepted, with a warning outside the planned conformance range
+`>=1.13.0, <1.15.0`.
 
 See the [installation guide](docs/src/01-getting-started/installation.md) for
 manual downloads, Docker, and building from a checkout.

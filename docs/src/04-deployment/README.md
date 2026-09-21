@@ -44,7 +44,7 @@ xrat requires external proxy binaries:
 | ---------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
 | `xray`     | Managed runtime, most parse/test/generate flows              | [Xray-core releases](https://github.com/XTLS/Xray-core/releases)   |
 | `v2ray`    | Alternative managed runtime binary                           | [V2Ray releases](https://github.com/v2fly/v2ray-core/releases)     |
-| `sing-box` | sing-box JSON preview and managed Hysteria2 runtime sessions | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
+| `sing-box` | Managed runtime sessions and test probes for imported protocols | [sing-box releases](https://github.com/SagerNet/sing-box/releases) |
 
 Ensure binaries are in `PATH` or specify paths in `config.toml`:
 
@@ -55,9 +55,9 @@ v2ray = "/usr/local/bin/v2ray"
 sing_box = "/usr/local/bin/sing-box"
 ```
 
-Managed runtime process lifecycle uses Xray/V2Ray for their supported protocols.
-Hysteria2 (`hy2`) uses native Xray or sing-box according to `[runtime].engine`.
-V2Ray does not support Hysteria2. Xray rejects Hy2 URI options it cannot map.
+Managed runtime process lifecycle uses the engine selected by `[runtime].engine`.
+Xray and sing-box support Hysteria2 (`hy2`); V2Ray does not. Xray rejects Hy2 URI
+options it cannot map.
 
 ## Security Considerations
 

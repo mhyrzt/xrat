@@ -73,7 +73,7 @@ terminal progress rendering.
 Managed sing-box is installed at the pinned conformance release `v1.13.21`. The
 runtime accepts any sing-box `>=1.13.0`, so a newer user-supplied binary works
 without setup; pre-1.13 binaries are rejected before launch and versions outside
-the tested `>=1.13.0, <1.15.0` range log a warning. See the
+the planned `>=1.13.0, <1.15.0` conformance range log a warning. See the
 [sing-box compatibility contract](../06-architecture/singbox-compatibility.md)
 for the full contract.
 

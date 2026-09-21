@@ -15,7 +15,7 @@ For other install paths, see [Docker Install](docker-install.md),
 | Tool       | Required | Purpose                                                 | Upstream                                                  |
 | ---------- | -------- | ------------------------------------------------------- | --------------------------------------------------------- |
 | `xray`     | Yes      | Managed Xray runtime and real-delay tests               | [XTLS/Xray-core](https://github.com/XTLS/Xray-core)       |
-| `sing-box` | No       | sing-box preview and managed Hysteria2 runtime sessions | [SagerNet/sing-box](https://github.com/SagerNet/sing-box) |
+| `sing-box` | No       | Managed runtime and test probes for imported protocols | [SagerNet/sing-box](https://github.com/SagerNet/sing-box) |
 | `v2ray`    | No       | Alternative V2Ray managed runtime                       | [V2Fly/V2Ray](https://github.com/v2fly/v2ray-core)        |
 
 `xrat setup` detects these tools, checks their latest stable versions, and can
@@ -30,7 +30,7 @@ preferred. Install Xray system-wide:
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 ```
 
-Install sing-box if you choose `[runtime].engine = "sing-box"` for Hysteria2 (`hy2`):
+Install sing-box if you choose `[runtime].engine = "sing-box"`:
 
 ```bash
 curl -fsSL https://sing-box.app/install.sh | sh

@@ -39,8 +39,7 @@ xrat supports 7 proxy protocols:
 
 - **Xray-core/V2Ray** — managed runtime engines for supported Xray/V2Ray
   protocols
-- **sing-box** — sing-box JSON preview plus managed Hysteria2 runtime sessions
-  through `xrat connect`
+- **sing-box** — managed runtime sessions and test probes for imported protocols
 
 ### Configurable Testing Pipeline
 

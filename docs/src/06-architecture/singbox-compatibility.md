@@ -4,7 +4,7 @@ xrat supports managed sing-box configurations for any sing-box version
 `>=1.13.0`. There is no upper bound: newer stable and prerelease binaries are
 accepted so users are not blocked by a hard ceiling. The conformance target is
 [v1.13.21](https://github.com/SagerNet/sing-box/tree/v1.13.21), and the range
-covered by conformance fixtures is `>=1.13.0, <1.15.0`. The tagged
+planned for conformance fixtures is `>=1.13.0, <1.15.0`. The tagged
 [top-level options](https://github.com/SagerNet/sing-box/blob/v1.13.21/option/options.go)
 and the corresponding official configuration pages are the source of truth for
 every generated JSON field.
@@ -12,11 +12,12 @@ every generated JSON field.
 The runtime inspects `sing-box version` before writing a config or starting a
 session. It rejects pre-1.13, malformed, and unavailable binaries with the
 configured path, detected version, supported range, and a remediation. A version
-outside the tested fixture range (for example `>=1.15.0`, `2.x`, or a
+outside the planned conformance range (for example `>=1.15.0`, `2.x`, or a
 prerelease) is accepted with a warning instead of being rejected. Preflight
 still runs `sing-box check -c <config>` with the actual binary before launch, so
 an incompatible newer binary fails safely rather than starting a broken session.
-Validation and release CI use v1.13.21.
+Managed setup installs v1.13.21. The full native fixture matrix and release CI
+gate for that version are pending (TASK-102 and TASK-109).
 
 ## Generated-shape Matrix
 
@@ -55,7 +56,8 @@ sing-box `1.14.1` binary:
 | `block` outbound with `outbound: "block"`            | Deprecated since 1.11               | Switch to `action: reject` when a bounded minimum rises past the removal              |
 | Inline ACME, rule-set `download_detour`, TUN `stack` | Deprecated/removed 1.14–1.17        | Not emitted                                                                           |
 
-All generated shapes currently pass `sing-box check` on 1.13.x and 1.14.1.
+Representative generated shapes have passed `sing-box check` on 1.13.x and
+1.14.1; the full matrix remains pending.
 
 ## Implementation Rules
 
