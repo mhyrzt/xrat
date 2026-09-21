@@ -66,8 +66,7 @@ xrat setup
 Launch the TUI with `xratui` (or `xrat tui`).
 
 XRAT manages external proxy engines: Xray is the default, V2Ray is an
-alternative, and sing-box is available for every supported protocol (VLESS,
-VMess, Shadowsocks, Trojan, HTTP, SOCKS5, and Hysteria2). Setup can install
+alternative, and sing-box supports all imported protocols. Setup can install
 managed copies of the cores; they do not need to be installed beforehand.
 Managed sing-box use requires a sing-box `>=1.13.0` binary; newer versions are
 accepted, with a warning outside the planned conformance range
@@ -192,6 +191,23 @@ total configs  13
 ```
 
 Each command saves a config without creating a subscription.
+
+The engine you choose for testing and connections determines which of these
+configs can run:
+
+| Protocol    | Xray-core | V2Ray-core | sing-box |
+| ----------- | :-------: | :--------: | :------: |
+| VLESS       |    ✅     |     ✅     |    ✅    |
+| VMess       |    ✅     |     ✅     |    ✅    |
+| Trojan      |    ✅     |     ✅     |    ✅    |
+| Shadowsocks |    ✅     |     ✅     |    ✅    |
+| HTTP/HTTPS  |    ✅     |     ✅     |    ✅    |
+| SOCKS5      |    ✅     |     ✅     |    ✅    |
+| Hysteria2   |    ✅     |     ❌     |    ✅    |
+
+✅ Managed runtime and test probe supported · ❌ Not supported. Individual links
+may contain options an engine cannot represent; XRAT reports those before
+launch. See [protocol details](docs/src/05-reference/protocols.md) for limits.
 
 XRAT deduplicates configs as it imports them. Once imported, they are available
 in both `xrat list configs` and the TUI. See the
@@ -361,9 +377,6 @@ see the [CLI reference](docs/src/02-cli/README.md).
 
 ## More to explore
 
-- **Protocol support:** VLESS, VMess, Trojan, Shadowsocks, HTTP/HTTPS, and
-  SOCKS5 and Hysteria2 through Xray; Hysteria2 also works through sing-box. See
-  [protocol details](docs/src/05-reference/protocols.md).
 - **CDN scanning:** compare candidate edge IPs for TCP reachability and latency,
   then revisit saved results. See [scanning](docs/src/02-cli/scan.md).
 - **Sharing and automation:** QR codes in the TUI, structured CLI exports, and
