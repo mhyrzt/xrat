@@ -54,10 +54,10 @@ jobs:
           }
 
           if ! command -v mdbook >/dev/null || [ "$(installed_version mdbook)" != "${MDBOOK_VERSION}" ]; then
-            cargo install --version ${MDBOOK_VERSION} mdbook --locked
+            cargo install --version "${MDBOOK_VERSION}" mdbook --locked
           fi
           if ! command -v mdbook-mermaid >/dev/null || [ "$(installed_version mdbook-mermaid)" != "${MDBOOK_MERMAID_VERSION}" ]; then
-            cargo install --version ${MDBOOK_MERMAID_VERSION} mdbook-mermaid --locked
+            cargo install --version "${MDBOOK_MERMAID_VERSION}" mdbook-mermaid --locked
           fi
       - name: Install mermaid assets
         run: mdbook-mermaid install .

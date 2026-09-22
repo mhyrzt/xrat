@@ -71,8 +71,7 @@ curl http://localhost:18203/health
 `xrat connect` talks to the local daemon IPC socket, so the proxy container must
 keep the daemon running while you connect from another command. Publish the
 proxy ports you enable in `config.toml`; the generated defaults use SOCKS on
-`18200`, HTTP on `18201`, Shadowsocks on `18202`, and the API server on
-`18203`.
+`18200`, HTTP on `18201`, Shadowsocks on `18202`, and the API server on `18203`.
 
 ```bash
 docker run -d --name xrat \
@@ -111,6 +110,11 @@ docker rm xrat
 ```
 
 ## Build Locally
+
+`docker build` compiles xrat from this checkout. Tagged releases use the Linux
+musl binaries built by the release workflow for their amd64 and arm64 images, so
+the Docker job does not compile xrat again. Both paths include Xray-core and
+sing-box in the final image.
 
 ```bash
 docker build -t xrat .

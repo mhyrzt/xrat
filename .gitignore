@@ -1,5 +1,6 @@
 debug
 target
+image-bin/
 
 **/*.rs.bk
 
