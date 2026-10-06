@@ -37,6 +37,23 @@ jobs:
       - name: Verify SDK public features and standalone consumer
         run: python3 scripts/check-sdk.py
 
+  macos-check:
+    name: Check macOS (${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: macos-check-${{ matrix.target }}
+      - run: cargo check --locked --workspace --target ${{ matrix.target }}
+
   sdk-native:
     name: SDK native engines
     runs-on: ubuntu-latest

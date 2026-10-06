@@ -109,6 +109,7 @@ pub fn ensure_engine_capability_with_spawner(
 }
 
 /// Inspect whether systemd user service blocks TUN capabilities via NoNewPrivileges=true.
+#[cfg(target_os = "linux")]
 pub fn systemd_service_status() -> Option<(&'static str, bool)> {
     if !capabilities_supported() {
         return None;
@@ -134,6 +135,11 @@ pub fn systemd_service_status() -> Option<(&'static str, bool)> {
         "blocked by NoNewPrivileges=true (run `xrat tun setup` to install override)",
         false,
     ))
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn systemd_service_status() -> Option<(&'static str, bool)> {
+    None
 }
 
 /// Inspect the effective capabilities and NoNewPrivs of a process by PID.

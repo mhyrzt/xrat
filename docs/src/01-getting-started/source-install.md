@@ -14,7 +14,8 @@ Install:
 - `git`
 - Rust via [rustup](https://rustup.rs/)
 - `just`
-- Xray for runtime use; `xrat setup` can install it as a verified user-local tool
+- Xray for runtime use; `xrat setup` can install it as a verified user-local
+  tool
 - sing-box or V2Ray when needed; setup can install these too
 
 Install `just` with Cargo if your distribution does not package it:
@@ -177,7 +178,7 @@ Then follow the [Quickstart](quickstart.md).
 
 ## Source-Tree Checks
 
-Run the same commands as `.github/workflows/ci.yml`:
+Run the local version, formatting, lint, and workspace-test gates:
 
 ```bash
 just ci
@@ -186,10 +187,17 @@ just ci
 That expands to:
 
 ```bash
+just version-check
 just fmt-rust-check
 just lint
 just test
 ```
+
+GitHub CI additionally validates public SDK features and pinned native engines,
+and checks the workspace on macOS for both `x86_64-apple-darwin` and
+`aarch64-apple-darwin`. The macOS jobs run `cargo check --locked --workspace`
+with the corresponding `--target` on macOS runners, catching platform-specific
+compile errors before release packaging.
 
 For broader local formatting checks across Rust, Markdown, and SQL:
 
