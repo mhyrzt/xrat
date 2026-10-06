@@ -43,6 +43,7 @@ For detailed setup, command references, and SDK documentation, visit
 - [Installation](#installation)
 - [Quickstart](#quickstart)
 - [CLI workflows](#cli-workflows)
+- [System traffic with TUN](#system-traffic-with-tun)
 - [A few more useful commands](#-a-few-more-useful-commands)
 - [More to explore](#more-to-explore)
 - [Rust SDK](#rust-sdk)
@@ -384,6 +385,65 @@ The same logs are visible in the TUI alongside your runtime status. The
 
 Use refs from your own lists in place of the examples. For the full command set,
 see the [CLI reference](docs/src/02-cli/README.md).
+
+## System traffic with TUN
+
+TUN is opt-in: it captures system traffic for applications that do not use a
+local SOCKS or HTTP proxy. The following Linux workflow uses sing-box; keep the
+default local SOCKS listener enabled for readiness checks.
+
+Install the managed engine:
+
+```bash
+xrat install sing-box
+```
+
+Edit the existing sections in `~/.config/xrat/config.toml` (or your custom
+configuration file):
+
+```toml
+[runtime]
+engine = "sing-box"
+
+[runtime.tun]
+enabled = true
+interface_name = "xrat0"
+address = ["172.19.0.1/30"]
+auto_route = true
+```
+
+This example captures IPv4 traffic. Add an IPv6 interface CIDR to `address` if
+you also want IPv6 capture. TUN does not intercept DNS; system resolver queries
+can bypass the tunnel. sing-box routes private/LAN destinations directly.
+
+Install your distribution's `libcap` tools (`setcap` and `getcap`), then grant
+the required capabilities and restart the daemon:
+
+```bash
+xrat tun setup --dry-run  # Preview privileged commands and service changes
+xrat tun setup
+systemctl --user restart xrat-daemon.service
+xrat tun status
+xrat connect a1b2
+xrat status
+```
+
+Replace `a1b2` with a saved config ref. For a standalone daemon, use
+`xrat daemon restart` in place of the `systemctl` command. `xrat tun setup`
+grants capabilities to xrat and the selected engine, and configures an installed
+systemd user service for TUN. Re-run it after reinstalling or upgrading either
+binary, then restart the daemon. With a custom config, pass `--config <path>` to
+the xrat commands above.
+
+To return to per-app proxying, run `xrat disconnect`, set
+`[runtime.tun].enabled = false`, restart the daemon, and reconnect your config.
+TUN supports sing-box and Xray; Xray requires Linux TUN support in version
+`26.7.28` or newer (install a suitable prerelease with
+`xrat install xray --prerelease` when needed). V2Ray TUN is unsupported.
+
+See [TUN commands](docs/src/02-cli/tun.md) and
+[TUN capture](docs/src/03-features/runtime-management.md#tun-capture) for
+privilege diagnostics, routing settings, and interface cleanup behavior.
 
 ## More to explore
 
