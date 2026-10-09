@@ -241,6 +241,9 @@ impl<'a> RuntimeService<'a> {
                 resolved_hosts: &resolved_hosts,
             };
             enable_tun_capture(&mut xray_config, &tun_options);
+            let compiled_split =
+                crate::app::services::split_tunnel::compile_split_rules(&runtime.tun);
+            enable_tun_split_routing(&mut xray_config, &compiled_split.to_xray_options());
         }
 
         crate::app::services::runtime_tuning::apply_xray_dns_runtime(
@@ -374,7 +377,8 @@ impl<'a> RuntimeService<'a> {
         }
 
         let tun = &self.context.app_config.runtime.tun;
-        if tun.enabled {
+        let compiled_split = if tun.enabled {
+            let compiled = crate::app::services::split_tunnel::compile_split_rules(tun);
             inbounds.push(
                 SingboxInbound::tun(SingboxTunOptions {
                     tag: "tun-in".to_string(),
@@ -388,7 +392,10 @@ impl<'a> RuntimeService<'a> {
                 })
                 .map_err(AppError::InvalidArgument)?,
             );
-        }
+            Some(compiled)
+        } else {
+            None
+        };
 
         let stats = &self.context.app_config.runtime.stats;
         let clash_api = if stats.enabled {
@@ -438,8 +445,8 @@ impl<'a> RuntimeService<'a> {
                 .join("singbox-cache.db");
             config.enable_cache_file(cache_path.display().to_string());
         }
-        if tun.enabled {
-            config.enable_tun_route();
+        if let Some(compiled) = &compiled_split {
+            config.enable_tun_route_with_split(&compiled.to_singbox_options());
         }
         crate::app::services::runtime_tuning::apply_singbox_dns_runtime(
             &mut config,

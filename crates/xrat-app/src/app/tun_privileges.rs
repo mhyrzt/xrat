@@ -8,7 +8,8 @@ use crate::app::AppError;
 use crate::app::context::AppContext;
 
 /// Capabilities granted by `xrat tun setup`.
-pub const TUN_CAPABILITIES: &str = "cap_net_admin,cap_net_raw+ep";
+pub const TUN_CAPABILITIES: &str =
+    "cap_net_admin,cap_net_raw,cap_dac_read_search,cap_sys_ptrace+ep";
 
 pub struct TunPrivilegeFile {
     pub label: &'static str,
@@ -84,6 +85,10 @@ fn file_capabilities_with_spawner(
 
 pub fn has_net_admin(capabilities: &str) -> bool {
     capabilities.contains("cap_net_admin")
+}
+
+pub fn has_process_routing_caps(capabilities: &str) -> bool {
+    capabilities.contains("cap_dac_read_search") && capabilities.contains("cap_sys_ptrace")
 }
 
 /// Fail before launch when the engine binary is known to lack `CAP_NET_ADMIN`.

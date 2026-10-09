@@ -1182,3 +1182,110 @@ async fn managed_xray_launch_skips_resolution_for_dns_ip_literals_and_special_se
         .resolve_launch(&config)
         .expect("literal and special DNS servers must not require host resolution");
 }
+
+#[tokio::test]
+async fn managed_xray_tun_launch_applies_split_blacklist_and_whitelist() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "xray".to_string();
+    context.app_config.runtime.tun.enabled = true;
+    context.app_config.runtime.tun.split_mode = crate::app::config::TunSplitMode::Blacklist;
+    context.app_config.runtime.tun.blacklist =
+        vec!["firefox".to_string(), "/usr/bin/curl".to_string()];
+    context.runtime_paths.xray_path =
+        write_fake_xray_version(&context, "Xray 26.7.28 (Xray, Penetrates Everything.)");
+    let config = imported_config(&context, test_node()).await;
+
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .expect("xray TUN blacklist launch should resolve");
+    let RuntimeLaunchConfig::Xray(xray_cfg) = launch.config else {
+        panic!("expected Xray config");
+    };
+    let value = serde_json::to_value(xray_cfg).expect("config should serialize");
+    let rules = value["routing"]["rules"].as_array().unwrap();
+    assert_eq!(rules[0]["outboundTag"], "api");
+    assert_eq!(rules[1]["inboundTag"], serde_json::json!(["tun-in"]));
+    assert_eq!(
+        rules[1]["process"],
+        serde_json::json!(["firefox", "/usr/bin/curl"])
+    );
+    assert_eq!(rules[1]["outboundTag"], "direct");
+
+    context.app_config.runtime.tun.split_mode = crate::app::config::TunSplitMode::Whitelist;
+    context.app_config.runtime.tun.whitelist = vec!["telegram-desktop".to_string()];
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .expect("xray TUN whitelist launch should resolve");
+    let RuntimeLaunchConfig::Xray(xray_cfg) = launch.config else {
+        panic!("expected Xray config");
+    };
+    let value = serde_json::to_value(xray_cfg).expect("config should serialize");
+    let rules = value["routing"]["rules"].as_array().unwrap();
+    assert_eq!(rules[0]["outboundTag"], "api");
+    assert_eq!(rules[1]["inboundTag"], serde_json::json!(["tun-in"]));
+    assert_eq!(rules[1]["process"], serde_json::json!(["self/"]));
+    assert_eq!(rules[1]["outboundTag"], "direct");
+    assert_eq!(rules[2]["inboundTag"], serde_json::json!(["tun-in"]));
+    assert_eq!(rules[2]["process"], serde_json::json!(["telegram-desktop"]));
+    assert_eq!(rules[2]["outboundTag"], "proxy");
+    assert_eq!(rules[3]["inboundTag"], serde_json::json!(["tun-in"]));
+    assert_eq!(rules[3]["outboundTag"], "direct");
+}
+
+#[tokio::test]
+async fn managed_singbox_tun_launch_applies_split_blacklist_and_whitelist() {
+    let mut context = test_context().await;
+    context.app_config.runtime.engine = "sing-box".to_string();
+    context.app_config.runtime.tun.enabled = true;
+    context.app_config.runtime.tun.split_mode = crate::app::config::TunSplitMode::Blacklist;
+    context.app_config.runtime.tun.blacklist = vec![
+        "firefox".to_string(),
+        "/usr/bin/curl".to_string(),
+        "/opt/discord/".to_string(),
+    ];
+    let config = imported_config(&context, test_node()).await;
+
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .expect("sing-box TUN blacklist launch should resolve");
+    let RuntimeLaunchConfig::Singbox(sb_cfg) = launch.config else {
+        panic!("expected sing-box config");
+    };
+    let value = serde_json::to_value(sb_cfg).expect("config should serialize");
+    let rules = value["route"]["rules"].as_array().unwrap();
+    assert_eq!(rules[0]["action"], "sniff");
+    assert_eq!(rules[1]["ip_is_private"], true);
+    assert_eq!(rules[2]["inbound"], serde_json::json!(["tun-in"]));
+    assert_eq!(rules[2]["process_name"], serde_json::json!(["firefox"]));
+    assert_eq!(
+        rules[2]["process_path"],
+        serde_json::json!(["/usr/bin/curl"])
+    );
+    assert_eq!(
+        rules[2]["process_path_regex"],
+        serde_json::json!(["^/opt/discord/.*"])
+    );
+    assert_eq!(rules[2]["outbound"], "direct");
+
+    context.app_config.runtime.tun.split_mode = crate::app::config::TunSplitMode::Whitelist;
+    context.app_config.runtime.tun.whitelist = vec!["telegram-desktop".to_string()];
+    let launch = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .expect("sing-box TUN whitelist launch should resolve");
+    let RuntimeLaunchConfig::Singbox(sb_cfg) = launch.config else {
+        panic!("expected sing-box config");
+    };
+    let value = serde_json::to_value(sb_cfg).expect("config should serialize");
+    let rules = value["route"]["rules"].as_array().unwrap();
+    assert_eq!(rules[0]["action"], "sniff");
+    assert_eq!(rules[1]["ip_is_private"], true);
+    assert_eq!(rules[2]["inbound"], serde_json::json!(["tun-in"]));
+    assert_eq!(
+        rules[2]["process_name"],
+        serde_json::json!(["telegram-desktop"])
+    );
+    assert_eq!(rules[2]["outbound"], "proxy");
+    assert_eq!(rules[3]["inbound"], serde_json::json!(["tun-in"]));
+    assert_eq!(rules[3]["outbound"], "direct");
+    assert_eq!(value["route"]["final"], "proxy");
+}
