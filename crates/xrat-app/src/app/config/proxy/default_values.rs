@@ -5,7 +5,7 @@ use super::super::defaults;
 use super::types::{
     AuthSettings, FragmentSettings, HttpSettings, LogSettings, MuxSettings, NetworkSettings,
     RotationSettings, RuntimeSettings, ShadowsocksSettings, SniffingSettings, SocksSettings,
-    StatsSettings, TunSettings,
+    StatsSettings, TunSettings, TunSplitMode,
 };
 
 impl Default for RuntimeSettings {
@@ -77,6 +77,9 @@ impl Default for TunSettings {
             auto_route: defaults::DEFAULT_TUN_AUTO_ROUTE,
             strict_route: defaults::DEFAULT_TUN_STRICT_ROUTE,
             route_exclude_address: Vec::new(),
+            split_mode: TunSplitMode::All,
+            blacklist: Vec::new(),
+            whitelist: Vec::new(),
         }
     }
 }

@@ -130,6 +130,23 @@ level = "warning"
 # # instead of their configured host. Empty = use each inbound's host.
 # listen_interface = ""
 
+# Managed TUN capture (Linux only; requires `xrat tun setup` for capabilities).
+# [runtime.tun]
+# enabled = false
+# interface_name = "xrat0"
+# mtu = 1500
+# stack = "system"
+# address = ["172.19.0.1/30"]
+# auto_route = true
+# strict_route = false
+# route_exclude_address = []
+# # Per-application split tunneling mode: "all", "blacklist", or "whitelist".
+# split_mode = "all"
+# # Apps bypassing VPN when split_mode = "blacklist" (process name, /path/to/bin, /dir/, or .desktop).
+# blacklist = []
+# # Apps routed through VPN when split_mode = "whitelist" (all other TUN traffic goes direct).
+# whitelist = []
+
 # Automatic config rotation: periodically switch to a healthy config.
 [runtime.rotation]
 enabled = true

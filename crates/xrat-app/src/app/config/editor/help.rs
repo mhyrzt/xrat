@@ -340,6 +340,21 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "One or more IPv4/IPv6 CIDRs; empty means no exclusions.",
             "route_exclude_address = [\"192.168.0.0/16\"]",
         ),
+        "runtime.tun.split_mode" => help(
+            "Selects per-application split tunneling mode for TUN capture: all traffic via VPN, bypass blacklist apps, or route only whitelist apps via VPN.",
+            "all, blacklist, or whitelist.",
+            "split_mode = \"all\"",
+        ),
+        "runtime.tun.blacklist" => help(
+            "Lists applications that bypass the VPN (routed direct) when split_mode is blacklist.",
+            "Process names (firefox), executable paths (/usr/bin/curl), directories (/opt/discord/), or .desktop IDs.",
+            "blacklist = [\"steam\", \"/opt/discord/\"]",
+        ),
+        "runtime.tun.whitelist" => help(
+            "Lists applications routed through the VPN when split_mode is whitelist (all other TUN traffic goes direct).",
+            "Process names (firefox), executable paths (/usr/bin/curl), directories (/usr/lib/firefox/), or .desktop IDs.",
+            "whitelist = [\"firefox\", \"telegram-desktop\"]",
+        ),
         "subscriptions.auto_refresh" => help(
             "Enables periodic refresh of URL-backed subscriptions in the daemon.",
             "",

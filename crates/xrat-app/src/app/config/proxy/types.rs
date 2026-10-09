@@ -24,6 +24,34 @@ pub struct RuntimeSettings {
     pub tun: TunSettings,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum TunSplitMode {
+    #[default]
+    All,
+    Blacklist,
+    Whitelist,
+}
+
+impl TunSplitMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Blacklist => "blacklist",
+            Self::Whitelist => "whitelist",
+        }
+    }
+
+    pub fn from_config_str(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "all" => Some(Self::All),
+            "blacklist" => Some(Self::Blacklist),
+            "whitelist" => Some(Self::Whitelist),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct TunSettings {
@@ -35,6 +63,9 @@ pub struct TunSettings {
     pub auto_route: bool,
     pub strict_route: bool,
     pub route_exclude_address: Vec<String>,
+    pub split_mode: TunSplitMode,
+    pub blacklist: Vec<String>,
+    pub whitelist: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]

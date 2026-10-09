@@ -326,6 +326,9 @@ pub(crate) fn validate_tun(
     engine: &str,
     errors: &mut Vec<Diagnostic>,
 ) {
+    validate_tun_app_list("[runtime.tun].blacklist", &tun.blacklist, errors);
+    validate_tun_app_list("[runtime.tun].whitelist", &tun.whitelist, errors);
+
     if !tun.enabled {
         return;
     }
@@ -417,6 +420,38 @@ pub(crate) fn validate_tun(
             "the Xray TUN inbound has no route-exclusion option; only sing-box can exclude destinations from capture.",
             "remove the exclusions, or switch [runtime].engine to \"sing-box\".",
         ));
+    }
+}
+
+fn validate_tun_app_list(field: &str, entries: &[String], errors: &mut Vec<Diagnostic>) {
+    for entry in entries {
+        let trimmed = entry.trim();
+        if trimmed.is_empty() {
+            errors.push(Diagnostic::new(
+                field,
+                "contains an empty application entry",
+                "empty split-tunneling application rules are invalid.",
+                "remove blank entries or specify a process name, absolute path (/usr/bin/app), directory (/opt/app/), or .desktop ID.",
+            ));
+            continue;
+        }
+        if trimmed.contains('\0') || trimmed.contains('\n') || trimmed.contains('\r') {
+            errors.push(Diagnostic::new(
+                field,
+                format!("entry {entry:?} contains control characters"),
+                "process names and paths cannot contain newline or NUL characters.",
+                "use a single-line process name, path, or .desktop ID.",
+            ));
+            continue;
+        }
+        if trimmed.contains('/') && !trimmed.starts_with('/') && !trimmed.starts_with("desktop:") {
+            errors.push(Diagnostic::new(
+                field,
+                format!("relative path entry is not allowed: {trimmed}"),
+                "path-based split-tunneling rules must be absolute paths starting with '/'.",
+                "use an absolute executable path like /usr/bin/curl, a directory prefix like /opt/app/, or a bare process name.",
+            ));
+        }
     }
 }
 

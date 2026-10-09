@@ -26,6 +26,9 @@ const GEOIP_BACKEND_ENUM: &[(&str, &[&str])] = &[
 const GEOIP_PROVIDER_ENUM: &[(&str, &[&str])] =
     &[("ip-whois", &["ipwhois"]), ("ip-api", &["ipapi"])];
 
+const TUN_SPLIT_MODE_ENUM: &[(&str, &[&str])] =
+    &[("all", &[]), ("blacklist", &[]), ("whitelist", &[])];
+
 /// Field-level checks against the raw TOML value, run before deserializing into
 /// `AppConfig`. These catch invalid enum values and wrong types on fields that
 /// would otherwise fail deserialization with only a generic parse error.
@@ -77,6 +80,13 @@ pub(crate) fn check_known_fields(value: &toml::Value, errors: &mut Vec<Diagnosti
         &["testing", "geoip", "remote", "provider"],
         "[testing.geoip.remote].provider",
         GEOIP_PROVIDER_ENUM,
+        errors,
+    );
+    check_scalar_enum(
+        value,
+        &["runtime", "tun", "split_mode"],
+        "[runtime.tun].split_mode",
+        TUN_SPLIT_MODE_ENUM,
         errors,
     );
 }
