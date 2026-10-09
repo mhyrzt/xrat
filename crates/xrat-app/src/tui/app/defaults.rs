@@ -26,6 +26,7 @@ impl Default for TuiApp {
             import_modal: None,
             rename_modal: None,
             settings_modal: None,
+            split_modal: None,
             qr_modal: None,
             event_log: Vec::new(),
             chrome_message: None,

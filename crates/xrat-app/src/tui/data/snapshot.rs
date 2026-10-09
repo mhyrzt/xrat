@@ -251,10 +251,13 @@ impl From<DashboardSnapshot> for TuiData {
             .collect::<Vec<_>>();
         let tests =
             TuiTestStatus::from_run_and_results(value.latest_run, value.test_results, &configs);
+        let mut runtime =
+            TuiRuntimeStatus::from_snapshot(value.runtime, value.local_address.as_deref());
+        runtime.tun = value.tun_label;
         let mut data = Self::from_parts(
             configs,
             value.sources.into_iter().map(TuiSourceRow::from).collect(),
-            TuiRuntimeStatus::from_snapshot(value.runtime, value.local_address.as_deref()),
+            runtime,
             tests,
         );
         data.db_label = value.db_label;

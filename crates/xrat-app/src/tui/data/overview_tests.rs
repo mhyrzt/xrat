@@ -33,6 +33,7 @@ fn converts_dashboard_fixture_without_database_process_or_network_access() {
                 ..Default::default()
             },
         },
+        tun_label: None,
         local_address: Some("192.0.2.10".into()),
         latest_run: None,
         test_results: vec![],

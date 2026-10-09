@@ -165,3 +165,57 @@ pub(super) fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {
         _ => TuiAction::None,
     }
 }
+
+pub fn action_for_split_modal_key(key: KeyEvent, mode: SplitModalMode) -> TuiAction {
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+        return TuiAction::Quit;
+    }
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('u') {
+        return TuiAction::SplitClearInput;
+    }
+    if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('s') {
+        return TuiAction::SplitSave;
+    }
+
+    match mode {
+        SplitModalMode::AddInput | SplitModalMode::Search => match key.code {
+            KeyCode::Esc => TuiAction::Back,
+            KeyCode::Enter => TuiAction::SplitSubmit,
+            KeyCode::Backspace => TuiAction::SplitBackspace,
+            KeyCode::Char(ch)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                TuiAction::SplitInput(ch)
+            }
+            _ => TuiAction::None,
+        },
+        SplitModalMode::Browse => match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => TuiAction::Back,
+            KeyCode::Tab
+            | KeyCode::BackTab
+            | KeyCode::Left
+            | KeyCode::Right
+            | KeyCode::Char('h')
+            | KeyCode::Char('l') => TuiAction::SplitSwitchPane,
+            KeyCode::Char('j') | KeyCode::Down => TuiAction::SplitMove(1),
+            KeyCode::Char('k') | KeyCode::Up => TuiAction::SplitMove(-1),
+            KeyCode::Char('m') => TuiAction::SplitCycleMode,
+            KeyCode::Char('u') => TuiAction::SplitToggleTun,
+            KeyCode::Char('b') | KeyCode::Char('1') => {
+                TuiAction::SplitSelectList(SplitListTab::Blacklist)
+            }
+            KeyCode::Char('w') | KeyCode::Char('2') => {
+                TuiAction::SplitSelectList(SplitListTab::Whitelist)
+            }
+            KeyCode::Char('a') => TuiAction::SplitBeginAdd,
+            KeyCode::Char('/') => TuiAction::SplitBeginSearch,
+            KeyCode::Enter | KeyCode::Char(' ') => TuiAction::SplitSubmit,
+            KeyCode::Char('d') | KeyCode::Char('x') | KeyCode::Delete => {
+                TuiAction::SplitDeleteFocused
+            }
+            KeyCode::Char('c') => TuiAction::SplitClearList,
+            KeyCode::Char('r') => TuiAction::SplitRefreshApps,
+            _ => TuiAction::None,
+        },
+    }
+}

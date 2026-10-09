@@ -16,6 +16,7 @@ pub struct TuiRuntimeStatus {
     pub socks: Option<String>,
     pub http: Option<String>,
     pub shadowsocks: Option<String>,
+    pub tun: Option<String>,
     pub started_at: Option<String>,
     pub stopped_at: Option<String>,
     pub updated_at: Option<String>,
@@ -38,6 +39,7 @@ impl Default for TuiRuntimeStatus {
             socks: None,
             http: None,
             shadowsocks: None,
+            tun: None,
             started_at: None,
             stopped_at: None,
             updated_at: None,
@@ -83,6 +85,7 @@ impl TuiRuntimeStatus {
                 .shadowsocks
                 .as_ref()
                 .map(|health| endpoint_health_label("ss", health, local_address)),
+            tun: None,
             started_at: session
                 .as_ref()
                 .and_then(|session| session.started_at.clone()),

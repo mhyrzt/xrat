@@ -38,10 +38,12 @@ impl TuiApp {
             | TuiAction::CopyApiUrl
             | TuiAction::OpenImportModal
             | TuiAction::OpenSettingsModal
+            | TuiAction::OpenSplitModal
             | TuiAction::OpenRenameModal
             | TuiAction::ImportSubmit
             | TuiAction::RenameSubmit
-            | TuiAction::SettingsSave => {}
+            | TuiAction::SettingsSave
+            | TuiAction::SplitSave => {}
             TuiAction::NextLogTab => {
                 self.active_log_tab = self.active_log_tab.next();
                 self.panel_scroll.log.set(0);
@@ -91,6 +93,20 @@ impl TuiApp {
             TuiAction::SettingsCycle(direction) => self.settings_cycle(direction),
             TuiAction::SettingsReset => self.settings_reset(),
             TuiAction::SettingsConfirmDiscard(discard) => self.settings_confirm_discard(discard),
+            TuiAction::SplitMove(direction) => self.split_move(direction),
+            TuiAction::SplitSwitchPane => self.split_switch_pane(),
+            TuiAction::SplitCycleMode => self.split_cycle_mode(),
+            TuiAction::SplitToggleTun => self.split_toggle_tun(),
+            TuiAction::SplitSelectList(tab) => self.split_select_list(tab),
+            TuiAction::SplitBeginAdd => self.split_begin_add(),
+            TuiAction::SplitBeginSearch => self.split_begin_search(),
+            TuiAction::SplitInput(ch) => self.split_input(ch),
+            TuiAction::SplitBackspace => self.split_backspace(),
+            TuiAction::SplitClearInput => self.split_clear_input(),
+            TuiAction::SplitSubmit => self.split_submit(),
+            TuiAction::SplitDeleteFocused => self.split_delete_focused(),
+            TuiAction::SplitClearList => self.split_clear_list(),
+            TuiAction::SplitRefreshApps => self.split_refresh_apps(),
             TuiAction::CancelTestBatch => {
                 if self.task_state.running.is_some() {
                     self.task_state.cancel();

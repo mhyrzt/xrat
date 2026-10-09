@@ -12,6 +12,7 @@ pub struct DashboardSnapshot {
     pub configs: Vec<ConfigDetail>,
     pub sources: Vec<SubscriptionRecord>,
     pub runtime: RuntimeStatusSnapshot,
+    pub tun_label: Option<String>,
     pub local_address: Option<String>,
     pub latest_run: Option<ConnectionTestRunRecord>,
     pub test_results: Vec<ConnectionTestRecord>,
@@ -79,6 +80,28 @@ impl<'a> DashboardService<'a> {
             geo::apply_geo_cache(context, &mut configs, self.clock.as_ref()).await;
         let sources = services.configs.subscriptions().await?;
         let runtime = RuntimeService::new(context).status().await?;
+        let tun_state = crate::app::services::tun::capture_state(
+            context,
+            &runtime,
+            &xrat_support::readiness::RuntimeProcessPorts::default(),
+        );
+        let split_summary = crate::app::services::tun_control::split_summary(&tun_state);
+        let tun_label = if tun_state.active {
+            Some(format!(
+                "{} ({}) · {split_summary}",
+                tun_state.interface.as_deref().unwrap_or("tun"),
+                tun_state.engine,
+            ))
+        } else if tun_state.enabled {
+            Some(format!("enabled (inactive) · {split_summary}"))
+        } else if tun_state.split_mode != "all"
+            || tun_state.blacklist_count > 0
+            || tun_state.whitelist_count > 0
+        {
+            Some(format!("off · {split_summary}"))
+        } else {
+            None
+        };
         let server = &context.app_config.server;
         let needs_local_address = matches!(server.host.as_str(), "0.0.0.0" | "::")
             || [
@@ -106,6 +129,7 @@ impl<'a> DashboardService<'a> {
             configs,
             sources,
             runtime,
+            tun_label,
             latest_run,
             test_results,
             logs,

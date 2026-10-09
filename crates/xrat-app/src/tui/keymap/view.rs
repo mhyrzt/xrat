@@ -14,6 +14,7 @@ pub fn action_for_view_key(
         KeyCode::Char('i') => TuiAction::OpenImportModal,
         KeyCode::Char(',') => TuiAction::OpenSettingsModal,
         KeyCode::Char('U') => TuiAction::ToggleTun,
+        KeyCode::Char('G') => TuiAction::OpenSplitModal,
         KeyCode::Char('[') if active_view == TuiView::Configs && focused_panel == TuiPanel::Log => {
             TuiAction::PrevLogTab
         }

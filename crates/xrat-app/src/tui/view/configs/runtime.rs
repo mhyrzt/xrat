@@ -59,6 +59,9 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     } else {
         push_detail(&mut lines, "Proxy", "-", LABEL_WIDTH, content_width);
     }
+    if let Some(tun) = &rt.tun {
+        push_detail(&mut lines, "TUN", tun, LABEL_WIDTH, content_width);
+    }
 
     let engines = if app.engines.is_empty() {
         "-".to_string()

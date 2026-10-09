@@ -107,19 +107,23 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                 }
                 Event::Key(key) => {
                     let bulk_confirm_open = app.pending_bulk.is_some();
-                    let action = crate::tui::keymap::action_for_key_with_import(
-                        key,
-                        app.active_view,
-                        app.focused_panel,
-                        &mut app.pending_chord,
-                        bulk_confirm_open,
-                        app.config_list.editing_search,
-                        app.confirm.is_some(),
-                        app.import_modal.is_some(),
-                        app.rename_modal.is_some(),
-                        app.qr_modal.is_some(),
-                        app.settings_modal.as_ref().map(SettingsModalState::mode),
-                    );
+                    let action = if let Some(split_modal) = &app.split_modal {
+                        crate::tui::keymap::action_for_split_modal_key(key, split_modal.mode())
+                    } else {
+                        crate::tui::keymap::action_for_key_with_import(
+                            key,
+                            app.active_view,
+                            app.focused_panel,
+                            &mut app.pending_chord,
+                            bulk_confirm_open,
+                            app.config_list.editing_search,
+                            app.confirm.is_some(),
+                            app.import_modal.is_some(),
+                            app.rename_modal.is_some(),
+                            app.qr_modal.is_some(),
+                            app.settings_modal.as_ref().map(SettingsModalState::mode),
+                        )
+                    };
                     let bulk_to_run = if matches!(action, crate::tui::app::TuiAction::ConfirmBulk) {
                         app.pending_bulk
                     } else {
@@ -213,6 +217,9 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     let open_import = matches!(action, crate::tui::app::TuiAction::OpenImportModal);
                     let open_settings =
                         matches!(action, crate::tui::app::TuiAction::OpenSettingsModal);
+                    let open_split = matches!(action, crate::tui::app::TuiAction::OpenSplitModal);
+                    let save_split_requested =
+                        matches!(action, crate::tui::app::TuiAction::SplitSave);
                     let save_settings_requested =
                         matches!(action, crate::tui::app::TuiAction::SettingsSave);
                     let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
@@ -248,12 +255,44 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             Vec::new()
                         };
                     let save_settings = save_settings_requested && app.prepare_settings_save();
-                    if !save_settings_requested {
+                    if !save_settings_requested && !save_split_requested {
                         app.apply(action);
                     }
                     if open_import {
                         app.import_modal = Some(crate::tui::app::ImportModalState::default());
                         app.needs_full_clear = true;
+                    }
+                    if open_split {
+                        let _ = crate::app::services::tun_control::reload(&mut context);
+                        app.split_modal = Some(crate::tui::app::SplitModalState::from_tun(
+                            &context.app_config.runtime.tun,
+                        ));
+                        app.needs_full_clear = true;
+                    }
+                    if save_split_requested {
+                        if app.task_state.running.is_some() {
+                            if let Some(modal) = &mut app.split_modal {
+                                modal.error = Some(
+                                    "Wait for the current operation to finish before applying split tunneling."
+                                        .to_string(),
+                                );
+                                modal.notice = None;
+                            }
+                            continue;
+                        }
+                        if let Some(modal) = app.split_modal.take() {
+                            app.needs_full_clear = true;
+                            tasks::spawn_runtime_tun_split(
+                                context.clone(),
+                                &mut app,
+                                &task_tx,
+                                modal.tun_enabled,
+                                modal.split_mode,
+                                modal.blacklist,
+                                modal.whitelist,
+                            );
+                        }
+                        continue;
                     }
                     if matches!(action, crate::tui::app::TuiAction::ToggleTun) {
                         tasks::spawn_runtime_tun(context.clone(), &mut app, &task_tx, None);

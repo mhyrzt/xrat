@@ -288,3 +288,55 @@ pub fn spawn_runtime_tun(
         let _ = task_tx.send(event);
     });
 }
+
+pub fn spawn_runtime_tun_split(
+    mut context: AppContext,
+    app: &mut TuiApp,
+    task_tx: &mpsc::UnboundedSender<TuiTaskEvent>,
+    enabled: bool,
+    split_mode: crate::app::config::TunSplitMode,
+    blacklist: Vec<String>,
+    whitelist: Vec<String>,
+) {
+    let Some((kind, include_deleted, task_tx)) = begin_runtime_op(app, task_tx) else {
+        return;
+    };
+    tokio::spawn(async move {
+        let result = crate::app::services::tun_control::mutate_tun_settings(
+            &mut context,
+            true,
+            move |tun| {
+                tun.enabled = enabled;
+                tun.split_mode = split_mode;
+                tun.blacklist = blacklist;
+                tun.whitelist = whitelist;
+                Ok(())
+            },
+        )
+        .await;
+        let event = match result {
+            Ok(state) => {
+                complete_after_reload(
+                    context,
+                    include_deleted,
+                    kind,
+                    format!(
+                        "split tunneling saved ({})",
+                        crate::app::services::tun_control::split_summary(&state)
+                    ),
+                )
+                .await
+            }
+            Err(error) => {
+                fail_after_reload(
+                    context,
+                    include_deleted,
+                    kind,
+                    format!("split tunneling failed: {error}"),
+                )
+                .await
+            }
+        };
+        let _ = task_tx.send(event);
+    });
+}

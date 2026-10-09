@@ -83,6 +83,16 @@ impl TuiApp {
                 self.settings_modal = None;
                 self.needs_full_clear = true;
             }
+        } else if let Some(split) = &mut self.split_modal {
+            if split.adding_input.is_some() {
+                split.adding_input = None;
+                split.error = None;
+            } else if split.searching {
+                split.searching = false;
+            } else {
+                self.split_modal = None;
+                self.needs_full_clear = true;
+            }
         } else if self.qr_modal.is_some() {
             self.qr_modal = None;
             self.needs_full_clear = true;

@@ -461,3 +461,55 @@ fn settings_fragment_ranges_render_as_indented_min_max_rows() {
         "10 ms"
     );
 }
+
+#[test]
+fn split_modal_renders_and_supports_mode_and_list_transitions() {
+    let tun = crate::app::config::TunSettings {
+        enabled: true,
+        split_mode: crate::app::config::TunSplitMode::Blacklist,
+        blacklist: vec!["firefox".to_string(), "/opt/discord/".to_string()],
+        whitelist: vec!["telegram-desktop".to_string()],
+        ..Default::default()
+    };
+
+    let mut modal = crate::tui::app::SplitModalState::from_tun(&tun);
+    modal.discovered_apps = vec![crate::app::services::split_tunnel::DiscoveredApp {
+        name: "Firefox Web Browser".to_string(),
+        desktop_id: Some("firefox.desktop".to_string()),
+        process_name: "firefox".to_string(),
+        exec_path: Some("/usr/bin/firefox".to_string()),
+        rule_entry: "firefox".to_string(),
+        source: crate::app::services::split_tunnel::AppSource::RunningAndDesktop,
+    }];
+
+    let mut app = TuiApp {
+        split_modal: Some(modal),
+        ..TuiApp::default()
+    };
+    let mut terminal = Terminal::new(TestBackend::new(110, 30)).unwrap();
+
+    terminal
+        .draw(|frame| render_split_modal(frame, frame.area(), &app))
+        .unwrap();
+    let rendered: String = terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(|cell| cell.symbol())
+        .collect();
+    assert!(rendered.contains("TUN Split Tunneling"));
+    assert!(rendered.contains("blacklist (2)"));
+    assert!(rendered.contains("Firefox Web Browser"));
+
+    app.apply(TuiAction::SplitCycleMode);
+    assert_eq!(
+        app.split_modal.as_ref().map(|m| m.split_mode),
+        Some(crate::app::config::TunSplitMode::Whitelist)
+    );
+    assert_eq!(
+        app.split_modal.as_ref().map(|m| m.list_tab),
+        Some(crate::tui::app::SplitListTab::Whitelist)
+    );
+    assert!(app.split_modal.as_ref().is_some_and(|m| m.is_dirty()));
+}
