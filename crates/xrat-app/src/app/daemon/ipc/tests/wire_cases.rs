@@ -75,6 +75,9 @@ async fn tun_request_roundtrips_mode_and_config_path_and_propagates_failure() {
                             interface: Some("xrat0".into()),
                             active_config_ref: Some("abc123".into()),
                             session_id: Some(42),
+                            split_mode: "all".into(),
+                            blacklist_count: 0,
+                            whitelist_count: 0,
                         }));
                     } else {
                         let _ = respond_to

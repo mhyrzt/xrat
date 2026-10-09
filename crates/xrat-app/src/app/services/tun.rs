@@ -28,8 +28,9 @@ pub(crate) fn capture_state(
                     info.is_tun && record.ifindex == Some(info.ifindex) && info.ifindex > 0
                 })
     });
+    let tun = &context.app_config.runtime.tun;
     TunStatePayload {
-        enabled: context.app_config.runtime.tun.enabled,
+        enabled: tun.enabled,
         active: owned.is_some(),
         engine: owned
             .as_ref()
@@ -42,6 +43,9 @@ pub(crate) fn capture_state(
             .filter(|_| snapshot.pid_running)
             .map(|config| config.r#ref.clone()),
         session_id: snapshot.session.as_ref().map(|session| session.id),
+        split_mode: tun.split_mode.as_str().to_string(),
+        blacklist_count: tun.blacklist.len(),
+        whitelist_count: tun.whitelist.len(),
     }
 }
 

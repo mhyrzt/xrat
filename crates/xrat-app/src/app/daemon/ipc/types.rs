@@ -81,6 +81,12 @@ pub struct TunStatePayload {
     pub interface: Option<String>,
     pub active_config_ref: Option<String>,
     pub session_id: Option<i64>,
+    #[serde(default)]
+    pub split_mode: String,
+    #[serde(default)]
+    pub blacklist_count: usize,
+    #[serde(default)]
+    pub whitelist_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

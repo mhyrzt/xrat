@@ -76,7 +76,11 @@ pub use setup::{SetupArgs, SetupFormat};
 pub use status::StatusArgs;
 pub use test_cmd::{TestArgs, TestFormat, TestSortBy};
 pub use tui::TuiArgs;
-pub use tun::{TunAction, TunArgs, TunModeArgs, TunSetupArgs, TunStatusArgs};
+pub use tun::{
+    TunAction, TunArgs, TunModeArgs, TunSetSplitModeArgs, TunSetupArgs, TunSplitAction,
+    TunSplitAppsArgs, TunSplitArgs, TunSplitClearArgs, TunSplitClearTarget, TunSplitListArgs,
+    TunSplitListTarget, TunSplitListViewTarget, TunSplitModeArg, TunSplitModifyArgs, TunStatusArgs,
+};
 pub use update::UpdateArgs;
 pub use upgrade::UpgradeArgs;
 pub use validate::{ValidateArgs, ValidateFormat};
