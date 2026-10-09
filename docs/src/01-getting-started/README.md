@@ -19,6 +19,8 @@ Choose one install path:
 
 - [Installation Script](installation.md) — recommended Linux install from the
   latest verified release archive
+- [Arch Linux (AUR)](aur-install.md) — install `xrat-bin` (prebuilt) or `xrat` (from
+  source) on Arch Linux
 - [Docker Install](docker-install.md) — run the published container image with
   bundled Xray-core
 - [Manual Binary Install](manual-binary-install.md) — download, verify, and
