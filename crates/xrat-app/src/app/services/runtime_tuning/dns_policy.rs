@@ -299,6 +299,7 @@ fn rule(
         port,
         network,
         inbound_tag,
+        process: None,
         outbound_tag: tag.into(),
     }
 }

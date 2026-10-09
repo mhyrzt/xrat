@@ -8,7 +8,10 @@ mod types;
 
 use xrat_model::Node;
 
-pub use routing::{XrayRouteList, XrayRoutingOptions};
+pub use routing::{
+    XrayRouteList, XrayRoutingOptions, XrayTunSplitMode, XrayTunSplitOptions,
+    enable_tun_split_routing,
+};
 pub use tuning::{
     FragmentOptions, MuxOptions, XrayCompatibilityPolicy, XrayCompatibilityTarget, XrayGenOptions,
 };

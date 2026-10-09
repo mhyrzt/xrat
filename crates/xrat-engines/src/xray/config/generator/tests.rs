@@ -1338,3 +1338,84 @@ fn reality_validates_but_does_not_emit_legacy_insecure_flags() {
         );
     }
 }
+
+#[test]
+fn tun_split_routing_blacklist_and_whitelist_emit_expected_xray_rules() {
+    use crate::xray::config::{XrayTunSplitMode, XrayTunSplitOptions, enable_tun_split_routing};
+
+    let node = vless_tls_node();
+
+    // All mode is a no-op
+    let mut all_cfg = generate_runtime_config(&node, 1080, None).unwrap();
+    enable_tun_split_routing(
+        &mut all_cfg,
+        &XrayTunSplitOptions {
+            mode: XrayTunSplitMode::All,
+            processes: vec!["firefox".to_string()],
+        },
+    );
+    assert!(all_cfg.routing.is_none());
+
+    // Blacklist mode routes listed apps from tun-in to direct
+    let mut bl_cfg = generate_runtime_config(&node, 1080, None).unwrap();
+    enable_tun_split_routing(
+        &mut bl_cfg,
+        &XrayTunSplitOptions {
+            mode: XrayTunSplitMode::Blacklist,
+            processes: vec!["steam".to_string(), "/opt/discord/".to_string()],
+        },
+    );
+    let bl_json = serde_json::to_value(&bl_cfg).unwrap();
+    assert!(
+        bl_cfg
+            .outbounds
+            .iter()
+            .any(|outbound| outbound.tag == "direct")
+    );
+    assert_eq!(
+        bl_json["routing"]["rules"],
+        serde_json::json!([
+            {
+                "type": "field",
+                "inboundTag": ["tun-in"],
+                "process": ["steam", "/opt/discord/"],
+                "outboundTag": "direct"
+            }
+        ])
+    );
+
+    // Whitelist mode routes self/ to direct, listed apps from tun-in to proxy, and remaining tun-in to direct
+    let mut wl_cfg = generate_runtime_config(&node, 1080, None).unwrap();
+    enable_tun_split_routing(
+        &mut wl_cfg,
+        &XrayTunSplitOptions {
+            mode: XrayTunSplitMode::Whitelist,
+            processes: vec!["firefox".to_string(), "/usr/bin/curl".to_string()],
+        },
+    );
+    let wl_json = serde_json::to_value(&wl_cfg).unwrap();
+    assert_eq!(
+        wl_json["routing"]["rules"],
+        serde_json::json!([
+            {
+                "type": "field",
+                "inboundTag": ["tun-in"],
+                "process": ["self/"],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "inboundTag": ["tun-in"],
+                "process": ["firefox", "/usr/bin/curl"],
+                "outboundTag": "proxy"
+            },
+            {
+                "type": "field",
+                "inboundTag": ["tun-in"],
+                "outboundTag": "direct"
+            }
+        ])
+    );
+    xrat_config::parsing::XrayConfig::from_json_strict(&serde_json::to_string(&wl_cfg).unwrap())
+        .unwrap();
+}

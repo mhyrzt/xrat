@@ -216,6 +216,7 @@ pub fn enable_tun_capture(config: &mut XrayConfig, options: &XrayTunCaptureOptio
             port: Some("53".to_string()),
             network: Some("tcp,udp".to_string()),
             inbound_tag: Some(vec!["tun-in".to_string()]),
+            process: None,
             outbound_tag: "dns-out".to_string(),
         },
     );
@@ -243,6 +244,7 @@ pub fn enable_tun_capture(config: &mut XrayConfig, options: &XrayTunCaptureOptio
             port: None,
             network: None,
             inbound_tag: None,
+            process: None,
             outbound_tag: "direct".to_string(),
         });
     }

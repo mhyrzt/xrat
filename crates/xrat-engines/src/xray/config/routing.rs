@@ -90,6 +90,117 @@ fn append_route_rules(rules: &mut Vec<RoutingRule>, routes: &XrayRouteList, outb
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum XrayTunSplitMode {
+    #[default]
+    All,
+    Blacklist,
+    Whitelist,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct XrayTunSplitOptions {
+    pub mode: XrayTunSplitMode,
+    pub processes: Vec<String>,
+}
+
+pub fn enable_tun_split_routing(config: &mut XrayConfig, split: &XrayTunSplitOptions) {
+    if split.mode == XrayTunSplitMode::All {
+        return;
+    }
+    if split.mode == XrayTunSplitMode::Blacklist && split.processes.is_empty() {
+        return;
+    }
+
+    if !config
+        .outbounds
+        .iter()
+        .any(|outbound| outbound.tag == "direct")
+    {
+        config.outbounds.push(Outbound {
+            tag: "direct".to_string(),
+            protocol: "freedom".to_string(),
+            settings: json!({}),
+            stream_settings: None,
+            mux: None,
+        });
+    }
+
+    let routing = config.routing.get_or_insert_with(|| RoutingConfig {
+        domain_strategy: None,
+        rules: Vec::new(),
+    });
+
+    let insert_idx = routing
+        .rules
+        .iter()
+        .position(|rule| rule.outbound_tag == "api")
+        .map_or(0, |idx| idx + 1);
+
+    let mut split_rules = Vec::new();
+    match split.mode {
+        XrayTunSplitMode::All => {}
+        XrayTunSplitMode::Blacklist => {
+            split_rules.push(RoutingRule {
+                kind: "field".to_string(),
+                domain: None,
+                ip: None,
+                port: None,
+                network: None,
+                inbound_tag: Some(vec!["tun-in".to_string()]),
+                process: Some(split.processes.clone()),
+                outbound_tag: "direct".to_string(),
+            });
+        }
+        XrayTunSplitMode::Whitelist => {
+            if !routing.rules.iter().any(|rule| {
+                rule.outbound_tag == "direct"
+                    && rule
+                        .process
+                        .as_ref()
+                        .is_some_and(|procs| procs.iter().any(|proc| proc == "self/"))
+            }) {
+                split_rules.push(RoutingRule {
+                    kind: "field".to_string(),
+                    domain: None,
+                    ip: None,
+                    port: None,
+                    network: None,
+                    inbound_tag: Some(vec!["tun-in".to_string()]),
+                    process: Some(vec!["self/".to_string()]),
+                    outbound_tag: "direct".to_string(),
+                });
+            }
+            if !split.processes.is_empty() {
+                split_rules.push(RoutingRule {
+                    kind: "field".to_string(),
+                    domain: None,
+                    ip: None,
+                    port: None,
+                    network: None,
+                    inbound_tag: Some(vec!["tun-in".to_string()]),
+                    process: Some(split.processes.clone()),
+                    outbound_tag: "proxy".to_string(),
+                });
+            }
+            split_rules.push(RoutingRule {
+                kind: "field".to_string(),
+                domain: None,
+                ip: None,
+                port: None,
+                network: None,
+                inbound_tag: Some(vec!["tun-in".to_string()]),
+                process: None,
+                outbound_tag: "direct".to_string(),
+            });
+        }
+    }
+    if !split_rules.is_empty() {
+        routing.rules.splice(insert_idx..insert_idx, split_rules);
+    }
+}
+
 pub(super) fn field_rule(
     domain: Option<Vec<String>>,
     ip: Option<Vec<String>>,
@@ -103,6 +214,7 @@ pub(super) fn field_rule(
         port: None,
         network: None,
         inbound_tag,
+        process: None,
         outbound_tag: outbound_tag.to_string(),
     }
 }

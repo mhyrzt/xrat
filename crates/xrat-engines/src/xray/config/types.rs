@@ -70,6 +70,8 @@ pub struct RoutingRule {
     pub network: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inbound_tag: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub process: Option<Vec<String>>,
     pub outbound_tag: String,
 }
 

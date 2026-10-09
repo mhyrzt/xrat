@@ -367,6 +367,31 @@ pub fn generate_singbox_runtime_config_with_dns(
     })
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SingboxTunSplitMode {
+    #[default]
+    All,
+    Blacklist,
+    Whitelist,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SingboxTunSplitOptions {
+    pub mode: SingboxTunSplitMode,
+    pub process_name: Vec<String>,
+    pub process_path: Vec<String>,
+    pub process_path_regex: Vec<String>,
+}
+
+impl SingboxTunSplitOptions {
+    pub fn has_matchers(&self) -> bool {
+        !self.process_name.is_empty()
+            || !self.process_path.is_empty()
+            || !self.process_path_regex.is_empty()
+    }
+}
+
 impl SingboxConfig {
     /// Whether the generated route declares any rule-set (currently remote
     /// SagerNet rule-sets), which requires a cache file to persist downloads.
@@ -394,6 +419,12 @@ impl SingboxConfig {
     /// detected physical interface to avoid routing loops, and send private/LAN
     /// destinations direct so local networks stay reachable.
     pub fn enable_tun_route(&mut self) {
+        self.enable_tun_route_with_split(&SingboxTunSplitOptions::default());
+    }
+
+    /// Shape the generated route for a TUN inbound with optional per-application
+    /// split tunneling rules (`all`, `blacklist`, or `whitelist`) scoped to `tun-in`.
+    pub fn enable_tun_route_with_split(&mut self, split: &SingboxTunSplitOptions) {
         let route = self.route.get_or_insert_with(|| SingboxRoute {
             rules: Vec::new(),
             rule_set: Vec::new(),
@@ -407,14 +438,73 @@ impl SingboxConfig {
                 .rules
                 .insert(0, serde_json::json!({"action": "sniff"}));
         }
+        let sniff_after = route
+            .rules
+            .iter()
+            .position(|rule| rule["action"] == "sniff")
+            .map_or(0, |idx| idx + 1);
         if !route.rules.iter().any(|rule| rule["ip_is_private"] == true) {
-            route.rules.push(serde_json::json!({
-                "ip_is_private": true,
-                "action": "route",
-                "outbound": "direct",
-            }));
+            route.rules.insert(
+                sniff_after,
+                serde_json::json!({
+                    "ip_is_private": true,
+                    "action": "route",
+                    "outbound": "direct",
+                }),
+            );
+        }
+        let split_insert_idx = route
+            .rules
+            .iter()
+            .position(|rule| rule["ip_is_private"] == true)
+            .map_or(sniff_after, |idx| idx + 1);
+
+        let mut split_rules = Vec::new();
+        match split.mode {
+            SingboxTunSplitMode::All => {}
+            SingboxTunSplitMode::Blacklist => {
+                if let Some(rule) = build_singbox_split_rule(split, "direct") {
+                    split_rules.push(rule);
+                }
+            }
+            SingboxTunSplitMode::Whitelist => {
+                if let Some(rule) = build_singbox_split_rule(split, "proxy") {
+                    split_rules.push(rule);
+                }
+                split_rules.push(serde_json::json!({
+                    "inbound": ["tun-in"],
+                    "action": "route",
+                    "outbound": "direct",
+                }));
+            }
+        }
+        if !split_rules.is_empty() {
+            route
+                .rules
+                .splice(split_insert_idx..split_insert_idx, split_rules);
         }
     }
+}
+
+fn build_singbox_split_rule(
+    split: &SingboxTunSplitOptions,
+    outbound: &str,
+) -> Option<serde_json::Value> {
+    if !split.has_matchers() {
+        return None;
+    }
+    let mut object = serde_json::Map::new();
+    object.insert("inbound".to_string(), serde_json::json!(["tun-in"]));
+    insert_non_empty(&mut object, "process_name", split.process_name.clone());
+    insert_non_empty(&mut object, "process_path", split.process_path.clone());
+    insert_non_empty(
+        &mut object,
+        "process_path_regex",
+        split.process_path_regex.clone(),
+    );
+    object.insert("action".to_string(), serde_json::json!("route"));
+    object.insert("outbound".to_string(), serde_json::json!(outbound));
+    Some(serde_json::Value::Object(object))
 }
 
 pub(super) fn build_route(
