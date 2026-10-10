@@ -94,6 +94,8 @@ jobs:
           XRAT_RUNTIME_SINGBOX: ${{ runner.temp }}/runtime-engines/sing-box
           XRAT_RUNTIME_FIXTURE_DIR: ${{ runner.temp }}/runtime-native
         run: cargo test --locked -p xrat-app dns_runtime_native_fixtures -- --ignored
+      - name: Validate sing-box conformance matrix
+        run: just singbox-conformance "$RUNNER_TEMP/runtime-engines/sing-box" "$RUNNER_TEMP/singbox-conformance"
       - name: Build managed runtime CLI and integration tests
         run: |
           set -euo pipefail
@@ -120,6 +122,7 @@ jobs:
           name: runtime-network-receipts
           path: |
             ${{ runner.temp }}/runtime-native
+            ${{ runner.temp }}/singbox-conformance
             ${{ runner.temp }}/runtime-tun
             ${{ runner.temp }}/runtime-tun-new
             ${{ runner.temp }}/runtime-engines/engine-receipts.json

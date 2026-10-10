@@ -4,10 +4,7 @@ use super::{
     generate_singbox_runtime_config_with_dns,
 };
 use std::collections::BTreeMap;
-use std::io::Write;
-use tempfile::NamedTempFile;
 use xrat_model::{Node, Protocol};
-use xrat_support::process::Command;
 
 #[test]
 fn generates_hy2_singbox_config_with_optional_fields() {
@@ -98,35 +95,6 @@ fn rejects_incomplete_vless_reality() {
         generate_singbox_probe_config(&node, 1080)
             .unwrap_err()
             .contains("pbk/password public key")
-    );
-}
-
-#[test]
-fn native_singbox_validator_accepts_vless_tls_websocket() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    let mut node = hy2_node(None);
-    node.protocol = Protocol::Vless;
-    node.uuid = Some("00000000-0000-0000-0000-000000000001".to_string());
-    node.password = None;
-    node.network = "ws".to_string();
-    node.host = Some("front.example.com".to_string());
-    node.path = Some("/stream".to_string());
-    let config = generate_singbox_probe_config(&node, 1080).unwrap();
-    let mut file = NamedTempFile::with_suffix(".json").unwrap();
-    file.write_all(serde_json::to_string_pretty(&config).unwrap().as_bytes())
-        .unwrap();
-    file.flush().unwrap();
-    let output = Command::new("sing-box")
-        .args(["check", "-c"])
-        .arg(file.path())
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
     );
 }
 
@@ -259,68 +227,6 @@ fn rejects_invalid_tun_options() {
 }
 
 #[test]
-fn native_singbox_validator_accepts_vmess_and_trojan() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    for protocol in [Protocol::Vmess, Protocol::Trojan] {
-        let mut node = hy2_node(None);
-        node.protocol = protocol.clone();
-        node.network = "ws".to_string();
-        node.path = Some("/stream".to_string());
-        node.uuid = (protocol == Protocol::Vmess)
-            .then(|| "00000000-0000-0000-0000-000000000001".to_string());
-        node.password = (protocol == Protocol::Trojan).then(|| "secret".to_string());
-        let config = generate_singbox_probe_config(&node, 1080).unwrap();
-        let mut file = NamedTempFile::with_suffix(".json").unwrap();
-        file.write_all(serde_json::to_string_pretty(&config).unwrap().as_bytes())
-            .unwrap();
-        file.flush().unwrap();
-        let output = Command::new("sing-box")
-            .args(["check", "-c"])
-            .arg(file.path())
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{protocol}: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-}
-
-#[test]
-fn native_singbox_validator_accepts_shadowsocks_http_and_socks() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    for protocol in [Protocol::Ss, Protocol::Http, Protocol::Socks5] {
-        let mut node = hy2_node(None);
-        node.protocol = protocol.clone();
-        node.network = "tcp".to_string();
-        node.tls = (protocol == Protocol::Http).then(|| "tls".to_string());
-        node.sni = None;
-        node.method = (protocol == Protocol::Ss).then(|| "aes-128-gcm".to_string());
-        node.username = (protocol != Protocol::Ss).then(|| "user".to_string());
-        let config = generate_singbox_probe_config(&node, 1080).unwrap();
-        let mut file = NamedTempFile::with_suffix(".json").unwrap();
-        file.write_all(serde_json::to_string_pretty(&config).unwrap().as_bytes())
-            .unwrap();
-        file.flush().unwrap();
-        let output = Command::new("sing-box")
-            .args(["check", "-c"])
-            .arg(file.path())
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{protocol}: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-}
-
-#[test]
 fn rejects_lossy_hy2_link_fields_before_generation() {
     let cases = [
         (
@@ -425,112 +331,6 @@ fn generates_runtime_dns_without_adding_it_to_probes() {
 
     let probe = generate_singbox_probe_config(&node, 1080).unwrap();
     assert!(serde_json::to_value(probe).unwrap().get("dns").is_none());
-}
-
-#[test]
-fn native_singbox_validator_accepts_generated_dns_config() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-
-    let node = hy2_node(None);
-    let dns = SingboxDnsConfig {
-        servers: vec![
-            serde_json::json!({
-                "type": "local",
-                "tag": "xrat-dns-local",
-            }),
-            serde_json::json!({
-                "type": "udp",
-                "tag": "xrat-dns-0",
-                "server": "8.8.8.8",
-                "server_port": 53,
-            }),
-            serde_json::json!({
-                "type": "tls",
-                "tag": "xrat-dns-1",
-                "server": "1.1.1.1",
-                "server_port": 853,
-                "tls": {"server_name": "1.1.1.1"},
-                "domain_resolver": "xrat-dns-local",
-            }),
-        ],
-        rules: Vec::new(),
-        final_server: "xrat-dns-0".to_string(),
-        strategy: Some("ipv4_only".to_string()),
-        disable_cache: Some(true),
-        reverse_mapping: None,
-    };
-    let config =
-        generate_singbox_runtime_config_with_dns(&node, Vec::new(), None, None, Some(&dns))
-            .expect("runtime config should generate");
-    let value = serde_json::to_value(&config).expect("config should serialize");
-    assert_eq!(value["route"]["default_domain_resolver"], "xrat-dns-local");
-    let mut file = NamedTempFile::new().unwrap();
-    file.write_all(serde_json::to_string(&config).unwrap().as_bytes())
-        .unwrap();
-    file.flush().unwrap();
-
-    let output = Command::new("sing-box")
-        .args(["check", "-c"])
-        .arg(file.path())
-        .output()
-        .expect("sing-box should start");
-    assert!(
-        output.status.success(),
-        "sing-box rejected generated DNS config: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
-#[test]
-fn native_singbox_validator_accepts_each_managed_inbound() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-
-    let config = generate_singbox_runtime_config(
-        &hy2_node(None),
-        vec![
-            SingboxInbound::socks(
-                "socks-in",
-                "127.0.0.1",
-                1080,
-                Some(vec![super::SingboxInboundUser {
-                    username: "xrat".to_string(),
-                    password: "secret".to_string(),
-                }]),
-            ),
-            SingboxInbound::http("http-in", "127.0.0.1", 8080),
-            SingboxInbound::shadowsocks(
-                "shadowsocks-in",
-                "127.0.0.1",
-                8388,
-                "tcp",
-                "aes-128-gcm",
-                "secret",
-            )
-            .unwrap(),
-        ],
-        None,
-        None,
-    )
-    .unwrap();
-    let mut file = NamedTempFile::with_suffix(".json").unwrap();
-    file.write_all(serde_json::to_string_pretty(&config).unwrap().as_bytes())
-        .unwrap();
-    file.flush().unwrap();
-
-    let output = Command::new("sing-box")
-        .args(["check", "-c"])
-        .arg(file.path())
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "sing-box rejected managed inbounds: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }
 
 #[test]
@@ -845,6 +645,57 @@ fn rejects_vmess_legacy_cipher_and_unknown_encoding() {
 }
 
 #[test]
+fn rejects_native_invalid_quic_and_vmess_ctr() {
+    for protocol in [Protocol::Vless, Protocol::Vmess, Protocol::Trojan] {
+        let mut node = hy2_node(None);
+        node.protocol = protocol;
+        node.uuid = Some("00000000-0000-0000-0000-000000000001".into());
+        node.network = "quic".into();
+        node.tls = None;
+        node.sni = None;
+        assert!(
+            generate_singbox_probe_config(&node, 1080)
+                .unwrap_err()
+                .contains("QUIC transport requires TLS")
+        );
+    }
+    let mut node = hy2_node(None);
+    node.protocol = Protocol::Vmess;
+    node.uuid = Some("00000000-0000-0000-0000-000000000001".into());
+    node.network = "tcp".into();
+    node.extensions = Some(BTreeMap::from([(
+        "scy".into(),
+        serde_json::json!("aes-128-ctr"),
+    )]));
+    assert!(
+        generate_singbox_probe_config(&node, 1080)
+            .unwrap_err()
+            .contains("unsupported VMess security")
+    );
+}
+
+#[test]
+fn rejects_native_unsupported_shadowsocks_inbound_methods() {
+    for method in [
+        "aes-128-ctr",
+        "aes-192-ctr",
+        "aes-256-ctr",
+        "aes-128-cfb",
+        "aes-192-cfb",
+        "aes-256-cfb",
+        "rc4-md5",
+        "chacha20-ietf",
+        "xchacha20",
+    ] {
+        assert!(
+            SingboxInbound::shadowsocks("ss-in", "127.0.0.1", 8388, "tcp", method, "secret")
+                .unwrap_err()
+                .contains("unsupported Shadowsocks inbound method")
+        );
+    }
+}
+
+#[test]
 fn generates_httpupgrade_and_rejects_unknown_transport() {
     let mut node = hy2_node(None);
     node.protocol = Protocol::Vless;
@@ -900,123 +751,6 @@ fn rejects_shadowsocks_legacy_cipher_and_accepts_supported_methods() {
 }
 
 #[test]
-fn native_singbox_validator_accepts_vless_reality_grpc_and_httpupgrade() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-
-    let base = || {
-        let mut node = hy2_node(None);
-        node.protocol = Protocol::Vless;
-        node.uuid = Some("00000000-0000-0000-0000-000000000001".to_string());
-        node.password = None;
-        node
-    };
-
-    let mut grpc = base();
-    grpc.network = "grpc".to_string();
-    grpc.path = None;
-    grpc.extensions = Some(BTreeMap::from([(
-        "serviceName".to_string(),
-        serde_json::json!("TunService"),
-    )]));
-
-    let mut upgrade = base();
-    upgrade.network = "httpupgrade".to_string();
-    upgrade.host = Some("upgrade.example.com".to_string());
-    upgrade.path = Some("/upgrade".to_string());
-
-    let mut http2 = base();
-    http2.network = "h2".to_string();
-    http2.host = Some("h2.example.com".to_string());
-    http2.path = Some("/h2".to_string());
-
-    for node in [grpc, upgrade, http2] {
-        let config = generate_singbox_probe_config(&node, 1080).unwrap();
-        assert_valid_singbox(&config);
-    }
-}
-
-#[test]
-fn native_singbox_validator_accepts_vmess_packet_encoding() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    let mut node = hy2_node(None);
-    node.protocol = Protocol::Vmess;
-    node.uuid = Some("00000000-0000-0000-0000-000000000001".to_string());
-    node.password = None;
-    node.network = "tcp".to_string();
-    node.extensions = Some(BTreeMap::from([
-        ("aid".to_string(), serde_json::json!(0)),
-        ("packet_encoding".to_string(), serde_json::json!("xudp")),
-    ]));
-
-    let config = generate_singbox_probe_config(&node, 1080).unwrap();
-    assert_valid_singbox(&config);
-}
-
-#[test]
-fn native_singbox_validator_accepts_remote_rule_sets() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    let routing = SingboxRoutingOptions {
-        direct: SingboxRouteList {
-            geosite: vec!["private".to_string()],
-            ..Default::default()
-        },
-        block: SingboxRouteList {
-            geosite: vec!["category-ads-all".to_string()],
-            geoip: vec!["cn".to_string()],
-            ..Default::default()
-        },
-    };
-    let mut config = generate_singbox_runtime_config(
-        &hy2_node(None),
-        vec![SingboxInbound::http("http-in", "127.0.0.1", 8080)],
-        None,
-        Some(&routing),
-    )
-    .unwrap();
-    config.enable_cache_file("/tmp/xrat-singbox-cache.db".to_string());
-    assert_valid_singbox(&config);
-}
-
-#[test]
-fn native_singbox_validator_accepts_routing_and_clash_api() {
-    if Command::new("sing-box").arg("version").output().is_err() {
-        return;
-    }
-    let routing = SingboxRoutingOptions {
-        direct: SingboxRouteList {
-            domain: vec!["full:exact.example".to_string()],
-            ip: vec!["192.168.0.0/16".to_string()],
-            ..Default::default()
-        },
-        block: SingboxRouteList {
-            domain: vec!["domain:ads.example".to_string()],
-            ip: vec!["203.0.113.0/24".to_string()],
-            ..Default::default()
-        },
-    };
-    let config = generate_singbox_runtime_config(
-        &hy2_node(None),
-        vec![SingboxInbound::http("http-in", "127.0.0.1", 8080)],
-        Some(super::SingboxClashApi {
-            external_controller: "127.0.0.1:9090".to_string(),
-            secret: None,
-        }),
-        Some(&routing),
-    )
-    .unwrap();
-    assert_valid_singbox(&config);
-}
-
-#[test]
 fn parses_socks_and_http_tls_requirements() {
     let mut socks = hy2_node(None);
     socks.protocol = Protocol::Socks5;
@@ -1051,23 +785,6 @@ fn parses_socks_and_http_tls_requirements() {
     assert_eq!(
         config.outbounds[0]["tls"]["server_name"],
         "proxy.example.com"
-    );
-}
-
-fn assert_valid_singbox(config: &super::SingboxConfig) {
-    let mut file = NamedTempFile::with_suffix(".json").unwrap();
-    file.write_all(serde_json::to_string_pretty(config).unwrap().as_bytes())
-        .unwrap();
-    file.flush().unwrap();
-    let output = Command::new("sing-box")
-        .args(["check", "-c"])
-        .arg(file.path())
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "sing-box rejected config: {}",
-        String::from_utf8_lossy(&output.stderr)
     );
 }
 

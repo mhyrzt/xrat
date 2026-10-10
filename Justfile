@@ -102,6 +102,11 @@ runtime-engines directory:
     ENGINES
     printf '\n]\n' >> "$receipts"
 
+# Validate the generated sing-box matrix and application DNS policies
+singbox-conformance binary output:
+    XRAT_CONFORMANCE_SINGBOX={{quote(binary)}} XRAT_CONFORMANCE_OUTPUT={{quote(output)}} cargo test --locked -p xrat-engines --test singbox_conformance -- --include-ignored --nocapture
+    XRAT_CONFORMANCE_SINGBOX={{quote(binary)}} XRAT_CONFORMANCE_OUTPUT={{quote(output)}} cargo test --locked -p xrat-app native_singbox_dns_conformance -- --ignored --nocapture
+
 # Validate generated managed DNS fixtures with pinned native cores
 runtime-native xray_binary singbox_binary output:
     XRAT_RUNTIME_XRAY={{quote(xray_binary)}} XRAT_RUNTIME_SINGBOX={{quote(singbox_binary)}} XRAT_RUNTIME_FIXTURE_DIR={{quote(output)}} cargo test --locked -p xrat-app dns_runtime_native_fixtures -- --ignored
