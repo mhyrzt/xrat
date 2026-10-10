@@ -89,7 +89,11 @@ pub(super) fn preflight_runtime_with_spawner(
     }
     temporary.as_file_mut().flush()?;
     let path = temporary.path();
-    let mut command = Command::with_spawner(&launch.binary_path, spawner.clone());
+    let mut command = if matches!(launch.validator, RuntimeValidator::Singbox) {
+        xrat_engines::singbox::config_check_command(&launch.binary_path, path, spawner.clone())
+    } else {
+        Command::with_spawner(&launch.binary_path, spawner.clone())
+    };
     if let Some(directory) = xrat_support::platform::managed_core_asset_dir(&launch.binary_path) {
         let variable = match launch.validator {
             RuntimeValidator::V2ray => "V2RAY_LOCATION_ASSET",
@@ -107,9 +111,7 @@ pub(super) fn preflight_runtime_with_spawner(
         RuntimeValidator::V2ray => {
             command.arg("test").arg("-c").arg(path);
         }
-        RuntimeValidator::Singbox => {
-            command.arg("check").arg("-c").arg(path);
-        }
+        RuntimeValidator::Singbox => {}
     }
     let output = command.stdin(Stdio::null()).output().map_err(|error| {
         AppError::XrayRuntime(

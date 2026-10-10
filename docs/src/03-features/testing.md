@@ -455,6 +455,38 @@ All test results are persisted to the database:
 | `dial_endpoint_fronting`                          | Detected CDN/relay provider (hint)  |
 | `tested_at`                                       | Timestamp                           |
 
+## Native sing-box conformance (contributors)
+
+Run the generated configuration matrix with the checksum-pinned validator:
+
+```bash
+just runtime-engines /tmp/xrat-engines
+just singbox-conformance /tmp/xrat-engines/sing-box /tmp/xrat-conformance
+```
+
+The matrix uses the same `sing-box check -c` command builder as managed runtime
+preflight. It covers probe and managed configurations for all seven supported
+protocols, TLS/REALITY, transports, Shadowsocks methods, Hysteria2 obfuscation,
+all 16 combinations of SOCKS/HTTP/Shadowsocks/TUN inbounds, TUN stacks, direct
+and block routing, remote rule sets, Clash API, and cache files. Application DNS
+fixtures cover UDP, TCP, TLS, QUIC, HTTPS, HTTP/3, local resolution, hosts,
+policy rules, listener routing, and FakeIP, with and without TUN.
+
+Ordinary Cargo tests report native conformance as ignored (skipped), while
+checking deterministic fixture generation. Explicit native runs fail if the
+validator is missing or unusable. CI requires native validation against
+`v1.13.21` and retains each fixture's emitted JSON and result receipts, including
+stdout/stderr. A rejection identifies the fixture and prints its JSON.
+Fixtures target the planned `>=1.13.0,<1.15.0` conformance range; a passing run
+establishes compatibility only with the binary version used for that run.
+Native syntax checks do not establish connectivity or TUN capture; those have
+separate network acceptance tests.
+
+QUIC transport requires TLS, and VMess `aes-128-ctr` is rejected during
+generation because the supported native validator does not accept it.
+Shadowsocks inbounds accept AEAD/2022 methods and `none`; legacy stream ciphers
+remain available for outbounds but are rejected for inbounds.
+
 ## Related
 
 - [`test` CLI](../02-cli/test.md) — command reference

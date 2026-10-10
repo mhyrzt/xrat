@@ -1,7 +1,9 @@
 mod config;
 mod probe;
 pub mod process_mgmt;
+mod validation;
 mod version;
+pub use validation::config_check_command;
 
 pub use config::{
     SingboxCacheFile, SingboxClashApi, SingboxConfig, SingboxDnsConfig, SingboxExperimental,

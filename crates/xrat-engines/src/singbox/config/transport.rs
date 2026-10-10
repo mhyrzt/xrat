@@ -146,7 +146,12 @@ pub(super) fn build_tls_and_transport(
             }
             Some(value)
         }
-        "quic" => Some(json!({"type": "quic"})),
+        "quic" => {
+            if tls.is_none() {
+                return Err("sing-box QUIC transport requires TLS".to_string());
+            }
+            Some(json!({"type": "quic"}))
+        }
         other => return Err(format!("unsupported sing-box transport {other:?}")),
     };
     Ok((tls, transport))

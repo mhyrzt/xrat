@@ -12,6 +12,8 @@ mod xray;
 #[cfg(test)]
 mod dns_tests;
 #[cfg(test)]
+mod singbox_conformance;
+#[cfg(test)]
 mod tests;
 
 pub(crate) use network::resolve_listen_interface_addr;

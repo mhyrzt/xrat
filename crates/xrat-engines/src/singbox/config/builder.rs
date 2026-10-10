@@ -219,15 +219,6 @@ pub(super) const SHADOWSOCKS_METHODS: &[&str] = &[
     "aes-256-gcm",
     "chacha20-ietf-poly1305",
     "xchacha20-ietf-poly1305",
-    "aes-128-ctr",
-    "aes-192-ctr",
-    "aes-256-ctr",
-    "aes-128-cfb",
-    "aes-192-cfb",
-    "aes-256-cfb",
-    "rc4-md5",
-    "chacha20-ietf",
-    "xchacha20",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

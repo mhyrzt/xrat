@@ -26,7 +26,7 @@ pub(super) fn build_vmess_outbound(node: &Node) -> Result<Value, String> {
         .unwrap_or_else(|| "auto".to_string());
     if !matches!(
         security.as_str(),
-        "auto" | "none" | "zero" | "aes-128-gcm" | "chacha20-poly1305" | "aes-128-ctr"
+        "auto" | "none" | "zero" | "aes-128-gcm" | "chacha20-poly1305"
     ) {
         return Err(format!(
             "unsupported VMess security {security:?} for sing-box"
