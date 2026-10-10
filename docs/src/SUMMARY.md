@@ -3,6 +3,7 @@
 - [Home](README.md)
 - [Getting Started](01-getting-started/README.md)
   - [Installation Script](01-getting-started/installation.md)
+  - [Arch Linux (AUR)](01-getting-started/aur-install.md)
   - [Docker Install](01-getting-started/docker-install.md)
   - [Manual Binary Install](01-getting-started/manual-binary-install.md)
   - [Cargo Install](01-getting-started/cargo-install.md)

@@ -74,6 +74,16 @@ cargo install xrat
 xrat setup
 ```
 
+Arch Linux (AUR):
+
+```bash
+yay -S xrat-bin       # prebuilt binary (recommended)
+# Or build from source:
+yay -S xrat
+
+xrat setup
+```
+
 Launch the TUI with `xratui` (or `xrat tui`).
 
 XRAT manages external proxy engines: Xray is the default, V2Ray is an
