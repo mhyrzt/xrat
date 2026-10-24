@@ -42,6 +42,12 @@ pub fn action_for_key_with_import(
     qr_modal_open: bool,
     settings_mode: Option<SettingsMode>,
 ) -> TuiAction {
+    let is_text_input = editing_search
+        || rename_modal_open
+        || import_modal_open
+        || matches!(settings_mode, Some(SettingsMode::Search | SettingsMode::Edit));
+    let key = normalize_key(key, is_text_input);
+
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
     }
@@ -99,6 +105,9 @@ pub fn action_for_key_with_import(
 }
 
 pub(super) fn action_for_settings_modal_key(key: KeyEvent, mode: SettingsMode) -> TuiAction {
+    let is_text_input = matches!(mode, SettingsMode::Search | SettingsMode::Edit);
+    let key = normalize_key(key, is_text_input);
+
     if mode == SettingsMode::DiscardConfirm {
         return match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => TuiAction::SettingsConfirmDiscard(true),
@@ -170,6 +179,9 @@ pub(super) fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {
 }
 
 pub fn action_for_split_modal_key(key: KeyEvent, mode: SplitModalMode) -> TuiAction {
+    let is_text_input = matches!(mode, SplitModalMode::AddInput | SplitModalMode::Search);
+    let key = normalize_key(key, is_text_input);
+
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return TuiAction::Quit;
     }
