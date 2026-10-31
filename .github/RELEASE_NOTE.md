@@ -1,57 +1,81 @@
-## xrat v0.33.0
+## xrat v0.34.0
 
-This release makes reconnecting easier, keeps TUI runtime indicators current,
-and improves keyboard layout support and subscription naming.
+This release adds a Linux TUN kill switch and optional transparent TUI
+backgrounds.
 
-### Highlights
+### Linux TUN kill switch
 
-- Run `xrat connect` or `xrat connect latest` to reconnect using the most recent
-  persisted runtime session. Explicit config IDs and references continue to
-  work, including remote targets. If no previous session exists, provide a
-  config reference.
-- Keep TUI connection and TUN indicators synchronized with changes made by the
-  CLI or daemon. Polling recovers from transient errors and uses the shared
-  runtime projection, including Windows machine-service TUN state.
-- On Unix terminals reporting Kitty base-layout keys, use command shortcuts
-  across keyboard layouts while preserving shifted commands and typed Unicode
-  text. Legacy text input and standalone Escape remain supported.
-- Detect new subscription names from `Profile-Title`, `Content-Disposition`, URL
-  fragments, or common query parameters. Explicit names always win, existing
-  names survive refresh, and CLI, TUI, and Web imports share the same automatic
-  precedence.
+- Enable persistent kernel egress filtering for managed TUN capture in
+  `split_mode = "all"`, using nftables or the iptables/ip6tables fallback.
+- Choose `kill_switch = "auto"` to retain firewall rules after an unexpected
+  engine exit and remove them on intentional disconnect or TUN disable. Choose
+  `"strict"` to retain rules until explicitly turned off or reset.
+- Inspect or manage protection with `xrat tun killswitch status`, `on`, `off`,
+  and `reset`. Run `xrat tun enable --kill-switch` to enable TUN with auto mode.
+- Preserve local network access with `allow_lan = true` (the default), or set it
+  to `false` to remove the LAN exception. Rules also permit loopback, TUN
+  traffic, marked engine sockets, proxy endpoints, DHCP, and IPv6 neighbor
+  discovery; other egress is dropped.
+- Reject whitelist/blacklist split tunneling while the kill switch is enabled.
+  The firewall implementation is Linux-only; activation on macOS or Windows
+  reports unsupported.
 
-### Reliability fixes
+Example:
 
-- Preserve commands such as `U`, `K`, and `?`, associated Unicode text, and
-  AltGr text input. Keep incomplete escape sequences and UTF-8 characters
-  buffered until complete; flush ordinary text and lone Escape at the
-  appropriate time.
-- Preserve subscription names beginning with `sub-` and names chosen by users
-  during manual, automatic, and Web refreshes.
-- Parse quoted and extended Content-Disposition filenames, including escaped
-  quotes, semicolons, language fields, and empty-name fallback.
-- Retain dashboard endpoint addresses and service-owned TUN indicators during
-  background polling. Regression hardening is included in
-  [#279](https://github.com/mhyrzt/xrat/pull/279).
+```toml
+[runtime.tun]
+enabled = true
+split_mode = "all"
+kill_switch = "auto"
+allow_lan = true
+```
+
+The runtime owner must have permission to manage firewall rules. If retained
+rules block access after a crash, use `xrat tun killswitch reset` with the
+necessary privileges. See the
+[TUN guide](https://mhyrzt.github.io/xrat/02-cli/tun.html) for configuration and
+recovery commands.
+
+### Transparent TUI backgrounds
+
+- Set `[tui].transparent = true`, or enable transparency from the TUI Settings
+  dialog, to use the terminal's default background. Terminal-configured opacity
+  and blur can then show through.
+- Keep theme text, borders, accent colors, and selected-row highlights. Built-in
+  and custom themes support the setting.
+- With transparency disabled, the ANSI theme uses an opaque black background.
+
+```toml
+[tui]
+transparent = true
+```
+
+### Reliability
+
+- Preserve the attached firewall policy during interrupted iptables swaps and
+  failed retries, including IPv4 and IPv6 recovery. Status recognizes an
+  attached staging policy.
+- Terminate the spawned engine and record a failed session if firewall
+  activation fails.
+- Clear auto-mode rules after crash reconciliation removes the TUN ownership
+  journal. Report removal failures, retain settings, and restore the prior live
+  TUN connection when a disable transition fails.
+- Preserve strict-mode protection and support retrying failed cleanup.
 
 ### Contributors
 
-Thank you to the contributors who made these improvements possible:
-
-- [@f02xygen](https://github.com/f02xygen) — reconnecting to the latest config
-  in [#274](https://github.com/mhyrzt/xrat/pull/274) and live TUI runtime/TUN
-  indicators in [#275](https://github.com/mhyrzt/xrat/pull/275).
-- [@XesteRR76](https://github.com/XesteRR76) — layout-independent TUI keyboard
-  support in [#276](https://github.com/mhyrzt/xrat/pull/276) and automatic
-  subscription naming in [#277](https://github.com/mhyrzt/xrat/pull/277).
+Thank you to [@f02xygen](https://github.com/f02xygen) for the Linux TUN kill
+switch in [#281](https://github.com/mhyrzt/xrat/pull/281) and TUI transparency
+in [#282](https://github.com/mhyrzt/xrat/pull/282).
 
 ### Upgrade notes
 
-- No new database migrations are included. Existing configuration files remain
-  valid.
+- Kill switch mode defaults to `"off"`; TUI transparency defaults to `false`.
+  Existing configuration files remain valid.
+- No new database migrations are included.
 - Windows support remains experimental. Native automated checks do not replace
   the outstanding interactive Windows and actual TUN traffic acceptance work;
   see the [Windows Support roadmap](https://github.com/mhyrzt/xrat/issues/262).
 - Refresh an already open browser tab after upgrading.
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.32.0...v0.33.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.33.0...v0.34.0
