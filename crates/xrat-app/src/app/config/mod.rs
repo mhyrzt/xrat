@@ -41,7 +41,7 @@ pub use path_settings::PathSettings;
 pub use proxy::{
     AuthSettings, FragmentSettings, HttpSettings, LogSettings, MuxSettings, NetworkSettings,
     RotationSettings, RuntimeSettings, ShadowsocksSettings, SniffingSettings, SocksSettings,
-    TunAutoSetupMode, TunSettings, TunSplitMode,
+    TunAutoSetupMode, TunKillSwitchMode, TunSettings, TunSplitMode,
 };
 pub use routing::{RouteList, RoutingSettings};
 pub use secret::{SecretError, SecretString};

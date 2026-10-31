@@ -78,6 +78,9 @@ async fn tun_request_roundtrips_mode_and_config_path_and_propagates_failure() {
                             split_mode: "all".into(),
                             blacklist_count: 0,
                             whitelist_count: 0,
+                            kill_switch: "off".into(),
+                            kill_switch_active: false,
+                            allow_lan: true,
                         }));
                     } else {
                         let _ = respond_to

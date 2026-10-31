@@ -818,6 +818,8 @@ async fn tun_cleanup_preserves_reused_index_with_a_different_platform_identity()
         session_id: 123,
         engine: "xray".into(),
         policy_rules: vec![],
+        kill_switch_active: false,
+        kill_switch_backend: None,
     };
     crate::app::runtime_service::tun_ownership::save_ownership(
         &context.runtime_paths.runtime_dir,
@@ -934,6 +936,8 @@ async fn tun_cleanup_refuses_ifindex_mismatch() {
             engine: "xray".to_string(),
             interface_identity: None,
             policy_rules: vec![],
+            kill_switch_active: false,
+            kill_switch_backend: None,
         },
     )
     .unwrap();
@@ -978,6 +982,8 @@ async fn tun_cleanup_removes_verified_stale_xrat_tun_interface() {
             engine: "xray".to_string(),
             interface_identity: None,
             policy_rules: vec![],
+            kill_switch_active: false,
+            kill_switch_backend: None,
         },
     )
     .unwrap();
@@ -1199,6 +1205,8 @@ async fn tun_cleanup_refuses_unknown_ifindex() {
             engine: "xray".to_string(),
             interface_identity: None,
             policy_rules: vec![],
+            kill_switch_active: false,
+            kill_switch_backend: None,
         },
     )
     .unwrap();

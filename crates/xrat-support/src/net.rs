@@ -2,6 +2,10 @@
 mod capture;
 pub use capture::{NetworkAdapter, NetworkRoute, NetworkSnapshot};
 
+#[path = "net/firewall/mod.rs"]
+pub mod firewall;
+pub use firewall::{FirewallOps, KillSwitchConfig, MockFirewallOps, SystemFirewallOps};
+
 pub fn format_host_port(host: &str, port: u16) -> String {
     if host.contains(':') && !host.starts_with('[') {
         format!("[{host}]:{port}")

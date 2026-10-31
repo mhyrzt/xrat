@@ -7,6 +7,7 @@ pub(in super::super) struct ResolvedLaunch {
     pub(in super::super) ready_port: u16,
     pub(in super::super) endpoints: RuntimeEndpoints,
     pub(in super::super) validator: RuntimeValidator,
+    pub(in super::super) allowed_endpoints: Vec<std::net::SocketAddr>,
 }
 
 pub(in super::super) enum RuntimeLaunchConfig {

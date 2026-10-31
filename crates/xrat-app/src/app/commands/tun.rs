@@ -5,9 +5,10 @@ use crate::app::context::AppContext;
 use crate::app::services::split_tunnel;
 use crate::app::tun_privileges::{self, TunPrivilegeFile};
 use crate::cli::{
-    ListFormat, TunAction, TunArgs, TunModeArgs, TunSetSplitModeArgs, TunSetupArgs, TunSplitAction,
-    TunSplitAppsArgs, TunSplitArgs, TunSplitClearArgs, TunSplitClearTarget, TunSplitListArgs,
-    TunSplitListTarget, TunSplitListViewTarget, TunSplitModifyArgs, TunStatusArgs,
+    ListFormat, TunAction, TunArgs, TunKillswitchActionArg, TunKillswitchArgs, TunModeArgs,
+    TunSetSplitModeArgs, TunSetupArgs, TunSplitAction, TunSplitAppsArgs, TunSplitArgs,
+    TunSplitClearArgs, TunSplitClearTarget, TunSplitListArgs, TunSplitListTarget,
+    TunSplitListViewTarget, TunSplitModifyArgs, TunStatusArgs,
 };
 #[cfg(not(any(target_os = "macos", windows)))]
 use xrat_support::process::Stdio;
@@ -20,6 +21,7 @@ pub async fn run(context: &AppContext, args: &TunArgs) -> crate::app::Result<()>
         TunAction::Disable(mode) => enabled_command(context, false, mode).await,
         TunAction::Mode(mode) => set_split_mode_command(context, mode).await,
         TunAction::Split(split) => split_command(context, split).await,
+        TunAction::Killswitch(killswitch) => killswitch_command(context, killswitch).await,
     }
 }
 
@@ -29,11 +31,17 @@ async fn enabled_command(
     args: &TunModeArgs,
 ) -> crate::app::Result<()> {
     let mut context = context.clone();
-    let outcome = if let Some(split_mode) = args.mode.filter(|_| enabled) {
-        let target_mode: TunSplitMode = split_mode.into();
+    let outcome = if args.kill_switch || (enabled && args.mode.is_some()) {
+        let target_mode: Option<TunSplitMode> = args.mode.map(Into::into);
+        let kill_switch = args.kill_switch;
         crate::app::services::tun_control::mutate_tun_settings(&mut context, false, |tun| {
-            tun.enabled = true;
-            tun.split_mode = target_mode;
+            tun.enabled = enabled;
+            if let Some(mode) = target_mode {
+                tun.split_mode = mode;
+            }
+            if kill_switch && enabled {
+                tun.kill_switch = crate::app::config::TunKillSwitchMode::Auto;
+            }
             Ok(())
         })
         .await?
@@ -56,6 +64,132 @@ async fn set_split_mode_command(
         })
         .await?;
     print_tun_outcome(&outcome, args.json)
+}
+
+async fn killswitch_command(
+    context: &AppContext,
+    args: &TunKillswitchArgs,
+) -> crate::app::Result<()> {
+    match args.state {
+        TunKillswitchActionArg::Status => {
+            let ports = xrat_support::readiness::RuntimeProcessPorts::default();
+            let is_active = ports.firewall.is_active().unwrap_or(false);
+            let backend = ports.firewall.backend_name();
+            let configured = context.app_config.runtime.tun.kill_switch;
+            let allow_lan = context.app_config.runtime.tun.allow_lan;
+
+            if args.json {
+                let value = serde_json::json!({
+                    "active": is_active,
+                    "configured": configured.as_str(),
+                    "backend": backend,
+                    "allow_lan": allow_lan,
+                });
+                println!("{}", serde_json::to_string_pretty(&value)?);
+                return Ok(());
+            }
+
+            let color = output::color_enabled();
+            let rows: Vec<(&str, String)> = vec![
+                (
+                    "kill switch state",
+                    if is_active {
+                        "active (blocking non-TUN traffic)"
+                    } else {
+                        "inactive"
+                    }
+                    .to_string(),
+                ),
+                ("configured mode", configured.as_str().to_string()),
+                ("firewall backend", backend.to_string()),
+                (
+                    "LAN access",
+                    if allow_lan { "allowed" } else { "blocked" }.to_string(),
+                ),
+            ];
+            println!(
+                "{}",
+                output::format_kv(Some("TUN Kill Switch Status"), &rows, color)
+            );
+            Ok(())
+        }
+        TunKillswitchActionArg::On => {
+            let mut context = context.clone();
+            let outcome = crate::app::services::tun_control::mutate_tun_settings(
+                &mut context,
+                false,
+                |tun| {
+                    tun.kill_switch = crate::app::config::TunKillSwitchMode::Auto;
+                    Ok(())
+                },
+            )
+            .await?;
+            if args.json {
+                println!("{}", serde_json::to_string_pretty(&outcome)?);
+            } else {
+                println!(
+                    "{}",
+                    output::success(
+                        "TUN kill switch enabled (fail-closed mode active).",
+                        output::color_enabled()
+                    )
+                );
+            }
+            Ok(())
+        }
+        TunKillswitchActionArg::Off => {
+            let mut context = context.clone();
+            let outcome = crate::app::services::tun_control::mutate_tun_settings(
+                &mut context,
+                false,
+                |tun| {
+                    tun.kill_switch = crate::app::config::TunKillSwitchMode::Off;
+                    Ok(())
+                },
+            )
+            .await?;
+            let ports = xrat_support::readiness::RuntimeProcessPorts::default();
+            ports.firewall.remove_killswitch().map_err(|error| {
+                AppError::InvalidArgument(format!("Failed to deactivate TUN kill switch: {error}"))
+            })?;
+            if args.json {
+                println!("{}", serde_json::to_string_pretty(&outcome)?);
+            } else {
+                println!(
+                    "{}",
+                    output::success("TUN kill switch disabled.", output::color_enabled())
+                );
+            }
+            Ok(())
+        }
+        TunKillswitchActionArg::Reset => {
+            let ports = xrat_support::readiness::RuntimeProcessPorts::default();
+            ports.firewall.remove_killswitch().map_err(|e| {
+                AppError::InvalidArgument(format!("Failed to reset kill switch rules: {e}"))
+            })?;
+            if let Some(mut record) = crate::app::runtime_service::tun_ownership::load_ownership(
+                &context.runtime_paths.runtime_dir,
+            ) {
+                record.kill_switch_active = false;
+                let _ = crate::app::runtime_service::tun_ownership::save_ownership(
+                    &context.runtime_paths.runtime_dir,
+                    &record,
+                );
+            }
+            if args.json {
+                println!("{}", serde_json::json!({ "reset": true, "active": false }));
+            } else {
+                println!(
+                    "{}",
+                    output::success(
+                        "Kill switch rules cleared. Network access restored.",
+                        output::color_enabled()
+                    )
+                );
+            }
+            Ok(())
+        }
+    }
 }
 
 fn print_tun_outcome(
@@ -500,6 +634,9 @@ async fn status_command(context: &AppContext, args: &TunStatusArgs) -> crate::ap
             "split_mode": runtime.tun.split_mode.as_str(),
             "blacklist": runtime.tun.blacklist,
             "whitelist": runtime.tun.whitelist,
+            "kill_switch": runtime.tun.kill_switch.as_str(),
+            "kill_switch_active": state.kill_switch_active,
+            "allow_lan": runtime.tun.allow_lan,
             "engine_version": engine_version,
             "engine_error": engine_error,
             "interface": runtime.tun.interface_name.clone(),
@@ -582,6 +719,28 @@ async fn status_command(context: &AppContext, args: &TunStatusArgs) -> crate::ap
                     runtime.tun.whitelist.join(", ")
                 )
             },
+        ),
+        (
+            "kill switch",
+            if state.kill_switch_active {
+                format!("active ({}) [fail-closed]", ports.firewall.backend_name())
+            } else if runtime.tun.kill_switch.is_enabled() {
+                format!(
+                    "configured ({}) [standby]",
+                    runtime.tun.kill_switch.as_str()
+                )
+            } else {
+                "disabled".to_string()
+            },
+        ),
+        (
+            "LAN access",
+            if runtime.tun.allow_lan {
+                "allowed"
+            } else {
+                "blocked"
+            }
+            .to_string(),
         ),
     ];
     if let Some((desc, _ready)) = &service_state {

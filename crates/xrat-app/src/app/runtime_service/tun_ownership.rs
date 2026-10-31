@@ -12,6 +12,10 @@ pub struct TunOwnershipRecord {
     pub engine: String,
     #[serde(default)]
     pub policy_rules: Vec<xrat_support::net::KernelPolicyRule>,
+    #[serde(default)]
+    pub kill_switch_active: bool,
+    #[serde(default)]
+    pub kill_switch_backend: Option<String>,
 }
 
 pub fn ownership_path(runtime_dir: &Path) -> PathBuf {
@@ -71,6 +75,8 @@ mod tests {
             engine: "xray".to_string(),
             interface_identity: Some("{verified-platform-guid}".into()),
             policy_rules: vec![],
+            kill_switch_active: false,
+            kill_switch_backend: None,
         };
         save_ownership(runtime_dir, &record).expect("save");
         assert_eq!(load_ownership(runtime_dir), Some(record));

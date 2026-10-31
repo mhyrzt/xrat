@@ -63,6 +63,7 @@ pub const DEFAULT_TUN_ADDRESS: &[&str] = &["172.19.0.1/30"];
 pub const DEFAULT_TUN_AUTO_ROUTE: bool = true;
 pub const DEFAULT_TUN_STRICT_ROUTE: bool = false;
 pub const DEFAULT_TUN_RESTART_DAEMON_ON_UPGRADE: bool = true;
+pub const DEFAULT_TUN_ALLOW_LAN: bool = true;
 
 pub const DEFAULT_SNIFFING_ENABLED: bool = true;
 pub const DEFAULT_SNIFFING_DEST_OVERRIDE: &[&str] = &["http", "tls", "quic"];

@@ -88,6 +88,11 @@ fn validate_for_platform(tun: &TunSettings, engine: &str, platform: &str) -> Res
             return Err("Windows sing-box managed auto-route requires strict_route=true to constrain system DNS".into());
         }
     }
+    if tun.kill_switch.is_enabled() && tun.split_mode != crate::app::config::TunSplitMode::All {
+        return Err(
+            "[runtime.tun].kill_switch requires split_mode = \"all\" (fail-closed kill switch is incompatible with split tunneling whitelist/blacklist)".into(),
+        );
+    }
     Ok(())
 }
 
@@ -135,5 +140,18 @@ mod tests {
         assert!(validate(&tun, "sing-box").is_err());
         tun.enabled = false;
         assert!(validate(&tun, "v2ray").is_ok());
+    }
+
+    #[test]
+    fn rejects_kill_switch_with_split_tunneling() {
+        let mut tun = TunSettings {
+            enabled: true,
+            kill_switch: crate::app::config::TunKillSwitchMode::Auto,
+            split_mode: crate::app::config::TunSplitMode::Blacklist,
+            ..Default::default()
+        };
+        assert!(validate_for_platform(&tun, "sing-box", "linux").is_err());
+        tun.split_mode = crate::app::config::TunSplitMode::All;
+        assert!(validate_for_platform(&tun, "sing-box", "linux").is_ok());
     }
 }

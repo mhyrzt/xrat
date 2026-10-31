@@ -116,6 +116,11 @@ fn apply_tun_settings_to_session(session: &mut ConfigEditSession, tun: &TunSetti
             "runtime.tun.whitelist",
             SettingValue::List(tun.whitelist.clone()),
         ),
+        (
+            "runtime.tun.kill_switch",
+            SettingValue::Text(tun.kill_switch.as_str().to_string()),
+        ),
+        ("runtime.tun.allow_lan", SettingValue::Bool(tun.allow_lan)),
     ] {
         let setting = session
             .settings

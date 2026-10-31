@@ -82,6 +82,8 @@ impl Default for TunSettings {
             whitelist: Vec::new(),
             auto_setup_on_upgrade: crate::app::config::TunAutoSetupMode::Auto,
             restart_daemon_on_upgrade: defaults::DEFAULT_TUN_RESTART_DAEMON_ON_UPGRADE,
+            kill_switch: crate::app::config::TunKillSwitchMode::Off,
+            allow_lan: defaults::DEFAULT_TUN_ALLOW_LAN,
         }
     }
 }

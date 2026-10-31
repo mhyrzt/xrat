@@ -1,5 +1,6 @@
 use super::*;
 use crate::app::services::tun::{apply_with_ports, capture_state};
+use xrat_support::net::FirewallOps;
 
 async fn context_and_ports() -> (
     AppContext,
@@ -20,13 +21,14 @@ async fn context_and_ports() -> (
 
 fn save_config(context: &AppContext) {
     std::fs::write(&context.runtime_paths.config_path, format!(
-        "[runtime]\nengine = {:?}\nreplace_active_session = {}\n[runtime.socks]\nport = {}\n[runtime.http]\nport = {}\n[runtime.shadowsocks]\nport = {}\n[runtime.tun]\nenabled = {}\n[paths]\nxray = {:?}\nsing_box = {:?}\n",
+        "[runtime]\nengine = {:?}\nreplace_active_session = {}\n[runtime.socks]\nport = {}\n[runtime.http]\nport = {}\n[runtime.shadowsocks]\nport = {}\n[runtime.tun]\nenabled = {}\nkill_switch = {:?}\n[paths]\nxray = {:?}\nsing_box = {:?}\n",
         context.app_config.runtime.engine,
         context.app_config.runtime.replace_active_session,
         context.app_config.runtime.socks.port,
         context.app_config.runtime.http.port,
         context.app_config.runtime.shadowsocks.port,
         context.app_config.runtime.tun.enabled,
+        context.app_config.runtime.tun.kill_switch.as_str(),
         context.runtime_paths.xray_path.display().to_string(),
         context.runtime_paths.sing_box_path.display().to_string(),
     )).unwrap();
@@ -368,4 +370,186 @@ async fn ownership_write_failure_never_launches_tun_and_restores_previous_proxy(
         .disconnect()
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn intentional_tun_disable_disengages_auto_and_retains_strict_killswitch() {
+    for mode in [
+        crate::app::config::TunKillSwitchMode::Auto,
+        crate::app::config::TunKillSwitchMode::Strict,
+    ] {
+        let (mut context, ports, _state, config) = context_and_ports().await;
+        context.app_config.runtime.tun.enabled = true;
+        context.app_config.runtime.tun.kill_switch = mode;
+        save_config(&context);
+        connect(&context, &ports, &config).await;
+        assert!(ports.firewall.is_active().unwrap());
+
+        let disabled = apply_with_ports(&mut context, Some(false), ports.clone(), true)
+            .await
+            .unwrap();
+        assert!(!disabled.enabled && !disabled.active);
+
+        let expect_active = mode == crate::app::config::TunKillSwitchMode::Strict;
+        assert_eq!(ports.firewall.is_active().unwrap(), expect_active);
+        assert_eq!(disabled.kill_switch_active, expect_active);
+
+        RuntimeService::with_process_ports(&context, ports)
+            .disconnect()
+            .await
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn firewall_apply_failure_terminates_engine_cleans_up_tun_and_records_failed_session() {
+    let (context, ports, state, config) = context_and_ports().await;
+    let mock_firewall = Arc::new(xrat_support::net::MockFirewallOps::default());
+    let mut ports = ports;
+    ports.firewall = mock_firewall.clone();
+
+    let mut context = context;
+    context.app_config.runtime.tun.enabled = true;
+    context.app_config.runtime.tun.kill_switch = crate::app::config::TunKillSwitchMode::Auto;
+    save_config(&context);
+
+    mock_firewall
+        .fail_apply
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+
+    let error = RuntimeService::with_process_ports(&context, ports.clone())
+        .connect(ConnectRequest {
+            config_id: config.id,
+        })
+        .await
+        .unwrap_err();
+
+    assert!(error.to_string().contains("kill switch"), "{error}");
+    assert!(
+        !state.lock().unwrap().running,
+        "spawned engine process should be terminated"
+    );
+    assert!(
+        state.lock().unwrap().tun_interface.is_none(),
+        "TUN interface should be cleaned up"
+    );
+
+    let latest = context
+        .db
+        .get_latest_runtime_session()
+        .await
+        .unwrap()
+        .expect("session record should exist");
+    assert_eq!(latest.status, RuntimeSessionStatus::Failed);
+    assert_eq!(latest.process_id, Some(42));
+    assert!(
+        latest
+            .failure_reason
+            .as_deref()
+            .is_some_and(|r| r.contains("kill switch")),
+        "failure reason should mention kill switch: {:?}",
+        latest.failure_reason
+    );
+}
+
+#[tokio::test]
+async fn tun_disable_after_crash_clears_auto_and_retains_strict_firewall() {
+    for mode in [
+        crate::app::config::TunKillSwitchMode::Auto,
+        crate::app::config::TunKillSwitchMode::Strict,
+    ] {
+        let (mut context, ports, state, config) = context_and_ports().await;
+        context.app_config.runtime.tun.enabled = true;
+        context.app_config.runtime.tun.kill_switch = mode;
+        save_config(&context);
+        connect(&context, &ports, &config).await;
+        state.lock().unwrap().running = false;
+        RuntimeService::with_process_ports(&context, ports.clone())
+            .status()
+            .await
+            .unwrap();
+        assert!(tun_ownership::load_ownership(&context.runtime_paths.runtime_dir).is_none());
+        assert!(ports.firewall.is_active().unwrap());
+
+        let disabled = apply_with_ports(&mut context, Some(false), ports.clone(), true)
+            .await
+            .unwrap();
+        assert!(!disabled.enabled && !disabled.active);
+        assert_eq!(
+            ports.firewall.is_active().unwrap(),
+            mode == crate::app::config::TunKillSwitchMode::Strict
+        );
+    }
+}
+
+#[tokio::test]
+async fn tun_disable_reports_firewall_removal_failure_and_preserves_settings() {
+    for crashed in [false, true] {
+        let (mut context, mut ports, state, config) = context_and_ports().await;
+        let firewall = Arc::new(xrat_support::net::MockFirewallOps::default());
+        ports.firewall = firewall.clone();
+        context.app_config.runtime.tun.enabled = true;
+        context.app_config.runtime.tun.kill_switch = crate::app::config::TunKillSwitchMode::Auto;
+        save_config(&context);
+        connect(&context, &ports, &config).await;
+        if crashed {
+            state.lock().unwrap().running = false;
+        }
+        firewall
+            .fail_remove
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        let error = apply_with_ports(&mut context, Some(false), ports.clone(), true)
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("deactivate TUN kill switch"),
+            "{error}"
+        );
+        assert!(firewall.is_active().unwrap());
+        assert!(context.app_config.runtime.tun.enabled);
+        let saved: crate::app::config::AppConfig =
+            toml::from_str(&std::fs::read_to_string(&context.runtime_paths.config_path).unwrap())
+                .unwrap();
+        assert!(saved.runtime.tun.enabled);
+        if !crashed {
+            let status = RuntimeService::with_process_ports(&context, ports.clone())
+                .status()
+                .await
+                .unwrap();
+            assert!(capture_state(&context, &status, &ports).active);
+        }
+        firewall
+            .fail_remove
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+        apply_with_ports(&mut context, Some(false), ports.clone(), true)
+            .await
+            .unwrap();
+        assert!(!firewall.is_active().unwrap());
+    }
+}
+
+#[tokio::test]
+async fn disconnect_reports_firewall_removal_failure_and_allows_retry() {
+    let (mut context, mut ports, _state, config) = context_and_ports().await;
+    let firewall = Arc::new(xrat_support::net::MockFirewallOps::default());
+    ports.firewall = firewall.clone();
+    context.app_config.runtime.tun.enabled = true;
+    context.app_config.runtime.tun.kill_switch = crate::app::config::TunKillSwitchMode::Auto;
+    save_config(&context);
+    connect(&context, &ports, &config).await;
+    firewall
+        .fail_remove
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    let service = RuntimeService::with_process_ports(&context, ports);
+    let error = service.disconnect().await.unwrap_err();
+    assert!(
+        error.to_string().contains("deactivate TUN kill switch"),
+        "{error}"
+    );
+    assert!(firewall.is_active().unwrap());
+    firewall
+        .fail_remove
+        .store(false, std::sync::atomic::Ordering::SeqCst);
+    service.disconnect().await.unwrap();
+    assert!(!firewall.is_active().unwrap());
 }

@@ -29,6 +29,8 @@ pub enum TunAction {
         about = "Prepare TUN privileges and dependencies (Linux capabilities or elevated Windows machine driver files)."
     )]
     Setup(TunSetupArgs),
+    #[command(about = "Inspect or manage the fail-closed TUN kill switch.")]
+    Killswitch(TunKillswitchArgs),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -89,8 +91,30 @@ pub struct TunModeArgs {
         help = "Optional split tunneling mode to set while enabling TUN."
     )]
     pub mode: Option<TunSplitModeArg>,
+    #[arg(
+        long = "kill-switch",
+        help = "Enable fail-closed kill switch while enabling TUN."
+    )]
+    pub kill_switch: bool,
     #[arg(long, help = "Print the applied TUN state as JSON.")]
     pub json: bool,
+}
+
+#[derive(Debug, Args, Default)]
+pub struct TunKillswitchArgs {
+    #[arg(value_enum, default_value = "status")]
+    pub state: TunKillswitchActionArg,
+    #[arg(long = "json", help = "Print the result as JSON.")]
+    pub json: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Default)]
+pub enum TunKillswitchActionArg {
+    #[default]
+    Status,
+    On,
+    Off,
+    Reset,
 }
 
 #[derive(Debug, Args)]

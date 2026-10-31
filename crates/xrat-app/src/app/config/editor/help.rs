@@ -365,6 +365,16 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "",
             "restart_daemon_on_upgrade = true",
         ),
+        "runtime.tun.kill_switch" => help(
+            "Enforces a kernel-level fail-closed kill switch in TUN all mode: drops non-TUN physical egress if the tunnel or core fails.",
+            "off, auto (session kill switch), or strict (always-on).",
+            "kill_switch = \"auto\"",
+        ),
+        "runtime.tun.allow_lan" => help(
+            "Permits local network communication (RFC 1918 / IPv6 ULA) and DHCP while the kill switch is active.",
+            "",
+            "allow_lan = true",
+        ),
         "subscriptions.auto_refresh" => help(
             "Enables periodic refresh of URL-backed subscriptions in the daemon.",
             "",

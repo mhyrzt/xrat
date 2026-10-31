@@ -35,6 +35,11 @@ impl<'a> RuntimeService<'a> {
         } else {
             self.cleanup_inactive_tun_ownership().await?;
         }
+        if self.context.app_config.runtime.tun.kill_switch
+            != crate::app::config::TunKillSwitchMode::Strict
+        {
+            self.disengage_killswitch().await?;
+        }
         Ok(DisconnectResult { stopped_session })
     }
 }

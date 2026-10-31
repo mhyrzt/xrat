@@ -406,6 +406,8 @@ address = ["172.19.0.1/30"]
 auto_route = true
 strict_route = false
 route_exclude_address = []
+kill_switch = "off"         # "off" | "auto" | "strict" (or true/false)
+allow_lan = true
 ```
 
 | Field                   | Type     | Default             | Description                                                                |
@@ -418,6 +420,8 @@ route_exclude_address = []
 | `auto_route`            | boolean  | `true`              | Let engine install capture routes matching the configured address families; Xray uses two `/1` prefixes per family |
 | `strict_route`          | boolean  | `false`             | Stricter sing-box routing/firewall handling; not a persistent kill switch  |
 | `route_exclude_address` | string[] | `[]`                | Destinations excluded from capture (CIDR); sing-box only, Xray rejects      |
+| `kill_switch`           | enum/bool| `"off"`             | Fail-closed kill switch for `tun all` mode: `"off"`, `"auto"`, or `"strict"` |
+| `allow_lan`             | boolean  | `true`              | Allow local private/LAN traffic when kill switch is active                 |
 
 > Xray emits a native `protocol: "tun"` inbound and manages system routes through
 > `autoSystemRoutingTable` (generating default routes matching configured IPv4/IPv6 address families);

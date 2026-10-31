@@ -261,6 +261,7 @@ fn ports(fail_readiness: bool, fail_validation: bool) -> (RuntimeProcessPorts, A
             connector: fake.clone(),
             tun: fake,
             resolver: Arc::new(FakeResolver),
+            firewall: Arc::new(xrat_support::net::MockFirewallOps::default()),
         },
         state,
     )

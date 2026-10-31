@@ -126,6 +126,84 @@ impl<'de> Deserialize<'de> for TunAutoSetupMode {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TunKillSwitchMode {
+    #[default]
+    Off,
+    Auto,
+    Strict,
+}
+
+impl TunKillSwitchMode {
+    pub fn is_enabled(self) -> bool {
+        matches!(self, Self::Auto | Self::Strict)
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Auto => "auto",
+            Self::Strict => "strict",
+        }
+    }
+
+    pub fn from_config_str(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "off" | "false" | "disabled" | "none" => Some(Self::Off),
+            "auto" | "on" | "true" | "enabled" => Some(Self::Auto),
+            "strict" | "permanent" | "always" => Some(Self::Strict),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for TunKillSwitchMode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for TunKillSwitchMode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct TunKillSwitchModeVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for TunKillSwitchModeVisitor {
+            type Value = TunKillSwitchMode;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str(r#""off", "auto", "strict", or a boolean"#)
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(if value {
+                    TunKillSwitchMode::Auto
+                } else {
+                    TunKillSwitchMode::Off
+                })
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                TunKillSwitchMode::from_config_str(value)
+                    .ok_or_else(|| E::unknown_variant(value, &["off", "auto", "strict"]))
+            }
+        }
+
+        deserializer.deserialize_any(TunKillSwitchModeVisitor)
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct TunSettings {
@@ -142,6 +220,8 @@ pub struct TunSettings {
     pub whitelist: Vec<String>,
     pub auto_setup_on_upgrade: TunAutoSetupMode,
     pub restart_daemon_on_upgrade: bool,
+    pub kill_switch: TunKillSwitchMode,
+    pub allow_lan: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]

@@ -2,6 +2,7 @@
 
 mod connect;
 mod helpers;
+mod killswitch;
 mod launch;
 pub(crate) mod log_retention;
 mod reattach;

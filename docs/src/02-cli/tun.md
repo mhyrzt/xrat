@@ -17,6 +17,7 @@ Enable TUN on the current connected config, or return it to local proxy mode:
 
 ```bash
 xrat tun enable
+xrat tun enable --kill-switch
 xrat tun disable
 xrat tun enable --json
 ```
@@ -180,6 +181,45 @@ Variable-based wrappers require an explicit executable or application directory.
 Inspect resolved rules and warnings with `xrat tun split list` before relying on
 application matching. `xrat tun split status` also shows wrapper warnings and
 the compiled engine matchers.
+
+## Kill Switch
+
+The TUN kill switch provides fail-closed isolation for mode `all`: no packets
+leave the host via physical network interfaces using the real IP address if the
+proxy engine crashes, stops unexpectedly, or drops the connection.
+
+> **Important**: The kill switch requires `split_mode = "all"`. Split tunneling
+> (`whitelist` or `blacklist`) deliberately allows traffic to bypass the tunnel
+> directly and is rejected when the kill switch is enabled.
+
+```bash
+# Check current kill switch status
+xrat tun killswitch status
+
+# Enable kill switch (auto mode)
+xrat tun killswitch on
+
+# Disable kill switch
+xrat tun killswitch off
+
+# Emergency reset (flushes firewall tables and resets state)
+xrat tun killswitch reset
+```
+
+The firewall backend defaults to Linux `nftables` (`table inet xrat_killswitch`)
+with automatic fallback to `iptables` / `ip6tables` (`XRAT_KILLSWITCH` chain).
+Rules isolate egress so that only traffic over loopback (`lo`), the TUN interface
+(`xrat0`), packets marked with the engine socket mark (`0x162`), proxy endpoint
+destinations, and DHCP/ND/LAN subnets (when `allow_lan = true`) are accepted; all
+other egress packets are dropped.
+
+Modes:
+- `off`: No kill switch firewall rules are loaded.
+- `auto`: Firewall rules are engaged when TUN session starts and disengaged on
+  explicit `disconnect` or `tun disable`. On engine crash or unexpected termination,
+  the fail-closed rules remain active.
+- `strict`: Firewall rules remain engaged even after manual disconnect until
+  explicitly turned off or reset.
 
 ## macOS
 

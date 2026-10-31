@@ -98,6 +98,16 @@ impl<'a> RuntimeService<'a> {
                 .await);
         }
 
+        if !tun_enabled
+            && self.context.app_config.runtime.tun.kill_switch
+                != crate::app::config::TunKillSwitchMode::Strict
+            && let Err(error) = self.disengage_killswitch().await
+        {
+            return Err(self
+                .rollback_runtime_error(previous_active_config_id, error)
+                .await);
+        }
+
         if tun_enabled && let Err(error) = self.cleanup_stale_tun_interface() {
             return Err(self
                 .rollback_runtime_error(previous_active_config_id, error)
@@ -185,7 +195,10 @@ impl<'a> RuntimeService<'a> {
             }
         };
 
-        if let Err(error) = self.finish_tun_startup(session_id, process.pid).await {
+        if let Err(error) = self
+            .finish_tun_startup(session_id, process.pid, &launch.allowed_endpoints)
+            .await
+        {
             return Err(self
                 .rollback_runtime_error(previous_active_config_id, error)
                 .await);

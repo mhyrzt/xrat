@@ -135,6 +135,7 @@ pub struct RuntimeProcessPorts {
     pub connector: Arc<dyn TcpConnector>,
     pub tun: Arc<dyn crate::net::TunInterfaceOps>,
     pub resolver: Arc<dyn crate::net::HostResolver>,
+    pub firewall: Arc<dyn crate::net::FirewallOps>,
 }
 impl Default for RuntimeProcessPorts {
     fn default() -> Self {
@@ -145,6 +146,7 @@ impl Default for RuntimeProcessPorts {
             connector: Arc::new(TokioTcpConnector),
             tun: Arc::new(crate::net::SystemTunInterfaceOps),
             resolver: Arc::new(crate::net::SystemHostResolver),
+            firewall: Arc::new(crate::net::SystemFirewallOps),
         }
     }
 }

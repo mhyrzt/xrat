@@ -88,6 +88,12 @@ pub struct TunStatePayload {
     pub blacklist_count: usize,
     #[serde(default)]
     pub whitelist_count: usize,
+    #[serde(default)]
+    pub kill_switch: String,
+    #[serde(default)]
+    pub kill_switch_active: bool,
+    #[serde(default)]
+    pub allow_lan: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

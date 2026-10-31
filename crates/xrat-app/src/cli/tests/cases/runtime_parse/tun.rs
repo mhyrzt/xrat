@@ -194,3 +194,50 @@ fn parses_tun_split_subcommands() {
 fn rejects_unsafe_sudoers_helper() {
     assert!(Cli::try_parse_from(["xrat", "tun", "setup", "--sudoers"]).is_err());
 }
+
+#[test]
+fn parses_tun_killswitch_subcommands() {
+    use crate::cli::TunKillswitchActionArg;
+
+    let default_status = Cli::parse_from(["xrat", "tun", "killswitch"]);
+    match default_status.command {
+        Command::Tun(args) => match args.action {
+            TunAction::Killswitch(ks) => {
+                assert_eq!(ks.state, TunKillswitchActionArg::Status);
+                assert!(!ks.json);
+            }
+            _ => panic!("expected tun killswitch"),
+        },
+        _ => panic!("expected tun command"),
+    }
+
+    for (arg_str, expected) in [
+        ("status", TunKillswitchActionArg::Status),
+        ("on", TunKillswitchActionArg::On),
+        ("off", TunKillswitchActionArg::Off),
+        ("reset", TunKillswitchActionArg::Reset),
+    ] {
+        let parsed = Cli::parse_from(["xrat", "tun", "killswitch", arg_str, "--json"]);
+        match parsed.command {
+            Command::Tun(args) => match args.action {
+                TunAction::Killswitch(ks) => {
+                    assert_eq!(ks.state, expected);
+                    assert!(ks.json);
+                }
+                _ => panic!("expected tun killswitch"),
+            },
+            _ => panic!("expected tun command"),
+        }
+    }
+
+    let enable_ks = Cli::parse_from(["xrat", "tun", "enable", "--kill-switch"]);
+    match enable_ks.command {
+        Command::Tun(args) => match args.action {
+            TunAction::Enable(mode) => {
+                assert!(mode.kill_switch);
+            }
+            _ => panic!("expected tun enable"),
+        },
+        _ => panic!("expected tun command"),
+    }
+}

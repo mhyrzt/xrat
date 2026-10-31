@@ -298,6 +298,21 @@ impl<'a> RuntimeService<'a> {
             } else {
                 RuntimeValidator::Xray
             },
+            allowed_endpoints: {
+                let mut endpoints = Vec::new();
+                if let Ok(ip) = node.address.parse::<std::net::IpAddr>() {
+                    endpoints.push(std::net::SocketAddr::new(ip, node.port));
+                }
+                for (_, ip_str) in &resolved_hosts {
+                    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+                        let addr = std::net::SocketAddr::new(ip, node.port);
+                        if !endpoints.contains(&addr) {
+                            endpoints.push(addr);
+                        }
+                    }
+                }
+                endpoints
+            },
         })
     }
 
@@ -493,6 +508,15 @@ impl<'a> RuntimeService<'a> {
                 }),
             },
             validator: RuntimeValidator::Singbox,
+            allowed_endpoints: {
+                let mut endpoints = Vec::new();
+                if let Ok(ip) = node.address.parse::<std::net::IpAddr>() {
+                    endpoints.push(std::net::SocketAddr::new(ip, node.port));
+                } else if let Ok(Some(ip)) = self.resolve_bootstrap_host(&node.address, node.port) {
+                    endpoints.push(std::net::SocketAddr::new(ip, node.port));
+                }
+                endpoints
+            },
         })
     }
 

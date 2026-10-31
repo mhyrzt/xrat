@@ -4,5 +4,5 @@ mod types;
 pub use types::{
     AuthSettings, FragmentSettings, HttpSettings, LogSettings, MuxSettings, NetworkSettings,
     RotationSettings, RuntimeSettings, ShadowsocksSettings, SniffingSettings, SocksSettings,
-    TunAutoSetupMode, TunSettings, TunSplitMode,
+    TunAutoSetupMode, TunKillSwitchMode, TunSettings, TunSplitMode,
 };

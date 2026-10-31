@@ -67,6 +67,7 @@ pub enum RuntimeConnectResult {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum RuntimeStatusResult {
     Ok(RuntimeStatusPayload),
     Err { message: String },

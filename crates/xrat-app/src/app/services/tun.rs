@@ -57,6 +57,9 @@ pub(crate) fn capture_state(
         split_mode: tun.split_mode.as_str().to_string(),
         blacklist_count: tun.blacklist.len(),
         whitelist_count: tun.whitelist.len(),
+        kill_switch: tun.kill_switch.as_str().to_string(),
+        kill_switch_active: ports.firewall.is_active().unwrap_or(false),
+        allow_lan: tun.allow_lan,
     }
 }
 
@@ -214,6 +217,13 @@ pub(crate) async fn apply_with_ports(
             candidate.app_config.runtime.replace_active_session = replace_active;
             replaced = true;
         }
+    } else if !enabled
+        && candidate.app_config.runtime.tun.kill_switch
+            != crate::app::config::TunKillSwitchMode::Strict
+    {
+        RuntimeService::with_process_ports(&candidate, ports.clone())
+            .disengage_killswitch()
+            .await?;
     }
     let after = match RuntimeService::with_process_ports(&candidate, ports.clone())
         .status()
