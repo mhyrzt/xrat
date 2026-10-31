@@ -715,14 +715,25 @@ Terminal user interface display preferences.
 ```toml
 [tui]
 theme = "catppuccin"
+border_style = "rounded"
+transparent = true
 ```
 
 `theme` defaults to `"default"`. Choose `"default"`, `"ansi"`, `"catppuccin"`,
 `"dracula"`, `"gruvbox"`, `"nord"`, `"tokyo-night"`, `"light"`, or a custom
-name. RGB themes paint their own background; `ansi` keeps the terminal
-background and uses its ANSI palette. The RGB palettes adapt their muted and
+name. Built-in themes paint their own background by default (including `ansi` with black);
+`ansi` uses the terminal's standard ANSI color palette. The RGB palettes adapt their muted and
 status colors for readable text on both normal and selected surfaces. The `[ui]`
 spelling remains an alias for `[tui]`; use one spelling throughout your file.
+
+`border_style` defaults to `"plain"` (classic square corners). Choose `"plain"` or
+`"rounded"` (smooth rounded corners).
+
+`transparent` defaults to `false`. Set `transparent = true` to keep the terminal's
+default background (`Color::Reset`), letting window semi-transparency and blur effects
+(such as in Kitty, Alacritty, or WezTerm) show through while retaining the chosen theme's
+full palette for text, borders, latency thresholds, and accent colors. Selected rows
+retain their distinct selection background highlight.
 
 ### Named custom themes
 

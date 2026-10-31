@@ -203,6 +203,8 @@ timeout = 5000 # ms
 
 [tui]
 theme = "default"
+border_style = "plain"
+transparent = false
 
 
 # Optional named palette; select with [tui].theme = "my-theme".

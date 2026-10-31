@@ -503,12 +503,26 @@ fn accepts_valid_tui_theme() {
         r#"
         [tui]
         theme = "catppuccin"
+        border_style = "rounded"
+        transparent = true
         "#,
     );
     assert!(
         errors.is_empty(),
         "valid theme should have no errors: {errors:?}"
     );
+}
+
+#[test]
+fn rejects_invalid_tui_transparent() {
+    let errors = errors_for_toml(
+        r#"
+        [tui]
+        transparent = "yes"
+        "#,
+    );
+    let diagnostic = find(&errors, "[tui].transparent");
+    assert!(diagnostic.problem.contains("boolean"));
 }
 
 #[test]

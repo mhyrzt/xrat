@@ -121,6 +121,7 @@ pub(crate) fn setting_label(path: &str) -> String {
         "runtime.log.dns_log" => "dns_logging",
         "runtime.mux.xudp_proxy_udp443" => "udp_443_handling",
         "runtime.rotation.health_failure_threshold" => "failure_threshold",
+        "tui.transparent" => "transparency",
         _ => path.rsplit('.').next().unwrap_or(path),
     };
     let key = [

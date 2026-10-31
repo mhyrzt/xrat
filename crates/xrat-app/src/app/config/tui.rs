@@ -53,6 +53,8 @@ pub struct TuiSettings {
     pub theme: ThemeName,
     #[serde(default)]
     pub border_style: TuiBorderStyle,
+    #[serde(default)]
+    pub transparent: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub themes: BTreeMap<String, CustomTheme>,
 }
@@ -63,6 +65,8 @@ struct RawTuiSettings {
     theme: ThemeName,
     #[serde(default)]
     border_style: TuiBorderStyle,
+    #[serde(default)]
+    transparent: bool,
     themes: BTreeMap<String, CustomTheme>,
 }
 
@@ -72,6 +76,7 @@ impl<'de> Deserialize<'de> for TuiSettings {
         let settings = Self {
             theme: raw.theme,
             border_style: raw.border_style,
+            transparent: raw.transparent,
             themes: raw.themes,
         };
         settings.validate().map_err(serde::de::Error::custom)?;
@@ -97,12 +102,16 @@ impl TuiSettings {
     }
 
     pub fn resolve(&self, name: &ThemeName) -> Result<ThemePalette, String> {
-        match name {
-            ThemeName::Builtin(theme) => Ok(theme.palette()),
+        let mut palette = match name {
+            ThemeName::Builtin(theme) => theme.palette(),
             ThemeName::Custom(name) => self.themes.get(name)
                 .map(CustomTheme::palette)
-                .ok_or_else(|| format!("tui.theme: unknown theme \"{name}\"; choose a built-in or define [tui.themes.{name}]")),
+                .ok_or_else(|| format!("tui.theme: unknown theme \"{name}\"; choose a built-in or define [tui.themes.{name}]"))?,
+        };
+        if self.transparent {
+            palette.background = ratatui::style::Color::Reset;
         }
+        Ok(palette)
     }
 
     pub fn theme_names(&self) -> Vec<String> {

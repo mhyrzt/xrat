@@ -383,6 +383,12 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 # # "gruvbox", "nord", "tokyo-night", "light", or a custom name.
 # theme = "default"
 #
+# # Border style: "plain" (square) or "rounded" (smooth corners).
+# border_style = "plain"
+#
+# # Transparent background: set true to let terminal window opacity and blur show through.
+# transparent = false
+#
 # # Optional custom colors; set theme = "my-theme" above to select.
 # [tui.themes.my-theme]
 # extends = "catppuccin"

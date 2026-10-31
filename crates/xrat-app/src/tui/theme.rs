@@ -84,7 +84,7 @@ impl TuiTheme {
             },
             Self::Ansi => ThemePalette {
                 selection_foreground: Color::White,
-                background: Color::Reset,
+                background: Color::Black,
                 foreground: Color::Reset,
                 accent: Color::Cyan,
                 secondary: Color::Blue,

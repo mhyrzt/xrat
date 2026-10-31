@@ -318,19 +318,50 @@ impl TuiApp {
 }
 
 fn sync_live_theme_preview(modal: &SettingsModalState) {
-    if let Some(index) = modal.selected_setting_index() {
-        let setting = &modal.session.settings[index];
-        if setting.path == "tui.theme"
-            && let SettingValue::Text(ref name) = setting.value
-            && let Ok(theme) = crate::app::config::ThemeName::parse(name)
-            && let Ok(palette) = modal.session.tui.resolve(&theme)
-        {
-            crate::tui::theme::set_palette(palette);
-        } else if setting.path == "tui.border_style"
-            && let SettingValue::Text(ref style) = setting.value
-            && let Ok(border_style) = crate::app::config::TuiBorderStyle::parse(style)
-        {
-            crate::tui::theme::set_border_type(border_style.to_border_type());
-        }
+    let theme_setting = modal
+        .session
+        .settings
+        .iter()
+        .find(|setting| setting.path == "tui.theme");
+    let border_setting = modal
+        .session
+        .settings
+        .iter()
+        .find(|setting| setting.path == "tui.border_style");
+    let transparent_setting = modal
+        .session
+        .settings
+        .iter()
+        .find(|setting| setting.path == "tui.transparent");
+
+    let transparent = match transparent_setting {
+        Some(setting) => match setting.value {
+            SettingValue::Bool(value) => value,
+            _ => modal.session.tui.transparent,
+        },
+        None => modal.session.tui.transparent,
+    };
+
+    let theme_name = match theme_setting {
+        Some(setting) => match &setting.value {
+            SettingValue::Text(name) => crate::app::config::ThemeName::parse(name).ok(),
+            _ => None,
+        },
+        None => None,
+    };
+
+    let mut tui_settings = modal.session.tui.clone();
+    tui_settings.transparent = transparent;
+    let theme = theme_name.unwrap_or_else(|| tui_settings.theme.clone());
+
+    if let Ok(palette) = tui_settings.resolve(&theme) {
+        crate::tui::theme::set_palette(palette);
+    }
+
+    if let Some(setting) = border_setting
+        && let SettingValue::Text(ref style) = setting.value
+        && let Ok(border_style) = crate::app::config::TuiBorderStyle::parse(style)
+    {
+        crate::tui::theme::set_border_type(border_style.to_border_type());
     }
 }

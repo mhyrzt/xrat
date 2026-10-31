@@ -701,6 +701,11 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "",
             "border_style = \"rounded\"",
         ),
+        "tui.transparent" => help(
+            "Enables transparent background mode, allowing terminal window opacity and blur to show through.",
+            "Keep false to paint the theme's opaque background color.",
+            "transparent = true",
+        ),
         _ => return None,
     })
 }

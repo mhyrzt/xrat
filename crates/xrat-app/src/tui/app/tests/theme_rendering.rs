@@ -159,6 +159,30 @@ fn custom_palette_is_used_in_settings_modal() {
 }
 
 #[test]
+fn transparent_theme_renders_reset_background_with_theme_accents() {
+    let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+    let app = app();
+    let mut terminal = Terminal::new(TestBackend::new(200, 48)).unwrap();
+    let tui: crate::app::config::TuiSettings = toml::from_str(
+        r##"
+        theme = "catppuccin"
+        transparent = true
+    "##,
+    )
+    .unwrap();
+    let palette = tui.resolve(&tui.theme).unwrap();
+    assert_eq!(palette.background, ratatui::style::Color::Reset);
+    theme::set_palette(palette);
+    terminal
+        .draw(|frame| crate::tui::view::render(frame, &app))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    assert_eq!(buffer[(0, 0)].bg, ratatui::style::Color::Reset);
+    assert_eq!(find_cell(buffer, "xray 26.9.30 ✓").fg, palette.success);
+    theme::set_active(TuiTheme::Default);
+}
+
+#[test]
 fn key_bar_connection_pill_shows_running_config_connecting_and_idle() {
     let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
     let mut app = app();

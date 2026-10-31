@@ -9,14 +9,38 @@ pub(super) fn check_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
         };
         let before = errors.len();
         if let Some(table) = settings.as_table() {
-            for field in table
-                .keys()
-                .filter(|field| !matches!(field.as_str(), "theme" | "themes"))
-            {
+            for field in table.keys().filter(|field| {
+                !matches!(
+                    field.as_str(),
+                    "theme" | "themes" | "border_style" | "transparent"
+                )
+            }) {
                 invalid(
                     errors,
                     format!("[{section}].{field}"),
                     "unknown TUI setting".to_string(),
+                );
+            }
+            if let Some(border_style) = table.get("border_style") {
+                if let Some(style) = border_style.as_str() {
+                    if let Err(error) = crate::app::config::TuiBorderStyle::parse(style) {
+                        invalid(errors, format!("[{section}].border_style"), error);
+                    }
+                } else {
+                    invalid(
+                        errors,
+                        format!("[{section}].border_style"),
+                        "expected a border style string (plain or rounded)".to_string(),
+                    );
+                }
+            }
+            if let Some(transparent) = table.get("transparent")
+                && !transparent.is_bool()
+            {
+                invalid(
+                    errors,
+                    format!("[{section}].transparent"),
+                    "expected a boolean (true or false)".to_string(),
                 );
             }
             if let Some(theme) = table.get("theme") {
