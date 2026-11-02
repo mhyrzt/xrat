@@ -1,6 +1,8 @@
 use std::io;
 use std::time::Duration;
 
+#[cfg(not(unix))]
+use crossterm::event::EnableMouseCapture;
 use crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, KeyboardEnhancementFlags,
     PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
@@ -69,8 +71,10 @@ pub struct TerminalSession {
     mouse_enabled: bool,
 }
 
+#[cfg(unix)]
 struct EnableNormalMouseCapture;
 
+#[cfg(unix)]
 impl crossterm::Command for EnableNormalMouseCapture {
     fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
         // Mode 1000: Report button press and release only (no cell motion / drag).
@@ -90,12 +94,21 @@ impl TerminalSession {
         #[cfg(unix)]
         let keyboard_flags = keyboard_flags | REPORT_ASSOCIATED_TEXT;
         if mouse_enabled {
+            #[cfg(unix)]
             execute!(
                 stdout,
                 EnterAlternateScreen,
                 EnableBracketedPaste,
                 PushKeyboardEnhancementFlags(keyboard_flags),
                 EnableNormalMouseCapture
+            )?;
+            #[cfg(not(unix))]
+            execute!(
+                stdout,
+                EnterAlternateScreen,
+                EnableBracketedPaste,
+                PushKeyboardEnhancementFlags(keyboard_flags),
+                EnableMouseCapture
             )?;
         } else {
             execute!(
@@ -131,7 +144,10 @@ impl TerminalSession {
             return Ok(());
         }
         if enabled {
+            #[cfg(unix)]
             execute!(self.terminal.backend_mut(), EnableNormalMouseCapture)?;
+            #[cfg(not(unix))]
+            execute!(self.terminal.backend_mut(), EnableMouseCapture)?;
         } else {
             execute!(self.terminal.backend_mut(), DisableMouseCapture)?;
         }
