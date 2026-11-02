@@ -1,13 +1,14 @@
 mod chrome;
 mod configs;
-mod modals;
+pub(crate) mod modals;
 mod shared;
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
 use crate::tui::app::TuiApp;
 
+pub mod layout;
+pub use layout::DashboardLayout;
 mod render;
 pub use render::render;
 

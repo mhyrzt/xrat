@@ -48,18 +48,36 @@ impl TuiBorderStyle {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct TuiSettings {
     pub theme: ThemeName,
     #[serde(default)]
     pub border_style: TuiBorderStyle,
     #[serde(default)]
     pub transparent: bool,
+    #[serde(default = "default_true")]
+    pub mouse: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub themes: BTreeMap<String, CustomTheme>,
 }
 
-#[derive(Default, Deserialize)]
+impl Default for TuiSettings {
+    fn default() -> Self {
+        Self {
+            theme: ThemeName::default(),
+            border_style: TuiBorderStyle::default(),
+            transparent: false,
+            mouse: true,
+            themes: BTreeMap::new(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct RawTuiSettings {
     theme: ThemeName,
@@ -67,7 +85,21 @@ struct RawTuiSettings {
     border_style: TuiBorderStyle,
     #[serde(default)]
     transparent: bool,
+    #[serde(default = "default_true")]
+    mouse: bool,
     themes: BTreeMap<String, CustomTheme>,
+}
+
+impl Default for RawTuiSettings {
+    fn default() -> Self {
+        Self {
+            theme: ThemeName::default(),
+            border_style: TuiBorderStyle::default(),
+            transparent: false,
+            mouse: true,
+            themes: BTreeMap::new(),
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for TuiSettings {
@@ -77,6 +109,7 @@ impl<'de> Deserialize<'de> for TuiSettings {
             theme: raw.theme,
             border_style: raw.border_style,
             transparent: raw.transparent,
+            mouse: raw.mouse,
             themes: raw.themes,
         };
         settings.validate().map_err(serde::de::Error::custom)?;

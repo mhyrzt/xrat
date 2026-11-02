@@ -52,6 +52,14 @@ impl ReleaseNotesModal {
         false
     }
 
+    pub fn handle_scroll(&mut self, delta: isize) {
+        if delta < 0 {
+            self.scroll = self.scroll.saturating_sub(delta.unsigned_abs());
+        } else {
+            self.scroll = (self.scroll + delta as usize).min(self.max_scroll);
+        }
+    }
+
     pub fn render(&mut self, frame: &mut Frame<'_>) {
         let palette = theme::palette();
         if self.palette != palette {

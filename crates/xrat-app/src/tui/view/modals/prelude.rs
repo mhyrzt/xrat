@@ -5,7 +5,9 @@ pub(crate) use ratatui::widgets::{Block, Borders, Padding, Paragraph, Wrap};
 pub(crate) use unicode_width::UnicodeWidthStr;
 
 pub(crate) use crate::app::config::{EditableSetting, SettingKind, SettingValue};
-pub(crate) use crate::tui::app::{ImportModalStep, SettingsMode, SettingsPane, TuiApp};
+pub(crate) use crate::tui::app::{
+    ImportModalStep, SettingsModalState, SettingsMode, SettingsPane, TuiApp,
+};
 
 /// Centered rectangle of a fixed size, clamped to the available area.
 pub(crate) fn centered_rect_fixed(width: u16, height: u16, area: Rect) -> Rect {

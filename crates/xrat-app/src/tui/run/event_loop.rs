@@ -10,7 +10,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
             .map_err(crate::app::AppError::InvalidArgument)?,
     );
     crate::tui::theme::set_border_type(context.app_config.tui.border_style.to_border_type());
-    let mut terminal = TerminalSession::enter()?;
+    let mut terminal = TerminalSession::enter(context.app_config.tui.mouse)?;
     let data = TuiData::load(&context, false).await?;
     let mut app = TuiApp::with_data(data);
     let mut release_notes = crate::app::services::release_notes::ReleaseNotes::pending(
@@ -46,6 +46,9 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     let mut needs_redraw = true;
 
     loop {
+        if terminal.mouse_enabled() != context.app_config.tui.mouse {
+            terminal.set_mouse_capture(context.app_config.tui.mouse)?;
+        }
         let drain = drain_task_events(&mut app, &mut task_rx);
         needs_redraw |= drain.any;
         if drain.reloaded {
@@ -138,15 +141,29 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
             break;
         }
 
-        if let Some(ev) = terminal.poll_event(Duration::from_millis(100))? {
-            needs_redraw = true;
-            match ev {
-                terminal::TuiEvent::Resize(_, _) => {
-                    app.needs_full_clear = true;
+        if let Some(first_ev) = terminal.poll_event(Duration::from_millis(100))? {
+            let mut pending_events = vec![first_ev];
+            while let Ok(Some(ev)) = terminal.poll_event(Duration::ZERO) {
+                pending_events.push(ev);
+                if pending_events.len() >= 64 {
+                    break;
                 }
-                terminal::TuiEvent::Key(key) => {
-                    if let Some(modal) = &mut release_notes {
-                        if modal.handle_key(key.normalize(false)) {
+            }
+            for ev in pending_events {
+                match ev {
+                    terminal::TuiEvent::Resize(_, _) => {
+                        app.needs_full_clear = true;
+                        needs_redraw = true;
+                    }
+                    terminal::TuiEvent::Mouse(mouse) => {
+                        let had_release_notes = release_notes.is_some();
+                        let changed = super::mouse::handle_mouse_event(
+                            &mut app,
+                            &mouse,
+                            terminal.size(),
+                            &mut release_notes,
+                        );
+                        if had_release_notes && release_notes.is_none() {
                             dismiss_release_notes(
                                 &mut app,
                                 &mut release_notes,
@@ -154,335 +171,367 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             );
                             app.needs_full_clear = true;
                         }
-                        continue;
+                        if changed {
+                            needs_redraw = true;
+                        }
                     }
-                    let bulk_confirm_open = app.pending_bulk.is_some();
-                    if super::input::apply_key_text(&mut app, &key) {
-                        continue;
-                    }
-                    let action = if let Some(split_modal) = &app.split_modal {
-                        crate::tui::keymap::action_for_split_modal_key(key, split_modal.mode())
-                    } else {
-                        crate::tui::keymap::action_for_key_with_import(
-                            key,
-                            app.active_view,
-                            app.focused_panel,
-                            &mut app.pending_chord,
-                            bulk_confirm_open,
-                            app.config_list.editing_search,
-                            app.confirm.is_some(),
-                            app.import_modal.is_some(),
-                            app.rename_modal.is_some(),
-                            app.qr_modal.is_some(),
-                            app.settings_modal.as_ref().map(SettingsModalState::mode),
-                        )
-                    };
-                    let bulk_to_run = if matches!(action, crate::tui::app::TuiAction::ConfirmBulk) {
-                        app.pending_bulk
-                    } else {
-                        None
-                    };
-                    let confirmed_command = if matches!(action, crate::tui::app::TuiAction::Confirm)
-                    {
-                        app.pending_confirm_command()
-                    } else {
-                        None
-                    };
-                    let confirmed_source_delete =
-                        if matches!(action, crate::tui::app::TuiAction::Confirm) {
-                            if let Some(confirm) = &app.confirm {
-                                if let crate::tui::app::ConfirmKind::DeleteSource(id) = confirm.kind
-                                {
-                                    Some(id)
+                    terminal::TuiEvent::Key(key) => {
+                        needs_redraw = true;
+                        if let Some(modal) = &mut release_notes {
+                            if modal.handle_key(key.normalize(false)) {
+                                dismiss_release_notes(
+                                    &mut app,
+                                    &mut release_notes,
+                                    &context.runtime_paths.root_dir,
+                                );
+                                app.needs_full_clear = true;
+                            }
+                            continue;
+                        }
+                        let bulk_confirm_open = app.pending_bulk.is_some();
+                        if super::input::apply_key_text(&mut app, &key) {
+                            continue;
+                        }
+                        let action = if let Some(split_modal) = &app.split_modal {
+                            crate::tui::keymap::action_for_split_modal_key(key, split_modal.mode())
+                        } else {
+                            crate::tui::keymap::action_for_key_with_import(
+                                key,
+                                app.active_view,
+                                app.focused_panel,
+                                &mut app.pending_chord,
+                                bulk_confirm_open,
+                                app.config_list.editing_search,
+                                app.confirm.is_some(),
+                                app.import_modal.is_some(),
+                                app.rename_modal.is_some(),
+                                app.qr_modal.is_some(),
+                                app.settings_modal.as_ref().map(SettingsModalState::mode),
+                            )
+                        };
+                        let bulk_to_run =
+                            if matches!(action, crate::tui::app::TuiAction::ConfirmBulk) {
+                                app.pending_bulk
+                            } else {
+                                None
+                            };
+                        let confirmed_command =
+                            if matches!(action, crate::tui::app::TuiAction::Confirm) {
+                                app.pending_confirm_command()
+                            } else {
+                                None
+                            };
+                        let confirmed_source_delete =
+                            if matches!(action, crate::tui::app::TuiAction::Confirm) {
+                                if let Some(confirm) = &app.confirm {
+                                    if let crate::tui::app::ConfirmKind::DeleteSource(id) =
+                                        confirm.kind
+                                    {
+                                        Some(id)
+                                    } else {
+                                        None
+                                    }
                                 } else {
                                     None
                                 }
                             } else {
                                 None
-                            }
+                            };
+                        let confirmed_clear_events =
+                            matches!(action, crate::tui::app::TuiAction::Confirm)
+                                && app.confirm.as_ref().is_some_and(|confirm| {
+                                    matches!(
+                                        confirm.kind,
+                                        crate::tui::app::ConfirmKind::ClearEvents
+                                    )
+                                });
+                        let confirmed_settings_restart =
+                            matches!(action, crate::tui::app::TuiAction::Confirm)
+                                && app.confirm.as_ref().is_some_and(|confirm| {
+                                    matches!(confirm.kind, ConfirmKind::RestartAfterSettings)
+                                });
+                        let direct_command = app.config_command_for_action(action);
+                        let start_focused_id =
+                            if matches!(action, crate::tui::app::TuiAction::StartFocused) {
+                                app.focused_config()
+                                    .filter(|config| !config.is_deleted)
+                                    .map(|config| config.id)
+                            } else {
+                                None
+                            };
+                        let is_sources_view = app.active_view == crate::tui::app::TuiView::Sources;
+                        let qr_config_id =
+                            if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
+                                && !is_sources_view
+                            {
+                                app.focused_config()
+                                    .map(|c| (c.id, c.display_name().to_string()))
+                            } else {
+                                None
+                            };
+                        let qr_source =
+                            if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
+                                && is_sources_view
+                            {
+                                app.focused_source()
+                                    .filter(|s| !s.value.is_empty())
+                                    .map(|s| (s.display_name().to_string(), s.value.clone()))
+                            } else {
+                                None
+                            };
+                        let copy_focused_id =
+                            if matches!(action, crate::tui::app::TuiAction::CopyFocused)
+                                && !is_sources_view
+                            {
+                                app.focused_config().map(|c| c.id)
+                            } else {
+                                None
+                            };
+                        let copy_focused_source =
+                            if matches!(action, crate::tui::app::TuiAction::CopyFocused)
+                                && is_sources_view
+                            {
+                                app.focused_source()
+                                    .filter(|s| !s.value.is_empty())
+                                    .map(|s| (s.display_name().to_string(), s.value.clone()))
+                            } else {
+                                None
+                            };
+                        let rename_submit =
+                            if matches!(action, crate::tui::app::TuiAction::RenameSubmit) {
+                                app.rename_modal
+                                    .as_ref()
+                                    .map(|m| (m.source_id, m.input.trim().to_string()))
+                            } else {
+                                None
+                            };
+                        let open_import =
+                            matches!(action, crate::tui::app::TuiAction::OpenImportModal);
+                        let open_settings =
+                            matches!(action, crate::tui::app::TuiAction::OpenSettingsModal);
+                        let open_split =
+                            matches!(action, crate::tui::app::TuiAction::OpenSplitModal);
+                        let save_split_requested =
+                            matches!(action, crate::tui::app::TuiAction::SplitSave);
+                        let save_settings_requested =
+                            matches!(action, crate::tui::app::TuiAction::SettingsSave);
+                        let open_rename =
+                            matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
+                        let rename_prefill = if open_rename {
+                            app.focused_source().map(|source| {
+                                (
+                                    source.id,
+                                    source.display_ref().to_string(),
+                                    source.display_name().to_string(),
+                                    source.name.clone().unwrap_or_default(),
+                                )
+                            })
                         } else {
                             None
                         };
-                    let confirmed_clear_events =
-                        matches!(action, crate::tui::app::TuiAction::Confirm)
-                            && app.confirm.as_ref().is_some_and(|confirm| {
-                                matches!(confirm.kind, crate::tui::app::ConfirmKind::ClearEvents)
-                            });
-                    let confirmed_settings_restart =
-                        matches!(action, crate::tui::app::TuiAction::Confirm)
-                            && app.confirm.as_ref().is_some_and(|confirm| {
-                                matches!(confirm.kind, ConfirmKind::RestartAfterSettings)
-                            });
-                    let direct_command = app.config_command_for_action(action);
-                    let start_focused_id =
-                        if matches!(action, crate::tui::app::TuiAction::StartFocused) {
-                            app.focused_config()
-                                .filter(|config| !config.is_deleted)
-                                .map(|config| config.id)
-                        } else {
-                            None
-                        };
-                    let is_sources_view = app.active_view == crate::tui::app::TuiView::Sources;
-                    let qr_config_id =
-                        if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
-                            && !is_sources_view
-                        {
-                            app.focused_config()
-                                .map(|c| (c.id, c.display_name().to_string()))
-                        } else {
-                            None
-                        };
-                    let qr_source = if matches!(action, crate::tui::app::TuiAction::OpenQrFocused)
-                        && is_sources_view
-                    {
-                        app.focused_source()
-                            .filter(|s| !s.value.is_empty())
-                            .map(|s| (s.display_name().to_string(), s.value.clone()))
-                    } else {
-                        None
-                    };
-                    let copy_focused_id =
-                        if matches!(action, crate::tui::app::TuiAction::CopyFocused)
-                            && !is_sources_view
-                        {
-                            app.focused_config().map(|c| c.id)
-                        } else {
-                            None
-                        };
-                    let copy_focused_source =
-                        if matches!(action, crate::tui::app::TuiAction::CopyFocused)
-                            && is_sources_view
-                        {
-                            app.focused_source()
-                                .filter(|s| !s.value.is_empty())
-                                .map(|s| (s.display_name().to_string(), s.value.clone()))
-                        } else {
-                            None
-                        };
-                    let rename_submit =
-                        if matches!(action, crate::tui::app::TuiAction::RenameSubmit) {
-                            app.rename_modal
-                                .as_ref()
-                                .map(|m| (m.source_id, m.input.trim().to_string()))
-                        } else {
-                            None
-                        };
-                    let open_import = matches!(action, crate::tui::app::TuiAction::OpenImportModal);
-                    let open_settings =
-                        matches!(action, crate::tui::app::TuiAction::OpenSettingsModal);
-                    let open_split = matches!(action, crate::tui::app::TuiAction::OpenSplitModal);
-                    let save_split_requested =
-                        matches!(action, crate::tui::app::TuiAction::SplitSave);
-                    let save_settings_requested =
-                        matches!(action, crate::tui::app::TuiAction::SettingsSave);
-                    let open_rename = matches!(action, crate::tui::app::TuiAction::OpenRenameModal);
-                    let rename_prefill = if open_rename {
-                        app.focused_source().map(|source| {
-                            (
-                                source.id,
-                                source.display_ref().to_string(),
-                                source.display_name().to_string(),
-                                source.name.clone().unwrap_or_default(),
-                            )
-                        })
-                    } else {
-                        None
-                    };
-                    let focused_source_value =
-                        if matches!(action, crate::tui::app::TuiAction::RefreshFocusedSource) {
-                            app.focused_source()
-                                .map(|s| (s.id, s.value.clone()))
-                                .filter(|(_, v)| !v.is_empty())
-                        } else {
-                            None
-                        };
-                    let all_source_values: Vec<(xrat_model::SubscriptionId, String)> =
-                        if matches!(action, crate::tui::app::TuiAction::RefreshAllSources) {
-                            app.data
-                                .sources
-                                .iter()
-                                .filter(|s| !s.value.is_empty())
-                                .map(|s| (s.id, s.value.clone()))
-                                .collect()
-                        } else {
-                            Vec::new()
-                        };
-                    let save_settings = save_settings_requested && app.prepare_settings_save();
-                    if !save_settings_requested && !save_split_requested {
-                        app.apply(action);
-                    }
-                    if open_import {
-                        app.import_modal = Some(crate::tui::app::ImportModalState::default());
-                        app.needs_full_clear = true;
-                    }
-                    if open_split && context.is_machine_client() {
-                        app.push_log("ERR split tunneling policy is administrator-controlled");
-                        continue;
-                    }
-                    if open_split {
-                        let _ = crate::app::services::tun_control::reload(&mut context);
-                        app.split_modal = Some(crate::tui::app::SplitModalState::from_tun(
-                            &context.app_config.runtime.tun,
-                        ));
-                        app.needs_full_clear = true;
-                    }
-                    if save_split_requested {
-                        if app.task_state.running.is_some() {
-                            if let Some(modal) = &mut app.split_modal {
-                                modal.error = Some(
+                        let focused_source_value =
+                            if matches!(action, crate::tui::app::TuiAction::RefreshFocusedSource) {
+                                app.focused_source()
+                                    .map(|s| (s.id, s.value.clone()))
+                                    .filter(|(_, v)| !v.is_empty())
+                            } else {
+                                None
+                            };
+                        let all_source_values: Vec<(xrat_model::SubscriptionId, String)> =
+                            if matches!(action, crate::tui::app::TuiAction::RefreshAllSources) {
+                                app.data
+                                    .sources
+                                    .iter()
+                                    .filter(|s| !s.value.is_empty())
+                                    .map(|s| (s.id, s.value.clone()))
+                                    .collect()
+                            } else {
+                                Vec::new()
+                            };
+                        let save_settings = save_settings_requested && app.prepare_settings_save();
+                        if !save_settings_requested && !save_split_requested {
+                            app.apply(action);
+                        }
+                        if open_import {
+                            app.import_modal = Some(crate::tui::app::ImportModalState::default());
+                            app.needs_full_clear = true;
+                        }
+                        if open_split && context.is_machine_client() {
+                            app.push_log("ERR split tunneling policy is administrator-controlled");
+                            continue;
+                        }
+                        if open_split {
+                            let _ = crate::app::services::tun_control::reload(&mut context);
+                            app.split_modal = Some(crate::tui::app::SplitModalState::from_tun(
+                                &context.app_config.runtime.tun,
+                            ));
+                            app.needs_full_clear = true;
+                        }
+                        if save_split_requested {
+                            if app.task_state.running.is_some() {
+                                if let Some(modal) = &mut app.split_modal {
+                                    modal.error = Some(
                                     "Wait for the current operation to finish before applying split tunneling."
                                         .to_string(),
                                 );
-                                modal.notice = None;
-                            }
-                            continue;
-                        }
-                        if let Some(modal) = app.split_modal.take() {
-                            app.needs_full_clear = true;
-                            tasks::spawn_runtime_tun_split(
-                                context.clone(),
-                                &mut app,
-                                &task_tx,
-                                modal.tun_enabled,
-                                modal.split_mode,
-                                modal.blacklist,
-                                modal.whitelist,
-                            );
-                        }
-                        continue;
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::ToggleTun) {
-                        tasks::spawn_runtime_tun(context.clone(), &mut app, &task_tx, None);
-                    }
-                    if open_settings {
-                        match ConfigEditSession::open(&context.runtime_paths.config_path) {
-                            Ok(mut session) => {
-                                session
-                                    .settings
-                                    .retain(|setting| context.allows_setting(&setting.path));
-                                let mut modal = SettingsModalState::new(session);
-                                if context.is_machine_client() {
-                                    modal.notice = Some("Frontend settings; runtime policy requires administrator access.".into());
+                                    modal.notice = None;
                                 }
-                                app.settings_modal = Some(modal);
+                                continue;
+                            }
+                            if let Some(modal) = app.split_modal.take() {
                                 app.needs_full_clear = true;
-                            }
-                            Err(error) => app.set_chrome_message(error, true),
-                        }
-                    }
-                    if save_settings {
-                        if app.settings_modal.as_ref().is_some_and(|modal| {
-                            modal.session.settings.iter().any(|setting| {
-                                setting.is_dirty() && !context.allows_setting(&setting.path)
-                            })
-                        }) {
-                            if let Some(modal) = &mut app.settings_modal {
-                                modal.error = Some(
-                                    "Machine runtime policy requires administrator access.".into(),
-                                );
-                            }
-                            continue;
-                        }
-                        let settings_dirty = app
-                            .settings_modal
-                            .as_ref()
-                            .is_some_and(|modal| modal.session.is_dirty());
-                        if !settings_dirty {
-                            if let Some(modal) = &mut app.settings_modal {
-                                modal.notice = Some("No changes to save.".to_string());
-                                modal.error = None;
-                            }
-                            continue;
-                        }
-                        let tun_change = app.settings_modal.as_ref().and_then(|modal| {
-                            modal
-                                .session
-                                .settings
-                                .iter()
-                                .find(|setting| {
-                                    setting.path == "runtime.tun.enabled" && setting.is_dirty()
-                                })
-                                .and_then(|setting| match setting.value {
-                                    crate::app::config::SettingValue::Bool(enabled) => {
-                                        Some(enabled)
-                                    }
-                                    _ => None,
-                                })
-                        });
-                        if let Some(enabled) = tun_change {
-                            let changed_count = app
-                                .settings_modal
-                                .as_ref()
-                                .map(|modal| {
-                                    modal
-                                        .session
-                                        .settings
-                                        .iter()
-                                        .filter(|setting| setting.is_dirty())
-                                        .count()
-                                })
-                                .unwrap_or_default();
-                            let current_contents =
-                                std::fs::read_to_string(&context.runtime_paths.config_path).ok();
-                            let config_unchanged =
-                                app.settings_modal.as_ref().is_some_and(|modal| {
-                                    current_contents.as_deref()
-                                        == Some(modal.session.original_contents.as_str())
-                                });
-                            if app.task_state.running.is_some() {
-                                if let Some(modal) = &mut app.settings_modal {
-                                    modal.error = Some("Wait for the current operation to finish before applying TUN.".into());
-                                }
-                            } else if !config_unchanged {
-                                if let Some(modal) = &mut app.settings_modal {
-                                    modal.error = Some("Config changed on disk; close and reopen settings before saving.".into());
-                                }
-                            } else if changed_count > 1 {
-                                if let Some(modal) = &mut app.settings_modal {
-                                    modal.error = Some("Save other settings separately; use U or save only runtime.tun.enabled to apply TUN immediately with rollback.".into());
-                                }
-                            } else {
-                                app.settings_modal = None;
-                                tasks::spawn_runtime_tun(
+                                tasks::spawn_runtime_tun_split(
                                     context.clone(),
                                     &mut app,
                                     &task_tx,
-                                    Some(enabled),
+                                    modal.tun_enabled,
+                                    modal.split_mode,
+                                    modal.blacklist,
+                                    modal.whitelist,
                                 );
                             }
                             continue;
                         }
-                        let result = app
-                            .settings_modal
-                            .as_mut()
-                            .map(|modal| modal.session.save());
-                        match result {
-                            Some(Ok(outcome)) => {
-                                let runtime_restart =
-                                    outcome.effects.contains(&SettingEffect::RuntimeRestart);
-                                let daemon_restart =
-                                    outcome.effects.contains(&SettingEffect::DaemonRestart);
-                                let changed_count = outcome.changed_paths.len();
-                                let changed_categories: BTreeSet<&str> = outcome
-                                    .changed_paths
+                        if matches!(action, crate::tui::app::TuiAction::ToggleTun) {
+                            tasks::spawn_runtime_tun(context.clone(), &mut app, &task_tx, None);
+                        }
+                        if open_settings {
+                            match ConfigEditSession::open(&context.runtime_paths.config_path) {
+                                Ok(mut session) => {
+                                    session
+                                        .settings
+                                        .retain(|setting| context.allows_setting(&setting.path));
+                                    let mut modal = SettingsModalState::new(session);
+                                    if context.is_machine_client() {
+                                        modal.notice = Some("Frontend settings; runtime policy requires administrator access.".into());
+                                    }
+                                    app.settings_modal = Some(modal);
+                                    app.needs_full_clear = true;
+                                }
+                                Err(error) => app.set_chrome_message(error, true),
+                            }
+                        }
+                        if save_settings {
+                            if app.settings_modal.as_ref().is_some_and(|modal| {
+                                modal.session.settings.iter().any(|setting| {
+                                    setting.is_dirty() && !context.allows_setting(&setting.path)
+                                })
+                            }) {
+                                if let Some(modal) = &mut app.settings_modal {
+                                    modal.error = Some(
+                                        "Machine runtime policy requires administrator access."
+                                            .into(),
+                                    );
+                                }
+                                continue;
+                            }
+                            let settings_dirty = app
+                                .settings_modal
+                                .as_ref()
+                                .is_some_and(|modal| modal.session.is_dirty());
+                            if !settings_dirty {
+                                if let Some(modal) = &mut app.settings_modal {
+                                    modal.notice = Some("No changes to save.".to_string());
+                                    modal.error = None;
+                                }
+                                continue;
+                            }
+                            let tun_change = app.settings_modal.as_ref().and_then(|modal| {
+                                modal
+                                    .session
+                                    .settings
                                     .iter()
-                                    .filter_map(|path| path.split('.').next())
-                                    .collect();
-                                context.app_config = outcome.config;
-                                crate::tui::theme::set_palette(
-                                    context
-                                        .app_config
-                                        .tui
-                                        .resolve(&context.app_config.tui.theme)
-                                        .map_err(crate::app::AppError::InvalidArgument)?,
-                                );
-                                geo_lookup = crate::app::services::dashboard::build_geo_lookup(
-                                    &context.app_config,
-                                    &context.runtime_paths,
-                                );
-                                let reload_error =
-                                    match TuiData::load(&context, app.config_list.include_deleted)
-                                        .await
+                                    .find(|setting| {
+                                        setting.path == "runtime.tun.enabled" && setting.is_dirty()
+                                    })
+                                    .and_then(|setting| match setting.value {
+                                        crate::app::config::SettingValue::Bool(enabled) => {
+                                            Some(enabled)
+                                        }
+                                        _ => None,
+                                    })
+                            });
+                            if let Some(enabled) = tun_change {
+                                let changed_count = app
+                                    .settings_modal
+                                    .as_ref()
+                                    .map(|modal| {
+                                        modal
+                                            .session
+                                            .settings
+                                            .iter()
+                                            .filter(|setting| setting.is_dirty())
+                                            .count()
+                                    })
+                                    .unwrap_or_default();
+                                let current_contents =
+                                    std::fs::read_to_string(&context.runtime_paths.config_path)
+                                        .ok();
+                                let config_unchanged =
+                                    app.settings_modal.as_ref().is_some_and(|modal| {
+                                        current_contents.as_deref()
+                                            == Some(modal.session.original_contents.as_str())
+                                    });
+                                if app.task_state.running.is_some() {
+                                    if let Some(modal) = &mut app.settings_modal {
+                                        modal.error = Some("Wait for the current operation to finish before applying TUN.".into());
+                                    }
+                                } else if !config_unchanged {
+                                    if let Some(modal) = &mut app.settings_modal {
+                                        modal.error = Some("Config changed on disk; close and reopen settings before saving.".into());
+                                    }
+                                } else if changed_count > 1 {
+                                    if let Some(modal) = &mut app.settings_modal {
+                                        modal.error = Some("Save other settings separately; use U or save only runtime.tun.enabled to apply TUN immediately with rollback.".into());
+                                    }
+                                } else {
+                                    app.settings_modal = None;
+                                    tasks::spawn_runtime_tun(
+                                        context.clone(),
+                                        &mut app,
+                                        &task_tx,
+                                        Some(enabled),
+                                    );
+                                }
+                                continue;
+                            }
+                            let result = app
+                                .settings_modal
+                                .as_mut()
+                                .map(|modal| modal.session.save());
+                            match result {
+                                Some(Ok(outcome)) => {
+                                    let runtime_restart =
+                                        outcome.effects.contains(&SettingEffect::RuntimeRestart);
+                                    let daemon_restart =
+                                        outcome.effects.contains(&SettingEffect::DaemonRestart);
+                                    let changed_count = outcome.changed_paths.len();
+                                    let changed_categories: BTreeSet<&str> = outcome
+                                        .changed_paths
+                                        .iter()
+                                        .filter_map(|path| path.split('.').next())
+                                        .collect();
+                                    context.app_config = outcome.config;
+                                    crate::tui::theme::set_palette(
+                                        context
+                                            .app_config
+                                            .tui
+                                            .resolve(&context.app_config.tui.theme)
+                                            .map_err(crate::app::AppError::InvalidArgument)?,
+                                    );
+                                    crate::tui::theme::set_border_type(
+                                        context.app_config.tui.border_style.to_border_type(),
+                                    );
+                                    terminal.set_mouse_capture(context.app_config.tui.mouse)?;
+                                    geo_lookup = crate::app::services::dashboard::build_geo_lookup(
+                                        &context.app_config,
+                                        &context.runtime_paths,
+                                    );
+                                    let reload_error = match TuiData::load(
+                                        &context,
+                                        app.config_list.include_deleted,
+                                    )
+                                    .await
                                     {
                                         Ok(data) => {
                                             app.reload_data(data);
@@ -490,217 +539,225 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                                         }
                                         Err(error) => Some(error),
                                     };
-                                let mut message = if daemon_restart && context.is_machine_client() {
-                                    format!(
-                                        "saved {changed_count} setting(s); restart the frontend to apply all changes"
-                                    )
-                                } else if daemon_restart {
-                                    format!(
-                                        "saved {changed_count} setting(s); restart daemon to apply all changes"
-                                    )
-                                } else {
-                                    format!("saved {changed_count} setting(s)")
-                                };
-                                let is_error = if let Some(error) = reload_error {
-                                    message.push_str(&format!("; TUI reload failed: {error}"));
-                                    true
-                                } else {
-                                    false
-                                };
-                                if let Some(modal) = &mut app.settings_modal {
-                                    if is_error {
-                                        modal.error = Some(message.clone());
-                                        modal.notice = None;
+                                    let mut message = if daemon_restart
+                                        && context.is_machine_client()
+                                    {
+                                        format!(
+                                            "saved {changed_count} setting(s); restart the frontend to apply all changes"
+                                        )
+                                    } else if daemon_restart {
+                                        format!(
+                                            "saved {changed_count} setting(s); restart daemon to apply all changes"
+                                        )
                                     } else {
-                                        modal.notice = Some(message.clone());
-                                        modal.error = None;
+                                        format!("saved {changed_count} setting(s)")
+                                    };
+                                    let is_error = if let Some(error) = reload_error {
+                                        message.push_str(&format!("; TUI reload failed: {error}"));
+                                        true
+                                    } else {
+                                        false
+                                    };
+                                    if let Some(modal) = &mut app.settings_modal {
+                                        if is_error {
+                                            modal.error = Some(message.clone());
+                                            modal.notice = None;
+                                        } else {
+                                            modal.notice = Some(message.clone());
+                                            modal.error = None;
+                                        }
+                                    }
+                                    crate::app::events::record(
+                                        &context.db,
+                                        crate::app::events::LEVEL_INFO,
+                                        crate::app::events::SOURCE_SETTINGS,
+                                        "config_saved",
+                                        message,
+                                        None,
+                                        app.data.runtime.session_id,
+                                        Some(format!(
+                                            "changed_fields={changed_count}; categories={}",
+                                            changed_categories
+                                                .into_iter()
+                                                .collect::<Vec<_>>()
+                                                .join(",")
+                                        )),
+                                    )
+                                    .await;
+                                    if runtime_restart
+                                        && !context.is_machine_client()
+                                        && app.data.runtime.pid_running
+                                    {
+                                        app.confirm = Some(ConfirmState {
+                                            kind: ConfirmKind::RestartAfterSettings,
+                                            prompt: "restart active runtime with new settings?"
+                                                .to_string(),
+                                        });
                                     }
                                 }
-                                crate::app::events::record(
-                                    &context.db,
-                                    crate::app::events::LEVEL_INFO,
-                                    crate::app::events::SOURCE_SETTINGS,
-                                    "config_saved",
-                                    message,
-                                    None,
-                                    app.data.runtime.session_id,
-                                    Some(format!(
-                                        "changed_fields={changed_count}; categories={}",
-                                        changed_categories
-                                            .into_iter()
-                                            .collect::<Vec<_>>()
-                                            .join(",")
-                                    )),
-                                )
-                                .await;
-                                if runtime_restart
-                                    && !context.is_machine_client()
-                                    && app.data.runtime.pid_running
-                                {
-                                    app.confirm = Some(ConfirmState {
-                                        kind: ConfirmKind::RestartAfterSettings,
-                                        prompt: "restart active runtime with new settings?"
-                                            .to_string(),
-                                    });
+                                Some(Err(error)) => {
+                                    if let Some(modal) = &mut app.settings_modal {
+                                        modal.error = Some(error);
+                                    }
                                 }
+                                None => {}
                             }
-                            Some(Err(error)) => {
-                                if let Some(modal) = &mut app.settings_modal {
-                                    modal.error = Some(error);
-                                }
-                            }
-                            None => {}
                         }
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
-                        && let Some(import) = prepare_import_submission(&mut app)
-                    {
-                        app.import_modal = None;
-                        tasks::spawn_import(
-                            context.clone(),
-                            import,
-                            app.config_list.include_deleted,
-                            &task_tx,
-                        );
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::ToggleDeletedFilter) {
-                        tasks::spawn_reload_data(
-                            context.clone(),
-                            app.config_list.include_deleted,
-                            &task_tx,
-                        );
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::StartTest(_)) {
-                        tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
-                    }
-                    if let Some(op) = bulk_to_run {
-                        tasks::run_bulk_op(&context, &mut app, op, &task_tx).await;
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
-                        tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::RuntimeRestart) {
-                        tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
-                    }
-                    if let Some((source_id, _source_value)) = focused_source_value {
-                        tasks::spawn_source_refresh(
-                            context.clone(),
-                            source_id,
-                            app.config_list.include_deleted,
-                            &task_tx,
-                        );
-                    }
-                    if !all_source_values.is_empty() {
-                        let source_ids = all_source_values.into_iter().map(|(id, _)| id).collect();
-                        tasks::spawn_source_refresh_all(
-                            context.clone(),
-                            source_ids,
-                            app.config_list.include_deleted,
-                            &task_tx,
-                        );
-                    }
-                    if let Some((id, source_ref, current_name, input)) = rename_prefill {
-                        app.rename_modal = Some(crate::tui::app::RenameModalState {
-                            source_id: id,
-                            source_ref,
-                            current_name,
-                            input,
-                            error: None,
-                        });
-                        app.needs_full_clear = true;
-                    }
-                    if let Some((source_id, name)) = rename_submit {
-                        app.rename_modal = None;
-                        tasks::run_source_rename(&context, &mut app, source_id, name, &task_tx)
-                            .await;
-                    }
-                    if let Some(source_id) = confirmed_source_delete {
-                        tasks::run_source_delete(&context, &mut app, source_id, &task_tx).await;
-                    }
-                    if confirmed_clear_events {
-                        tasks::run_clear_events(&context, &mut app, &logs_tx).await;
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::OpenQrFocused) {
-                        if !is_sources_view {
-                            if let Some((config_id, config_name)) = qr_config_id {
-                                tasks::open_qr_for_config(
-                                    &context,
-                                    &mut app,
-                                    config_id,
-                                    config_name,
-                                )
+                        if matches!(action, crate::tui::app::TuiAction::ImportSubmit)
+                            && let Some(import) = prepare_import_submission(&mut app)
+                        {
+                            app.import_modal = None;
+                            tasks::spawn_import(
+                                context.clone(),
+                                import,
+                                app.config_list.include_deleted,
+                                &task_tx,
+                            );
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::ToggleDeletedFilter) {
+                            tasks::spawn_reload_data(
+                                context.clone(),
+                                app.config_list.include_deleted,
+                                &task_tx,
+                            );
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::StartTest(_)) {
+                            tasks::spawn_test_batch(context.clone(), &mut app, &task_tx);
+                        }
+                        if let Some(op) = bulk_to_run {
+                            tasks::run_bulk_op(&context, &mut app, op, &task_tx).await;
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::RuntimeStop) {
+                            tasks::spawn_runtime_stop(context.clone(), &mut app, &task_tx);
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::RuntimeRestart) {
+                            tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
+                        }
+                        if let Some((source_id, _source_value)) = focused_source_value {
+                            tasks::spawn_source_refresh(
+                                context.clone(),
+                                source_id,
+                                app.config_list.include_deleted,
+                                &task_tx,
+                            );
+                        }
+                        if !all_source_values.is_empty() {
+                            let source_ids =
+                                all_source_values.into_iter().map(|(id, _)| id).collect();
+                            tasks::spawn_source_refresh_all(
+                                context.clone(),
+                                source_ids,
+                                app.config_list.include_deleted,
+                                &task_tx,
+                            );
+                        }
+                        if let Some((id, source_ref, current_name, input)) = rename_prefill {
+                            app.rename_modal = Some(crate::tui::app::RenameModalState {
+                                source_id: id,
+                                source_ref,
+                                current_name,
+                                input,
+                                error: None,
+                            });
+                            app.needs_full_clear = true;
+                        }
+                        if let Some((source_id, name)) = rename_submit {
+                            app.rename_modal = None;
+                            tasks::run_source_rename(&context, &mut app, source_id, name, &task_tx)
                                 .await;
+                        }
+                        if let Some(source_id) = confirmed_source_delete {
+                            tasks::run_source_delete(&context, &mut app, source_id, &task_tx).await;
+                        }
+                        if confirmed_clear_events {
+                            tasks::run_clear_events(&context, &mut app, &logs_tx).await;
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::OpenQrFocused) {
+                            if !is_sources_view {
+                                if let Some((config_id, config_name)) = qr_config_id {
+                                    tasks::open_qr_for_config(
+                                        &context,
+                                        &mut app,
+                                        config_id,
+                                        config_name,
+                                    )
+                                    .await;
+                                } else {
+                                    app.set_chrome_message(
+                                        "no config selected to show QR".to_string(),
+                                        true,
+                                    );
+                                }
+                            } else if let Some((source_name, source_url)) = qr_source {
+                                tasks::open_qr_for_source(&mut app, source_name, source_url);
+                            } else if app.focused_source().is_none() {
+                                app.set_chrome_message(
+                                    "select a subscription to show QR".to_string(),
+                                    true,
+                                );
                             } else {
                                 app.set_chrome_message(
-                                    "no config selected to show QR".to_string(),
+                                    "subscription has no URL to show QR".to_string(),
                                     true,
                                 );
                             }
-                        } else if let Some((source_name, source_url)) = qr_source {
-                            tasks::open_qr_for_source(&mut app, source_name, source_url);
-                        } else if app.focused_source().is_none() {
-                            app.set_chrome_message(
-                                "select a subscription to show QR".to_string(),
-                                true,
-                            );
-                        } else {
-                            app.set_chrome_message(
-                                "subscription has no URL to show QR".to_string(),
-                                true,
-                            );
                         }
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::CopyFocused) {
-                        if !is_sources_view {
-                            if let Some(config_id) = copy_focused_id {
-                                tasks::copy_config_uri(&context, &mut app, config_id).await;
+                        if matches!(action, crate::tui::app::TuiAction::CopyFocused) {
+                            if !is_sources_view {
+                                if let Some(config_id) = copy_focused_id {
+                                    tasks::copy_config_uri(&context, &mut app, config_id).await;
+                                } else {
+                                    app.set_chrome_message(
+                                        "no config selected to copy".to_string(),
+                                        true,
+                                    );
+                                }
+                            } else if let Some((source_name, source_url)) = copy_focused_source {
+                                tasks::copy_source_uri(&mut app, source_name, source_url);
+                            } else if app.focused_source().is_none() {
+                                app.set_chrome_message(
+                                    "select a subscription to copy".to_string(),
+                                    true,
+                                );
                             } else {
                                 app.set_chrome_message(
-                                    "no config selected to copy".to_string(),
+                                    "subscription has no URL to copy".to_string(),
                                     true,
                                 );
                             }
-                        } else if let Some((source_name, source_url)) = copy_focused_source {
-                            tasks::copy_source_uri(&mut app, source_name, source_url);
-                        } else if app.focused_source().is_none() {
-                            app.set_chrome_message(
-                                "select a subscription to copy".to_string(),
-                                true,
-                            );
-                        } else {
-                            app.set_chrome_message(
-                                "subscription has no URL to copy".to_string(),
-                                true,
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::OpenQrApiUrl) {
+                            tasks::open_qr_for_api_url(&mut app);
+                        }
+                        if matches!(action, crate::tui::app::TuiAction::CopyApiUrl) {
+                            tasks::copy_api_url(&mut app);
+                        }
+                        if let Some(command) = confirmed_command.or(direct_command) {
+                            tasks::run_config_command(&context, &mut app, command, &task_tx).await;
+                        }
+                        if confirmed_settings_restart {
+                            tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
+                        }
+                        if let Some(config_id) = start_focused_id {
+                            tasks::spawn_runtime_start_config(
+                                context.clone(),
+                                &mut app,
+                                &task_tx,
+                                config_id,
                             );
                         }
                     }
-                    if matches!(action, crate::tui::app::TuiAction::OpenQrApiUrl) {
-                        tasks::open_qr_for_api_url(&mut app);
-                    }
-                    if matches!(action, crate::tui::app::TuiAction::CopyApiUrl) {
-                        tasks::copy_api_url(&mut app);
-                    }
-                    if let Some(command) = confirmed_command.or(direct_command) {
-                        tasks::run_config_command(&context, &mut app, command, &task_tx).await;
-                    }
-                    if confirmed_settings_restart {
-                        tasks::spawn_runtime_restart(context.clone(), &mut app, &task_tx);
-                    }
-                    if let Some(config_id) = start_focused_id {
-                        tasks::spawn_runtime_start_config(
-                            context.clone(),
-                            &mut app,
-                            &task_tx,
-                            config_id,
-                        );
+                    terminal::TuiEvent::Paste(text) => {
+                        needs_redraw = true;
+                        if app.settings_modal.is_some() {
+                            app.append_settings_text(&text);
+                        } else {
+                            app.append_import_text(&text);
+                        }
                     }
                 }
-                terminal::TuiEvent::Paste(text) => {
-                    if app.settings_modal.is_some() {
-                        app.append_settings_text(&text);
-                    } else {
-                        app.append_import_text(&text);
-                    }
+                if app.should_quit {
+                    break;
                 }
             }
         }

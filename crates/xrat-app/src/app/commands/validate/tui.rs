@@ -12,7 +12,7 @@ pub(super) fn check_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
             for field in table.keys().filter(|field| {
                 !matches!(
                     field.as_str(),
-                    "theme" | "themes" | "border_style" | "transparent"
+                    "theme" | "themes" | "border_style" | "transparent" | "mouse"
                 )
             }) {
                 invalid(
@@ -40,6 +40,15 @@ pub(super) fn check_fields(value: &toml::Value, errors: &mut Vec<Diagnostic>) {
                 invalid(
                     errors,
                     format!("[{section}].transparent"),
+                    "expected a boolean (true or false)".to_string(),
+                );
+            }
+            if let Some(mouse) = table.get("mouse")
+                && !mouse.is_bool()
+            {
+                invalid(
+                    errors,
+                    format!("[{section}].mouse"),
                     "expected a boolean (true or false)".to_string(),
                 );
             }

@@ -55,6 +55,13 @@ fn exposes_supported_roots_and_effective_defaults() {
         session
             .settings
             .iter()
+            .any(|setting| setting.path == "tui.mouse"
+                && setting.value == SettingValue::Bool(true))
+    );
+    assert!(
+        session
+            .settings
+            .iter()
             .any(|setting| setting.path == "runtime.socks.port"
                 && setting.value == SettingValue::Integer(18200))
     );
