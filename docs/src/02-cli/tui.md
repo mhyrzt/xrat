@@ -99,6 +99,13 @@ selection when the table is focused, and scroll the focused card otherwise.
 `PgUp`/`PgDn` step by a screenful and `Home`/`End` jump to the first/last row or
 top/bottom of the card. Cards that overflow their height show a scrollbar.
 
+Mouse control is supported out of the box: click any card to focus it, click a
+row in the table to select it, click tabs to switch views, and scroll the mouse
+wheel to navigate (1 row at a time in tables, 2 lines in text cards). Hover-based
+scrolling works across all cards without needing to click first. Mouse support
+can be toggled in the Settings modal or via `mouse = false` under `[tui]` in
+`config.toml`.
+
 In the Logs card, long messages wrap inside the message column and continuation
 lines stay indented under it, so the time, level, source, and kind columns stay
 aligned and one entry never blends into the next.
