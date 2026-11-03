@@ -234,6 +234,7 @@ pub(crate) fn enum_options(path: &str) -> Option<&'static [&'static str]> {
         "runtime.tun.stack" => Some(&["system", "gvisor", "mixed"]),
         "runtime.tun.split_mode" => Some(&["all", "blacklist", "whitelist"]),
         "runtime.tun.auto_setup_on_upgrade" => Some(&["auto", "always", "never"]),
+        "runtime.tun.kill_switch" => Some(&["off", "auto", "strict"]),
         "runtime.fragment.packets_mode" => Some(&["tlshello", "range"]),
         "routing.domain_strategy" => Some(&["AsIs", "IPIfNonMatch", "IPOnDemand"]),
         "dns.query_strategy" => Some(&["UseIP", "UseIPv4", "UseIPv6", "UseSystem"]),

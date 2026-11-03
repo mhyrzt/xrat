@@ -303,3 +303,35 @@ fn saves_environment_backed_secret_without_exposing_a_literal() {
     assert!(saved.contains("key = { env = \"XRAT_SERVER_KEY\" }"));
     assert!(outcome.effects.contains(&SettingEffect::DaemonRestart));
 }
+
+#[test]
+fn kill_switch_setting_is_three_state_enum() {
+    let (_root, mut session) = session("");
+    let setting = session
+        .settings
+        .iter_mut()
+        .find(|setting| setting.path == "runtime.tun.kill_switch")
+        .expect("kill_switch setting should exist");
+
+    assert_eq!(
+        setting.kind,
+        SettingKind::Enum(vec![
+            "off".to_string(),
+            "auto".to_string(),
+            "strict".to_string()
+        ])
+    );
+    assert_eq!(setting.value, SettingValue::Text("off".to_string()));
+
+    // Cycle forward
+    assert!(setting.cycle_enum(1));
+    assert_eq!(setting.value, SettingValue::Text("auto".to_string()));
+    assert!(setting.cycle_enum(1));
+    assert_eq!(setting.value, SettingValue::Text("strict".to_string()));
+    assert!(setting.cycle_enum(1));
+    assert_eq!(setting.value, SettingValue::Text("off".to_string()));
+
+    // Cycle backward
+    assert!(setting.cycle_enum(-1));
+    assert_eq!(setting.value, SettingValue::Text("strict".to_string()));
+}
