@@ -733,7 +733,12 @@ pub(super) fn prepare_import_submission(app: &mut TuiApp) -> Option<tasks::TuiIm
 
     let modal = app.import_modal.as_ref()?;
     let step = modal.step.clone();
-    let input = modal.input.trim().to_string();
+    let input: String = modal
+        .input
+        .chars()
+        .filter(|c| !crate::tui::keymap::layout::is_private_use_or_control(*c))
+        .collect();
+    let input = input.trim().to_string();
 
     match step {
         ImportModalStep::Link => {

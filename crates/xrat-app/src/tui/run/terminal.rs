@@ -43,7 +43,6 @@ impl TerminalSession {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         let keyboard_flags = KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
-            | KeyboardEnhancementFlags::REPORT_ALL_KEYS_AS_ESCAPE_CODES
             | KeyboardEnhancementFlags::REPORT_ALTERNATE_KEYS;
         #[cfg(unix)]
         let keyboard_flags = keyboard_flags | REPORT_ASSOCIATED_TEXT;
