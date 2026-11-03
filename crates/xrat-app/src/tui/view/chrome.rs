@@ -8,7 +8,36 @@ use crate::tui::app::TuiApp;
 use crate::tui::keymap;
 use crate::tui::theme;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum KeyBarAction {
+    Settings,
+    Help,
+}
+
 pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
+    let (spans, _) = key_bar_content(area.width, app);
+    frame.render_widget(Paragraph::new(Line::from(spans)), area);
+}
+
+pub(crate) fn key_bar_action(area: Rect, app: &TuiApp, column: u16) -> Option<KeyBarAction> {
+    let (_, actions_start) = key_bar_content(area.width, app);
+    let offset = usize::from(column.checked_sub(area.x)?);
+    let start = actions_start?;
+    if offset >= usize::from(area.width) {
+        return None;
+    }
+    if (start..start + "Settings: ,".len()).contains(&offset) {
+        Some(KeyBarAction::Settings)
+    } else if (start + "Settings: ,  ".len()..start + "Settings: ,  Keybindings: ?".len())
+        .contains(&offset)
+    {
+        Some(KeyBarAction::Help)
+    } else {
+        None
+    }
+}
+
+fn key_bar_content(width: u16, app: &TuiApp) -> (Vec<Span<'static>>, Option<usize>) {
     let mut brand = vec![Span::styled(
         concat!("XRAT v", env!("CARGO_PKG_VERSION")),
         theme::accent_style().bold(),
@@ -59,11 +88,14 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     }
 
     let actions = [
+        Span::styled("Settings: ", theme::muted_style()),
+        Span::styled(",", theme::accent_style().bold()),
+        Span::raw("  "),
         Span::styled("Keybindings: ", theme::muted_style()),
         Span::styled("?", theme::accent_style().bold()),
     ];
 
-    let total = area.width as usize;
+    let total = width as usize;
     let center = center_spans(app, total);
     let center_width: usize = center.iter().map(Span::width).sum();
 
@@ -76,8 +108,7 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         || app.pending_chord.is_some()
         || app.chrome_message.is_some();
     if !center_fits && essential {
-        frame.render_widget(Paragraph::new(Line::from(center)), area);
-        return;
+        return (center, None);
     }
 
     let (center, center_width) = if center_fits {
@@ -96,9 +127,9 @@ pub fn render_key_bar(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     spans.push(Span::raw(" ".repeat(left_gap)));
     spans.extend(center);
     spans.push(Span::raw(" ".repeat(right_gap)));
+    let actions_start = spans.iter().map(Span::width).sum();
     spans.extend(actions);
-
-    frame.render_widget(Paragraph::new(Line::from(spans)), area);
+    (spans, Some(actions_start))
 }
 
 /// Center segment of the key bar. Priority: an inline destructive confirm
