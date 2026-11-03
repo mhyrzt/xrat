@@ -8,9 +8,7 @@ pub fn render_split_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let Some(modal) = &app.split_modal else {
         return;
     };
-    let width = area.width.saturating_sub(4).clamp(56, 112);
-    let height = area.height.saturating_sub(2).clamp(18, 36);
-    let modal_area = centered_rect_fixed(width, height, area);
+    let modal_area = split_modal_area(area);
     crate::tui::theme::clear(frame, modal_area);
 
     let dirty = if modal.is_dirty() { " *" } else { "" };
@@ -337,4 +335,10 @@ fn split_footer(mode: SplitModalMode, pane: SplitPane) -> Line<'static> {
     }
     spans.push(Span::raw(" "));
     Line::from(spans)
+}
+
+pub(crate) fn split_modal_area(area: Rect) -> Rect {
+    let width = area.width.saturating_sub(4).clamp(56, 112);
+    let height = area.height.saturating_sub(2).clamp(18, 36);
+    centered_rect_fixed(width, height, area)
 }

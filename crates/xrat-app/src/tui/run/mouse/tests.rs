@@ -52,7 +52,7 @@ fn mouse_scroll_on_table_moves_config_focus_by_one() {
     };
 
     let redraw = handle_mouse_event(&mut app, &event_down, (100, 40), &mut None);
-    assert!(redraw);
+    assert!(redraw.0);
     assert_eq!(app.config_list.focused, 1);
 
     let event_up = TuiMouseEvent {
@@ -63,7 +63,7 @@ fn mouse_scroll_on_table_moves_config_focus_by_one() {
     };
 
     let redraw = handle_mouse_event(&mut app, &event_up, (100, 40), &mut None);
-    assert!(redraw);
+    assert!(redraw.0);
     assert_eq!(app.config_list.focused, 0);
 }
 
@@ -349,6 +349,68 @@ fn clicking_settings_modal_fields_respects_group_headers_and_layout() {
         (screen_w, screen_h),
         &mut None,
     );
-    assert!(redraw);
+    assert!(redraw.0);
     assert_eq!(app.settings_modal.as_ref().unwrap().field_index, target_idx);
+}
+
+#[test]
+fn clicking_inside_split_modal_preserves_pending_changes() {
+    let mut app = test_app_with_configs(1);
+    let mut modal = crate::tui::app::SplitModalState::from_tun(&Default::default());
+    modal.tun_enabled = !modal.tun_enabled;
+    app.split_modal = Some(modal);
+    let screen = Rect::new(0, 0, 120, 40);
+    let area = crate::tui::view::modals::split_modal_area(screen);
+    let click = TuiMouseEvent {
+        kind: TuiMouseEventKind::Down(TuiMouseButton::Left),
+        column: area.x + 1,
+        row: area.y + 1,
+        modifiers: crossterm::event::KeyModifiers::empty(),
+    };
+    handle_mouse_event(&mut app, &click, (120, 40), &mut None);
+    assert!(app.split_modal.as_ref().unwrap().is_dirty());
+    let outside = TuiMouseEvent {
+        column: 0,
+        row: 0,
+        ..click
+    };
+    handle_mouse_event(&mut app, &outside, (120, 40), &mut None);
+    assert!(app.split_modal.is_none());
+}
+
+#[test]
+fn keybar_clicks_follow_rendered_labels() {
+    use ratatui::{Terminal, backend::TestBackend};
+    let mut app = test_app_with_configs(1);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::tui::view::render(frame, &app))
+        .unwrap();
+    let bar = DashboardLayout::new(Rect::new(0, 0, 120, 40)).keybar;
+    let buffer = terminal.backend().buffer();
+    let text: String = (0..bar.width)
+        .map(|x| buffer[(x, bar.y)].symbol())
+        .collect();
+    let help_column =
+        unicode_width::UnicodeWidthStr::width(&text[..text.find("Keybindings: ?").unwrap()]) as u16;
+    let settings_column =
+        unicode_width::UnicodeWidthStr::width(&text[..text.find("Settings: ,").unwrap()]) as u16;
+    let click = TuiMouseEvent {
+        kind: TuiMouseEventKind::Down(TuiMouseButton::Left),
+        column: help_column,
+        row: bar.y,
+        modifiers: crossterm::event::KeyModifiers::empty(),
+    };
+    let result = handle_mouse_event(&mut app, &click, (120, 40), &mut None);
+    assert!(result.0);
+    assert!(app.show_help);
+    assert!(!app.should_quit);
+    app.show_help = false;
+    let click = TuiMouseEvent {
+        column: settings_column,
+        ..click
+    };
+    let result = handle_mouse_event(&mut app, &click, (120, 40), &mut None);
+    assert!(matches!(result.1, Some(TuiAction::OpenSettingsModal)));
+    assert!(!app.should_quit);
 }

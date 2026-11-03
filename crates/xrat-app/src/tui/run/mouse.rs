@@ -10,7 +10,7 @@ pub(super) fn handle_mouse_event(
     event: &TuiMouseEvent,
     terminal_size: (u16, u16),
     release_notes: &mut Option<ReleaseNotesModal>,
-) -> bool {
+) -> (bool, Option<TuiAction>) {
     let screen = Rect::new(0, 0, terminal_size.0, terminal_size.1);
     let pos = Position::new(event.column, event.row);
 
@@ -19,11 +19,11 @@ pub(super) fn handle_mouse_event(
         match event.kind {
             TuiMouseEventKind::ScrollUp => {
                 modal.handle_scroll(-2);
-                return true;
+                return (true, None);
             }
             TuiMouseEventKind::ScrollDown => {
                 modal.handle_scroll(2);
-                return true;
+                return (true, None);
             }
             TuiMouseEventKind::Down(TuiMouseButton::Left) => {
                 let width = screen.width.saturating_sub(4).min(100);
@@ -37,11 +37,11 @@ pub(super) fn handle_mouse_event(
                 if !modal_area.contains(pos) {
                     *release_notes = None;
                     app.needs_full_clear = true;
-                    return true;
+                    return (true, None);
                 }
-                return false;
+                return (false, None);
             }
-            _ => return false,
+            _ => return (false, None),
         }
     }
 
@@ -49,9 +49,9 @@ pub(super) fn handle_mouse_event(
     if app.show_help {
         if matches!(event.kind, TuiMouseEventKind::Down(TuiMouseButton::Left)) {
             app.show_help = false;
-            return true;
+            return (true, None);
         }
-        return false;
+        return (false, None);
     }
 
     // 3. Settings modal
@@ -69,7 +69,7 @@ pub(super) fn handle_mouse_event(
             TuiMouseEventKind::Down(TuiMouseButton::Left) => {
                 if !modal_area.contains(pos) {
                     app.apply(TuiAction::Back);
-                    return true;
+                    return (true, None);
                 }
                 let inner = Rect::new(
                     modal_area.x + 2,
@@ -125,7 +125,7 @@ pub(super) fn handle_mouse_event(
                         modal.section_index = target;
                         modal.field_index = 0;
                     }
-                    return true;
+                    return (true, None);
                 } else if columns[1].contains(pos) {
                     modal.pane = SettingsPane::Fields;
                     let available_rows = columns[1].height.saturating_sub(2) as usize;
@@ -140,19 +140,19 @@ pub(super) fn handle_mouse_event(
                             modal.field_index = target;
                         }
                     }
-                    return true;
+                    return (true, None);
                 }
-                return false;
+                return (false, None);
             }
             TuiMouseEventKind::ScrollUp => {
                 app.apply(TuiAction::SettingsMove(-1));
-                return true;
+                return (true, None);
             }
             TuiMouseEventKind::ScrollDown => {
                 app.apply(TuiAction::SettingsMove(1));
-                return true;
+                return (true, None);
             }
-            _ => return false,
+            _ => return (false, None),
         }
     }
 
@@ -163,20 +163,23 @@ pub(super) fn handle_mouse_event(
         || app.split_modal.is_some()
     {
         if matches!(event.kind, TuiMouseEventKind::Down(TuiMouseButton::Left)) {
-            let width = screen.width.saturating_sub(6).min(70);
-            let height = 8u16;
-            let modal_area = Rect::new(
-                screen.x + (screen.width.saturating_sub(width)) / 2,
-                screen.y + (screen.height.saturating_sub(height)) / 2,
-                width,
-                height,
-            );
+            let modal_area = if app.split_modal.is_some() {
+                crate::tui::view::modals::split_modal_area(screen)
+            } else if let Some(modal) = &app.qr_modal {
+                crate::tui::view::modals::qr_modal_area(screen, modal)
+            } else if let Some(modal) = &app.import_modal {
+                crate::tui::view::modals::import_modal_area(screen, modal.error.is_some())
+            } else if let Some(modal) = &app.rename_modal {
+                crate::tui::view::modals::rename_modal_area(screen, modal)
+            } else {
+                return (false, None);
+            };
             if !modal_area.contains(pos) {
                 app.apply(TuiAction::Back);
-                return true;
+                return (true, None);
             }
         }
-        return false;
+        return (false, None);
     }
 
     // 5. Confirm or bulk operation in key bar
@@ -185,10 +188,10 @@ pub(super) fn handle_mouse_event(
             let layout = DashboardLayout::new(screen);
             if layout.keybar.contains(pos) {
                 // Clicking in key bar on confirmation
-                return false;
+                return (false, None);
             }
         }
-        return false;
+        return (false, None);
     }
 
     // 6. Main Dashboard
@@ -212,7 +215,7 @@ pub(super) fn handle_mouse_event(
                     }
                 }
             }
-            true
+            (true, None)
         }
         TuiMouseEventKind::ScrollDown => {
             match layout.panel_at(event.column, event.row) {
@@ -231,7 +234,7 @@ pub(super) fn handle_mouse_event(
                     }
                 }
             }
-            true
+            (true, None)
         }
         TuiMouseEventKind::Down(TuiMouseButton::Left) => {
             if layout.table.contains(pos) {
@@ -247,7 +250,7 @@ pub(super) fn handle_mouse_event(
                         app.active_view = TuiView::Sources;
                         app.panel_scroll.detail.set(0);
                     }
-                    return true;
+                    return (true, None);
                 }
 
                 // Check table data rows
@@ -276,12 +279,12 @@ pub(super) fn handle_mouse_event(
                         }
                     }
                 }
-                return true;
+                return (true, None);
             }
 
             if layout.detail.contains(pos) {
                 app.focused_panel = TuiPanel::Detail;
-                return true;
+                return (true, None);
             }
 
             if layout.log.contains(pos) {
@@ -300,12 +303,12 @@ pub(super) fn handle_mouse_event(
                         app.active_log_tab = TuiLogTab::Api;
                     }
                 }
-                return true;
+                return (true, None);
             }
 
             if layout.runtime.contains(pos) {
                 app.focused_panel = TuiPanel::Runtime;
-                return true;
+                return (true, None);
             }
 
             if layout.filter.contains(pos) {
@@ -321,24 +324,29 @@ pub(super) fn handle_mouse_event(
                 } else {
                     app.apply(TuiAction::CycleFilter);
                 }
-                return true;
+                return (true, None);
             }
 
             if layout.keybar.contains(pos) {
-                let rel_x = event.column.saturating_sub(layout.keybar.x);
-                if rel_x <= 10 {
-                    app.show_help = true;
-                } else if (12..=25).contains(&rel_x) {
-                    app.apply(TuiAction::OpenSettingsModal);
-                } else if rel_x >= layout.keybar.width.saturating_sub(8) {
-                    app.should_quit = true;
-                }
-                return true;
+                return match crate::tui::view::chrome::key_bar_action(
+                    layout.keybar,
+                    app,
+                    event.column,
+                ) {
+                    Some(crate::tui::view::chrome::KeyBarAction::Help) => {
+                        app.apply(TuiAction::ShowHelp);
+                        (true, None)
+                    }
+                    Some(crate::tui::view::chrome::KeyBarAction::Settings) => {
+                        (true, Some(TuiAction::OpenSettingsModal))
+                    }
+                    None => (false, None),
+                };
             }
 
-            false
+            (false, None)
         }
-        _ => false,
+        _ => (false, None),
     }
 }
 

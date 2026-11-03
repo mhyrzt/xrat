@@ -157,12 +157,15 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                     }
                     terminal::TuiEvent::Mouse(mouse) => {
                         let had_release_notes = release_notes.is_some();
-                        let changed = super::mouse::handle_mouse_event(
+                        let (changed, action) = super::mouse::handle_mouse_event(
                             &mut app,
                             &mouse,
                             terminal.size(),
                             &mut release_notes,
                         );
+                        if matches!(action, Some(crate::tui::app::TuiAction::OpenSettingsModal)) {
+                            open_settings_modal(&mut app, &context);
+                        }
                         if had_release_notes && release_notes.is_none() {
                             dismiss_release_notes(
                                 &mut app,
@@ -396,20 +399,7 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
                             tasks::spawn_runtime_tun(context.clone(), &mut app, &task_tx, None);
                         }
                         if open_settings {
-                            match ConfigEditSession::open(&context.runtime_paths.config_path) {
-                                Ok(mut session) => {
-                                    session
-                                        .settings
-                                        .retain(|setting| context.allows_setting(&setting.path));
-                                    let mut modal = SettingsModalState::new(session);
-                                    if context.is_machine_client() {
-                                        modal.notice = Some("Frontend settings; runtime policy requires administrator access.".into());
-                                    }
-                                    app.settings_modal = Some(modal);
-                                    app.needs_full_clear = true;
-                                }
-                                Err(error) => app.set_chrome_message(error, true),
-                            }
+                            open_settings_modal(&mut app, &context);
                         }
                         if save_settings {
                             if app.settings_modal.as_ref().is_some_and(|modal| {
@@ -764,6 +754,24 @@ pub async fn run(context: &AppContext) -> crate::app::Result<()> {
     }
 
     Ok(())
+}
+
+fn open_settings_modal(app: &mut TuiApp, context: &AppContext) {
+    match ConfigEditSession::open(&context.runtime_paths.config_path) {
+        Ok(mut session) => {
+            session
+                .settings
+                .retain(|setting| context.allows_setting(&setting.path));
+            let mut modal = SettingsModalState::new(session);
+            if context.is_machine_client() {
+                modal.notice =
+                    Some("Frontend settings; runtime policy requires administrator access.".into());
+            }
+            app.settings_modal = Some(modal);
+            app.needs_full_clear = true;
+        }
+        Err(error) => app.set_chrome_message(error, true),
+    }
 }
 
 pub(super) fn dismiss_release_notes(

@@ -167,7 +167,7 @@ fn render_probe_table(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         return;
     }
 
-    let header = Row::new(["Name", "Value", "mean ± std", "n", "last update"])
+    let header = Row::new(["Name", "Value", "mean ± std", "n", "Updated"])
         .style(theme::secondary_style().add_modifier(ratatui::style::Modifier::BOLD));
     let widths = [
         Constraint::Length(11),

@@ -1,4 +1,4 @@
-mod chrome;
+pub(crate) mod chrome;
 mod configs;
 pub(crate) mod modals;
 mod shared;
