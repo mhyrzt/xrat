@@ -2,7 +2,7 @@ use crate::app::read_models::ConfigDetail;
 use xrat_model::{ConfigId, SubscriptionId};
 use xrat_support::refs::short_ref;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TuiConfigRow {
     pub id: ConfigId,
     pub r#ref: String,

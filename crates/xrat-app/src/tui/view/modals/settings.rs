@@ -151,7 +151,6 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
     let section = modal.selected_section().unwrap_or_default();
     let mut last_group = String::new();
     let mut field_rows: Vec<(Option<usize>, Line)> = Vec::new();
-    let mut selected_tail_rows = 0;
     let label_width = columns[1].width.saturating_sub(14).clamp(12, 24) as usize;
     for (position, setting_index) in indices.iter().enumerate() {
         let setting = &modal.session.settings[*setting_index];
@@ -183,15 +182,12 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             ));
             for (label, value) in [("min", minimum), ("max", maximum)] {
                 field_rows.push((
-                    None,
+                    Some(position),
                     Line::from(vec![
                         Span::styled(format!("    {label:<22}"), theme::chrome_style()),
                         Span::styled(settings_value_with_unit(&setting.path, value), value_style),
                     ]),
                 ));
-            }
-            if selected {
-                selected_tail_rows = 2;
             }
             continue;
         }
@@ -211,12 +207,8 @@ pub fn render_settings_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             ]),
         ));
     }
-    let selected_row = field_rows
-        .iter()
-        .position(|(position, _)| *position == Some(modal.field_index))
-        .unwrap_or_default();
-    let selected_row_end = selected_row + selected_tail_rows;
-    let start = selected_row_end.saturating_sub(available_rows.saturating_sub(1));
+    let layout = settings_field_layout(modal, available_rows);
+    let start = layout.start;
     let field_lines: Vec<Line> = if indices.is_empty() {
         vec![
             Line::raw(""),
@@ -560,4 +552,47 @@ pub(crate) fn settings_range_pair<'a>(
         [minimum, maximum] => Some((minimum, maximum)),
         _ => None,
     }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct SettingsFieldLayout {
+    pub rows: Vec<Option<usize>>,
+    pub start: usize,
+}
+
+pub(crate) fn settings_field_layout(
+    modal: &SettingsModalState,
+    available_rows: usize,
+) -> SettingsFieldLayout {
+    let indices = modal.visible_setting_indices();
+    let section = modal.selected_section().unwrap_or_default();
+    let mut last_group = String::new();
+    let mut rows: Vec<Option<usize>> = Vec::new();
+    let mut selected_tail_rows = 0;
+    for (position, setting_index) in indices.iter().enumerate() {
+        let setting = &modal.session.settings[*setting_index];
+        let group = settings_value_group(&section, &setting.section);
+        if group != last_group {
+            rows.push(None);
+            last_group = group;
+        }
+        let selected = position == modal.field_index;
+        if let Some((_minimum, _maximum)) = settings_range_pair(&setting.path, &setting.value) {
+            rows.push(Some(position));
+            rows.push(Some(position));
+            rows.push(Some(position));
+            if selected {
+                selected_tail_rows = 2;
+            }
+            continue;
+        }
+        rows.push(Some(position));
+    }
+    let selected_row = rows
+        .iter()
+        .position(|position| *position == Some(modal.field_index))
+        .unwrap_or_default();
+    let selected_row_end = selected_row + selected_tail_rows;
+    let start = selected_row_end.saturating_sub(available_rows.saturating_sub(1));
+    SettingsFieldLayout { rows, start }
 }

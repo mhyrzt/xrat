@@ -505,12 +505,25 @@ fn accepts_valid_tui_theme() {
         theme = "catppuccin"
         border_style = "rounded"
         transparent = true
+        mouse = false
         "#,
     );
     assert!(
         errors.is_empty(),
         "valid theme should have no errors: {errors:?}"
     );
+}
+
+#[test]
+fn rejects_invalid_tui_mouse() {
+    let errors = errors_for_toml(
+        r#"
+        [tui]
+        mouse = "yes"
+        "#,
+    );
+    let diagnostic = find(&errors, "[tui].mouse");
+    assert!(diagnostic.problem.contains("boolean"));
 }
 
 #[test]

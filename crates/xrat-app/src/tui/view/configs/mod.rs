@@ -9,7 +9,6 @@ mod table;
 mod testbar;
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
 use crate::tui::app::{TuiApp, TuiPanel, TuiView};
 

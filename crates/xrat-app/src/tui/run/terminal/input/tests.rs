@@ -85,3 +85,45 @@ fn kitty_release_events_do_not_trigger_actions() {
     assert_eq!(code(input.pop(now)), KeyCode::Char('j'));
     assert!(input.pop(now).is_none());
 }
+
+#[test]
+fn decodes_sgr_mouse_click_and_scroll_events() {
+    let now = Instant::now();
+    let mut input = TerminalInput::default();
+    // Click: CSI < 0 ; 10 ; 20 M (left press at col 10, row 20)
+    // Scroll: CSI < 64 ; 10 ; 20 M (scroll up at col 10, row 20)
+    // Scroll: CSI < 65 ; 10 ; 20 M (scroll down at col 10, row 20)
+    input.feed(b"\x1b[<0;10;20M\x1b[<64;10;20M\x1b[<65;10;20M");
+    input.settle(now);
+
+    assert_eq!(
+        input.pop(now),
+        Some(TuiEvent::Mouse(TuiMouseEvent {
+            kind: TuiMouseEventKind::Down(TuiMouseButton::Left),
+            column: 9,
+            row: 19,
+            modifiers: crossterm::event::KeyModifiers::empty(),
+        }))
+    );
+
+    assert_eq!(
+        input.pop(now),
+        Some(TuiEvent::Mouse(TuiMouseEvent {
+            kind: TuiMouseEventKind::ScrollUp,
+            column: 9,
+            row: 19,
+            modifiers: crossterm::event::KeyModifiers::empty(),
+        }))
+    );
+
+    assert_eq!(
+        input.pop(now),
+        Some(TuiEvent::Mouse(TuiMouseEvent {
+            kind: TuiMouseEventKind::ScrollDown,
+            column: 9,
+            row: 19,
+            modifiers: crossterm::event::KeyModifiers::empty(),
+        }))
+    );
+    assert!(input.pop(now).is_none());
+}

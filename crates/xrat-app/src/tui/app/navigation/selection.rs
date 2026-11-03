@@ -1,7 +1,7 @@
 use super::*;
 
 impl TuiApp {
-    pub(in super::super) fn move_focus(&mut self, delta: isize) {
+    pub(crate) fn move_focus(&mut self, delta: isize) {
         match self.focused_panel {
             TuiPanel::Table => match self.active_view {
                 TuiView::Configs => self.move_config_focus(delta),
@@ -58,7 +58,7 @@ impl TuiApp {
 
 /// Adjust a scroll offset by `delta` rows, clamped at the top. The render pass
 /// clamps the bottom against the live content/viewport sizes.
-pub(super) fn scroll(offset: &std::cell::Cell<u16>, delta: isize) {
+pub(crate) fn scroll(offset: &std::cell::Cell<u16>, delta: isize) {
     let current = offset.get();
     let next = if delta.is_negative() {
         current.saturating_sub(delta.unsigned_abs() as u16)

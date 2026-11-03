@@ -92,9 +92,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
     )
     .column_spacing(1);
 
-    let mut state = TableState::default().with_selected(Some(app.source_list.focused));
+    let mut state = TableState::default()
+        .with_offset(app.source_list.table_offset.get())
+        .with_selected(Some(app.source_list.focused));
     crate::tui::theme::clear(frame, area);
     frame.render_stateful_widget(table, area, &mut state);
+    app.source_list.table_offset.set(state.offset());
 
     let viewport = area.height.saturating_sub(3) as usize;
     if total_rows > viewport {

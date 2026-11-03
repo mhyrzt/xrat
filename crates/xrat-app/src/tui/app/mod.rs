@@ -11,6 +11,7 @@ mod test_state;
 mod types;
 mod views;
 
+pub(crate) use navigation::scroll;
 pub use split_tunnel::{SplitListTab, SplitModalMode, SplitModalState, SplitPane};
 pub use types::{
     BulkKind, BulkOp, ChromeMessage, ConfigFilter, ConfigListState, ConfigSort, ConfirmKind,

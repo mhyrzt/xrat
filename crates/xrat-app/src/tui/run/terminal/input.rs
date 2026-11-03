@@ -1,10 +1,27 @@
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
-use super::TuiEvent;
+use super::{TuiEvent, TuiMouseButton, TuiMouseEvent, TuiMouseEventKind};
 use crate::tui::keymap::TuiKeyEvent;
 
 const ESCAPE_TIMEOUT: Duration = Duration::from_millis(25);
+
+fn convert_modifiers(m: qwertty::Modifiers) -> crossterm::event::KeyModifiers {
+    let mut modifiers = crossterm::event::KeyModifiers::empty();
+    if m.contains(qwertty::Modifiers::SHIFT) {
+        modifiers |= crossterm::event::KeyModifiers::SHIFT;
+    }
+    if m.contains(qwertty::Modifiers::CTRL) {
+        modifiers |= crossterm::event::KeyModifiers::CONTROL;
+    }
+    if m.contains(qwertty::Modifiers::ALT) {
+        modifiers |= crossterm::event::KeyModifiers::ALT;
+    }
+    if m.contains(qwertty::Modifiers::SUPER) {
+        modifiers |= crossterm::event::KeyModifiers::SUPER;
+    }
+    modifiers
+}
 
 #[derive(Default)]
 pub(super) struct TerminalInput {
@@ -62,6 +79,54 @@ impl TerminalInput {
                 }
                 qwertty::Event::Paste(paste) => {
                     paste.as_str().map(|text| TuiEvent::Paste(text.to_string()))
+                }
+                qwertty::Event::Mouse(mouse) => {
+                    let kind = match mouse.kind() {
+                        qwertty::event::MouseEventKind::Press => match mouse.button() {
+                            qwertty::event::MouseButton::Left => {
+                                TuiMouseEventKind::Down(TuiMouseButton::Left)
+                            }
+                            qwertty::event::MouseButton::Middle => {
+                                TuiMouseEventKind::Down(TuiMouseButton::Middle)
+                            }
+                            qwertty::event::MouseButton::Right => {
+                                TuiMouseEventKind::Down(TuiMouseButton::Right)
+                            }
+                            _ => return None,
+                        },
+                        qwertty::event::MouseEventKind::Release => match mouse.button() {
+                            qwertty::event::MouseButton::Left => {
+                                TuiMouseEventKind::Up(TuiMouseButton::Left)
+                            }
+                            qwertty::event::MouseButton::Middle => {
+                                TuiMouseEventKind::Up(TuiMouseButton::Middle)
+                            }
+                            qwertty::event::MouseButton::Right => {
+                                TuiMouseEventKind::Up(TuiMouseButton::Right)
+                            }
+                            _ => return None,
+                        },
+                        qwertty::event::MouseEventKind::Moved => return None,
+                        qwertty::event::MouseEventKind::Scroll(dir) => match dir {
+                            qwertty::event::ScrollDirection::Up => TuiMouseEventKind::ScrollUp,
+                            qwertty::event::ScrollDirection::Down => TuiMouseEventKind::ScrollDown,
+                            qwertty::event::ScrollDirection::Left => TuiMouseEventKind::ScrollLeft,
+                            qwertty::event::ScrollDirection::Right => {
+                                TuiMouseEventKind::ScrollRight
+                            }
+                            _ => return None,
+                        },
+                        _ => return None,
+                    };
+                    let column = mouse.column().saturating_sub(1);
+                    let row = mouse.row().saturating_sub(1);
+                    let modifiers = convert_modifiers(mouse.modifiers());
+                    Some(TuiEvent::Mouse(TuiMouseEvent {
+                        kind,
+                        column,
+                        row,
+                        modifiers,
+                    }))
                 }
                 _ => None,
             }));

@@ -716,6 +716,11 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "Keep false to paint the theme's opaque background color.",
             "transparent = true",
         ),
+        "tui.mouse" => help(
+            "Enables mouse support in the TUI: click to focus cards, select configs, switch tabs, and smooth scrolling.",
+            "Set to false if you prefer native terminal text selection without holding Shift.",
+            "mouse = true",
+        ),
         _ => return None,
     })
 }

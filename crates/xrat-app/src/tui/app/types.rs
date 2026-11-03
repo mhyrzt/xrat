@@ -447,6 +447,7 @@ pub struct TuiApp {
 #[derive(Debug, Default)]
 pub struct ConfigListState {
     pub focused: usize,
+    pub table_offset: std::cell::Cell<usize>,
     pub search_query: String,
     pub editing_search: bool,
     pub sort: ConfigSort,
@@ -471,6 +472,7 @@ pub enum SourceFilter {
 #[derive(Debug, Default)]
 pub struct SourceListState {
     pub focused: usize,
+    pub table_offset: std::cell::Cell<usize>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

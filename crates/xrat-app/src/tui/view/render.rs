@@ -3,13 +3,10 @@ use super::*;
 pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     let area = frame.area();
     crate::tui::theme::clear(frame, area);
-    let shell = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(5), Constraint::Length(1)])
-        .split(area);
+    let layout = DashboardLayout::new(area);
 
-    render_body(frame, shell[0], app);
-    chrome::render_key_bar(frame, shell[1], app);
+    render_body(frame, &layout, app);
+    chrome::render_key_bar(frame, layout.keybar, app);
 
     if app.show_help {
         modals::render_help(frame, area);
@@ -36,6 +33,6 @@ pub fn render(frame: &mut Frame<'_>, app: &TuiApp) {
     }
 }
 
-pub(super) fn render_body(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
-    configs::render(frame, area, app);
+pub(super) fn render_body(frame: &mut Frame<'_>, layout: &DashboardLayout, app: &TuiApp) {
+    configs::render(frame, layout, app);
 }

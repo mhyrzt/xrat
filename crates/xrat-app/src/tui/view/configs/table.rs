@@ -262,8 +262,11 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &TuiApp, focused: bool) {
         .block(block)
         .column_spacing(1);
 
-    let mut state = TableState::default().with_selected(Some(app.config_list.focused));
+    let mut state = TableState::default()
+        .with_offset(app.config_list.table_offset.get())
+        .with_selected(Some(app.config_list.focused));
     frame.render_stateful_widget(table, area, &mut state);
+    app.config_list.table_offset.set(state.offset());
 
     let viewport = area.height.saturating_sub(3) as usize;
     if visible.len() > viewport {

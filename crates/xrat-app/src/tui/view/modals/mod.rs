@@ -10,4 +10,5 @@ mod tests;
 pub use dialogs::{render_import_modal, render_qr_modal, render_rename_modal};
 pub use help::render_help;
 pub use settings::render_settings_modal;
+pub(crate) use settings::settings_field_layout;
 pub use split_tunnel::render_split_modal;
