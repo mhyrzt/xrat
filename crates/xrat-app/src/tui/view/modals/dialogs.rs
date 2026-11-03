@@ -6,7 +6,6 @@ pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         return;
     };
 
-    const WIDTH: u16 = 72;
     const CONTENT_PADDING: u16 = 2;
 
     let (title, hint, placeholder, submit_label) = match &modal.step {
@@ -24,8 +23,7 @@ pub fn render_import_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         ),
     };
     let has_error = modal.error.is_some();
-    let modal_height = if has_error { 8 } else { 7 };
-    let modal_area = centered_rect_fixed(WIDTH.min(area.width), modal_height, area);
+    let modal_area = import_modal_area(area, has_error);
 
     crate::tui::theme::clear(frame, modal_area);
     let footer = Line::from(vec![
@@ -93,19 +91,10 @@ pub fn render_rename_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
         return;
     };
 
-    const MIN_WIDTH: u16 = 42;
-    const MAX_WIDTH: u16 = 72;
     const CONTENT_PADDING: u16 = 2;
-
     let title = format!(" Rename {} · {} ", modal.source_ref, modal.current_name);
-    let input_width = UnicodeWidthStr::width(modal.input.as_str()) as u16 + 5;
-    let content_width = (UnicodeWidthStr::width(title.as_str()) as u16)
-        .max(input_width)
-        .max(30);
-    let modal_width = (content_width + CONTENT_PADDING * 2 + 2).clamp(MIN_WIDTH, MAX_WIDTH);
+    let modal_area = rename_modal_area(area, modal);
     let has_error = modal.error.is_some();
-    let modal_height = if has_error { 6 } else { 5 };
-    let modal_area = centered_rect_fixed(modal_width, modal_height, area);
 
     crate::tui::theme::clear(frame, modal_area);
     let footer = Line::from(vec![
@@ -206,19 +195,7 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
 
     const PAD: u16 = 4;
     let vertical_pad = PAD / 2;
-    let qr_width = qr_lines
-        .iter()
-        .map(|line| line.width() as u16)
-        .max()
-        .unwrap_or(0);
-    let label_width = modal.label.chars().count() as u16;
-    let content_width = qr_width.max(label_width);
-    let inner_width = content_width + PAD * 2;
-    // qr rows + label. With half-block rendering, width is roughly 2x height
-    // in terminal cells, which keeps the modal visually square.
-    let content_height = qr_lines.len() as u16 + 1 + vertical_pad * 2;
-
-    let modal_area = centered_rect_fixed(inner_width + 2, content_height + 2, area);
+    let modal_area = qr_modal_area(area, modal);
     crate::tui::theme::clear(frame, modal_area);
 
     let block = Block::default()
@@ -243,4 +220,29 @@ pub fn render_qr_modal(frame: &mut Frame<'_>, area: Rect, app: &TuiApp) {
             .style(theme::chrome_style()),
         inner,
     );
+}
+
+pub(crate) fn import_modal_area(area: Rect, has_error: bool) -> Rect {
+    centered_rect_fixed(72, if has_error { 8 } else { 7 }, area)
+}
+
+pub(crate) fn rename_modal_area(area: Rect, modal: &crate::tui::app::RenameModalState) -> Rect {
+    let title = format!(" Rename {} · {} ", modal.source_ref, modal.current_name);
+    let input_width = UnicodeWidthStr::width(modal.input.as_str()) as u16 + 5;
+    let content_width = (UnicodeWidthStr::width(title.as_str()) as u16)
+        .max(input_width)
+        .max(30);
+    let width = (content_width + 6).clamp(42, 72);
+    centered_rect_fixed(width, if modal.error.is_some() { 6 } else { 5 }, area)
+}
+
+pub(crate) fn qr_modal_area(area: Rect, modal: &crate::tui::app::QrModalState) -> Rect {
+    let (qr_width, qr_height) =
+        match qrcode::QrCode::with_error_correction_level(modal.uri.as_bytes(), qrcode::EcLevel::L)
+        {
+            Ok(code) => (code.width() as u16, (code.width() as u16).div_ceil(2)),
+            Err(_) => ("QR generation failed (URI may be too long)".len() as u16, 1),
+        };
+    let content_width = qr_width.max(modal.label.chars().count() as u16);
+    centered_rect_fixed(content_width + 10, qr_height + 7, area)
 }

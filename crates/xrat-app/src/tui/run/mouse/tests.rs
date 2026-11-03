@@ -352,3 +352,28 @@ fn clicking_settings_modal_fields_respects_group_headers_and_layout() {
     assert!(redraw);
     assert_eq!(app.settings_modal.as_ref().unwrap().field_index, target_idx);
 }
+
+#[test]
+fn clicking_inside_split_modal_preserves_pending_changes() {
+    let mut app = test_app_with_configs(1);
+    let mut modal = crate::tui::app::SplitModalState::from_tun(&Default::default());
+    modal.tun_enabled = !modal.tun_enabled;
+    app.split_modal = Some(modal);
+    let screen = Rect::new(0, 0, 120, 40);
+    let area = crate::tui::view::modals::split_modal_area(screen);
+    let click = TuiMouseEvent {
+        kind: TuiMouseEventKind::Down(TuiMouseButton::Left),
+        column: area.x + 1,
+        row: area.y + 1,
+        modifiers: crossterm::event::KeyModifiers::empty(),
+    };
+    handle_mouse_event(&mut app, &click, (120, 40), &mut None);
+    assert!(app.split_modal.as_ref().unwrap().is_dirty());
+    let outside = TuiMouseEvent {
+        column: 0,
+        row: 0,
+        ..click
+    };
+    handle_mouse_event(&mut app, &outside, (120, 40), &mut None);
+    assert!(app.split_modal.is_none());
+}

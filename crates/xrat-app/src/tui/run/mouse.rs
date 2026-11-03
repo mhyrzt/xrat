@@ -163,14 +163,17 @@ pub(super) fn handle_mouse_event(
         || app.split_modal.is_some()
     {
         if matches!(event.kind, TuiMouseEventKind::Down(TuiMouseButton::Left)) {
-            let width = screen.width.saturating_sub(6).min(70);
-            let height = 8u16;
-            let modal_area = Rect::new(
-                screen.x + (screen.width.saturating_sub(width)) / 2,
-                screen.y + (screen.height.saturating_sub(height)) / 2,
-                width,
-                height,
-            );
+            let modal_area = if app.split_modal.is_some() {
+                crate::tui::view::modals::split_modal_area(screen)
+            } else if let Some(modal) = &app.qr_modal {
+                crate::tui::view::modals::qr_modal_area(screen, modal)
+            } else if let Some(modal) = &app.import_modal {
+                crate::tui::view::modals::import_modal_area(screen, modal.error.is_some())
+            } else if let Some(modal) = &app.rename_modal {
+                crate::tui::view::modals::rename_modal_area(screen, modal)
+            } else {
+                return false;
+            };
             if !modal_area.contains(pos) {
                 app.apply(TuiAction::Back);
                 return true;
