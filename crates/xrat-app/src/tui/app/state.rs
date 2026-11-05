@@ -77,7 +77,9 @@ impl TuiApp {
                 }
             }
             TuiAction::RenameInput(ch) => {
-                if let Some(modal) = &mut self.rename_modal {
+                if let Some(modal) = &mut self.rename_modal
+                    && !crate::tui::keymap::layout::is_private_use_or_control(ch)
+                {
                     modal.input.push(ch);
                     modal.error = None;
                 }
@@ -190,7 +192,11 @@ impl TuiApp {
 
     pub fn append_import_text(&mut self, text: &str) {
         if let Some(modal) = &mut self.import_modal {
-            modal.input.push_str(text);
+            for ch in text.chars() {
+                if !crate::tui::keymap::layout::is_private_use_or_control(ch) {
+                    modal.input.push(ch);
+                }
+            }
             modal.error = None;
         }
     }

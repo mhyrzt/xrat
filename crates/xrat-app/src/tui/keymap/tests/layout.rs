@@ -289,3 +289,48 @@ fn kitty_shifted_text_preserves_case_punctuation_and_unicode() {
         );
     }
 }
+
+#[test]
+fn kitty_pua_modifier_keys_map_to_null_and_do_not_type_in_modals() {
+    // Codepoint 57442 (\u{e062}) is Kitty Left Control:
+    let key = decoded_key(b"\x1b[57442u");
+    assert_eq!(key.code, KeyCode::Null);
+    assert_eq!(key.text, None);
+
+    let mut pending = None;
+    // In import modal, pressing modifier alone must not emit ImportInput:
+    assert_eq!(
+        action_for_key_with_import(
+            key.clone(),
+            TuiView::Configs,
+            TuiPanel::Table,
+            &mut pending,
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+            None
+        ),
+        TuiAction::None
+    );
+
+    // In search mode, pressing modifier alone must not emit SearchInput:
+    assert_eq!(
+        action_for_key_with_import(
+            key,
+            TuiView::Configs,
+            TuiPanel::Table,
+            &mut pending,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false,
+            None
+        ),
+        TuiAction::None
+    );
+}

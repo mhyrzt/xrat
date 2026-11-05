@@ -42,7 +42,10 @@ pub(super) fn apply_key_text(app: &mut TuiApp, key: &TuiKeyEvent) -> bool {
     } else {
         return false;
     };
-    for character in text.chars().filter(|character| !character.is_control()) {
+    for character in text
+        .chars()
+        .filter(|character| !crate::tui::keymap::layout::is_private_use_or_control(*character))
+    {
         app.apply(action(character));
     }
     true

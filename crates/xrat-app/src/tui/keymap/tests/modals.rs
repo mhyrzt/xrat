@@ -247,6 +247,28 @@ fn maps_search_editing_keys() {
         ),
         TuiAction::ClearSearch
     );
+    assert_eq!(
+        act(
+            KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL),
+            TuiView::Configs,
+            true,
+            false,
+            false,
+            false
+        ),
+        TuiAction::None
+    );
+    assert_eq!(
+        act(
+            key(KeyCode::Char('\u{e062}')),
+            TuiView::Configs,
+            true,
+            false,
+            false,
+            false
+        ),
+        TuiAction::None
+    );
 }
 
 #[test]
@@ -256,9 +278,41 @@ fn import_modal_consumes_edit_and_submit_keys() {
         TuiAction::ImportInput('v')
     );
     assert_eq!(
+        import_act(KeyEvent::new(KeyCode::Char('V'), KeyModifiers::SHIFT)),
+        TuiAction::ImportInput('V')
+    );
+    assert_eq!(
+        import_act(KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL)),
+        TuiAction::None
+    );
+    assert_eq!(import_act(key(KeyCode::Char('\u{e062}'))), TuiAction::None);
+    assert_eq!(
         import_act(key(KeyCode::Backspace)),
         TuiAction::ImportBackspace
     );
     assert_eq!(import_act(key(KeyCode::Enter)), TuiAction::ImportSubmit);
     assert_eq!(import_act(key(KeyCode::Esc)), TuiAction::Back);
+}
+
+#[test]
+fn rename_modal_consumes_edit_and_submit_keys() {
+    fn rename_act(key: KeyEvent) -> TuiAction {
+        act(key, TuiView::Configs, false, false, true, false)
+    }
+
+    assert_eq!(
+        rename_act(key(KeyCode::Char('a'))),
+        TuiAction::RenameInput('a')
+    );
+    assert_eq!(
+        rename_act(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)),
+        TuiAction::None
+    );
+    assert_eq!(rename_act(key(KeyCode::Char('\u{e062}'))), TuiAction::None);
+    assert_eq!(
+        rename_act(key(KeyCode::Backspace)),
+        TuiAction::RenameBackspace
+    );
+    assert_eq!(rename_act(key(KeyCode::Enter)), TuiAction::RenameSubmit);
+    assert_eq!(rename_act(key(KeyCode::Esc)), TuiAction::Back);
 }

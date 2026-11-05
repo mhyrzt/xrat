@@ -164,7 +164,9 @@ pub(super) fn action_for_import_modal_key(key: KeyEvent) -> TuiAction {
         KeyCode::Esc => TuiAction::Back,
         KeyCode::Enter => TuiAction::ImportSubmit,
         KeyCode::Backspace => TuiAction::ImportBackspace,
-        KeyCode::Char(ch) => TuiAction::ImportInput(ch),
+        KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
+            TuiAction::ImportInput(ch)
+        }
         _ => TuiAction::None,
     }
 }
@@ -174,7 +176,9 @@ pub(super) fn action_for_rename_modal_key(key: KeyEvent) -> TuiAction {
         KeyCode::Esc => TuiAction::Back,
         KeyCode::Enter => TuiAction::RenameSubmit,
         KeyCode::Backspace => TuiAction::RenameBackspace,
-        KeyCode::Char(ch) => TuiAction::RenameInput(ch),
+        KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
+            TuiAction::RenameInput(ch)
+        }
         _ => TuiAction::None,
     }
 }
