@@ -334,3 +334,20 @@ fn kitty_pua_modifier_keys_map_to_null_and_do_not_type_in_modals() {
         TuiAction::None
     );
 }
+
+#[test]
+fn private_use_text_is_not_a_modifier_event() {
+    let kitty_text = decoded_key(b"\x1b[57442;1;57442u");
+    assert_eq!(kitty_text.code, KeyCode::Char('\u{e062}'));
+    assert_eq!(kitty_text.text.as_deref(), Some("\u{e062}"));
+
+    let mut decoder = qwertty::SemanticDecoder::new();
+    let mut events = decoder.feed("\u{e062}".as_bytes());
+    events.extend(decoder.finish());
+    let key = match &events[0] {
+        qwertty::Event::Key(key) => TuiKeyEvent::from(key),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(key.code, KeyCode::Char('\u{e062}'));
+    assert_eq!(key.text.as_deref(), Some("\u{e062}"));
+}

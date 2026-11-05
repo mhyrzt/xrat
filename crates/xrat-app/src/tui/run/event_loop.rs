@@ -801,7 +801,7 @@ pub(super) fn prepare_import_submission(app: &mut TuiApp) -> Option<tasks::TuiIm
     let input: String = modal
         .input
         .chars()
-        .filter(|c| !crate::tui::keymap::layout::is_private_use_or_control(*c))
+        .filter(|c| !c.is_control() || matches!(c, '\n' | '\r' | '\t'))
         .collect();
     let input = input.trim().to_string();
 

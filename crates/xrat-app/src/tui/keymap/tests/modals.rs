@@ -267,7 +267,7 @@ fn maps_search_editing_keys() {
             false,
             false
         ),
-        TuiAction::None
+        TuiAction::SearchInput('\u{e062}')
     );
 }
 
@@ -285,7 +285,10 @@ fn import_modal_consumes_edit_and_submit_keys() {
         import_act(KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL)),
         TuiAction::None
     );
-    assert_eq!(import_act(key(KeyCode::Char('\u{e062}'))), TuiAction::None);
+    assert_eq!(
+        import_act(key(KeyCode::Char('\u{e062}'))),
+        TuiAction::ImportInput('\u{e062}')
+    );
     assert_eq!(
         import_act(key(KeyCode::Backspace)),
         TuiAction::ImportBackspace
@@ -308,7 +311,10 @@ fn rename_modal_consumes_edit_and_submit_keys() {
         rename_act(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)),
         TuiAction::None
     );
-    assert_eq!(rename_act(key(KeyCode::Char('\u{e062}'))), TuiAction::None);
+    assert_eq!(
+        rename_act(key(KeyCode::Char('\u{e062}'))),
+        TuiAction::RenameInput('\u{e062}')
+    );
     assert_eq!(
         rename_act(key(KeyCode::Backspace)),
         TuiAction::RenameBackspace

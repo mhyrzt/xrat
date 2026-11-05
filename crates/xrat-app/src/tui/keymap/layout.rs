@@ -59,30 +59,10 @@ impl TuiKeyEvent {
     }
 }
 
-/// Returns true if the character is in a Unicode Private Use Area (PUA),
-/// which terminal protocols (like Kitty) use to report functional or modifier keys.
-pub fn is_private_use(character: char) -> bool {
-    matches!(
-        character,
-        '\u{e000}'..='\u{f8ff}' | '\u{f0000}'..='\u{ffffd}' | '\u{100000}'..='\u{10fffd}'
-    )
-}
-
-/// Returns true if the character is a control character (excluding whitespace controls like newline/tab)
-/// or in a Unicode Private Use Area.
-pub fn is_private_use_or_control(character: char) -> bool {
-    (character.is_control() && character != '\n' && character != '\r' && character != '\t')
-        || is_private_use(character)
-}
-
 impl From<KeyEvent> for TuiKeyEvent {
     fn from(key: KeyEvent) -> Self {
-        let code = match key.code {
-            KeyCode::Char(ch) if is_private_use_or_control(ch) => KeyCode::Null,
-            other => other,
-        };
         Self {
-            code,
+            code: key.code,
             modifiers: key.modifiers,
             base_layout_key: None,
             text: None,
@@ -108,7 +88,11 @@ impl From<&qwertty::event::KeyEvent> for TuiKeyEvent {
         }
 
         let code = match ev.key() {
-            qwertty::Key::Char(character) if is_private_use_or_control(character) => KeyCode::Null,
+            qwertty::Key::Char(character)
+                if ev.text().is_none() && ('\u{e061}'..='\u{e06e}').contains(&character) =>
+            {
+                KeyCode::Null
+            }
             qwertty::Key::Char(character) => {
                 let resolved = ev
                     .text()
@@ -125,11 +109,7 @@ impl From<&qwertty::event::KeyEvent> for TuiKeyEvent {
                             character
                         }
                     });
-                if is_private_use_or_control(resolved) {
-                    KeyCode::Null
-                } else {
-                    KeyCode::Char(resolved)
-                }
+                KeyCode::Char(resolved)
             }
             qwertty::Key::Up => KeyCode::Up,
             qwertty::Key::Down => KeyCode::Down,
@@ -166,14 +146,7 @@ impl From<&qwertty::event::KeyEvent> for TuiKeyEvent {
             code,
             modifiers,
             base_layout_key: ev.base_layout_key(),
-            text: ev.text().and_then(|text| {
-                let filtered: String = text
-                    .as_str()
-                    .chars()
-                    .filter(|c| !is_private_use_or_control(*c))
-                    .collect();
-                (!filtered.is_empty()).then_some(filtered)
-            }),
+            text: ev.text().map(|text| text.as_str().to_string()),
         }
     }
 }
