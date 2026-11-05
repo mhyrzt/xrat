@@ -17,10 +17,12 @@ async fn browser_import_preserves_json_rejection_and_does_not_read_server_files(
         "test",
     )
     .await;
-    assert!(matches!(
-        result,
-        Err(app::AppError::RawJsonImportUnsupported)
-    ));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("local CLI/TUI import")
+    );
     let file = root.path().join("private-subscription.txt");
     std::fs::write(
         &file,

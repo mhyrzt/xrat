@@ -5,6 +5,7 @@ mod runtime_and_state;
 mod test_history;
 mod test_support;
 mod types;
+mod xray_profiles;
 
 pub use types::Database;
 

@@ -20,7 +20,16 @@ impl AppServices {
         if let Some(client) = &context.machine_client {
             return Self::from_machine(client.clone());
         }
-        Self::from_database(context.db.clone())
+        let repository = Arc::new(
+            DatabaseConfigRepository::new(context.db.clone())
+                .with_profiles(super::xray_profiles::ProfileStore::for_context(context)),
+        );
+        Self {
+            configs: ConfigService::new(Arc::clone(&repository)),
+            lifecycle: ConfigLifecycleService::new(repository),
+            clock: Arc::new(SystemClock),
+            filesystem: Arc::new(RealFilesystem),
+        }
     }
 
     /// Wire catalog operations through the machine gateway, with no local persistence fallback.

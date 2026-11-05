@@ -3,6 +3,19 @@ use clap::Parser;
 use crate::cli::{Cli, Command, ShowTarget};
 
 #[test]
+fn parses_raw_config_export_and_rejects_conflicting_json_output() {
+    let cli = Cli::parse_from(["xrat", "show", "config", "7", "--raw"]);
+    let Command::Show(args) = cli.command else {
+        panic!("expected show")
+    };
+    let ShowTarget::Config(config) = args.target else {
+        panic!("expected config")
+    };
+    assert!(config.raw);
+    assert!(Cli::try_parse_from(["xrat", "show", "config", "7", "--raw", "--json"]).is_err());
+}
+
+#[test]
 fn parses_serve_overrides() {
     let cli = Cli::parse_from(["xrat", "serve", "--host", "0.0.0.0", "--port", "9090"]);
 

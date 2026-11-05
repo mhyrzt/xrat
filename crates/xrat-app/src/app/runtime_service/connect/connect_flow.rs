@@ -34,16 +34,16 @@ impl<'a> RuntimeService<'a> {
                     return Err(AppError::RuntimeSessionAlreadyActive);
                 }
 
-                (self.resolve_launch(&config)?, Some(session))
+                (self.resolve_launch(&config).await?, Some(session))
             }
             ActiveSessionState::Stale(session) => {
                 tracing::warn!(
                     session_id = session.id,
                     "stale runtime session was reconciled before connect"
                 );
-                (self.resolve_launch(&config)?, None)
+                (self.resolve_launch(&config).await?, None)
             }
-            ActiveSessionState::None => (self.resolve_launch(&config)?, None),
+            ActiveSessionState::None => (self.resolve_launch(&config).await?, None),
         };
         let previous_active_config_id = active_session.as_ref().and_then(|s| s.config_id);
 

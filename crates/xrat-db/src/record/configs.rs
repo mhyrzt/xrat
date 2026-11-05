@@ -63,9 +63,21 @@ pub struct ConfigRecord {
     pub updated_at: String,
 }
 
+impl ConfigRecord {
+    pub fn is_xray_profile(&self) -> bool {
+        self.protocol == super::XRAY_PROFILE_PROTOCOL
+    }
+}
+
 pub fn node_from_record(config: &ConfigRecord) -> Result<xrat_model::Node, crate::DbError> {
     use crate::DbError;
     use xrat_model::{Node, Protocol};
+
+    if config.is_xray_profile() {
+        return Err(DbError::UnsupportedProtocol(
+            "complete Xray profiles do not have a single proxy endpoint or share link".into(),
+        ));
+    }
 
     let protocol = match config.protocol.as_str() {
         "vless" => Protocol::Vless,

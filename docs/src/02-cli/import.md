@@ -14,10 +14,10 @@ xrat import <input> [--name <name>] [--header 'Name: value']...
 
 ## Options
 
-| Option                 | Description                                    |
-| ---------------------- | ---------------------------------------------- |
-| `-n`, `--name <name>`   | Name for the imported subscription source       |
-| `--header <NAME:VALUE>` | HTTP header for URL subscriptions (repeatable)  |
+| Option                  | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `-n`, `--name <name>`   | Name for the imported subscription source      |
+| `--header <NAME:VALUE>` | HTTP header for URL subscriptions (repeatable) |
 
 ## Input Formats
 
@@ -30,8 +30,25 @@ xrat automatically detects the input format:
 | **Single share link**   | Single line starting with a supported protocol scheme |
 | **Base64 subscription** | Multi-line or single-line base64-encoded text         |
 | **Plain link list**     | Multiple lines, each a valid share link               |
-| **SIP008 JSON**         | JSON with `"servers"` array                           |
-| **Xray JSON**           | JSON with `"version"` or `"inbounds"` fields          |
+
+Complete Xray JSON is imported from a local file or pasted JSON object with an
+`outbounds` array as one profile, preserving the original file rather than
+extracting individual nodes. SIP008 JSON subscriptions remain unsupported.
+URL-backed JSON profiles and automatic refresh are unsupported; download the
+file and import it locally. Browser uploads and machine-gateway imports cannot
+provision arbitrary engine configuration; use the local CLI/TUI.
+
+```bash
+xrat import ./xray-conn-london.json --name london-vpn
+xrat list
+xrat connect <config-ref>
+xrat show config <config-ref> --raw > restored.json
+```
+
+The `--raw` output contains credentials and is byte-for-byte identical to the
+imported JSON. The original input file can be moved or deleted after import. See
+[Xray JSON profiles](../03-features/importing.md#xray-json) for runtime and
+backup requirements.
 
 ## Examples
 
@@ -62,9 +79,8 @@ xrat import https://example.com/sub.txt \
 ```
 
 Headers are saved for `update` and automatic refreshes. Each successful `import`
-replaces the saved set; omitting `--header` clears it.
-With headers, redirects must keep the same scheme, host, and port.
-Header values are stored unencrypted.
+replaces the saved set; omitting `--header` clears it. With headers, redirects
+must keep the same scheme, host, and port. Header values are stored unencrypted.
 
 Import raw base64 subscription text:
 
@@ -94,13 +110,14 @@ xrat import "vless://uuid@example.com:443?type=ws&security=tls#MyNode"
 
 For a new URL subscription without `--name`, the name comes from `Profile-Title`
 (plain text or `base64:`), then the `Content-Disposition` filename, then the URL
-fragment, then a `name`, `title`, `tag`, or `remark` query parameter. An explicit
-name always wins, including names beginning with `sub-`.
+fragment, then a `name`, `title`, `tag`, or `remark` query parameter. An
+explicit name always wins, including names beginning with `sub-`.
 
-Reimporting or refreshing a saved subscription without an explicit name preserves
-its existing name. The TUI and Web UI follow the same rules. In the TUI, accepting
-the suggested name leaves automatic detection enabled; typing a name makes it
-explicit. The generated TUI suggestion is used when no metadata supplies a name.
+Reimporting or refreshing a saved subscription without an explicit name
+preserves its existing name. The TUI and Web UI follow the same rules. In the
+TUI, accepting the suggested name leaves automatic detection enabled; typing a
+name makes it explicit. The generated TUI suggestion is used when no metadata
+supplies a name.
 
 ## Related
 

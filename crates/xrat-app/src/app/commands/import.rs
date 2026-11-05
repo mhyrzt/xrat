@@ -17,7 +17,13 @@ pub async fn run(context: &AppContext, args: &crate::cli::ImportArgs) -> crate::
     let result = if args.url_list {
         import_url_list(context, args).await
     } else {
-        import::import_subscription(&context.db, &args.input, args.name.as_deref(), &headers).await
+        crate::app::services::catalog_import::subscription(
+            context,
+            &args.input,
+            args.name.as_deref(),
+            &headers,
+        )
+        .await
     };
     progress.finish_and_clear();
     let summary = result?;

@@ -1,7 +1,6 @@
 use super::{CatalogPayload, CatalogRequest, policy};
 use crate::app::context::AppContext;
 use crate::app::{Result, import};
-use xrat_model::ConfigRef;
 
 pub(crate) struct MachineCatalog {
     context: AppContext,
@@ -75,6 +74,9 @@ impl MachineCatalog {
             } => {
                 let mut nodes = Vec::new();
                 for content in contents {
+                    if crate::app::services::xray_profiles::parse(content.as_bytes())?.is_some() {
+                        return Err(crate::app::AppError::InvalidArgument("Complete Xray profiles cannot be provisioned through the machine gateway".into()));
+                    }
                     nodes.extend(import::parse_nodes(content.as_bytes())?);
                 }
                 policy::validate_nodes(&nodes)?;
@@ -140,12 +142,17 @@ impl MachineCatalog {
                 let page = self.list_page(&filter).await?;
                 let mut items = Vec::with_capacity(page.items.len());
                 for item in page.items {
-                    items.push(
+                    if item.summary.protocol == xrat_db::XRAY_PROFILE_PROTOCOL {
+                        return Err(crate::app::AppError::InvalidArgument(
+                            "complete Xray profiles cannot be exported as a subscription".into(),
+                        ));
+                    }
+                    items.extend(
                         services
-                            .lifecycle
-                            .config(&ConfigRef::from(item.summary.id.to_string().as_str()))
+                            .configs
+                            .raw_configs_by_ids(&[item.summary.id])
                             .await?
-                            .raw_config,
+                            .unwrap_or_default(),
                     );
                 }
                 CatalogPayload::ExportPage {

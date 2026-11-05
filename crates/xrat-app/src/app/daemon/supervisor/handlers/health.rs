@@ -39,6 +39,13 @@ pub(super) async fn handle_health_tick(
     let Some(session) = snapshot.session else {
         return HealthTickOutcome::default();
     };
+    if snapshot
+        .session_config
+        .as_ref()
+        .is_some_and(xrat_db::ConfigRecord::is_xray_profile)
+    {
+        return HealthTickOutcome::default();
+    }
     let timer_due = state.rotation_enabled
         && snapshot.pid_running
         && state

@@ -6,6 +6,7 @@ mod geoip_cache;
 mod import;
 mod refs;
 mod runtime_sessions;
+mod xray_profiles;
 
 pub use cf_scan_results::{CfScanResultRecord, CfScanResultUpsert};
 pub use configs::{ConfigListFilter, ConfigRecord, ConfigWithLatestTest, node_from_record};
@@ -20,5 +21,6 @@ pub use import::{
 };
 pub use refs::RefMatch;
 pub use runtime_sessions::{RuntimeSessionInsert, RuntimeSessionRecord, RuntimeSessionStatus};
+pub use xray_profiles::{XRAY_PROFILE_PROTOCOL, XrayProfileRecord};
 
 pub use xrat_model::{ConfigId, ConfigRef, SubscriptionId};

@@ -14,6 +14,29 @@ pub(super) async fn spawn_runtime_with_ports(
     ports: xrat_support::readiness::RuntimeProcessPorts,
 ) -> crate::app::Result<SpawnedRuntime> {
     match &launch.config {
+        RuntimeLaunchConfig::RawXray(document) => {
+            let process = xray_runtime::spawn_detached_json_with_ports(
+                &launch.binary_path,
+                runtime_dir,
+                session_id,
+                document.as_bytes(),
+                &launch.ready_host,
+                launch.ready_port,
+                Duration::from_millis(defaults::DEFAULT_XRAY_STARTUP_TIMEOUT_MS),
+                ports,
+            )
+            .await
+            .map_err(|_| {
+                AppError::InvalidArgument(
+                    "complete Xray profile failed to start; inspect its private session error log"
+                        .into(),
+                )
+            })?;
+            Ok(SpawnedRuntime {
+                pid: process.pid,
+                config_path: process.paths.config_path,
+            })
+        }
         RuntimeLaunchConfig::Xray(config) => {
             let process = xray_runtime::spawn_detached_with_ports(
                 &launch.binary_path,
@@ -80,6 +103,7 @@ pub(super) fn preflight_runtime_with_spawner(
         .suffix(".json")
         .tempfile_in(runtime_dir)?;
     match &launch.config {
+        RuntimeLaunchConfig::RawXray(document) => temporary.write_all(document.as_bytes())?,
         RuntimeLaunchConfig::Xray(config) => {
             temporary.write_all(serde_json::to_string_pretty(config)?.as_bytes())?;
         }
@@ -122,6 +146,12 @@ pub(super) fn preflight_runtime_with_spawner(
     })?;
     if output.status.success() {
         return Ok(());
+    }
+    if matches!(launch.config, RuntimeLaunchConfig::RawXray(_)) {
+        return Err(AppError::InvalidArgument(format!(
+            "complete Xray profile failed native validation ({}); run `xray run -test -c <original-file>` for diagnostics",
+            output.status
+        )));
     }
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();

@@ -7,5 +7,6 @@ mod primitives;
 mod row;
 mod runtime_sessions;
 mod subscriptions;
+pub(crate) mod xray_profiles;
 
 pub use primitives::*;

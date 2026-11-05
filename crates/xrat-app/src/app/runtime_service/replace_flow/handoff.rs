@@ -16,7 +16,7 @@ impl<'a> RuntimeService<'a> {
                     .ok_or_else(|| {
                         AppError::InvalidArgument(format!("config {next_config_id} was not found"))
                     })?;
-                let launch = self.resolve_launch(&next_config)?;
+                let launch = self.resolve_launch(&next_config).await?;
                 preflight_runtime_with_spawner(
                     &launch,
                     &self.context.runtime_paths.runtime_dir,
@@ -86,7 +86,7 @@ impl<'a> RuntimeService<'a> {
             .ok_or_else(|| {
                 AppError::InvalidArgument(format!("config {next_config_id} was not found"))
             })?;
-        let launch = self.resolve_launch(&next_config)?;
+        let launch = self.resolve_launch(&next_config).await?;
         if self.context.app_config.runtime.tun.enabled {
             self.preflight_tun_policy_rules()?;
             crate::app::tun_privileges::ensure_engine_capability_with_spawner(

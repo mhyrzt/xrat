@@ -80,6 +80,7 @@ pub async fn serve_context(
         ServerState::from_settings(context.db.clone(), settings, &context.app_config.routing)?;
     state.services = context.services();
     state.context = Some(context.clone());
+    state.services = context.services();
     if let Some(web) = state.web.as_mut() {
         let web = std::sync::Arc::get_mut(web).expect("new server state is unshared");
         if context

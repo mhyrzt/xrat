@@ -111,7 +111,13 @@ pub(crate) async fn filtered_export(
     state: &ServerState,
     filter: ConfigFilter,
 ) -> ServerResult<String> {
-    Ok(export(state, &ConfigShareRequest::Filtered { filter })
+    let raw = export(state, &ConfigShareRequest::Filtered { filter })
         .await?
-        .raw)
+        .raw;
+    if raw.trim_start().starts_with('{') {
+        return Err(ServerError::InvalidQuery(
+            "Complete Xray profiles cannot be encoded as share-link subscriptions".into(),
+        ));
+    }
+    Ok(raw)
 }

@@ -36,7 +36,11 @@ xrat import "vless://uuid@example.com:443?type=ws&security=tls#MyNode"
 ```
 
 xrat automatically detects the input format: subscription URL, local file, raw
-base64-encoded subscription, plain link list, SIP008 JSON, or Xray JSON.
+base64-encoded subscription, plain link list, or complete Xray JSON profile.
+SIP008 JSON subscriptions are not currently supported by import. Complete Xray
+profiles preserve their own DNS, routing and inbounds; see
+[importing](../03-features/importing.md#xray-json) for compatibility
+restrictions.
 
 ## 2. List Imported Configs
 

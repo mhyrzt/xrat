@@ -91,7 +91,8 @@ Lines starting with `#` are treated as comments and skipped.
 
 ### SIP008 JSON
 
-Shadowsocks SIP008 format:
+The parser recognizes Shadowsocks SIP008 format, but JSON input is not currently
+accepted by import:
 
 ```json
 {
@@ -110,35 +111,78 @@ Shadowsocks SIP008 format:
 
 ### Xray JSON
 
-Full Xray configuration:
+Import a complete Xray configuration as one native profile:
 
-```json
-{
-  "inbounds": [...],
-  "outbounds": [
-    {
-      "protocol": "vless",
-      "settings": {
-        "vnext": [...]
-      }
-    }
-  ]
-}
+```bash
+xrat import ./xray.json --name london-vpn
+xrat connect <config-ref>
+xrat show config <config-ref> --raw > restored.json
 ```
 
-xrat extracts outbound configs and converts them to internal nodes.
+XRAT keeps a private copy of the original bytes, including custom XHTTP fields
+such as `extra.xmux`, DNS, routing, multiple outbounds and unknown fields. It
+does not normalize or inject settings into this JSON. Xray performs native
+validation before an existing connection is stopped. Import checks JSON syntax
+and shape; successful import alone does not prove the configuration is accepted
+by Xray.
+
+Profiles use `xray-json` as their catalog type and have no single proxy
+endpoint. They support the existing references, names, enable/disable, soft
+delete/restore, CLI/TUI/daemon connection lifecycle and individual raw export.
+The TUI import dialog accepts a local file path or pasted JSON. A repeat import
+of identical bytes reuses the reference and restores a soft-deleted profile;
+changed bytes create a separate profile. Node probing, automatic rotation and
+share-link subscriptions are unsupported. Export a profile individually instead
+of joining its JSON with other records.
+
+Runtime requirements:
+
+- Select `runtime.engine = "xray"` and disable XRAT-managed TUN and kill switch.
+  The daemon pauses automatic rotation while a raw profile is active and reports
+  `rotation_paused_for_xray_profile`; reconnect a node and enable rotation to
+  resume it. Raw TUN inbounds are rejected because their capture ownership
+  cannot be verified.
+- Include a local TCP SOCKS or HTTP inbound with a single nonzero port for
+  startup readiness. Multiple inbounds are preserved; XRAT reports the first
+  supported local endpoint of each type. It does not add an inbound when none is
+  suitable.
+- The profile owns its DNS, routing, TLS, authentication, logging and transport
+  behavior. XRAT's generated-runtime settings do not override them. XRAT traffic
+  statistics and automatic health probing are unavailable for raw profiles.
+- Relative paths in the JSON retain Xray's process-working-directory semantics;
+  use absolute paths for referenced certificates, keys and other files.
+
+Local provisioning is required: browser uploads and machine-gateway imports
+cannot introduce arbitrary engine configuration. Authorized browser users can
+operate already provisioned profiles and retrieve their original JSON through
+the existing protected raw-config endpoint. Profiles are limited to 4 MiB.
+
+Back up both the database and the private `profiles/` directory under XRAT's
+application root. Metadata contains a content digest and length; the JSON is not
+stored in the database. Files are scoped to the database identity. A PostgreSQL
+deployment must make the same private profile directory available to every
+runtime owner using that database. Missing or changed files fail explicitly;
+XRAT will not substitute generated node configuration. On Unix the profile
+directories use mode `0700` and files use `0600`. Soft deletion retains the
+file; permanent deletion through the application removes unreferenced profile
+files. Disconnect a running profile before permanently deleting it.
+
+If native validation fails, run `xray run -test -c ./xray.json` locally for full
+diagnostics. XRAT keeps raw validation diagnostics out of general event messages
+because they may contain credentials. Startup diagnostics are in the private
+session error log.
 
 ## Format Detection
 
 xrat automatically detects the input format using heuristics:
 
-| Condition                                                | Detected Format     |
-| -------------------------------------------------------- | ------------------- |
-| Starts with `{` and contains `"version"` or `"inbounds"` | Xray JSON           |
-| Starts with `{` and contains `"servers"`                 | SIP008 JSON         |
-| Single line starting with a protocol scheme              | Single share link   |
-| Multiple lines, first line starts with protocol scheme   | Plain link list     |
-| Otherwise                                                | Base64 subscription |
+| Condition                                              | Detected Format                      |
+| ------------------------------------------------------ | ------------------------------------ |
+| JSON object with an `outbounds` array                  | Complete Xray profile (local import) |
+| Starts with `{` and contains `"servers"`               | SIP008 JSON (unsupported for import) |
+| Single line starting with a protocol scheme            | Single share link                    |
+| Multiple lines, first line starts with protocol scheme | Plain link list                      |
+| Otherwise                                              | Base64 subscription                  |
 
 ## Normalization
 
@@ -179,8 +223,8 @@ obsolete rows for that subscription and their test/runtime history. Configs
 still active or referenced by a starting, running, or stopping runtime session
 are retained as deleted until a later refresh can safely purge them. Other
 subscriptions are unaffected. Import and cleanup run in one transaction; a
-failed config import or empty payload removes nothing. A provider re-add creates a new
-config row after the previous row has been purged. See
+failed config import or empty payload removes nothing. A provider re-add creates
+a new config row after the previous row has been purged. See
 [Deduplication](deduplication.md) for the dedup key used to match configs.
 
 There are two ways to refresh:

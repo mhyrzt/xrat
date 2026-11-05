@@ -11,6 +11,7 @@ pub(in super::super) struct ResolvedLaunch {
 }
 
 pub(in super::super) enum RuntimeLaunchConfig {
+    RawXray(xrat_config::XrayDocument),
     Xray(xrat_engines::xray::XrayConfig),
     Singbox(SingboxConfig),
 }

@@ -249,15 +249,19 @@ removed configs  0
 total configs    12
 ```
 
-Have a file instead? Plain link lists, base64 subscriptions, SIP008, and Xray
-JSON are detected automatically:
+Have a file instead? Plain link lists, base64 subscriptions, and complete Xray
+JSON profiles are detected automatically:
 
 ```bash
 xrat import ./links.txt
 xrat import ./subscription.b64
-xrat import ./sip008.json
-xrat import ./xray.json
+xrat import ./xray.json --name london-vpn
 ```
+
+Complete Xray profiles preserve the original JSON, including DNS, routing and
+custom transport fields. They require Xray and a local SOCKS/HTTP inbound;
+XRAT-managed TUN, kill switch, automatic rotation and node probes are
+unsupported. SIP008 JSON subscriptions remain unsupported by import.
 
 Subscription responses and local node files are parsed as proxy configs. HTTP(S)
 proxy links inside them are not fetched as additional subscriptions.

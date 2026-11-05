@@ -47,6 +47,18 @@ async fn run_inner(
     if state.rotation_enabled {
         state.next_timer_epoch_secs = Some(now_epoch_seconds() + state.rotation_interval_secs);
     }
+    if let Ok(Some(session)) = context.db.get_running_runtime_session().await
+        && let Some(id) = session.config_id
+        && context
+            .db
+            .get_config_by_id(id)
+            .await
+            .ok()
+            .flatten()
+            .is_some_and(|config| config.is_xray_profile())
+    {
+        state.pause_rotation_for_xray_profile();
+    }
     let mut health_ticker = time::interval(Duration::from_secs(HEALTH_TICK_SECONDS));
     health_ticker.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
 

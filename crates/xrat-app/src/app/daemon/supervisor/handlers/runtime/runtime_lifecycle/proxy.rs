@@ -5,6 +5,31 @@ pub(super) async fn handle_proxy_start(
     context: &AppContext,
     respond_to: oneshot::Sender<ProxyControlResult>,
 ) {
+    let active = async {
+        let id = context
+            .db
+            .get_running_runtime_session()
+            .await?
+            .and_then(|session| session.config_id);
+        match id {
+            Some(id) => context.db.get_config_by_id(id).await,
+            None => Ok(None),
+        }
+    }
+    .await;
+    match active {
+        Ok(Some(config)) if config.is_xray_profile() => {
+            let _ = respond_to.send(ProxyControlResult::Err { message: "Automatic rotation is unsupported for a complete Xray profile; disconnect it first".into() });
+            return;
+        }
+        Err(error) => {
+            let _ = respond_to.send(ProxyControlResult::Err {
+                message: error.to_string(),
+            });
+            return;
+        }
+        _ => {}
+    }
     state.rotation_enabled = true;
     state.cooldown_active = false;
     state.next_timer_epoch_secs = Some(now_epoch_seconds() + state.rotation_interval_secs);

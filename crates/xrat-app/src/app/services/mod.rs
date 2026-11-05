@@ -39,6 +39,7 @@ use crate::app::ports::{Clock, Filesystem, RealFilesystem, SystemClock};
 
 mod contracts;
 pub use contracts::AppServices;
+pub(crate) mod xray_profiles;
 
 pub(crate) mod cores;
 pub(crate) mod web_management;

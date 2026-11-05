@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 use xrat_db::ImportSummary;
 
 fn body(bytes: &[u8]) -> Result<String> {
+    if crate::app::services::xray_profiles::parse(bytes)?.is_some() {
+        return Err(AppError::InvalidArgument("Complete Xray profiles require local administrator provisioning; machine catalog imports accept proxy links only".into()));
+    }
     import::parse_nodes(bytes)?;
     String::from_utf8(bytes.to_vec()).map_err(|_| {
         AppError::InvalidArgument("subscription contents must be UTF-8 text or base64".into())

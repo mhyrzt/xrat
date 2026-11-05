@@ -24,6 +24,16 @@ pub(super) async fn handle_runtime_replace(
             state.cooldown_active = false;
             state.pending_health_recovery = false;
             state.consecutive_health_failures = 0;
+            if context
+                .db
+                .get_config_by_id(result.new_config_id)
+                .await
+                .ok()
+                .flatten()
+                .is_some_and(|config| config.is_xray_profile())
+            {
+                state.pause_rotation_for_xray_profile();
+            }
             if state.rotation_enabled {
                 state.next_timer_epoch_secs =
                     Some(now_epoch_seconds() + state.rotation_interval_secs);

@@ -140,6 +140,11 @@ pub(super) async fn show(client: &MachineClient, args: &ShowArgs) -> Result<()> 
     match &args.target {
         ShowTarget::Config(args) => {
             let config = client.config(&ConfigRef::from(args.id.as_str())).await?;
+            if args.raw {
+                return lifecycle::print_raw_contents(
+                    client.raw_configs_by_ids(&[config.id]).await?,
+                );
+            }
             let subscription_ref = match config.subscription_id {
                 Some(id) => Some(subscription(client, &id.to_string()).await?.r#ref),
                 None => None,

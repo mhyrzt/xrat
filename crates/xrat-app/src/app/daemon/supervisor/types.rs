@@ -126,6 +126,14 @@ pub struct SupervisorState {
 }
 
 impl SupervisorState {
+    pub(super) fn pause_rotation_for_xray_profile(&mut self) {
+        self.rotation_enabled = false;
+        self.next_timer_epoch_secs = None;
+        self.cooldown_active = false;
+        self.pending_health_recovery = false;
+        self.last_result = "rotation_paused_for_xray_profile".into();
+    }
+
     pub fn new(instance_id: String) -> Self {
         Self {
             ready: true,

@@ -31,6 +31,7 @@ with open(config_path, "r", encoding="utf-8") as config_file:
 
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("launch should resolve");
 
     preflight_runtime(&launch, &context.runtime_paths.runtime_dir)
@@ -131,6 +132,7 @@ async fn hy2_launch_uses_configured_xray_runtime() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("hy2 launch should resolve");
 
     assert_eq!(launch.binary_path, context.runtime_paths.xray_path);
@@ -152,6 +154,7 @@ async fn hy2_launch_uses_configured_singbox_runtime() {
     let config = imported_config(&context, hy2_node()).await;
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .unwrap();
     assert_eq!(launch.binary_path, context.runtime_paths.sing_box_path);
     assert!(matches!(launch.config, RuntimeLaunchConfig::Singbox(_)));
@@ -164,7 +167,7 @@ async fn singbox_launch_rejects_socks_udp_disabled() {
     context.app_config.runtime.socks.udp = false;
     let config = imported_config(&context, hy2_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("sing-box cannot disable SOCKS UDP independently"),
         Err(error) => error,
     };
@@ -180,7 +183,7 @@ async fn singbox_launch_rejects_non_loopback_clash_api_and_port_collisions() {
     context.app_config.runtime.stats.host = "0.0.0.0".to_string();
     let config = imported_config(&context, hy2_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("non-loopback Clash API must be rejected"),
         Err(error) => error,
     };
@@ -188,7 +191,7 @@ async fn singbox_launch_rejects_non_loopback_clash_api_and_port_collisions() {
 
     context.app_config.runtime.stats.host = "127.0.0.1".to_string();
     context.app_config.runtime.stats.port = context.app_config.runtime.socks.port;
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("Clash API/socks port collision must be rejected"),
         Err(error) => error,
     };
@@ -204,7 +207,7 @@ async fn hy2_launch_rejects_configured_v2ray_runtime() {
     let mut context = test_context().await;
     context.app_config.runtime.engine = "v2ray".to_string();
     let config = imported_config(&context, hy2_node()).await;
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("V2Ray should reject Hy2"),
         Err(error) => error,
     };
@@ -221,6 +224,7 @@ async fn managed_xray_launch_applies_configured_routing() {
 
     let launch = service
         .resolve_launch(&imported)
+        .await
         .expect("Xray launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an Xray runtime config");
@@ -252,6 +256,7 @@ async fn managed_xray_launch_applies_configured_dns() {
 
     let launch = service
         .resolve_launch(&imported)
+        .await
         .expect("Xray launch should resolve with DNS");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an Xray runtime config");
@@ -279,6 +284,7 @@ async fn managed_singbox_launch_applies_configured_dns() {
 
     let launch = service
         .resolve_launch(&imported)
+        .await
         .expect("sing-box launch should resolve with DNS");
     let RuntimeLaunchConfig::Singbox(config) = launch.config else {
         panic!("expected a sing-box runtime config");
@@ -303,6 +309,7 @@ async fn configured_singbox_supports_vless_runtime_generation() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("VLESS sing-box launch");
     let RuntimeLaunchConfig::Singbox(config) = launch.config else {
         panic!("expected sing-box config");
@@ -322,6 +329,7 @@ async fn managed_singbox_launch_adds_tun_inbound_and_route() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("TUN launch should resolve");
     let RuntimeLaunchConfig::Singbox(config) = launch.config else {
         panic!("expected sing-box config");
@@ -353,6 +361,7 @@ async fn managed_xray_launch_adds_tun_inbound() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("xray TUN launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an xray runtime config");
@@ -407,6 +416,7 @@ async fn managed_xray_launch_adds_tun_ipv6_routes() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("xray TUN launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an xray runtime config");
@@ -439,6 +449,7 @@ async fn managed_xray_launch_adds_tun_dual_stack_routes() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("xray TUN launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an xray runtime config");
@@ -470,6 +481,7 @@ async fn managed_xray_launch_omits_routes_when_auto_route_false() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("xray TUN launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an xray runtime config");
@@ -492,7 +504,7 @@ async fn tun_rejects_v2ray_engine() {
     context.app_config.runtime.tun.enabled = true;
     let config = imported_config(&context, test_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("TUN with the v2ray engine must fail"),
         Err(error) => error,
     };
@@ -541,6 +553,7 @@ async fn managed_xray_launch_resolves_node_domain_and_preserves_sni() {
 
     let launch = service
         .resolve_launch(&config)
+        .await
         .expect("xray TUN launch should resolve");
     let RuntimeLaunchConfig::Xray(config) = launch.config else {
         panic!("expected an xray runtime config");
@@ -574,7 +587,7 @@ async fn managed_xray_launch_rejects_unresolvable_endpoint_for_tun() {
     };
     let service = RuntimeService::with_process_ports(&context, ports);
 
-    let error = match service.resolve_launch(&config) {
+    let error = match service.resolve_launch(&config).await {
         Ok(_) => panic!("unresolvable proxy endpoint must fail"),
         Err(err) => err,
     };
@@ -605,7 +618,7 @@ async fn managed_xray_launch_rejects_unresolvable_dns_provider_for_tun() {
     };
     let service = RuntimeService::with_process_ports(&context, ports);
 
-    let error = match service.resolve_launch(&config) {
+    let error = match service.resolve_launch(&config).await {
         Ok(_) => panic!("unresolvable DNS provider must fail"),
         Err(err) => err,
     };
@@ -625,7 +638,7 @@ async fn managed_tun_capture_is_refused_without_a_supported_platform() {
     context.app_config.runtime.tun.enabled = true;
     let config = imported_config(&context, test_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("TUN capture must be refused on this platform"),
         Err(error) => error,
     };
@@ -677,7 +690,7 @@ async fn xray_tun_rejects_old_core_without_working_tun() {
         write_fake_xray_version(&context, "Xray 26.3.27 (Xray, Penetrates Everything.)");
     let config = imported_config(&context, test_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("Xray 26.3.27 must be rejected for TUN"),
         Err(error) => error,
     };
@@ -695,6 +708,7 @@ async fn xray_tun_accepts_core_with_working_tun() {
 
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("Xray 26.7.11 should allow TUN");
     assert!(matches!(launch.config, RuntimeLaunchConfig::Xray(_)));
 }
@@ -709,7 +723,7 @@ async fn xray_tun_rejects_route_exclusions() {
         write_fake_xray_version(&context, "Xray 26.7.28 (Xray, Penetrates Everything.)");
     let config = imported_config(&context, test_node()).await;
 
-    let error = match RuntimeService::new(&context).resolve_launch(&config) {
+    let error = match RuntimeService::new(&context).resolve_launch(&config).await {
         Ok(_) => panic!("xray must reject TUN route exclusions"),
         Err(error) => error,
     };
@@ -1300,6 +1314,7 @@ async fn managed_xray_launch_skips_resolution_for_dns_ip_literals_and_special_se
     };
     RuntimeService::with_process_ports(&context, ports)
         .resolve_launch(&config)
+        .await
         .expect("literal and special DNS servers must not require host resolution");
 }
 
@@ -1320,6 +1335,7 @@ async fn managed_xray_tun_launch_applies_split_blacklist_and_whitelist() {
 
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("xray TUN blacklist launch should resolve");
     let RuntimeLaunchConfig::Xray(xray_cfg) = launch.config else {
         panic!("expected Xray config");
@@ -1348,6 +1364,7 @@ async fn managed_xray_tun_launch_applies_split_blacklist_and_whitelist() {
     context.app_config.runtime.tun.whitelist = vec!["xrat-fixture-chat-213".to_string()];
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("xray TUN whitelist launch should resolve");
     let RuntimeLaunchConfig::Xray(xray_cfg) = launch.config else {
         panic!("expected Xray config");
@@ -1391,6 +1408,7 @@ async fn managed_singbox_tun_launch_applies_split_blacklist_and_whitelist() {
 
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("sing-box TUN blacklist launch should resolve");
     let RuntimeLaunchConfig::Singbox(sb_cfg) = launch.config else {
         panic!("expected sing-box config");
@@ -1421,6 +1439,7 @@ async fn managed_singbox_tun_launch_applies_split_blacklist_and_whitelist() {
     context.app_config.runtime.tun.whitelist = vec!["xrat-fixture-chat-213".to_string()];
     let launch = RuntimeService::new(&context)
         .resolve_launch(&config)
+        .await
         .expect("sing-box TUN whitelist launch should resolve");
     let RuntimeLaunchConfig::Singbox(sb_cfg) = launch.config else {
         panic!("expected sing-box config");

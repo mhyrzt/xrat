@@ -139,10 +139,13 @@ impl ConfigService {
                 .repository
                 .list_top_configs_by_real_delay(i64::from(top), &filter)
                 .await?;
-            return Ok(rows.into_iter().map(|row| row.config.raw_config).collect());
+            let configs = rows.into_iter().map(|row| row.config).collect::<Vec<_>>();
+            reject_profile_subscription(&configs)?;
+            return Ok(configs.into_iter().map(|row| row.raw_config).collect());
         }
 
         let configs = self.repository.list_configs(&filter).await?;
+        reject_profile_subscription(&configs)?;
         Ok(configs
             .into_iter()
             .map(|config| config.raw_config)
@@ -172,11 +175,10 @@ impl ConfigService {
         }
         match ids {
             [] => Ok(Some(Vec::new())),
-            [id] => Ok(self
-                .repository
-                .get_config_by_id(*id)
-                .await?
-                .map(|row| vec![row.raw_config])),
+            [id] => match self.repository.get_config_by_id(*id).await? {
+                Some(row) => Ok(Some(vec![self.repository.raw_content(&row).await?])),
+                None => Ok(None),
+            },
             _ => {
                 let raw = self
                     .repository
@@ -186,9 +188,17 @@ impl ConfigService {
                     })
                     .await?
                     .into_iter()
-                    .map(|row| (row.id, row.raw_config))
+                    .map(|row| (row.id, row))
                     .collect::<std::collections::HashMap<_, _>>();
-                Ok(ids.iter().map(|id| raw.get(id).cloned()).collect())
+                let Some(rows) = ids
+                    .iter()
+                    .map(|id| raw.get(id).cloned())
+                    .collect::<Option<Vec<_>>>()
+                else {
+                    return Ok(None);
+                };
+                reject_profile_subscription(&rows)?;
+                Ok(Some(rows.into_iter().map(|row| row.raw_config).collect()))
             }
         }
     }
@@ -272,4 +282,11 @@ impl ConfigService {
 
         Ok(self.repository.list_subscriptions().await?)
     }
+}
+
+fn reject_profile_subscription(configs: &[xrat_db::ConfigRecord]) -> Result<()> {
+    if configs.iter().any(xrat_db::ConfigRecord::is_xray_profile) {
+        return Err(AppError::InvalidArgument("complete Xray profiles cannot be encoded as a share-link subscription; export each profile individually".into()));
+    }
+    Ok(())
 }

@@ -64,7 +64,13 @@ pub(crate) async fn sample(
             })
             .and_then(|remote| remote.traffic);
     }
-    if !snapshot.pid_running || !context.app_config.runtime.stats.enabled {
+    if !snapshot.pid_running
+        || !context.app_config.runtime.stats.enabled
+        || snapshot
+            .session_config
+            .as_ref()
+            .is_some_and(xrat_db::ConfigRecord::is_xray_profile)
+    {
         return None;
     }
     let settings = &context.app_config.runtime.stats;

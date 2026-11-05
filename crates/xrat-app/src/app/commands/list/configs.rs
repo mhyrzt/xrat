@@ -72,7 +72,11 @@ pub(crate) fn format_config_table(
                 ),
                 Cell::plain(config.protocol.clone()),
                 Cell::plain(output::truncate(&output::dash(Some(&config.address)), 36)),
-                Cell::plain(config.port.to_string()),
+                Cell::plain(if config.protocol == xrat_db::XRAY_PROFILE_PROTOCOL {
+                    "-".into()
+                } else {
+                    config.port.to_string()
+                }),
             ];
             metric_columns.push_cells(row, &mut cells);
             cells.push(Cell::plain(output::truncate(

@@ -44,6 +44,9 @@ impl TuiConfigRow {
     }
 
     pub fn endpoint(&self) -> String {
+        if self.protocol == xrat_db::XRAY_PROFILE_PROTOCOL {
+            return "complete Xray profile".into();
+        }
         format!("{}:{}", self.address, self.port)
     }
 
@@ -56,6 +59,9 @@ impl TuiConfigRow {
     }
 
     pub fn port_label(&self) -> String {
+        if self.protocol == xrat_db::XRAY_PROFILE_PROTOCOL {
+            return "-".into();
+        }
         self.port.to_string()
     }
 
