@@ -7,7 +7,12 @@ impl<'a> RuntimeService<'a> {
             return Ok(client.overview().await?.runtime);
         }
         let active_state = self.active_session_state().await?;
-        let latest = self.context.db.get_latest_runtime_session().await?;
+        let latest = match &active_state {
+            ActiveSessionState::Running(session) | ActiveSessionState::Stale(session) => {
+                Some(session.clone())
+            }
+            ActiveSessionState::None => self.context.db.get_latest_runtime_session().await?,
+        };
         let session_config = match latest.as_ref().and_then(|session| session.config_id) {
             Some(config_id) => self.context.db.get_config_by_id(config_id).await?,
             None => None,
