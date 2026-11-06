@@ -223,6 +223,18 @@ Recovery is recorded as an event visible in `xrat logs`:
 A cmdline/exec mismatch is **not** auto-recovered, because a different live
 process owns that PID and launching over it could be unsafe.
 
+### Restore after a graceful daemon shutdown
+
+Set `runtime.restore_connection_on_start = true` to reconnect the last managed
+profile when the daemon starts after a graceful shutdown. The saved
+`runtime.tun.enabled` setting selects the same TUN or local-proxy mode used by
+the connection. A manual `xrat disconnect` clears the restore intent. Startup
+retries failed connections with increasing delays while the daemon remains
+running, so a network that becomes available after boot can still connect.
+
+This works in the background daemon, including a lingering user service; the
+TUI and a graphical login are not required. The option defaults to `false`.
+
 ### Reattach Validation
 
 xrat validates that the PID still belongs to the expected proxy process:

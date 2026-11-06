@@ -119,15 +119,18 @@ impl<'a> RuntimeTransitionService<'a> {
             result,
         }
     }
-    pub async fn shutdown(context: &AppContext) -> bool {
+    pub async fn shutdown(context: &AppContext, daemon_instance_id: &str) -> bool {
         let runtime_disconnected = RuntimeService::new(context)
-        .disconnect()
-        .await
-        .map(|result| result.stopped_session)
-        .unwrap_or_else(|error| {
-            tracing::debug!(operation = "daemon_shutdown_disconnect", %error, "runtime disconnect failed during shutdown");
-            false
-        });
+            .disconnect_for_daemon_shutdown(
+                daemon_instance_id,
+                context.app_config.runtime.restore_connection_on_start,
+            )
+            .await
+            .map(|result| result.stopped_session)
+            .unwrap_or_else(|error| {
+                tracing::debug!(operation = "daemon_shutdown_disconnect", %error, "runtime disconnect failed during shutdown");
+                false
+            });
         crate::app::events::record(
             &context.db,
             crate::app::events::LEVEL_INFO,

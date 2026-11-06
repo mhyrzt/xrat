@@ -18,6 +18,12 @@ mod types;
 
 use helpers::*;
 use session_state::*;
+pub(crate) use session_state::{
+    REASON_DAEMON_SHUTDOWN_RESTORE_REQUESTED, REASON_DAEMON_STALE_PID_RESTORE_PENDING,
+    REASON_DAEMON_STARTUP_RESTORE_PENDING, REASON_DAEMON_STARTUP_RESTORE_SUCCEEDED,
+    REASON_DAEMON_STARTUP_RESTORE_UNAVAILABLE, REASON_MANUAL_CONNECT, REASON_MANUAL_DISCONNECT,
+    StopTransition, cancel_pending_startup_restore, stop_active_session_with_transition,
+};
 use spawn::*;
 use types::*;
 pub use types::{

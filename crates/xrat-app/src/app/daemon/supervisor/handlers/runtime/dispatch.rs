@@ -45,10 +45,11 @@ pub(crate) async fn handle_runtime_replace(
 }
 
 pub(crate) async fn handle_daemon_shutdown(
+    state: &SupervisorState,
     context: &AppContext,
     respond_to: oneshot::Sender<DaemonShutdownResult>,
 ) {
-    runtime_lifecycle::handle_daemon_shutdown(context, respond_to).await;
+    runtime_lifecycle::handle_daemon_shutdown(state, context, respond_to).await;
 }
 
 pub(crate) async fn handle_proxy_start(

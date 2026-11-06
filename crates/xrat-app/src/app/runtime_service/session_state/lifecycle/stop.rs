@@ -1,25 +1,62 @@
 use super::super::*;
 
-pub(crate) async fn stop_active_session(
+#[derive(Clone, Copy)]
+pub(crate) enum StopTransition<'a> {
+    ManualDisconnect,
+    DaemonShutdown {
+        owner_instance_id: &'a str,
+        restore_on_start: bool,
+    },
+}
+
+pub(crate) async fn stop_active_session_with_transition(
     context: &AppContext,
     signals: &dyn xrat_support::signals::ProcessSignals,
+    transition: StopTransition<'_>,
 ) -> crate::app::Result<bool> {
     let Some(session) = context.db.get_running_runtime_session().await? else {
         context.db.clear_active_config().await?;
         return Ok(false);
     };
+    if let StopTransition::DaemonShutdown {
+        owner_instance_id,
+        restore_on_start,
+    } = transition
+    {
+        context
+            .db
+            .update_runtime_session_transition_metadata(
+                session.id,
+                Some("daemon"),
+                Some(owner_instance_id),
+                Some(if restore_on_start {
+                    REASON_DAEMON_SHUTDOWN_RESTORE_REQUESTED
+                } else {
+                    REASON_DAEMON_SHUTDOWN
+                }),
+                Some(if restore_on_start {
+                    "daemon shutdown requested startup restoration"
+                } else {
+                    "daemon shutdown disconnected the runtime"
+                }),
+                Some("daemon"),
+            )
+            .await?;
+    }
     stop_session(context, &session, signals).await?;
-    context
-        .db
-        .update_runtime_session_transition_metadata(
-            session.id,
-            Some("cli"),
-            None,
-            Some("manual_disconnect"),
-            Some("runtime disconnect request succeeded"),
-            Some("cli"),
-        )
-        .await?;
+    if matches!(transition, StopTransition::ManualDisconnect) {
+        context
+            .db
+            .update_runtime_session_transition_metadata(
+                session.id,
+                Some("cli"),
+                None,
+                Some(REASON_MANUAL_DISCONNECT),
+                Some("runtime disconnect request succeeded"),
+                Some("cli"),
+            )
+            .await?;
+    }
     context.db.clear_active_config().await?;
     Ok(true)
 }

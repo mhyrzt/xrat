@@ -11,6 +11,7 @@ pub struct RuntimeSettings {
     pub engine: String,
     pub xray_compatibility: XrayCompatibilityPolicy,
     pub replace_active_session: bool,
+    pub restore_connection_on_start: bool,
     pub rotation: RotationSettings,
     pub log: LogSettings,
     pub socks: SocksSettings,

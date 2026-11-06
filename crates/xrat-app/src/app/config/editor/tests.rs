@@ -65,6 +65,18 @@ fn exposes_supported_roots_and_effective_defaults() {
             .any(|setting| setting.path == "runtime.socks.port"
                 && setting.value == SettingValue::Integer(18200))
     );
+    assert!(session.settings.iter().any(|setting| setting.path
+        == "runtime.restore_connection_on_start"
+        && setting.value == SettingValue::Bool(false)));
+    assert_eq!(
+        session
+            .settings
+            .iter()
+            .find(|setting| setting.path == "runtime.restore_connection_on_start")
+            .unwrap()
+            .effect,
+        SettingEffect::DaemonRestart
+    );
     assert!(
         !session
             .settings
