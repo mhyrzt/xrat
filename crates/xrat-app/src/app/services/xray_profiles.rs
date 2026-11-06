@@ -1,5 +1,5 @@
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use crate::app::{AppError, Result, context::AppContext};
@@ -69,6 +69,14 @@ impl ProfileStore {
         Ok(file)
     }
 
+    pub(crate) fn lock_if_present(&self) -> Result<Option<File>> {
+        match fs::symlink_metadata(&self.root) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error.into()),
+            Ok(_) => self.lock().map(Some),
+        }
+    }
+
     fn path(&self, key: &str) -> Result<PathBuf> {
         if key.len() != 64
             || !key
@@ -80,36 +88,6 @@ impl ProfileStore {
             ));
         }
         Ok(self.root.join(format!("{key}.json")))
-    }
-
-    pub(crate) fn write(&self, document: &XrayDocument) -> Result<(String, bool)> {
-        let key = digest(document.as_bytes());
-        let path = self.path(&key)?;
-        let existed = path.exists();
-        if existed {
-            regular_file(&path)?;
-            if self
-                .read_bytes(&key)
-                .is_ok_and(|existing| existing == document.as_bytes())
-            {
-                return Ok((key, false));
-            }
-        }
-        let mut staged = tempfile::Builder::new()
-            .prefix(".staged-")
-            .tempfile_in(&self.root)?;
-        staged.write_all(document.as_bytes())?;
-        staged.as_file().sync_all()?;
-        if existed {
-            staged.persist(path).map_err(|error| error.error)?;
-        } else {
-            staged
-                .persist_noclobber(path)
-                .map_err(|error| error.error)?;
-        }
-        #[cfg(unix)]
-        File::open(&self.root)?.sync_all()?;
-        Ok((key, !existed))
     }
 
     fn read_bytes(&self, key: &str) -> Result<Vec<u8>> {
@@ -174,6 +152,16 @@ impl ProfileStore {
     }
 
     pub(crate) fn cleanup(&self, retained: &[String]) -> Result<()> {
+        match fs::symlink_metadata(&self.root) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error.into()),
+            Ok(metadata) if !metadata.is_dir() => {
+                return Err(AppError::InvalidArgument(
+                    "unsafe Xray profile directory".into(),
+                ));
+            }
+            Ok(_) => {}
+        }
         for entry in fs::read_dir(&self.root)? {
             let entry = entry?;
             let name = entry.file_name();
@@ -193,15 +181,70 @@ impl ProfileStore {
         }
         Ok(())
     }
+
+    fn cleanup_existing(&self, retained: &[String]) -> Result<()> {
+        let Some(_lock) = self.lock_if_present()? else {
+            return Ok(());
+        };
+        self.cleanup(retained)
+    }
 }
 
 pub(crate) async fn load(context: &AppContext, config: &ConfigRecord) -> Result<XrayDocument> {
-    let metadata = context
-        .db
-        .get_xray_profile(config.id)
-        .await?
-        .ok_or_else(|| AppError::InvalidArgument("Xray profile metadata is missing".into()))?;
-    ProfileStore::for_context(context).read(&metadata)
+    let store = ProfileStore::for_context(context);
+    load_from_database(&context.db, Some(&store), config).await
+}
+
+pub(crate) async fn load_from_database(
+    database: &xrat_db::Database,
+    store: Option<&ProfileStore>,
+    config: &ConfigRecord,
+) -> Result<XrayDocument> {
+    if !config.is_xray_profile() {
+        return Err(AppError::InvalidArgument(
+            "config is not a complete Xray profile".into(),
+        ));
+    }
+    if !config.raw_config.is_empty() {
+        return parse_stored_profile(config, config.raw_config.as_bytes());
+    }
+
+    let store = store.ok_or_else(|| {
+        AppError::InvalidArgument(
+            "Xray profile data is missing; restore the profiles directory from backup or reimport the original file".into(),
+        )
+    })?;
+    let _lock = store.lock()?;
+    let metadata = database.get_xray_profile(config.id).await?.ok_or_else(|| {
+        AppError::InvalidArgument("Xray profile data is missing; reimport the original file".into())
+    })?;
+    let document = store.read(&metadata)?;
+    let document = parse_stored_profile(config, document.as_bytes())?;
+    let raw_config = std::str::from_utf8(document.as_bytes())
+        .map_err(|_| AppError::InvalidArgument("Xray profile must contain UTF-8 JSON".into()))?;
+    database
+        .migrate_legacy_xray_profile(config.id, &metadata.digest, raw_config)
+        .await?;
+    match database.xray_profile_digests().await {
+        Ok(retained) => {
+            if let Err(error) = store.cleanup(&retained) {
+                tracing::warn!(%error, "failed to remove migrated Xray profile file");
+            }
+        }
+        Err(error) => tracing::warn!(%error, "failed to inspect legacy Xray profile files"),
+    }
+    Ok(document)
+}
+
+fn parse_stored_profile(config: &ConfigRecord, bytes: &[u8]) -> Result<XrayDocument> {
+    if config.dedup_key != format!("xray-json:{}", digest(bytes)) {
+        return Err(AppError::InvalidArgument(
+            "stored Xray profile failed its integrity check; reimport the original file".into(),
+        ));
+    }
+    parse(bytes)?.ok_or_else(|| {
+        AppError::InvalidArgument("stored Xray profile is not a complete Xray configuration".into())
+    })
 }
 
 pub(crate) fn parse(bytes: &[u8]) -> Result<Option<XrayDocument>> {
@@ -239,39 +282,29 @@ pub(crate) async fn import(
     if source.kind == xrat_db::SourceKind::Url {
         return Err(AppError::InvalidArgument("complete Xray profiles must be imported from a local file or pasted JSON; automatic URL refresh is unsupported".into()));
     }
-    let store = ProfileStore::for_context(context);
-    let _lock = store.lock()?;
-    store.cleanup(&context.db.xray_profile_digests().await?)?;
-    let (key, created) = store.write(document)?;
+    let bytes = document.as_bytes();
+    let key = digest(bytes);
+    let raw_config = std::str::from_utf8(bytes)
+        .map_err(|_| AppError::InvalidArgument("Xray profile must contain UTF-8 JSON".into()))?;
     let source = xrat_db::ImportSource {
         kind: xrat_db::SourceKind::RawText,
         value: format!("xray-profile:{key}"),
         name: name.map(str::to_owned).or_else(|| source.name.clone()),
     };
-    let result = context
+    let summary = context
         .db
-        .import_xray_profile(
-            &source,
-            &key,
-            document.as_bytes().len() as i64,
-            name.or(source.name.as_deref()),
-        )
-        .await;
-    match result {
-        Ok(summary) => Ok(summary),
-        Err(error) => {
-            if created
-                && context
-                    .db
-                    .xray_profile_digests()
-                    .await
-                    .is_ok_and(|digests| !digests.contains(&key))
-            {
-                store.remove(&key)?;
+        .import_xray_profile(&source, &key, raw_config, name.or(source.name.as_deref()))
+        .await?;
+    let store = ProfileStore::for_context(context);
+    match context.db.xray_profile_digests().await {
+        Ok(retained) => {
+            if let Err(error) = store.cleanup_existing(&retained) {
+                tracing::warn!(%error, "failed to remove imported legacy Xray profile file");
             }
-            Err(error.into())
         }
+        Err(error) => tracing::warn!(%error, "failed to inspect legacy Xray profile files"),
     }
+    Ok(summary)
 }
 
 fn digest(bytes: &[u8]) -> String {

@@ -20,7 +20,7 @@ async fn import_profile(context: &AppContext) -> xrat_db::ImportSummary {
 }
 
 #[tokio::test]
-async fn import_preserves_complete_file_deduplicates_and_restores_deleted_profile() {
+async fn import_preserves_complete_document_deduplicates_and_restores_deleted_profile() {
     let (context, _root) = TestAppBuilder::new("xray-profile-import")
         .build_with_root()
         .await;
@@ -33,7 +33,7 @@ async fn import_preserves_complete_file_deduplicates_and_restores_deleted_profil
         .pop()
         .unwrap();
     assert!(config.is_xray_profile());
-    assert!(config.raw_config.is_empty());
+    assert_eq!(config.raw_config.as_bytes(), PROFILE);
     assert_eq!(config.name.as_deref(), Some("london-vpn"));
     assert_eq!(load(&context, &config).await.unwrap().as_bytes(), PROFILE);
     context.db.delete_config(config.id).await.unwrap();
@@ -47,33 +47,20 @@ async fn import_preserves_complete_file_deduplicates_and_restores_deleted_profil
         load(&context, &configs[0]).await.unwrap().as_bytes(),
         PROFILE
     );
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let store = ProfileStore::for_context(&context);
-        let metadata = context
+    assert_eq!(configs[0].raw_config.as_bytes(), PROFILE);
+    assert!(
+        context
             .db
             .get_xray_profile(config.id)
             .await
             .unwrap()
-            .unwrap();
-        assert_eq!(
-            fs::metadata(store.path(&metadata.digest).unwrap())
-                .unwrap()
-                .permissions()
-                .mode()
-                & 0o777,
-            0o600
-        );
-        assert_eq!(
-            fs::metadata(&store.root).unwrap().permissions().mode() & 0o777,
-            0o700
-        );
-    }
+            .is_none()
+    );
+    assert!(!ProfileStore::for_context(&context).root.exists());
 }
 
 #[tokio::test]
-async fn corrupt_missing_and_symlinked_files_fail_closed() {
+async fn corrupt_database_profile_fails_closed() {
     let (context, _root) = TestAppBuilder::new("xray-profile-integrity")
         .build_with_root()
         .await;
@@ -85,38 +72,97 @@ async fn corrupt_missing_and_symlinked_files_fail_closed() {
         .unwrap()
         .pop()
         .unwrap();
-    let metadata = context
+    let pool = sqlx::SqlitePool::connect(&format!(
+        "sqlite:{}",
+        context.runtime_paths.database_path.display()
+    ))
+    .await
+    .unwrap();
+    sqlx::query("UPDATE configs SET raw_config = ?1 WHERE id = ?2")
+        .bind("{}")
+        .bind(config.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let corrupted = context
         .db
-        .get_xray_profile(config.id)
+        .get_config_by_id(config.id)
         .await
         .unwrap()
         .unwrap();
-    let store = ProfileStore::for_context(&context);
-    let path = store.path(&metadata.digest).unwrap();
-    fs::write(&path, b"{}").unwrap();
     assert!(
-        load(&context, &config)
+        load(&context, &corrupted)
             .await
             .unwrap_err()
             .to_string()
             .contains("integrity")
     );
-    import_profile(&context).await;
-    assert_eq!(load(&context, &config).await.unwrap().as_bytes(), PROFILE);
-    fs::remove_file(&path).unwrap();
-    assert!(load(&context, &config).await.is_err());
-    assert!(store.path("../../outside").is_err());
-    #[cfg(unix)]
-    {
-        let outside = _root.path().join("outside.json");
-        fs::write(&outside, PROFILE).unwrap();
-        std::os::unix::fs::symlink(&outside, &path).unwrap();
-        assert!(load(&context, &config).await.is_err());
-    }
 }
 
 #[tokio::test]
-async fn failed_database_import_rolls_back_catalog_and_new_file() {
+async fn legacy_file_profile_is_copied_into_database_on_first_load() {
+    let (context, _root) = TestAppBuilder::new("xray-profile-legacy-migration")
+        .build_with_root()
+        .await;
+    import_profile(&context).await;
+    let config = context
+        .db
+        .list_configs(&Default::default())
+        .await
+        .unwrap()
+        .pop()
+        .unwrap();
+    let key = digest(PROFILE);
+    let pool = sqlx::SqlitePool::connect(&format!(
+        "sqlite:{}",
+        context.runtime_paths.database_path.display()
+    ))
+    .await
+    .unwrap();
+    sqlx::query("UPDATE configs SET raw_config = '' WHERE id = ?1")
+        .bind(config.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO xray_profiles (config_id, digest, byte_length) VALUES (?1, ?2, ?3)")
+        .bind(config.id)
+        .bind(&key)
+        .bind(PROFILE.len() as i64)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let store = ProfileStore::for_context(&context);
+    {
+        let _lock = store.lock().unwrap();
+        fs::write(store.path(&key).unwrap(), PROFILE).unwrap();
+    }
+    let legacy = context
+        .db
+        .get_config_by_id(config.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(load(&context, &legacy).await.unwrap().as_bytes(), PROFILE);
+    let migrated = context
+        .db
+        .get_config_by_id(config.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(migrated.raw_config.as_bytes(), PROFILE);
+    assert!(
+        context
+            .db
+            .get_xray_profile(config.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(!store.path(&key).unwrap().exists());
+}
+
+#[tokio::test]
+async fn failed_database_import_rolls_back_catalog_without_creating_profile_files() {
     let (context, _root) = TestAppBuilder::new("xray-profile-rollback")
         .build_with_root()
         .await;
@@ -126,7 +172,7 @@ async fn failed_database_import_rolls_back_catalog_and_new_file() {
     ))
     .await
     .unwrap();
-    sqlx::query("CREATE TRIGGER reject_profile BEFORE INSERT ON xray_profiles BEGIN SELECT RAISE(FAIL, 'injected failure'); END").execute(&pool).await.unwrap();
+    sqlx::query("CREATE TRIGGER reject_profile BEFORE INSERT ON configs WHEN NEW.protocol = 'xray-json' BEGIN SELECT RAISE(FAIL, 'injected failure'); END").execute(&pool).await.unwrap();
     let source = xrat_db::ImportSource {
         kind: xrat_db::SourceKind::RawText,
         value: "test".into(),
@@ -146,8 +192,7 @@ async fn failed_database_import_rolls_back_catalog_and_new_file() {
             .is_empty()
     );
     assert!(context.db.list_subscriptions().await.unwrap().is_empty());
-    let store = ProfileStore::for_context(&context);
-    assert!(!store.path(&digest(PROFILE)).unwrap().exists());
+    assert!(!ProfileStore::for_context(&context).root.exists());
 }
 
 #[test]
@@ -159,7 +204,7 @@ fn malformed_or_wrong_json_does_not_become_an_empty_subscription() {
 }
 
 #[tokio::test]
-async fn catalog_export_and_lifecycle_keep_files_until_permanent_deletion() {
+async fn catalog_export_and_lifecycle_preserve_profile_until_permanent_deletion() {
     let (context, _root) = TestAppBuilder::new("xray-profile-lifecycle")
         .build_with_root()
         .await;
@@ -199,12 +244,7 @@ async fn catalog_export_and_lifecycle_keep_files_until_permanent_deletion() {
             .unwrap()
             .is_none()
     );
-    assert!(
-        !ProfileStore::for_context(&context)
-            .path(&digest(PROFILE))
-            .unwrap()
-            .exists()
-    );
+    assert!(!ProfileStore::for_context(&context).root.exists());
 }
 
 #[tokio::test]

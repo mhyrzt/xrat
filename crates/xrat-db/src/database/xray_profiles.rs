@@ -7,10 +7,19 @@ impl Database {
         &self,
         source: &ImportSource,
         digest: &str,
-        byte_length: i64,
+        raw_config: &str,
         name: Option<&str>,
     ) -> crate::Result<ImportSummary> {
-        crate::repository::xray_profiles::import(&self.pool, source, digest, byte_length, name)
+        crate::repository::xray_profiles::import(&self.pool, source, digest, raw_config, name).await
+    }
+
+    pub async fn migrate_legacy_xray_profile(
+        &self,
+        id: ConfigId,
+        digest: &str,
+        raw_config: &str,
+    ) -> crate::Result<()> {
+        crate::repository::xray_profiles::migrate_legacy_profile(&self.pool, id, digest, raw_config)
             .await
     }
 
