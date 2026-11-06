@@ -131,13 +131,15 @@ Runtime engine and proxy process configuration.
 engine = "xray"     # "xray" | "v2ray" | "sing-box"
 xray_compatibility = "auto" # "auto" | "stable" | "prerelease"
 replace_active_session = true
+restore_connection_on_start = false
 ```
 
-| Field                    | Type    | Default | Description                                                                                                                       |
-| ------------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `engine`                 | enum    | `xray`  | Managed runtime engine. Hy2 uses Xray or sing-box as configured; V2Ray rejects Hy2.                                              |
-| `xray_compatibility`     | enum    | `auto`  | Xray schema target. `auto` detects v26.7.28 prerelease; explicit `stable`/`prerelease` overrides detection.                       |
-| `replace_active_session` | boolean | `true`  | Auto-disconnect on new connect                                                                                                    |
+| Field                         | Type    | Default | Description                                                                                                      |
+| ----------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `engine`                      | enum    | `xray`  | Managed runtime engine. Hy2 uses Xray or sing-box as configured; V2Ray rejects Hy2.                              |
+| `xray_compatibility`          | enum    | `auto`  | Xray schema target. `auto` detects v26.7.28 prerelease; explicit `stable`/`prerelease` overrides detection.       |
+| `replace_active_session`      | boolean | `true`  | Auto-disconnect on new connect                                                                                   |
+| `restore_connection_on_start` | boolean | `false` | Reconnect the last managed profile after a graceful daemon shutdown and restart.                                  |
 
 ---
 

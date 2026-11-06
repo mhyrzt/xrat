@@ -2,6 +2,60 @@ use super::support::{import_hy2_config, import_single_config, write_fake_runtime
 use super::*;
 
 #[tokio::test]
+async fn status_prefers_running_session_over_future_dated_stopped_session() {
+    let context = test_context().await;
+    let config = import_single_config(&context).await;
+    let session = |status, process_id, config_id| RuntimeSessionInsert {
+        config_id,
+        status,
+        socks_host: None,
+        socks_port: None,
+        http_host: None,
+        http_port: None,
+        shadowsocks_host: None,
+        shadowsocks_port: None,
+        process_id,
+        failure_reason: None,
+        started_at: None,
+        stopped_at: None,
+    };
+    let stopped_id = context
+        .db
+        .insert_runtime_session(&session(RuntimeSessionStatus::Stopped, None, None))
+        .await
+        .unwrap();
+    let running_id = context
+        .db
+        .insert_runtime_session(&session(
+            RuntimeSessionStatus::Running,
+            Some(i64::from(std::process::id())),
+            Some(config.id),
+        ))
+        .await
+        .unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!(
+        "sqlite:{}",
+        context.runtime_paths.database_path.display()
+    ))
+    .await
+    .unwrap();
+    sqlx::query("UPDATE runtime_sessions SET created_at = '9999-01-01 00:00:00' WHERE id = ?")
+        .bind(stopped_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let snapshot = RuntimeService::new(&context).status().await.unwrap();
+    assert_eq!(snapshot.session.unwrap().id, running_id);
+    assert_eq!(
+        snapshot.status,
+        RuntimeSessionDisplay::Persisted(RuntimeSessionStatus::Running)
+    );
+    assert!(snapshot.pid_running);
+    assert_eq!(snapshot.session_config.unwrap().id, config.id);
+}
+
+#[tokio::test]
 async fn connect_and_disconnect_persist_direct_transition_metadata() {
     let mut context = test_context().await;
     let config = import_single_config(&context).await;

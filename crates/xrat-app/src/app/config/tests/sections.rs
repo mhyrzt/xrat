@@ -80,6 +80,15 @@ fn rotation_refresh_subscriptions_defaults_off_and_parses() {
 }
 
 #[test]
+fn restore_connection_on_start_defaults_off_and_parses() {
+    assert!(!AppConfig::default().runtime.restore_connection_on_start);
+
+    let config: AppConfig =
+        toml::from_str("[runtime]\nrestore_connection_on_start = true\n").expect("parse");
+    assert!(config.runtime.restore_connection_on_start);
+}
+
+#[test]
 fn mux_section_parses_overrides() {
     assert!(!AppConfig::default().runtime.mux.enabled);
 

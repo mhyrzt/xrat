@@ -40,6 +40,11 @@ pub(super) fn for_path(path: &str) -> Option<SettingHelp> {
             "",
             "replace_active_session = true",
         ),
+        "runtime.restore_connection_on_start" => help(
+            "Reconnects the last managed profile after a graceful daemon shutdown and restart.",
+            "",
+            "restore_connection_on_start = true",
+        ),
         "runtime.rotation.enabled" => help(
             "Enables automatic selection and replacement of the active proxy.",
             "",

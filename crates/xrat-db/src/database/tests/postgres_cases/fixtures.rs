@@ -1,4 +1,5 @@
 use super::*;
+use sha2::{Digest, Sha256};
 
 pub(in super::super) async fn verify_database_backend(db: &Database) {
     let (first_id, second_id) = config_cases::verify_import_and_config_state(db).await;
@@ -27,14 +28,15 @@ pub(in super::super) async fn verify_database_backend(db: &Database) {
 }
 
 async fn verify_xray_profile_state(db: &Database) {
-    let digest = "a".repeat(64);
+    let raw_config = r#"{"outbounds":[{"protocol":"blackhole"}]}"#;
+    let digest = format!("{:x}", Sha256::digest(raw_config.as_bytes()));
     let source = crate::ImportSource {
         kind: crate::SourceKind::RawText,
         value: format!("xray-profile:{digest}"),
         name: Some("raw fixture".into()),
     };
     let first = db
-        .import_xray_profile(&source, &digest, 123, Some("London"))
+        .import_xray_profile(&source, &digest, raw_config, Some("London"))
         .await
         .unwrap();
     let config = db
@@ -47,17 +49,13 @@ async fn verify_xray_profile_state(db: &Database) {
         .pop()
         .unwrap();
     assert!(config.is_xray_profile());
-    assert!(config.raw_config.is_empty());
+    assert_eq!(config.raw_config, raw_config);
     assert!(crate::node_from_record(&config).is_err());
-    let metadata = db.get_xray_profile(config.id).await.unwrap().unwrap();
-    assert_eq!(
-        (metadata.digest, metadata.byte_length),
-        (digest.clone(), 123)
-    );
+    assert!(db.get_xray_profile(config.id).await.unwrap().is_none());
     db.delete_config(config.id).await.unwrap();
-    assert!(db.get_xray_profile(config.id).await.unwrap().is_some());
+    assert!(db.get_xray_profile(config.id).await.unwrap().is_none());
     let second = db
-        .import_xray_profile(&source, &digest, 123, Some("Renamed"))
+        .import_xray_profile(&source, &digest, raw_config, Some("Renamed"))
         .await
         .unwrap();
     assert_eq!(first.subscription_id, second.subscription_id);
@@ -65,6 +63,7 @@ async fn verify_xray_profile_state(db: &Database) {
     assert!(!restored.is_deleted);
     assert_eq!(restored.r#ref, config.r#ref);
     assert_eq!(restored.name.as_deref(), Some("Renamed"));
+    assert_eq!(restored.raw_config, raw_config);
     db.hard_delete_config(config.id).await.unwrap();
     assert!(db.get_xray_profile(config.id).await.unwrap().is_none());
 }

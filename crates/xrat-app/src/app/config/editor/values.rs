@@ -254,6 +254,7 @@ pub(crate) fn setting_effect(path: &str) -> SettingEffect {
     if path.starts_with("runtime.rotation.")
         || path.starts_with("subscriptions.")
         || path.starts_with("server.")
+        || path == "runtime.restore_connection_on_start"
     {
         SettingEffect::DaemonRestart
     } else if (path.starts_with("runtime.") && path != "runtime.replace_active_session")

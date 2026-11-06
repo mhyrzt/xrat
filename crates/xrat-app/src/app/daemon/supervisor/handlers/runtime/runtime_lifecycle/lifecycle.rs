@@ -43,12 +43,16 @@ pub(in super::super) async fn handle_proxy_stop(
 }
 
 pub(in super::super) async fn handle_daemon_shutdown(
+    state: &SupervisorState,
     context: &AppContext,
     respond_to: oneshot::Sender<DaemonShutdownResult>,
 ) {
     let runtime_disconnected =
-        crate::app::services::runtime_transitions::RuntimeTransitionService::shutdown(context)
-            .await;
+        crate::app::services::runtime_transitions::RuntimeTransitionService::shutdown(
+            context,
+            &state.instance_id,
+        )
+        .await;
     if respond_to
         .send(DaemonShutdownResult::Ok(DaemonShutdownPayload {
             daemon_ready: false,

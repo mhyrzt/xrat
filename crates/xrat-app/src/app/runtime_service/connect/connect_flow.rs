@@ -3,7 +3,36 @@ use super::*;
 impl<'a> RuntimeService<'a> {
     #[tracing::instrument(skip_all, fields(config_id = request.config_id.0))]
     pub async fn connect(&self, request: ConnectRequest) -> crate::app::Result<ConnectResult> {
+        self.connect_with_startup_restore(request, None).await
+    }
+
+    pub(crate) async fn connect_for_startup_restore(
+        &self,
+        request: ConnectRequest,
+        owner_instance_id: &str,
+        pending_reason: &str,
+    ) -> crate::app::Result<ConnectResult> {
+        self.connect_with_startup_restore(request, Some((owner_instance_id, pending_reason)))
+            .await
+    }
+
+    async fn connect_with_startup_restore(
+        &self,
+        request: ConnectRequest,
+        startup_restore: Option<(&str, &str)>,
+    ) -> crate::app::Result<ConnectResult> {
         self.context.require_local_runtime()?;
+        if startup_restore.is_none() {
+            cancel_pending_startup_restore(
+                self.context,
+                "cli",
+                None,
+                REASON_MANUAL_CONNECT,
+                "manual connect request superseded startup restoration",
+                "cli",
+            )
+            .await?;
+        }
         let Some(config) = self.context.db.get_config_by_id(request.config_id).await? else {
             return Err(AppError::InvalidArgument(format!(
                 "config {} was not found",
@@ -158,6 +187,20 @@ impl<'a> RuntimeService<'a> {
             })
             .await?;
 
+        if let Some((owner_instance_id, pending_reason)) = startup_restore {
+            self.context
+                .db
+                .update_runtime_session_transition_metadata(
+                    session_id,
+                    Some("daemon"),
+                    Some(owner_instance_id),
+                    Some(pending_reason),
+                    Some("daemon startup is restoring the previous runtime session"),
+                    Some("daemon"),
+                )
+                .await?;
+        }
+
         if tun_enabled && let Err(error) = self.begin_tun_ownership(session_id).await {
             return Err(self
                 .rollback_runtime_error(previous_active_config_id, error)
@@ -215,15 +258,31 @@ impl<'a> RuntimeService<'a> {
                 None,
             )
             .await?;
+        let transition = match startup_restore {
+            Some((owner_instance_id, _)) => (
+                "daemon",
+                Some(owner_instance_id),
+                REASON_DAEMON_STARTUP_RESTORE_SUCCEEDED,
+                "daemon startup restore connected successfully",
+                "daemon",
+            ),
+            None => (
+                "cli",
+                None,
+                REASON_MANUAL_CONNECT,
+                "runtime connect request succeeded",
+                "cli",
+            ),
+        };
         self.context
             .db
             .update_runtime_session_transition_metadata(
                 session_id,
-                Some("cli"),
-                None,
-                Some("manual_connect"),
-                Some("runtime connect request succeeded"),
-                Some("cli"),
+                Some(transition.0),
+                transition.1,
+                Some(transition.2),
+                Some(transition.3),
+                Some(transition.4),
             )
             .await?;
         self.context.db.set_active_config(config.id).await?;

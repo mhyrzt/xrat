@@ -157,15 +157,14 @@ cannot introduce arbitrary engine configuration. Authorized browser users can
 operate already provisioned profiles and retrieve their original JSON through
 the existing protected raw-config endpoint. Profiles are limited to 4 MiB.
 
-Back up both the database and the private `profiles/` directory under XRAT's
-application root. Metadata contains a content digest and length; the JSON is not
-stored in the database. Files are scoped to the database identity. A PostgreSQL
-deployment must make the same private profile directory available to every
-runtime owner using that database. Missing or changed files fail explicitly;
-XRAT will not substitute generated node configuration. On Unix the profile
-directories use mode `0700` and files use `0600`. Soft deletion retains the
-file; permanent deletion through the application removes unreferenced profile
-files. Disconnect a running profile before permanently deleting it.
+The complete JSON document is stored in the selected database, so the regular
+SQLite backup or PostgreSQL dump includes profiles. The database and its
+backups contain the profile credentials; protect them accordingly. The original
+import file can be moved or deleted. Profiles imported by the earlier
+file-backed build are copied into the database the first time XRAT loads or
+exports them; keep the old `profiles/` directory until each such profile has
+been used once or reimported. Disconnect a running profile before permanently
+deleting it.
 
 If native validation fails, run `xray run -test -c ./xray.json` locally for full
 diagnostics. XRAT keeps raw validation diagnostics out of general event messages

@@ -40,19 +40,13 @@ impl DatabaseConfigRepository {
         if !config.is_xray_profile() {
             return Ok(config.raw_config.clone());
         }
-        let store = self.profiles.as_ref().ok_or_else(|| {
-            crate::app::AppError::InvalidArgument(
-                "Xray profile export requires the owning application context".into(),
-            )
-        })?;
-        let metadata = self
-            .database()?
-            .get_xray_profile(config.id)
-            .await?
-            .ok_or_else(|| {
-                crate::app::AppError::InvalidArgument("Xray profile metadata is missing".into())
-            })?;
-        String::from_utf8(store.read(&metadata)?.as_bytes().to_vec()).map_err(|_| {
+        let document = crate::app::services::xray_profiles::load_from_database(
+            self.database()?,
+            self.profiles.as_ref(),
+            config,
+        )
+        .await?;
+        String::from_utf8(document.as_bytes().to_vec()).map_err(|_| {
             crate::app::AppError::InvalidArgument("Xray profile must contain UTF-8 JSON".into())
         })
     }
@@ -62,10 +56,11 @@ impl DatabaseConfigRepository {
             .as_ref()
             .map(|store| {
                 store
-                    .lock()
+                    .lock_if_present()
                     .map_err(|error| std::io::Error::other(error.to_string()).into())
             })
             .transpose()
+            .map(Option::flatten)
     }
 
     async fn cleanup_profiles(&self) -> Result<(), DbError> {
@@ -79,21 +74,21 @@ impl DatabaseConfigRepository {
     }
 
     async fn protect_running_profile(&self, ids: &[ConfigId]) -> Result<(), DbError> {
-        if self.profiles.is_none()
-            && self
-                .database()?
-                .list_configs(&ConfigListFilter {
-                    include_deleted: true,
-                    ..Default::default()
-                })
-                .await?
-                .iter()
-                .any(|config| config.is_xray_profile() && ids.contains(&config.id))
-        {
-            return Err(std::io::Error::other(
-                "permanent Xray profile deletion requires the owning application context",
-            )
-            .into());
+        if self.profiles.is_none() {
+            for id in ids {
+                if self
+                    .database()?
+                    .get_config_by_id(*id)
+                    .await?
+                    .is_some_and(|config| config.is_xray_profile() && config.raw_config.is_empty())
+                    && self.database()?.get_xray_profile(*id).await?.is_some()
+                {
+                    return Err(std::io::Error::other(
+                        "permanent legacy Xray profile deletion requires the owning application context",
+                    )
+                    .into());
+                }
+            }
         }
         if let Some(session) = self.database()?.get_running_runtime_session().await?
             && let Some(id) = session.config_id.filter(|id| ids.contains(id))

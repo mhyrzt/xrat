@@ -14,6 +14,7 @@ impl Default for RuntimeSettings {
             engine: defaults::DEFAULT_RUNTIME_ENGINE.to_string(),
             xray_compatibility: Default::default(),
             replace_active_session: defaults::DEFAULT_REPLACE_ACTIVE_SESSION,
+            restore_connection_on_start: false,
             rotation: RotationSettings::default(),
             log: LogSettings::default(),
             socks: SocksSettings::default(),

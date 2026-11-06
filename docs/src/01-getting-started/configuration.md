@@ -55,6 +55,7 @@ pac_allowed_hosts = ["localhost", "127.0.0.1", "::1"]
 [runtime]
 engine = "xray"
 replace_active_session = true
+restore_connection_on_start = false
 
 [runtime.rotation]
 enabled = true

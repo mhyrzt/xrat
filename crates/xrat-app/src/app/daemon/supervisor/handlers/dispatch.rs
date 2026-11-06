@@ -186,7 +186,7 @@ pub(super) async fn handle_event_inner(
                 .await;
         }
         SupervisorEvent::DaemonShutdown { respond_to } => {
-            runtime::handle_daemon_shutdown(context, respond_to).await;
+            runtime::handle_daemon_shutdown(state, context, respond_to).await;
         }
         SupervisorEvent::ProxyStart { respond_to } => {
             runtime::handle_proxy_start(state, context, respond_to).await;

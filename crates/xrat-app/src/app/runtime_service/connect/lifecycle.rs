@@ -26,10 +26,45 @@ impl<'a> RuntimeService<'a> {
 
     #[tracing::instrument(skip_all)]
     pub async fn disconnect(&self) -> crate::app::Result<DisconnectResult> {
+        self.disconnect_with_transition(StopTransition::ManualDisconnect)
+            .await
+    }
+
+    pub(crate) async fn disconnect_for_daemon_shutdown(
+        &self,
+        owner_instance_id: &str,
+        restore_on_start: bool,
+    ) -> crate::app::Result<DisconnectResult> {
+        self.disconnect_with_transition(StopTransition::DaemonShutdown {
+            owner_instance_id,
+            restore_on_start,
+        })
+        .await
+    }
+
+    async fn disconnect_with_transition(
+        &self,
+        transition: StopTransition<'_>,
+    ) -> crate::app::Result<DisconnectResult> {
         self.context.require_local_runtime()?;
         let session = self.context.db.get_running_runtime_session().await?;
-        let stopped_session =
-            stop_active_session(self.context, self.process_ports.signals.as_ref()).await?;
+        let stopped_session = stop_active_session_with_transition(
+            self.context,
+            self.process_ports.signals.as_ref(),
+            transition,
+        )
+        .await?;
+        if matches!(transition, StopTransition::ManualDisconnect) {
+            cancel_pending_startup_restore(
+                self.context,
+                "cli",
+                None,
+                REASON_MANUAL_DISCONNECT,
+                "runtime disconnect request succeeded",
+                "cli",
+            )
+            .await?;
+        }
         if let Some(session) = session {
             self.cleanup_session_tun(session.id)?;
         } else {
