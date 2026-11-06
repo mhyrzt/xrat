@@ -17,3 +17,4 @@ pub use record::{
 };
 
 pub use database::web::{WebJob, WebSession, WebToken, WebUser};
+pub use record::{XRAY_PROFILE_PROTOCOL, XrayProfileRecord};

@@ -2,6 +2,84 @@ use super::*;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use xrat_web::configs::sharing::{ConfigFilter, ConfigShareRequest, ConfigShareResponse};
 
+#[tokio::test]
+async fn raw_xray_profile_download_requires_authorization_and_is_not_a_subscription() {
+    let (router, state) = fixture().await;
+    let context = state.web.as_ref().unwrap().context.as_ref().unwrap();
+    let bytes = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../testdata/xray/full-profile.json"
+    ));
+    crate::app::services::catalog_import::persist_content(
+        context,
+        xrat_db::ImportSource {
+            kind: xrat_db::SourceKind::RawText,
+            value: "fixture".into(),
+            name: None,
+        },
+        bytes,
+        Some("london-vpn"),
+        &Default::default(),
+    )
+    .await
+    .unwrap();
+    let config = context
+        .db
+        .list_configs(&Default::default())
+        .await
+        .unwrap()
+        .pop()
+        .unwrap();
+    let path = format!("/api/v1/configs/{}/raw", config.id);
+    assert_eq!(
+        request(&router, &path, "GET", serde_json::Value::Null, "", "", "")
+            .await
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    let (cookie, _) = login(&router, "admin", "correct horse battery").await;
+    let response = request(
+        &router,
+        &path,
+        "GET",
+        serde_json::Value::Null,
+        &cookie,
+        "",
+        "",
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        to_bytes(response.into_body(), 4 * 1024 * 1024)
+            .await
+            .unwrap()
+            .as_ref(),
+        bytes
+    );
+    let response = request(&router, "/b64", "GET", serde_json::Value::Null, "", "", "").await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let response = request(
+        &router,
+        "/api/v1/overview",
+        "GET",
+        serde_json::Value::Null,
+        &cookie,
+        "",
+        "",
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = String::from_utf8(
+        to_bytes(response.into_body(), 4 * 1024 * 1024)
+            .await
+            .unwrap()
+            .to_vec(),
+    )
+    .unwrap();
+    assert!(!body.contains("unknownFutureField"));
+    assert!(!body.contains("11111111-1111-4111"));
+}
+
 async fn token(router: &axum::Router, cookie: &str, csrf: &str) -> xrat_web::types::CreatedToken {
     let response = request(
         router,

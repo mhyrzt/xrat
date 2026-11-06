@@ -69,6 +69,30 @@ pub async fn spawn_detached_with_ports(
     startup_timeout: Duration,
     ports: xrat_support::readiness::RuntimeProcessPorts,
 ) -> Result<ManagedXrayProcess, XrayRuntimeError> {
+    spawn_detached_json_with_ports(
+        binary_path,
+        runtime_dir,
+        session_id,
+        serde_json::to_string_pretty(config)?.as_bytes(),
+        ready_host,
+        ready_port,
+        startup_timeout,
+        ports,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn spawn_detached_json_with_ports(
+    binary_path: &Path,
+    runtime_dir: &Path,
+    session_id: i64,
+    config: &[u8],
+    ready_host: &str,
+    ready_port: u16,
+    startup_timeout: Duration,
+    ports: xrat_support::readiness::RuntimeProcessPorts,
+) -> Result<ManagedXrayProcess, XrayRuntimeError> {
     std::fs::create_dir_all(runtime_dir)?;
 
     let paths = ManagedXrayPaths {
@@ -77,12 +101,19 @@ pub async fn spawn_detached_with_ports(
         stderr_path: runtime_dir.join(format!("session-{session_id}.err.log")),
     };
 
-    let mut config_file = File::create(&paths.config_path)?;
-    config_file.write_all(serde_json::to_string_pretty(config)?.as_bytes())?;
+    let mut config_file = tempfile::NamedTempFile::new_in(runtime_dir)?;
+    config_file.write_all(config)?;
     config_file.flush()?;
+    config_file
+        .persist(&paths.config_path)
+        .map_err(|error| error.error)?;
 
-    let stdout = File::create(&paths.stdout_path)?;
-    let stderr = File::create(&paths.stderr_path)?;
+    let stdout = tempfile::NamedTempFile::new_in(runtime_dir)?
+        .persist(&paths.stdout_path)
+        .map_err(|error| error.error)?;
+    let stderr = tempfile::NamedTempFile::new_in(runtime_dir)?
+        .persist(&paths.stderr_path)
+        .map_err(|error| error.error)?;
     let mut command = Command::with_spawner(binary_path, ports.spawner.clone());
     configure_asset_path(&mut command, binary_path);
     let child = command

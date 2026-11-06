@@ -56,7 +56,7 @@ pub(super) async fn handle_runtime_status(
 }
 
 pub(super) async fn handle_runtime_connect(
-    state: &SupervisorState,
+    state: &mut SupervisorState,
     context: &AppContext,
     config_id: ConfigId,
     respond_to: oneshot::Sender<RuntimeConnectResult>,
@@ -66,6 +66,9 @@ pub(super) async fn handle_runtime_connect(
         .await
     {
         Ok(result) => {
+            if result.config.is_xray_profile() {
+                state.pause_rotation_for_xray_profile();
+            }
             if respond_to
                 .send(RuntimeConnectResult::Ok(RuntimeConnectPayload {
                     config_id: result.config.id,

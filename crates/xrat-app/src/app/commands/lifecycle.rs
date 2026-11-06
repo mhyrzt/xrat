@@ -172,6 +172,16 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
         .config(&xrat_model::ConfigRef::from(args.id.as_str()))
         .await?;
 
+    if args.raw {
+        return print_raw_contents(
+            context
+                .services()
+                .configs
+                .raw_configs_by_ids(&[config.id])
+                .await?,
+        );
+    }
+
     let subscription_ref = match config.subscription_id {
         Some(subscription_id) => context
             .db
@@ -183,11 +193,21 @@ async fn show_config(context: &AppContext, args: &ShowConfigArgs) -> crate::app:
     print_config(config, subscription_ref, args.json)
 }
 
+pub(super) fn print_raw_contents(contents: Option<Vec<String>>) -> crate::app::Result<()> {
+    use std::io::Write;
+    let raw = contents
+        .and_then(|mut values| values.pop())
+        .ok_or_else(|| crate::app::AppError::InvalidArgument("config was not found".into()))?;
+    std::io::stdout().lock().write_all(raw.as_bytes())?;
+    Ok(())
+}
+
 pub(super) fn print_config(
     config: xrat_db::ConfigRecord,
     subscription_ref: Option<String>,
     json: bool,
 ) -> crate::app::Result<()> {
+    let is_xray_profile = config.is_xray_profile();
     if json {
         println!(
             "{}",
@@ -230,7 +250,14 @@ pub(super) fn print_config(
                 ("subscription", subscription_ref),
                 ("name", output::dash(config.name.as_deref())),
                 ("protocol", config.protocol),
-                ("address", format!("{}:{}", config.address, config.port)),
+                (
+                    "address",
+                    if is_xray_profile {
+                        "complete Xray profile".into()
+                    } else {
+                        format!("{}:{}", config.address, config.port)
+                    }
+                ),
                 ("network", config.network),
                 ("tls", output::dash(config.tls.as_deref())),
                 ("sni", output::dash(config.sni.as_deref())),

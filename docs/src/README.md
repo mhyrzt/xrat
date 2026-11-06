@@ -22,8 +22,8 @@ serve stored configs through an authenticated HTTP API.
 
 ## What you can do
 
-- **Import** subscriptions, files, raw links, base64 lists, SIP008 JSON, and
-  Xray JSON into SQLite or PostgreSQL.
+- **Import** subscriptions, files, raw links, base64 lists, and complete Xray
+  JSON profiles, using SQLite or PostgreSQL for catalog metadata.
 - **Support** VLESS, VMess, Trojan, Shadowsocks, HTTP, SOCKS5, and Hysteria2
   parsing/preview.
 - **Deduplicate** configs with normalized, versioned keys while preserving

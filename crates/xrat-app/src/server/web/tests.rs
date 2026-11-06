@@ -21,6 +21,7 @@ async fn fixture() -> (axum::Router, ServerState) {
     let mut state =
         ServerState::from_settings(context.db.clone(), &settings, &context.app_config.routing)
             .unwrap();
+    state.services = context.services();
     std::sync::Arc::get_mut(state.web.as_mut().unwrap())
         .unwrap()
         .context = Some(context);

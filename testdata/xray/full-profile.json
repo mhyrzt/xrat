@@ -1,0 +1,12 @@
+{
+  "log": {"loglevel": "warning"},
+  "inbounds": [{"tag": "local-socks", "protocol": "socks", "listen": "127.0.0.1", "port": 10899, "settings": {"auth": "noauth", "udp": true}}],
+  "outbounds": [
+    {"tag": "proxy", "protocol": "vless", "settings": {"vnext": [{"address": "example.invalid", "port": 443, "users": [{"id": "11111111-1111-4111-8111-111111111111", "encryption": "none"}]}]}, "streamSettings": {"network": "xhttp", "security": "tls", "tlsSettings": {"serverName": "example.invalid"}, "xhttpSettings": {"path": "/test", "extra": {"xmux": {"maxConcurrency": "4-8"}}}}},
+    {"tag": "dns-out", "protocol": "dns"},
+    {"tag": "direct", "protocol": "freedom"}
+  ],
+  "dns": {"servers": ["1.1.1.1"], "queryStrategy": "UseIPv4"},
+  "routing": {"domainStrategy": "AsIs", "rules": [{"type": "field", "port": "53", "outboundTag": "dns-out"}, {"type": "field", "ip": ["127.0.0.0/8"], "outboundTag": "direct"}]},
+  "unknownFutureField": {"retained": true}
+}

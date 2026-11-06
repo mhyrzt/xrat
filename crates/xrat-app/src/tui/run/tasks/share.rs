@@ -146,7 +146,9 @@ fn handle_clipboard_write_result(
 ) {
     match result {
         Ok(()) => {
-            let preview = if text.chars().count() > 40 {
+            let preview = if text.trim_start().starts_with('{') {
+                "Xray profile JSON".to_string()
+            } else if text.chars().count() > 40 {
                 format!("{}…", text.chars().take(40).collect::<String>())
             } else {
                 text
@@ -166,6 +168,22 @@ fn handle_clipboard_write_result(
 mod tests {
     use super::handle_clipboard_write_result;
     use crate::tui::app::TuiApp;
+
+    #[test]
+    fn copying_profile_does_not_log_json_credentials() {
+        let mut app = TuiApp::default();
+        handle_clipboard_write_result(
+            &mut app,
+            "{\"password\":\"secret-fixture\"}".into(),
+            "copied".into(),
+            Ok(()),
+        );
+        assert!(
+            !app.event_log
+                .iter()
+                .any(|line| line.contains("secret-fixture"))
+        );
+    }
 
     #[test]
     fn clipboard_success_sets_ok_log_and_chrome_message() {

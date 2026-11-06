@@ -5,6 +5,40 @@ use tokio::net::TcpListener;
 use super::{TuiImport, run_import};
 use crate::app::context::AppContext;
 
+#[tokio::test]
+async fn tui_imports_named_xray_profile_from_local_file() {
+    let (root, context) = test_context().await;
+    let input = root.path().join("london.json");
+    let bytes = include_bytes!("../../../../../../../testdata/xray/full-profile.json");
+    std::fs::write(&input, bytes).unwrap();
+    run_import(
+        &context,
+        TuiImport::Subscription {
+            url: input.to_string_lossy().into_owned(),
+            name: Some("london-vpn".into()),
+            fallback_name: "Xray profile".into(),
+        },
+    )
+    .await
+    .unwrap();
+    let config = context
+        .db
+        .list_configs(&Default::default())
+        .await
+        .unwrap()
+        .pop()
+        .unwrap();
+    assert!(config.is_xray_profile());
+    assert_eq!(config.name.as_deref(), Some("london-vpn"));
+    assert_eq!(
+        crate::app::services::xray_profiles::load(&context, &config)
+            .await
+            .unwrap()
+            .as_bytes(),
+        bytes
+    );
+}
+
 async fn test_context() -> (TempDir, AppContext) {
     let (context, root) = crate::app::tests::TestAppBuilder::new("tui-import")
         .build_with_root()

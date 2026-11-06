@@ -76,7 +76,11 @@ pub(crate) async fn load(
             .filter(|_| snapshot.pid_running)
             .map(|session| session.id),
         runtime_status: snapshot.status.as_str().into(),
-        stats_enabled: context.app_config.runtime.stats.enabled,
+        stats_enabled: context.app_config.runtime.stats.enabled
+            && !snapshot
+                .session_config
+                .as_ref()
+                .is_some_and(xrat_db::ConfigRecord::is_xray_profile),
         tun_enabled: tun.enabled,
         tun_active: tun.active,
         tun_available: supported,

@@ -15,6 +15,7 @@ use xrat_support::signals::{ProcessSignal, ProcessSignals};
 
 #[derive(Default)]
 struct State {
+    validated_configs: Vec<Vec<u8>>,
     commands: Vec<Vec<OsString>>,
     spawned: usize,
     killed: usize,
@@ -114,6 +115,13 @@ impl ProcessSpawner for FakePorts {
         self.state.lock().unwrap().commands.push(spec.args.clone());
         let version = spec.args.first().is_some_and(|arg| arg == "version");
         if !version {
+            if let Some(index) = spec.args.iter().position(|arg| arg == "-c") {
+                self.state
+                    .lock()
+                    .unwrap()
+                    .validated_configs
+                    .push(std::fs::read(&spec.args[index + 1]).unwrap());
+            }
             assert!(matches!(spec.stdin, Some(Stdio::Null)));
             assert!(spec.args.iter().any(|arg| arg == "-test" || arg == "check"));
         }
@@ -145,6 +153,9 @@ impl ProcessSpawner for FakePorts {
         self.run(spec, true)
     }
 }
+
+#[path = "raw_profile_cases.rs"]
+mod raw_profile_cases;
 impl xrat_support::net::TunInterfaceOps for FakePorts {
     fn policy_rules(&self) -> io::Result<Vec<xrat_support::net::KernelPolicyRule>> {
         if self.state.lock().unwrap().tun_interface.is_none() {

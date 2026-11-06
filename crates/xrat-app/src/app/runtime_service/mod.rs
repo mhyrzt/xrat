@@ -5,6 +5,7 @@ mod helpers;
 mod killswitch;
 mod launch;
 pub(crate) mod log_retention;
+mod raw_profile;
 mod reattach;
 mod replace_flow;
 mod rollback;

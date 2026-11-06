@@ -73,6 +73,12 @@ pub struct ShowConfigArgs {
     pub id: String,
     #[arg(long = "json", help = "Print the result as JSON.")]
     pub json: bool,
+    #[arg(
+        long,
+        conflicts_with = "json",
+        help = "Print the original share link or complete Xray JSON verbatim (contains credentials)."
+    )]
+    pub raw: bool,
 }
 
 #[derive(Debug, Args)]

@@ -11,9 +11,7 @@ use xrat_support::url::looks_like_url;
 pub(crate) mod naming;
 mod subscription;
 pub use subscription::import_subscription;
-pub(crate) use subscription::{
-    import_subscription_with_fallback, load_subscription_input, parse_request_headers,
-};
+pub(crate) use subscription::{load_subscription_input, parse_request_headers};
 
 pub fn load_nodes(input: &str) -> crate::app::Result<(ImportSource, Vec<Node>)> {
     let (source, input_data) = read_input(input)?;

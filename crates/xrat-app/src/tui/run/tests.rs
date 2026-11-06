@@ -67,6 +67,18 @@ fn blank_subscription_name_uses_generated_suggestion() {
 }
 
 #[test]
+fn pasted_xray_json_transitions_to_name_step_without_trimming_contents() {
+    let original = "  {\"outbounds\": []}\n";
+    let mut app = app_with_import_input(original);
+    assert!(prepare_import_submission(&mut app).is_none());
+    let ImportModalStep::SubscriptionName { url, .. } = &app.import_modal.as_ref().unwrap().step
+    else {
+        panic!("expected name step")
+    };
+    assert_eq!(url, original);
+}
+
+#[test]
 fn subscription_url_with_fragment_extracts_name_in_modal() {
     let mut app = app_with_import_input("https://example.com/sub#MyProvider");
     assert!(prepare_import_submission(&mut app).is_none());

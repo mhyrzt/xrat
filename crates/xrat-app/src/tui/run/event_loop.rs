@@ -812,6 +812,24 @@ pub(super) fn prepare_import_submission(app: &mut TuiApp) -> Option<tasks::TuiIm
                 return None;
             }
 
+            let raw_profile = input.starts_with('{');
+            let local_file = std::path::Path::new(&input).is_file();
+            if raw_profile || local_file {
+                app.import_modal = Some(crate::tui::app::ImportModalState {
+                    step: ImportModalStep::SubscriptionName {
+                        url: if raw_profile {
+                            modal.input.clone()
+                        } else {
+                            input
+                        },
+                        suggested_name: "Xray profile".into(),
+                    },
+                    input: String::new(),
+                    error: None,
+                });
+                app.needs_full_clear = true;
+                return None;
+            }
             if xrat_support::url::looks_like_url(&input) {
                 let valid_url = url::Url::parse(&input)
                     .ok()

@@ -76,6 +76,9 @@ pub(crate) async fn execute(
             super::catalog_import::add(context, &input).await?;
         }
         Action::Import { input, name } => {
+            if super::xray_profiles::parse(input.as_bytes())?.is_some() {
+                return Err(app::AppError::InvalidArgument("Complete Xray profiles require local CLI/TUI import; remote uploads cannot provision arbitrary engine configuration".into()));
+            }
             if !input.starts_with("http://") && !input.starts_with("https://") {
                 let nodes = app::import::parse_nodes(input.as_bytes())?;
                 if nodes.is_empty() {

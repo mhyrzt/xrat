@@ -17,7 +17,7 @@ pub(crate) async fn handle_runtime_status(
 }
 
 pub(crate) async fn handle_runtime_connect(
-    state: &SupervisorState,
+    state: &mut SupervisorState,
     context: &AppContext,
     config_id: ConfigId,
     respond_to: oneshot::Sender<RuntimeConnectResult>,

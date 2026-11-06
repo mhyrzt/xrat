@@ -6,6 +6,7 @@ mod parse_service;
 pub mod parsing;
 mod parsing_helpers;
 mod protocols;
+mod xray_document;
 
 use std::collections::HashSet;
 
@@ -17,6 +18,7 @@ pub use parse_service::{
     EngineMode, ParseServiceError, ParsedEntry, ResolvedEngine, parse_batch as parse_links_batch,
     parse_single as parse_link_with_engine,
 };
+pub use xray_document::{XrayDocument, XrayDocumentError};
 
 pub fn parse_text(config_text: &str) -> Vec<Node> {
     let mut nodes = Vec::new();

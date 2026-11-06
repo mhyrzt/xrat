@@ -21,6 +21,11 @@ impl<'a> RuntimeService<'a> {
                     candidate_id
                 )));
             }
+            if config.is_xray_profile() && !matches!(request.trigger, RotationTrigger::Manual) {
+                return Err(AppError::InvalidArgument(
+                    "automatic rotation cannot select a complete Xray profile".into(),
+                ));
+            }
             return Ok(candidate_id);
         }
 
@@ -35,6 +40,9 @@ impl<'a> RuntimeService<'a> {
         let mut eligible_ids: Vec<ConfigId> = Vec::new();
         let mut passing: Vec<(ConfigId, i64, Option<f64>)> = Vec::new();
         for config in configs {
+            if config.is_xray_profile() {
+                continue;
+            }
             if !matches!(request.trigger, RotationTrigger::Manual)
                 && self.config_is_on_cooldown(config.id).await?
             {
@@ -64,6 +72,19 @@ impl<'a> RuntimeService<'a> {
         active: &RuntimeSessionRecord,
         request: &ReplaceRequest,
     ) -> crate::app::Result<ConfigId> {
+        if !matches!(request.trigger, RotationTrigger::Manual)
+            && let Some(id) = active.config_id
+            && self
+                .context
+                .db
+                .get_config_by_id(id)
+                .await?
+                .is_some_and(|config| config.is_xray_profile())
+        {
+            return Err(AppError::InvalidArgument(
+                "automatic rotation is paused for the active complete Xray profile".into(),
+            ));
+        }
         if let Some(candidate_id) = request.candidate_id {
             let Some(config) = self.context.db.get_config_by_id(candidate_id).await? else {
                 return Err(AppError::InvalidArgument(format!(
@@ -83,6 +104,11 @@ impl<'a> RuntimeService<'a> {
                     candidate_id
                 )));
             }
+            if config.is_xray_profile() && !matches!(request.trigger, RotationTrigger::Manual) {
+                return Err(AppError::InvalidArgument(
+                    "automatic rotation cannot select a complete Xray profile".into(),
+                ));
+            }
             return Ok(candidate_id);
         }
 
@@ -100,6 +126,9 @@ impl<'a> RuntimeService<'a> {
         let mut eligible_ids: Vec<ConfigId> = Vec::new();
         let mut passing: Vec<(ConfigId, i64, Option<f64>)> = Vec::new();
         for config in configs.into_iter().filter(|cfg| cfg.id != active_config_id) {
+            if config.is_xray_profile() {
+                continue;
+            }
             if !matches!(request.trigger, RotationTrigger::Manual)
                 && self.config_is_on_cooldown(config.id).await?
             {

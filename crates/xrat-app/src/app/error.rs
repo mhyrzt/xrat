@@ -64,7 +64,9 @@ pub enum AppError {
     #[error("add accepts exactly one config URI/text")]
     MultipleConfigsForAdd,
 
-    #[error("raw JSON config import is not persisted yet; provide subscription links/text instead")]
+    #[error(
+        "JSON is not a proxy share link; use local import for complete Xray profiles (SIP008 subscriptions are unsupported)"
+    )]
     RawJsonImportUnsupported,
 
     #[error("could not determine XRAT home directory")]

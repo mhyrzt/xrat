@@ -126,7 +126,7 @@ pub fn config_value(row: &ConfigRow, key: &str, subs: &[SubscriptionRow]) -> Cel
         "state" => CellValue::Text(config_state(row).into()),
         "protocol" => text(Some(&row.protocol)),
         "address" => text(Some(&row.address)),
-        "port" => number(Some(row.port as f64), ""),
+        "port" => number((row.protocol != "xray-json").then_some(row.port as f64), ""),
         "ref" => text(Some(&row.reference)),
         "subscription" => text(
             row.subscription_id

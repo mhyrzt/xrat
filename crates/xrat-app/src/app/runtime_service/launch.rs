@@ -1,10 +1,13 @@
 use super::*;
 
 impl<'a> RuntimeService<'a> {
-    pub(super) fn resolve_launch(
+    pub(super) async fn resolve_launch(
         &self,
         config: &ConfigRecord,
     ) -> crate::app::Result<ResolvedLaunch> {
+        if config.is_xray_profile() {
+            return self.resolve_raw_launch(config).await;
+        }
         let runtime = &self.context.app_config.runtime;
         #[cfg(windows)]
         if runtime.tun.enabled {
