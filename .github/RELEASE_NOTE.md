@@ -1,40 +1,38 @@
-## xrat v0.35.0
+## xrat v0.35.1
 
-This release adds mouse navigation to the terminal UI and makes TUN kill switch
-settings easier to change.
+This release adds complete Xray JSON profiles, automatic daemon connection
+restore, and more reliable runtime status reporting.
 
-### Terminal UI
+### Xray JSON profiles
 
-- Click panels, table rows, and tabs to navigate; use the mouse wheel to scroll
-  the panel under the pointer. Mouse support is enabled by default and can be
-  changed in Settings or with `[tui].mouse` in `config.toml`.
-- Use the Settings and Keybindings controls in the bottom bar to open their
-  respective dialogs. Click handling respects the actual boundaries of import,
-  rename, QR, and split-tunneling dialogs.
-- Show the full last-update label in the statistics header.
+- Import and run complete Xray JSON configurations while preserving the full
+  profile in the database.
+- Use these profiles through the CLI, TUI, and daemon. Operations that cannot
+  safely manage a raw profile are rejected explicitly.
+- Profile data is included in database backup and restore.
 
-### TUN settings
+### Daemon startup
 
-- Cycle the kill switch through `off`, `auto`, and `strict` in the Settings
-  editor. The existing runtime and firewall behavior is unchanged.
+- Restore the previously active connection when the daemon starts after a
+  normal shutdown or reboot.
+- Preserve an intentional manual disconnect and retry startup when the network
+  is not ready yet.
 
-### Contributors
+### Runtime status
 
-Thank you to [@f02xygen](https://github.com/f02xygen) for the TUN kill switch
-setting in [#285](https://github.com/mhyrzt/xrat/pull/285) and mouse support in
-[#286](https://github.com/mhyrzt/xrat/pull/286).
+- Report the active runtime session even when a historical record has a later
+  wall-clock timestamp, keeping process and TUN health aligned with the running
+  connection.
 
 ### Upgrade notes
 
-- Mouse capture defaults to enabled. Set `mouse = false` under `[tui]` as shown
-  below if you prefer terminal text selection without holding Shift.
-- No new database migrations are included.
+- No database migrations are required.
 - Windows support remains experimental; automated checks do not replace
   interactive Windows and actual TUN traffic acceptance work.
 
-```toml
-[tui]
-mouse = false
-```
+Thanks to [@yarreg](https://github.com/yarreg) for reporting these behaviors in
+[#289](https://github.com/mhyrzt/xrat/issues/289),
+[#290](https://github.com/mhyrzt/xrat/issues/290), and
+[#291](https://github.com/mhyrzt/xrat/issues/291).
 
-**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.34.0...v0.35.0
+**Full Changelog**: https://github.com/mhyrzt/xrat/compare/v0.35.0...v0.35.1

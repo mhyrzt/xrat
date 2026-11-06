@@ -6771,7 +6771,7 @@ dependencies = [
 
 [[package]]
 name = "xrat"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "clap",
  "reqwest 0.13.4",
@@ -6795,7 +6795,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-app"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "arboard",
  "argon2",
@@ -6857,7 +6857,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-config"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "base64",
  "percent-encoding",
@@ -6873,7 +6873,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-db"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -6890,7 +6890,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-engines"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "async-trait",
  "base64",
@@ -6912,7 +6912,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-model"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -6921,7 +6921,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-prober"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "async-trait",
  "axum 0.8.9",
@@ -6933,7 +6933,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-sdk"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "reqwest 0.13.4",
  "serde_json",
@@ -6950,7 +6950,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-support"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "async-trait",
  "axum 0.8.9",
@@ -6972,7 +6972,7 @@ dependencies = [
 
 [[package]]
 name = "xrat-web"
-version = "0.35.0"
+version = "0.35.1"
 dependencies = [
  "base64",
  "dioxus",
