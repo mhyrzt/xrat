@@ -74,7 +74,7 @@ async fn import_preserves_complete_file_deduplicates_and_restores_deleted_profil
 
 #[tokio::test]
 async fn corrupt_missing_and_symlinked_files_fail_closed() {
-    let (context, root) = TestAppBuilder::new("xray-profile-integrity")
+    let (context, _root) = TestAppBuilder::new("xray-profile-integrity")
         .build_with_root()
         .await;
     import_profile(&context).await;
@@ -108,7 +108,7 @@ async fn corrupt_missing_and_symlinked_files_fail_closed() {
     assert!(store.path("../../outside").is_err());
     #[cfg(unix)]
     {
-        let outside = root.path().join("outside.json");
+        let outside = _root.path().join("outside.json");
         fs::write(&outside, PROFILE).unwrap();
         std::os::unix::fs::symlink(&outside, &path).unwrap();
         assert!(load(&context, &config).await.is_err());
