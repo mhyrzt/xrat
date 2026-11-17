@@ -7,6 +7,7 @@ pub mod defaults;
 mod dns;
 mod dns_policy;
 mod editor;
+mod gateway;
 mod geo;
 mod mmdb;
 mod parser;
@@ -34,6 +35,7 @@ pub use dns_policy::{
     DnsAction, DnsListenerSettings, DnsNetwork, DnsOutboundRule, DnsOutboundSettings,
     DnsPolicyRule, DnsResolverPath, DnsResolverSettings, FakeIpSettings,
 };
+pub use gateway::GatewaySettings;
 pub use geo::{GeoProfile, GeoSettings};
 pub use mmdb::MmdbSettings;
 pub use parser::ParserSettings;

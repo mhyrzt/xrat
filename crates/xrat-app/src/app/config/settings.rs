@@ -6,6 +6,7 @@ pub struct AppConfig {
     pub paths: PathSettings,
     pub database: DatabaseSettings,
     pub runtime: RuntimeSettings,
+    pub gateway: GatewaySettings,
     pub subscriptions: SubscriptionSettings,
     pub routing: RoutingSettings,
     pub geo: GeoSettings,
