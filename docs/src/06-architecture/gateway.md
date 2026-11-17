@@ -7,6 +7,43 @@ guide or a claim that gateway mode is supported. Engine-specific mechanisms and
 the open decisions below require native and packet-level tests before this
 architecture can be considered validated.
 
+The initial `xrat gateway` CLI provides configuration parsing and partial
+read-only preflight. Gateway installation, removal and protection are not yet
+available. Its status is unknown; it does not install a guard or activate the
+runtime. `doctor`, `status`, and attempted dry-runs do not initialize the XRAT
+database or modify networking. The installation and removal commands fail until
+the required ownership and protection implementations are in place.
+
+The proposed settings can be parsed from the existing configuration file:
+
+```toml
+[gateway]
+interface = "eth0"
+lan_subnet = "192.168.1.0/24"
+local_subnets = ["192.168.2.0/24"]
+```
+
+Install flags override the file; repeated `--local-subnet` values replace its
+list for that operation. Discovery reports candidate IPv4 interfaces, main-table
+default routes, and IPv4 policy rules, but cannot yet verify all routing tables
+or the complete topology. It checks the configured engine candidate against the
+existing host TUN version gate; the selected proxy backend and gateway capability
+remain unverified. Caller privileges are separate from privileges observed for
+the daemon socket peer; the peer's identity and the engine's inherited
+capabilities are not established by that observation.
+The partial conflict report observes nftables base-chain hooks, policy rules
+with marks, selected host TUN ownership and IPv4 sysctls. A successful read is
+not a conflict-free verdict: gateway marks, firewall ownership, iptables
+interaction and boot recovery are not yet established. Failed or denied
+inspection is reported as unknown.
+The ignored `gateway_preflight_read_only` namespace test exercises observation
+of a foreign nftables base chain, a marked policy rule and a conflicting
+interface, then compares networking and IPv4 sysctl snapshots before and after
+doctor and a rejected install dry-run. It does not validate forwarding,
+gateway protection, reboot recovery or interaction with a running proxy.
+Checks that local exceptions cannot permit direct internet forwarding remain
+unimplemented. CIDR syntax validation alone is not a safety check.
+
 ## Purpose and scope
 
 An XRAT network gateway lets selected LAN clients send IPv4 internet traffic

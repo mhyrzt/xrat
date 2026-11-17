@@ -3,10 +3,20 @@
 mod dns;
 #[path = "runtime_network/fixtures.rs"]
 mod fixtures;
+#[path = "runtime_network/gateway_preflight.rs"]
+mod gateway_preflight;
 #[path = "runtime_network/process.rs"]
 mod process;
 #[path = "runtime_network/tun.rs"]
 mod tun;
+
+#[test]
+#[ignore = "requires Linux user/network namespaces, iproute2 and nftables"]
+fn gateway_preflight_read_only() {
+    if process::enter_namespace("gateway_preflight_read_only") {
+        gateway_preflight::exercise();
+    }
+}
 
 #[test]
 #[ignore = "requires Linux namespaces, iproute2, OpenSSL and pinned native engines"]
