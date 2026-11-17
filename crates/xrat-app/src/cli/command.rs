@@ -2,10 +2,10 @@ use clap::Subcommand;
 
 use crate::cli::{
     AddArgs, CompletionsArgs, ConnectArgs, DaemonArgs, DbArgs, DeleteArgs, DisableArgs,
-    DisconnectArgs, EnableArgs, GeoIpArgs, ImportArgs, InitArgs, InstallArgs, ListArgs, LogsArgs,
-    ManpageArgs, ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs, ScanArgs, ServeArgs,
-    SetupArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs, TunArgs, UpdateArgs, UpgradeArgs,
-    ValidateArgs, VersionArgs,
+    DisconnectArgs, EnableArgs, GatewayArgs, GeoIpArgs, ImportArgs, InitArgs, InstallArgs,
+    ListArgs, LogsArgs, ManpageArgs, ParseArgs, ProxyArgs, PurgeArgs, RestoreArgs, RotateArgs,
+    ScanArgs, ServeArgs, SetupArgs, ShowArgs, StatusArgs, TestArgs, TuiArgs, TunArgs, UpdateArgs,
+    UpgradeArgs, ValidateArgs, VersionArgs,
 };
 
 #[derive(Debug, Subcommand)]
@@ -66,6 +66,8 @@ pub enum Command {
     HashPassword(crate::cli::HashPasswordArgs),
     #[command(about = "Prepare and inspect system privileges for managed TUN capture.")]
     Tun(TunArgs),
+    #[command(about = "Inspect and manage the Linux IPv4 network gateway.")]
+    Gateway(GatewayArgs),
     #[command(about = "Refresh stored subscriptions.")]
     Update(UpdateArgs),
     #[command(about = "Parse and validate config links without persisting.")]

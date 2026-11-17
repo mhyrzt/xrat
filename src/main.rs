@@ -55,6 +55,9 @@ async fn run(args: &cli::Cli) -> xrat::app::Result<()> {
     if let cli::Command::Validate(validate_args) = &args.command {
         return xrat::app::commands::validate::run(validate_args);
     }
+    if let cli::Command::Gateway(gateway_args) = &args.command {
+        return xrat::app::commands::gateway::run(args, gateway_args).await;
+    }
     if let cli::Command::Upgrade(upgrade_args) = &args.command {
         let config_path = xrat::app::context::resolve_config_path(args)?;
         return xrat::app::commands::upgrade::run(&config_path, upgrade_args).await;
@@ -80,6 +83,65 @@ fn init_tracing(args: &cli::Cli) {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+
+    #[tokio::test]
+    async fn gateway_dry_run_does_not_create_database_or_files() {
+        let root = tempfile::tempdir().unwrap();
+        let config = root.path().join("config.toml");
+        let database = root.path().join("database.sqlite");
+        std::fs::write(&config, "[gateway]\ninterface = 'eth0'\n").unwrap();
+        let args = xrat::cli::Cli::try_parse_from([
+            "xrat",
+            "--config",
+            config.to_str().unwrap(),
+            "--database",
+            database.to_str().unwrap(),
+            "gateway",
+            "install",
+            "--dry-run",
+        ])
+        .unwrap();
+        assert!(super::run(&args).await.is_err());
+        assert!(!database.exists());
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn gateway_doctor_and_rejected_install_preserve_existing_files() {
+        let root = tempfile::tempdir().unwrap();
+        let config = root.path().join("config.toml");
+        let database = root.path().join("database.sqlite");
+        let contents = "[gateway]\nlan_subnet = '192.168.1.0/24'\n";
+        std::fs::write(&config, contents).unwrap();
+        for arguments in [
+            vec!["gateway", "doctor"],
+            vec!["gateway", "install", "--lan-subnet", "192.168.1.1/24"],
+        ] {
+            let mut command = vec![
+                "xrat",
+                "--config",
+                config.to_str().unwrap(),
+                "--database",
+                database.to_str().unwrap(),
+            ];
+            command.extend(arguments);
+            let args = xrat::cli::Cli::try_parse_from(command).unwrap();
+            let result = super::run(&args).await;
+            if matches!(
+                args.command,
+                xrat::cli::Command::Gateway(xrat::cli::GatewayArgs {
+                    action: xrat::cli::GatewayAction::Install(_)
+                })
+            ) {
+                assert!(result.is_err());
+            } else {
+                assert!(result.is_ok());
+            }
+            assert_eq!(std::fs::read_to_string(&config).unwrap(), contents);
+            assert!(!database.exists());
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
+        }
+    }
 
     #[tokio::test]
     async fn machine_profile_rejects_path_overrides_before_bootstrap() {

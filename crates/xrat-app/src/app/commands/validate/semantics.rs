@@ -1,6 +1,17 @@
 use super::prelude::*;
 
 pub(crate) fn validate_config(config: &AppConfig, errors: &mut Vec<Diagnostic>) {
+    if let Err(error) = crate::app::services::gateway::resolve(
+        &config.gateway,
+        &crate::app::services::gateway::GatewayOverrides::default(),
+    ) {
+        errors.push(Diagnostic::new(
+            "[gateway]",
+            error.to_string(),
+            "Gateway interface and subnet values must be valid.",
+            "correct the gateway settings before installation.",
+        ));
+    }
     validate_runtime(config, errors);
     validate_routing(&config.routing, errors);
     validate_database(config, errors);
