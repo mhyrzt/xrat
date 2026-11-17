@@ -65,4 +65,5 @@
   - [Daemon Architecture](06-architecture/daemon-architecture.md)
   - [Runtime Lifecycle](06-architecture/runtime-lifecycle.md)
   - [Managed Capture Contract](06-architecture/managed-capture.md)
+  - [Linux IPv4 Gateway Architecture](06-architecture/gateway.md)
   - [Test Pipeline](06-architecture/test-pipeline.md)
