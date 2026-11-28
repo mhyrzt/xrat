@@ -75,7 +75,11 @@ pub fn render_ruleset(config: &KillSwitchConfig) -> String {
 }
 
 pub fn apply(config: &KillSwitchConfig) -> io::Result<()> {
-    let ruleset = render_ruleset(config);
+    apply_transaction(&render_ruleset(config))
+        .map_err(|error| io::Error::other(format!("could not apply kill switch rules: {error}")))
+}
+
+pub fn apply_transaction(ruleset: &str) -> io::Result<()> {
     let mut child = std::process::Command::new("nft")
         .args(["-f", "-"])
         .stdin(Stdio::piped())
@@ -83,18 +87,19 @@ pub fn apply(config: &KillSwitchConfig) -> io::Result<()> {
         .stderr(Stdio::piped())
         .spawn()?;
 
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(ruleset.as_bytes())?;
-    }
-
+    let write_result = child
+        .stdin
+        .take()
+        .expect("nft stdin was piped")
+        .write_all(ruleset.as_bytes());
     let output = child.wait_with_output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(io::Error::other(format!(
-            "nft failed to apply kill switch rules: {stderr}"
+            "nft rejected the transaction: {stderr}"
         )));
     }
-    Ok(())
+    write_result
 }
 
 pub fn remove() -> io::Result<()> {

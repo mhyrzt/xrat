@@ -53,6 +53,13 @@ fn inspect_nft_output(data: &[u8]) -> Result<Check, String> {
     let mut hooks = Vec::new();
     let mut host_guard = false;
     for entry in output.nftables {
+        if entry.get("flowtable").is_some() {
+            return Ok(check(
+                "firewall_chains",
+                "failed",
+                "nftables flowtable offload can bypass the gateway forwarding chain.",
+            ));
+        }
         if let Some(table) = entry.get("table") {
             host_guard |= table.get("family").and_then(|value| value.as_str()) == Some("inet")
                 && table.get("name").and_then(|value| value.as_str())
@@ -283,6 +290,14 @@ pub(super) fn inspect_sysctls(interface: Option<&str>) -> Check {
 mod tests {
     use super::*;
     use xrat_support::net::KernelRuleAttribute;
+
+    #[test]
+    fn nftables_flowtable_blocks_gateway_preflight() {
+        let report = inspect_nft_output(
+            br#"{"nftables":[{"flowtable":{"family":"inet","table":"foreign","name":"fastpath"}}]}"#,
+        ).unwrap();
+        assert_eq!(report.state, "failed");
+    }
 
     #[test]
     fn nftables_reports_base_chain_and_host_guard_without_asserting_protection() {

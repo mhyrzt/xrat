@@ -406,6 +406,52 @@ impl SingboxConfig {
         });
     }
 
+    /// Restrict the generated gateway TUN inbound to the managed proxy.
+    pub fn constrain_gateway_tun(&mut self) -> Result<(), String> {
+        if !self.outbounds.iter().any(|outbound| {
+            outbound["tag"] == "proxy"
+                && outbound["type"]
+                    .as_str()
+                    .is_some_and(|kind| !matches!(kind, "direct" | "block" | "dns"))
+        }) {
+            return Err("sing-box gateway requires a generated proxy outbound".into());
+        }
+        let (auto_route, strict_route, exclusions) = self
+            .inbounds
+            .iter_mut()
+            .find_map(|inbound| match inbound {
+                SingboxInbound::Tun {
+                    tag,
+                    auto_route,
+                    strict_route,
+                    route_exclude_address,
+                    ..
+                } if tag == "tun-in" => Some((auto_route, strict_route, route_exclude_address)),
+                _ => None,
+            })
+            .ok_or("sing-box gateway requires a generated TUN inbound")?;
+        *auto_route = false;
+        *strict_route = false;
+        exclusions.clear();
+
+        let route = self.route.get_or_insert_with(|| SingboxRoute {
+            rules: Vec::new(),
+            rule_set: Vec::new(),
+            final_outbound: "proxy".into(),
+            default_domain_resolver: None,
+            auto_detect_interface: None,
+        });
+        route.rules.insert(
+            0,
+            serde_json::json!({
+                "inbound": ["tun-in"],
+                "action": "route",
+                "outbound": "proxy",
+            }),
+        );
+        Ok(())
+    }
+
     /// Shape the generated route for a TUN inbound: bind outbound dials to the
     /// detected physical interface to avoid routing loops, and send private/LAN
     /// destinations direct so local networks stay reachable.

@@ -5,10 +5,46 @@ mod dns;
 mod fixtures;
 #[path = "runtime_network/gateway_preflight.rs"]
 mod gateway_preflight;
+#[path = "runtime_network/gateway_topology.rs"]
+mod gateway_topology;
 #[path = "runtime_network/process.rs"]
 mod process;
 #[path = "runtime_network/tun.rs"]
 mod tun;
+
+#[test]
+#[ignore = "requires /dev/net/tun, Linux network namespaces, nftables and pinned engines"]
+fn gateway_managed_engines() {
+    if process::enter_namespace("gateway_managed_engines") {
+        gateway_topology::exercise_managed_engines();
+    }
+}
+
+#[test]
+#[ignore = "requires Linux network namespaces, iproute2, nftables and ping"]
+fn gateway_same_interface_topology() {
+    if process::enter_namespace("gateway_same_interface_topology") {
+        gateway_topology::exercise();
+    }
+}
+
+#[test]
+#[ignore = "gateway namespace fixture worker"]
+fn gateway_echo_worker() {
+    gateway_topology::echo_worker();
+}
+
+#[test]
+#[ignore = "gateway namespace fixture worker"]
+fn gateway_client_worker() {
+    gateway_topology::client_worker();
+}
+
+#[test]
+#[ignore = "gateway namespace fixture worker"]
+fn gateway_closed_client_worker() {
+    gateway_topology::closed_client_worker();
+}
 
 #[test]
 #[ignore = "requires Linux user/network namespaces, iproute2 and nftables"]

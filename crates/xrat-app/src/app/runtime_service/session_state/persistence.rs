@@ -1,6 +1,7 @@
 use super::*;
 
 pub(in super::super) struct ResolvedLaunch {
+    pub(in super::super) gateway_installation: Option<uuid::Uuid>,
     pub(in super::super) binary_path: PathBuf,
     pub(in super::super) config: RuntimeLaunchConfig,
     pub(in super::super) ready_host: String,

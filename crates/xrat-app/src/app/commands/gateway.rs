@@ -103,7 +103,7 @@ async fn run_with_engine_path(
     let mut settings = gateway::resolve(&config.gateway, &overrides)?;
     let preflight = if matches!(
         args.action,
-        GatewayAction::Doctor(_) | GatewayAction::Install(_)
+        GatewayAction::Doctor(_) | GatewayAction::Install(_) | GatewayAction::Status(_)
     ) {
         Some(
             gateway::inspect(
@@ -118,29 +118,59 @@ async fn run_with_engine_path(
     } else {
         None
     };
-    let message = "Gateway implementation is unavailable: preflight is incomplete, and resource ownership (#301) and backend integration (#297 and #305) are pending. No network changes were made; protection and installation state are unknown.";
+    let operation = match &args.action {
+        GatewayAction::Doctor(_) | GatewayAction::Status(_) => Ok(
+            "Gateway observations are read-only. Packet forwarding requires independent verification.",
+        ),
+        #[cfg(target_os = "linux")]
+        GatewayAction::Install(install) => runtime_dir
+            .ok_or_else(|| std::io::Error::other("gateway runtime directory is unavailable"))
+            .and_then(|directory| {
+                gateway::install(
+                    directory,
+                    &settings,
+                    preflight.as_ref().expect("install preflight"),
+                    install.dry_run,
+                )
+            }),
+        #[cfg(target_os = "linux")]
+        GatewayAction::Remove(remove) => runtime_dir
+            .ok_or_else(|| std::io::Error::other("gateway runtime directory is unavailable"))
+            .and_then(|directory| gateway::remove(directory, remove.dry_run)),
+        #[cfg(not(target_os = "linux"))]
+        GatewayAction::Install(_) | GatewayAction::Remove(_) => {
+            Err(std::io::Error::other("gateway operations require Linux"))
+        }
+    };
+    let observed = gateway::observe(runtime_dir);
+    let message = match &operation {
+        Ok(message) => (*message).to_string(),
+        Err(error) => format!("Gateway operation failed: {error}"),
+    };
     if json {
         println!(
             "{}",
             serde_json::to_string_pretty(
-                &serde_json::json!({"action": action, "settings": settings, "preflight": preflight, "installation": "unknown", "protection": "unknown", "packet_forwarding": "unverified", "diagnostic": message})
+                &serde_json::json!({"action": action, "settings": settings, "preflight": preflight, "installation": observed.installation, "protection": observed.protection, "packet_forwarding": "unverified", "diagnostic": message})
             )?
         );
     } else {
         println!(
             "{}",
-            format_report(action, &settings, preflight.as_ref(), message)
+            format_report(
+                action,
+                &settings,
+                preflight.as_ref(),
+                &format!(
+                    "{message}\nInstallation: {} · Guard: {}",
+                    observed.installation, observed.protection
+                )
+            )
         );
     }
-    if matches!(
-        args.action,
-        GatewayAction::Install(_) | GatewayAction::Remove(_)
-    ) {
-        return Err(AppError::InvalidArgument(
-            "gateway operation unavailable; no changes made".into(),
-        ));
-    }
-    Ok(())
+    operation
+        .map(|_| ())
+        .map_err(|_| AppError::InvalidArgument(message))
 }
 
 fn format_report(

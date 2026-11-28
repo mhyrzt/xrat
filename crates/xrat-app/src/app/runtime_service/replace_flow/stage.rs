@@ -96,8 +96,13 @@ impl<'a> RuntimeService<'a> {
             }
         };
 
-        self.finish_tun_startup(session_id, spawned.pid, &launch.allowed_endpoints)
-            .await?;
+        self.finish_tun_startup(
+            session_id,
+            spawned.pid,
+            &launch.allowed_endpoints,
+            launch.gateway_installation,
+        )
+        .await?;
 
         self.context
             .db

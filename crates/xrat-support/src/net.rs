@@ -1,3 +1,11 @@
+#[cfg(target_os = "linux")]
+#[path = "net/gateway_forwarding.rs"]
+pub mod gateway_forwarding;
+
+#[cfg(target_os = "linux")]
+#[path = "net/gateway_routing.rs"]
+pub mod gateway_routing;
+
 #[path = "net/capture.rs"]
 mod capture;
 pub use capture::{NetworkAdapter, NetworkRoute, NetworkSnapshot};

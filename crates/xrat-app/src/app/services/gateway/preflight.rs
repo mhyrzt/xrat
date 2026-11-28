@@ -114,6 +114,7 @@ pub async fn inspect(
                             && !iface.is_loopback()
                             && !iface.is_link_local()
                             && !iface.is_p2p()
+                            && addr.prefixlen > 0
                             && addr.prefixlen < 31,
                     });
                 }
@@ -177,7 +178,9 @@ pub async fn inspect(
         checks.push(conflicts::inspect_sysctls(
             settings.interface.value.as_deref(),
         ));
-        checks.push(check("recovery", "unknown", "Gateway ownership journal and boot-time guard restoration are not implemented; interrupted operation and reboot recovery cannot be verified (#301, #302)."));
+        checks.push(inspect_ipv6_boundary(settings.interface.value.as_deref()));
+        checks.extend(inspect_gateway_intent(runtime_dir));
+        checks.push(check("recovery", "unknown", "Gateway boot recovery requires the recorded LAN identity and disabled forwarding until the closed guard is restored; current observations cannot verify a future reboot."));
         checks.push(inspect_upstream(
             &default_routes,
             &interfaces,
@@ -218,7 +221,7 @@ pub async fn inspect(
         });
         checks.push(inspect_engine(engine, engine_path));
     }
-    checks.push(check("remaining_checks", "unknown", "Firewall, full routing-policy evaluation, marks, ownership, bootstrap, persistence and gateway-specific engine compatibility remain unverified; installation remains unavailable."));
+    checks.push(check("remaining_checks", "unknown", "Preflight cannot prove end-to-end packet forwarding, proxy bootstrap, or recovery after reboot. Verify these on the intended gateway with the selected engine."));
     Report {
         interfaces,
         default_routes,
@@ -227,6 +230,115 @@ pub async fn inspect(
         checks,
         ready: false,
     }
+}
+
+fn inspect_ipv6_boundary(interface: Option<&str>) -> Check {
+    let observations = [Some("all"), interface]
+        .into_iter()
+        .flatten()
+        .map(|device| {
+            let path = format!("/proc/sys/net/ipv6/conf/{device}/forwarding");
+            match std::fs::read_to_string(path) {
+                Ok(value) => format!("{device}={}", value.trim()),
+                Err(_) => format!("{device}=unknown"),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    check(
+        "ipv6_boundary",
+        "incomplete",
+        format!(
+            "IPv6 forwarding ({observations}) is outside gateway protection. Independent client IPv6 routes cannot be verified on the gateway."
+        ),
+    )
+}
+
+pub(super) fn inspect_gateway_intent(runtime_dir: Option<&std::path::Path>) -> Vec<Check> {
+    let intent = match runtime_dir.map(super::journal::load) {
+        Some(Ok(Some(intent))) => intent,
+        Some(Ok(None)) => {
+            return vec![check(
+                "installation_intent",
+                "ok",
+                "No gateway installation intent found.",
+            )];
+        }
+        Some(Err(error)) => {
+            return vec![check(
+                "installation_intent",
+                "unknown",
+                format!("Cannot read gateway installation intent: {error}"),
+            )];
+        }
+        None => {
+            return vec![check(
+                "installation_intent",
+                "unknown",
+                "Runtime directory could not be determined.",
+            )];
+        }
+    };
+    let guard = match super::firewall::inspect_closed(&intent) {
+        Ok(true) => check(
+            "closed_guard",
+            "ok",
+            "Observed the closed IPv4 LAN forwarding guard.",
+        ),
+        Ok(false) => {
+            #[cfg(target_os = "linux")]
+            if let Some(directory) = runtime_dir {
+                match super::lifecycle::inspect_active(directory, &intent) {
+                    Ok(true) => {
+                        return vec![
+                            check(
+                                "installation_intent",
+                                "ok",
+                                format!(
+                                    "Found installation intent {} for {}.",
+                                    intent.installation_id, intent.lan_interface
+                                ),
+                            ),
+                            check(
+                                "active_guard",
+                                "ok",
+                                "Observed the active IPv4 gateway forwarding guard.",
+                            ),
+                        ];
+                    }
+                    Ok(false) => {}
+                    Err(error) => {
+                        return vec![check(
+                            "active_guard",
+                            "unknown",
+                            format!("Cannot verify the active forwarding guard: {error}"),
+                        )];
+                    }
+                }
+            }
+            check(
+                "closed_guard",
+                "failed",
+                "The expected guard or LAN interface identity is missing or differs from the installation intent.",
+            )
+        }
+        Err(error) => check(
+            "closed_guard",
+            "unknown",
+            format!("Cannot verify the closed forwarding guard: {error}"),
+        ),
+    };
+    vec![
+        check(
+            "installation_intent",
+            "incomplete",
+            format!(
+                "Found installation intent {} for {}.",
+                intent.installation_id, intent.lan_interface
+            ),
+        ),
+        guard,
+    ]
 }
 
 async fn inspect_runtime_owner(runtime_dir: Option<&std::path::Path>) -> Check {

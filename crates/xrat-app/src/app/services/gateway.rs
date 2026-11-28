@@ -4,8 +4,100 @@ use serde::Serialize;
 
 use crate::app::{AppError, Result, config::GatewaySettings};
 
+mod firewall;
+mod journal;
+#[cfg(target_os = "linux")]
+mod lifecycle;
+#[cfg(target_os = "linux")]
+pub(crate) use lifecycle::{activate, deactivate, install, recover_boot, remove};
 mod preflight;
 pub use preflight::{Report, inspect};
+
+#[derive(Debug, Serialize)]
+pub(crate) struct ObservedGateway {
+    pub installation: &'static str,
+    pub protection: &'static str,
+}
+
+pub(crate) fn observe(directory: Option<&std::path::Path>) -> ObservedGateway {
+    let Some(directory) = directory else {
+        return ObservedGateway {
+            installation: "unknown",
+            protection: "unknown",
+        };
+    };
+    match journal::load(directory) {
+        Ok(None) => ObservedGateway {
+            installation: "absent",
+            protection: "unknown",
+        },
+        Err(_) => ObservedGateway {
+            installation: "unknown",
+            protection: "unknown",
+        },
+        Ok(Some(intent)) => {
+            #[cfg(target_os = "linux")]
+            let protection = match firewall::verify_no_flow_offload() {
+                Ok(()) => match firewall::inspect_closed(&intent) {
+                    Ok(true) => "closed_guard_observed",
+                    Ok(false) => match lifecycle::inspect_active(directory, &intent) {
+                        Ok(true) => "active_guard_observed",
+                        Ok(false) => "degraded",
+                        Err(_) => "unknown",
+                    },
+                    Err(_) => "unknown",
+                },
+                Err(_) => "unknown",
+            };
+            #[cfg(not(target_os = "linux"))]
+            let protection = {
+                let _ = intent;
+                "unknown"
+            };
+            ObservedGateway {
+                installation: "recorded",
+                protection,
+            }
+        }
+    }
+}
+
+pub(crate) fn validate_managed_launch(
+    context: &crate::app::context::AppContext,
+    raw_profile: bool,
+) -> Result<Option<uuid::Uuid>> {
+    let Some(intent) = journal::load(&context.runtime_paths.runtime_dir)? else {
+        return Ok(None);
+    };
+    let runtime = &context.app_config.runtime;
+    if !cfg!(target_os = "linux")
+        || raw_profile
+        || !matches!(runtime.engine.as_str(), "xray" | "sing-box")
+        || !runtime.tun.enabled
+        || runtime.tun.auto_route
+        || runtime.tun.split_mode != crate::app::config::TunSplitMode::All
+        || runtime.tun.kill_switch.is_enabled()
+        || context.app_config.dns.fakeip.enabled
+    {
+        return Err(AppError::InvalidArgument(
+            "gateway launch requires Linux, a generated Xray or sing-box profile, and a managed TUN with auto_route=false, split_mode=all, host kill switch disabled, and FakeIP disabled".into(),
+        ));
+    }
+    let guard_ready = firewall::inspect_closed(&intent).map_err(|error| {
+        AppError::InvalidArgument(format!(
+            "gateway launch requires a verified closed forwarding guard: {error}"
+        ))
+    })?;
+    #[cfg(target_os = "linux")]
+    let guard_ready =
+        guard_ready || lifecycle::inspect_active(&context.runtime_paths.runtime_dir, &intent)?;
+    if !guard_ready {
+        return Err(AppError::InvalidArgument(
+            "gateway launch requires a verified closed forwarding guard".into(),
+        ));
+    }
+    Ok(Some(intent.installation_id))
+}
 
 #[derive(Default)]
 pub struct GatewayOverrides {
@@ -45,21 +137,8 @@ pub fn resolve(settings: &GatewaySettings, args: &GatewayOverrides) -> Result<Ef
             source: "cli",
         }
     };
-    if let Some(name) = &interface.value
-        && (name.is_empty()
-            || name.len() > 15
-            || name == "."
-            || name == ".."
-            || name.bytes().any(|byte| {
-                byte == b'/'
-                    || byte == b':'
-                    || byte.is_ascii_whitespace()
-                    || byte.is_ascii_control()
-            }))
-    {
-        return Err(AppError::InvalidArgument(
-            "gateway interface must be a valid Linux interface name".into(),
-        ));
+    if let Some(name) = &interface.value {
+        validate_interface(name)?;
     }
     if let Some(subnet) = &lan_subnet.value {
         validate_subnet(subnet)?;
@@ -93,6 +172,21 @@ fn select(cli: Option<String>, config: Option<String>) -> ValueWithSource<Option
     }
 }
 
+fn validate_interface(name: &str) -> Result<()> {
+    if name.is_empty()
+        || name.len() > 15
+        || matches!(name, "." | ".." | "all" | "default")
+        || name.bytes().any(|byte| {
+            byte == b'/' || byte == b':' || byte.is_ascii_whitespace() || byte.is_ascii_control()
+        })
+    {
+        return Err(AppError::InvalidArgument(
+            "gateway interface must be a valid Linux interface name".into(),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_subnet(value: &str) -> Result<()> {
     let invalid = || {
         AppError::InvalidArgument(format!(
@@ -105,11 +199,12 @@ fn validate_subnet(value: &str) -> Result<()> {
     if prefix > 32 {
         return Err(invalid());
     }
-    let mask = if prefix == 0 {
-        0
-    } else {
-        u32::MAX << (32 - prefix)
-    };
+    if prefix == 0 {
+        return Err(AppError::InvalidArgument(
+            "gateway subnets must not cover the IPv4 default route".into(),
+        ));
+    }
+    let mask = u32::MAX << (32 - prefix);
     if u32::from(address) & !mask != 0 {
         return Err(invalid());
     }
@@ -154,5 +249,20 @@ mod tests {
             ..Default::default()
         };
         assert!(resolve(&GatewaySettings::default(), &args).is_err());
+    }
+
+    #[test]
+    fn rejects_default_route_as_lan_or_local_exception() {
+        let settings = GatewaySettings {
+            local_subnets: vec!["0.0.0.0/0".into()],
+            ..Default::default()
+        };
+        assert!(resolve(&settings, &GatewayOverrides::default()).is_err());
+
+        let overrides = GatewayOverrides {
+            lan_subnet: Some("0.0.0.0/0".into()),
+            ..Default::default()
+        };
+        assert!(resolve(&GatewaySettings::default(), &overrides).is_err());
     }
 }

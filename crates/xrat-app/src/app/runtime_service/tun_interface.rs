@@ -98,6 +98,7 @@ impl RuntimeService<'_> {
         session_id: i64,
         pid: u32,
         allowed_endpoints: &[std::net::SocketAddr],
+        gateway_installation: Option<uuid::Uuid>,
     ) -> crate::app::Result<()> {
         if !self.context.app_config.runtime.tun.enabled {
             return Ok(());
@@ -105,6 +106,21 @@ impl RuntimeService<'_> {
         if let Err(error) = self.record_ready_tun_ownership(session_id, pid).await {
             return self
                 .cleanup_failed_tun_process(session_id, pid, error)
+                .await;
+        }
+        #[cfg(not(target_os = "linux"))]
+        let _ = gateway_installation;
+        #[cfg(target_os = "linux")]
+        if let Some(installation_id) = gateway_installation
+            && let Err(error) = crate::app::services::gateway::activate(
+                &self.context.runtime_paths.runtime_dir,
+                installation_id,
+                session_id,
+                &self.context.app_config.runtime.tun.interface_name,
+            )
+        {
+            return self
+                .cleanup_failed_tun_process(session_id, pid, error.into())
                 .await;
         }
         if self.context.app_config.runtime.tun.kill_switch.is_enabled()
@@ -262,6 +278,11 @@ impl RuntimeService<'_> {
     }
 
     pub(crate) fn cleanup_session_tun(&self, session_id: i64) -> crate::app::Result<()> {
+        #[cfg(target_os = "linux")]
+        crate::app::services::gateway::deactivate(
+            &self.context.runtime_paths.runtime_dir,
+            session_id,
+        )?;
         let Some(record) = tun_ownership::load_ownership(&self.context.runtime_paths.runtime_dir)
             .filter(|record| record.session_id == session_id)
         else {
@@ -340,6 +361,13 @@ impl RuntimeService<'_> {
 
     pub(crate) fn cleanup_stale_tun_interface(&self) -> crate::app::Result<()> {
         let record = tun_ownership::load_ownership(&self.context.runtime_paths.runtime_dir);
+        #[cfg(target_os = "linux")]
+        if let Some(record) = &record {
+            crate::app::services::gateway::deactivate(
+                &self.context.runtime_paths.runtime_dir,
+                record.session_id,
+            )?;
+        }
         let info = self.verify_tun_interface()?;
         if let Some(record) = &record
             && !record.policy_rules.is_empty()

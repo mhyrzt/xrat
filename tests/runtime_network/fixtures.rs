@@ -114,8 +114,8 @@ pub fn tcp_server(address: SocketAddr, handler: impl Fn(TcpStream) + Send + Sync
         }
     });
 }
-pub fn start(events: Events, origins: &[&str], ipv6: &'static str, udp: bool) {
-    let socket = UdpSocket::bind("192.0.2.2:5353").unwrap();
+pub fn start_dns(address: SocketAddr, events: &Events, ipv6: &'static str) {
+    let socket = UdpSocket::bind(address).unwrap();
     let udp_events = events.clone();
     thread::spawn(move || {
         let mut bytes = [0; 4096];
@@ -127,7 +127,7 @@ pub fn start(events: Events, origins: &[&str], ipv6: &'static str, udp: bool) {
         }
     });
     let dns_events = events.clone();
-    tcp_server("192.0.2.2:5353".parse().unwrap(), move |mut stream| {
+    tcp_server(address, move |mut stream| {
         while let Ok(prefix) = exact(&mut stream, 2) {
             let result = (|| -> io::Result<()> {
                 let packet = exact(&mut stream, number(&prefix) as usize)?;
@@ -140,41 +140,52 @@ pub fn start(events: Events, origins: &[&str], ipv6: &'static str, udp: bool) {
             }
         }
     });
-    let proxy_events = events.clone();
-    tcp_server("192.0.2.2:1081".parse().unwrap(), move |stream| {
-        let _ = socks(stream, &proxy_events);
-    });
+}
+pub fn start(events: Events, origins: &[&str], ipv6: &'static str, udp: bool) {
+    start_dns("192.0.2.2:5353".parse().unwrap(), &events, ipv6);
+    start_socks("192.0.2.2:1081".parse().unwrap(), &events);
     for host in origins {
-        let address: IpAddr = host.parse().unwrap();
-        let echo_events = events.clone();
-        tcp_server(SocketAddr::new(address, 8080), move |mut stream| {
-            echo_events.record(json!([
-                "origin-tcp",
-                stream.peer_addr().unwrap().ip().to_string(),
-                stream.local_addr().unwrap().ip().to_string()
-            ]));
-            if let Ok(bytes) = exact(&mut stream, 4) {
-                let _ = stream.write_all(&bytes);
-            }
-        });
-        if udp {
-            let socket = UdpSocket::bind(SocketAddr::new(address, 8081)).unwrap();
-            let echo_events = events.clone();
-            thread::spawn(move || {
-                let mut bytes = [0; 65536];
-                loop {
-                    let (length, peer) = socket.recv_from(&mut bytes).unwrap();
-                    echo_events.record(json!([
-                        "origin-udp",
-                        peer.ip().to_string(),
-                        address.to_string()
-                    ]));
-                    socket.send_to(&bytes[..length], peer).unwrap();
-                }
-            });
-        }
+        start_echo(host.parse().unwrap(), &events, udp);
     }
 }
+
+pub fn start_socks(address: SocketAddr, events: &Events) {
+    let events = events.clone();
+    tcp_server(address, move |stream| {
+        let _ = socks(stream, &events);
+    });
+}
+
+pub fn start_echo(address: IpAddr, events: &Events, udp: bool) {
+    let echo_events = events.clone();
+    tcp_server(SocketAddr::new(address, 8080), move |mut stream| {
+        echo_events.record(json!([
+            "origin-tcp",
+            stream.peer_addr().unwrap().ip().to_string(),
+            stream.local_addr().unwrap().ip().to_string()
+        ]));
+        if let Ok(bytes) = exact(&mut stream, 4) {
+            let _ = stream.write_all(&bytes);
+        }
+    });
+    if udp {
+        let socket = UdpSocket::bind(SocketAddr::new(address, 8081)).unwrap();
+        let echo_events = events.clone();
+        thread::spawn(move || {
+            let mut bytes = [0; 65536];
+            loop {
+                let (length, peer) = socket.recv_from(&mut bytes).unwrap();
+                echo_events.record(json!([
+                    "origin-udp",
+                    peer.ip().to_string(),
+                    address.to_string()
+                ]));
+                socket.send_to(&bytes[..length], peer).unwrap();
+            }
+        });
+    }
+}
+
 fn read_host(stream: &mut impl Read, kind: u8) -> io::Result<String> {
     match kind {
         1 => Ok(
