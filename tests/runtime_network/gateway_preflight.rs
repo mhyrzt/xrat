@@ -93,9 +93,14 @@ pub fn exercise() {
     );
     assert_eq!(before, snapshot());
     assert_eq!(
-        fs::read_to_string(config).unwrap(),
+        fs::read_to_string(&config).unwrap(),
         "[gateway]\ninterface = 'xrat-test'\n"
     );
+    assert!(!database.exists());
+    fs::write(&config, "[gateway]\nlan_subnet = 'invalid'\n").unwrap();
+    assert!(command(&["remove", "--dry-run", "--json"]).status.success());
+    fs::write(&config, "[gateway\n").unwrap();
+    assert!(command(&["remove", "--dry-run", "--json"]).status.success());
     assert!(!database.exists());
     assert!(!unused.exists());
 }

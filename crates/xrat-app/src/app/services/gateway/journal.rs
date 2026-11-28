@@ -14,6 +14,8 @@ pub(super) struct InstallIntent {
     pub lan_subnet: String,
     pub local_subnets: Vec<String>,
     pub previous_ipv4_forwarding: bool,
+    #[serde(default)]
+    pub boot_id: Option<uuid::Uuid>,
 }
 
 pub(super) fn load(directory: &Path) -> io::Result<Option<InstallIntent>> {
@@ -35,15 +37,34 @@ pub(super) fn create_record(
     name: &str,
     record: &impl Serialize,
 ) -> io::Result<()> {
+    write_record(directory, name, record, false)
+}
+
+#[cfg(target_os = "linux")]
+pub(super) fn replace(directory: &Path, intent: &InstallIntent) -> io::Result<()> {
+    write_record(directory, FILE_NAME, intent, true)
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn write_record(
+    directory: &Path,
+    name: &str,
+    record: &impl Serialize,
+    replace: bool,
+) -> io::Result<()> {
     use std::io::Write;
 
     let mut temporary = tempfile::NamedTempFile::new_in(directory)?;
     serde_json::to_writer(&mut temporary, record)?;
     temporary.flush()?;
     temporary.as_file().sync_all()?;
-    temporary
-        .persist_noclobber(directory.join(name))
-        .map_err(|error| error.error)?;
+    let path = directory.join(name);
+    if replace {
+        temporary.persist(path)
+    } else {
+        temporary.persist_noclobber(path)
+    }
+    .map_err(|error| error.error)?;
     std::fs::File::open(directory)?.sync_all()
 }
 
@@ -68,6 +89,7 @@ mod tests {
             lan_subnet: "192.0.2.0/24".into(),
             local_subnets: Vec::new(),
             previous_ipv4_forwarding: false,
+            boot_id: None,
         };
         assert_eq!(load(directory.path()).unwrap(), None);
         create(directory.path(), &intent).unwrap();

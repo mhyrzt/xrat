@@ -20,25 +20,7 @@ pub fn install_with_local(
     capture: &str,
     local: &[String],
 ) -> io::Result<()> {
-    let policy = SystemTunInterfaceOps.policy_rules()?;
-    if policy.iter().any(|rule| {
-        rule.family == 2
-            && rule
-                .priority()
-                .is_some_and(|priority| (1..=4200).contains(&priority))
-    }) {
-        return Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "an IPv4 policy rule can take precedence over gateway capture",
-        ));
-    }
-
-    if !table_routes()?.is_empty() || list_rules()?.iter().any(references_table) {
-        return Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "gateway capture route table is already in use",
-        ));
-    }
+    preflight_install()?;
 
     ip(&[
         "route",
@@ -75,6 +57,44 @@ pub fn install_with_local(
     Ok(())
 }
 
+pub fn preflight_install() -> io::Result<()> {
+    verify_precedence(false)?;
+    if !table_routes()?.is_empty() || list_rules()?.iter().any(references_table) {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "gateway capture route table is already in use",
+        ));
+    }
+    Ok(())
+}
+
+fn verify_precedence(replacing_owned_rule: bool) -> io::Result<()> {
+    let highest = if replacing_owned_rule { 4199 } else { 4200 };
+    let policy = SystemTunInterfaceOps.policy_rules()?;
+    if policy.iter().any(|rule| {
+        rule.family == 2
+            && rule
+                .priority()
+                .is_some_and(|priority| (1..=highest).contains(&priority))
+    }) {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "an IPv4 policy rule can take precedence over gateway capture",
+        ));
+    }
+    Ok(())
+}
+
+pub fn preflight_replacement(
+    lan: &str,
+    subnet: &str,
+    capture: &str,
+    local: &[String],
+) -> io::Result<()> {
+    verify_precedence(true)?;
+    check_or_remove(lan, subnet, capture, local, false)
+}
+
 /// Remove only the expected route and rule shape while the closed guard remains.
 pub fn remove(lan: &str, subnet: &str, capture: &str) -> io::Result<()> {
     remove_with_local(lan, subnet, capture, &[])
@@ -85,6 +105,16 @@ pub fn remove_with_local(
     subnet: &str,
     capture: &str,
     local: &[String],
+) -> io::Result<()> {
+    check_or_remove(lan, subnet, capture, local, true)
+}
+
+fn check_or_remove(
+    lan: &str,
+    subnet: &str,
+    capture: &str,
+    local: &[String],
+    remove: bool,
 ) -> io::Result<()> {
     let (network, prefix) = subnet
         .split_once('/')
@@ -137,6 +167,9 @@ pub fn remove_with_local(
         ));
     }
 
+    if !remove {
+        return Ok(());
+    }
     if !claiming.is_empty() {
         ip(&[
             "rule", "delete", "priority", PRIORITY, "iif", lan, "from", subnet, "lookup", TABLE,

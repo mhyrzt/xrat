@@ -85,7 +85,7 @@ impl Cli {
             .env("NO_COLOR", "1");
         command
     }
-    fn call(&self, action: &[&str], check: bool) -> Output {
+    pub(super) fn call(&self, action: &[&str], check: bool) -> Output {
         let deadline = Instant::now() + Duration::from_secs(15);
         let result = loop {
             let stdout = tempfile::tempfile().unwrap();
