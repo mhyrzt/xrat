@@ -47,7 +47,10 @@ pub(super) fn extract_binary(archive: &Path, directory: &Path, executable: &str)
             let mut entry = zip
                 .by_index(index)
                 .map_err(|error| AppError::InvalidArgument(error.to_string()))?;
-            if entry.name() != executable && entry.name() != format!("./{executable}") {
+            let name = entry
+                .name()
+                .map_err(|error| AppError::InvalidArgument(error.to_string()))?;
+            if name != executable && name != format!("./{executable}") {
                 continue;
             }
             let mode = entry.unix_mode().unwrap_or(0) & 0o170000;

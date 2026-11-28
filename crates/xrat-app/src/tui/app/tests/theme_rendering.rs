@@ -48,7 +48,7 @@ fn find_cell<'a>(buffer: &'a Buffer, text: &str) -> &'a ratatui::buffer::Cell {
 
 #[test]
 fn palettes_cover_screen_selections_and_mixed_engine_states() {
-    let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = theme::lock_test_theme();
     let mut app = app();
     let mut terminal = Terminal::new(TestBackend::new(200, 48)).unwrap();
     let custom: crate::app::config::TuiSettings = toml::from_str(
@@ -134,7 +134,7 @@ fn palettes_cover_screen_selections_and_mixed_engine_states() {
 
 #[test]
 fn custom_palette_is_used_in_settings_modal() {
-    let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = theme::lock_test_theme();
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("config.toml");
     std::fs::write(
@@ -160,7 +160,7 @@ fn custom_palette_is_used_in_settings_modal() {
 
 #[test]
 fn transparent_theme_renders_reset_background_with_theme_accents() {
-    let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = theme::lock_test_theme();
     let app = app();
     let mut terminal = Terminal::new(TestBackend::new(200, 48)).unwrap();
     let tui: crate::app::config::TuiSettings = toml::from_str(
@@ -184,7 +184,7 @@ fn transparent_theme_renders_reset_background_with_theme_accents() {
 
 #[test]
 fn key_bar_connection_pill_shows_running_config_connecting_and_idle() {
-    let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = theme::lock_test_theme();
     let mut app = app();
     let mut terminal = Terminal::new(TestBackend::new(120, 30)).unwrap();
 

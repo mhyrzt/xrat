@@ -34,7 +34,7 @@ fn rejects_unknown_theme() {
 
 #[test]
 fn switching_theme_updates_active_palette_and_styles() {
-    let _guard = TEST_THEME_LOCK.lock().unwrap();
+    let _guard = lock_test_theme();
     set_active(TuiTheme::Default);
     assert_eq!(palette(), TuiTheme::Default.palette());
     let default_accent = accent_style();
@@ -52,7 +52,7 @@ fn switching_theme_updates_active_palette_and_styles() {
 
 #[test]
 fn latency_style_thresholds() {
-    let _guard = TEST_THEME_LOCK.lock().unwrap();
+    let _guard = lock_test_theme();
     set_active(TuiTheme::Default);
     assert_eq!(latency_style(50), success_style());
     assert_eq!(latency_style(250), warning_style());
@@ -66,7 +66,7 @@ fn latency_style_thresholds() {
 
 #[test]
 fn semantic_styles_use_actual_state() {
-    let _guard = TEST_THEME_LOCK.lock().unwrap();
+    let _guard = lock_test_theme();
     set_active(TuiTheme::Default);
     assert_eq!(available_style(true), success_style());
     assert_eq!(available_style(false), muted_style());

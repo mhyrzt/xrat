@@ -5,6 +5,7 @@ use crate::tui::app::{SettingsModalState, SettingsPane, TuiAction, TuiApp};
 
 #[test]
 fn tun_setting_is_editable_and_persisted_from_settings() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("");
     focus_setting(&mut app, "runtime.tun.enabled");
     app.apply(TuiAction::SettingsSubmit);
@@ -50,6 +51,7 @@ fn focus_setting(app: &mut TuiApp, path: &str) {
 
 #[test]
 fn enter_toggles_boolean_and_marks_modal_dirty() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[runtime.socks]\nenabled = true\n");
     focus_setting(&mut app, "runtime.socks.enabled");
 
@@ -88,6 +90,7 @@ fn reset_is_ignored_while_sections_pane_is_focused() {
 
 #[test]
 fn dns_settings_can_be_changed() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[dns]\nquery_strategy = \"UseSystem\"\n");
     focus_setting(&mut app, "dns.query_strategy");
 
@@ -101,6 +104,7 @@ fn dns_settings_can_be_changed() {
 
 #[test]
 fn save_preparation_commits_valid_edits_and_rejects_invalid_ones() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[runtime.socks]\nport = 18200\n");
     focus_setting(&mut app, "runtime.socks.port");
     app.apply(TuiAction::SettingsSubmit);
@@ -128,6 +132,7 @@ fn save_preparation_commits_valid_edits_and_rejects_invalid_ones() {
 
 #[test]
 fn scalar_edit_and_discard_confirmation_are_stateful() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[runtime.socks]\nport = 18200\n");
     focus_setting(&mut app, "runtime.socks.port");
 
@@ -160,6 +165,7 @@ fn scalar_edit_and_discard_confirmation_are_stateful() {
 
 #[test]
 fn secret_edit_starts_empty_instead_of_revealing_value() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[server]\nkey = \"top-secret\"\n");
     focus_setting(&mut app, "server.key");
 
@@ -194,6 +200,7 @@ fn values_pane_has_independent_vertical_navigation() {
 
 #[test]
 fn enter_on_sections_focuses_values_without_editing() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[runtime.socks]\nenabled = true\n");
 
     app.apply(TuiAction::SettingsSubmit);
@@ -231,7 +238,7 @@ fn nested_groups_are_folded_into_their_parent_page() {
 
 #[test]
 fn theme_setting_cycles_previews_live_and_reverts_on_discard() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     crate::tui::theme::set_active(crate::tui::theme::TuiTheme::Default);
     let (_root, mut app) = app_with_settings("[tui]\ntheme = \"default\"\n");
     focus_setting(&mut app, "tui.theme");
@@ -252,7 +259,7 @@ fn theme_setting_cycles_previews_live_and_reverts_on_discard() {
 
 #[test]
 fn theme_setting_saves_to_config() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     crate::tui::theme::set_active(crate::tui::theme::TuiTheme::Default);
     let (_root, mut app) = app_with_settings("[tui]\ntheme = \"default\"\n");
     focus_setting(&mut app, "tui.theme");
@@ -275,7 +282,7 @@ fn theme_setting_saves_to_config() {
 
 #[test]
 fn custom_theme_previews_and_discard_restores_original_custom_palette() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let contents = r##"
 [tui]
 theme = "custom"
@@ -298,7 +305,7 @@ accent = "#123456"
 
 #[test]
 fn custom_theme_selection_saves_and_preserves_definition_and_comments() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let contents = r##"
 [tui]
 theme = "light"
@@ -330,7 +337,7 @@ accent = "#123456" # my accent
 
 #[test]
 fn reset_theme_previews_default_and_discard_restores_custom() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) =
         app_with_settings("[tui]\ntheme = 'custom'\n[tui.themes.custom]\nextends = 'light'");
     focus_setting(&mut app, "tui.theme");
@@ -350,7 +357,7 @@ fn reset_theme_previews_default_and_discard_restores_custom() {
 
 #[test]
 fn discard_after_save_restores_last_saved_palette() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) =
         app_with_settings("[tui]\ntheme = 'light'\n[tui.themes.custom]\nextends = 'nord'\n");
     focus_setting(&mut app, "tui.theme");
@@ -368,7 +375,7 @@ fn discard_after_save_restores_last_saved_palette() {
 
 #[test]
 fn legacy_ui_theme_can_be_saved_without_duplicate_sections() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let (root, mut app) =
         app_with_settings("[ui]\ntheme = 'light'\n[ui.themes.custom]\nextends = 'nord'\n");
     focus_setting(&mut app, "tui.theme");
@@ -397,6 +404,7 @@ fn settings_search_delete_word_pops_last_segment() {
 
 #[test]
 fn settings_search_esc_clears_active_query_before_closing_modal() {
+    let _guard = crate::tui::theme::lock_test_theme();
     let (_root, mut app) = app_with_settings("[runtime.socks]\nenabled = true\n");
     app.apply(TuiAction::SettingsBeginSearch);
     for ch in "socks".chars() {

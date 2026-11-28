@@ -48,23 +48,19 @@ fn query(socket: &UdpSocket, name: &Name, kind: RecordType) -> io::Result<Vec<Ip
     let random = uuid::Uuid::new_v4();
     let id = u16::from_be_bytes([random.as_bytes()[0], random.as_bytes()[1]]);
     let question = Query::query(name.clone(), kind);
-    let mut request = Message::new();
-    request
-        .set_id(id)
-        .set_message_type(MessageType::Query)
-        .set_op_code(OpCode::Query)
-        .set_recursion_desired(true)
-        .add_query(question.clone());
+    let mut request = Message::new(id, MessageType::Query, OpCode::Query);
+    request.metadata.recursion_desired = true;
+    request.add_query(question.clone());
     socket.send(&request.to_vec().map_err(invalid)?)?;
     let mut bytes = [0; 4096];
     let count = socket.recv(&mut bytes)?;
     let reply = Message::from_vec(&bytes[..count]).map_err(invalid)?;
-    if reply.id() != id
-        || reply.message_type() != MessageType::Response
-        || reply.op_code() != OpCode::Query
-        || reply.queries() != [question]
-        || reply.truncated()
-        || reply.response_code() != ResponseCode::NoError
+    if reply.metadata.id != id
+        || reply.metadata.message_type != MessageType::Response
+        || reply.metadata.op_code != OpCode::Query
+        || reply.queries != [question]
+        || reply.metadata.truncation
+        || reply.metadata.response_code != ResponseCode::NoError
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -72,10 +68,10 @@ fn query(socket: &UdpSocket, name: &Name, kind: RecordType) -> io::Result<Vec<Ip
         ));
     }
     let mut names = vec![name.clone()];
-    for _ in 0..reply.answers().len() {
-        for answer in reply.answers() {
-            if names.contains(answer.name())
-                && let RData::CNAME(alias) = answer.data()
+    for _ in 0..reply.answers.len() {
+        for answer in &reply.answers {
+            if names.contains(&answer.name)
+                && let RData::CNAME(alias) = &answer.data
                 && !names.contains(&alias.0)
             {
                 names.push(alias.0.clone());
@@ -83,10 +79,10 @@ fn query(socket: &UdpSocket, name: &Name, kind: RecordType) -> io::Result<Vec<Ip
         }
     }
     Ok(reply
-        .answers()
+        .answers
         .iter()
-        .filter(|answer| names.contains(answer.name()))
-        .filter_map(|answer| match answer.data() {
+        .filter(|answer| names.contains(&answer.name))
+        .filter_map(|answer| match &answer.data {
             RData::A(address) if kind == RecordType::A => Some(IpAddr::V4(address.0)),
             RData::AAAA(address) if kind == RecordType::AAAA => Some(IpAddr::V6(address.0)),
             _ => None,
