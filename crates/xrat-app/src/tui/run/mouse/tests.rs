@@ -283,7 +283,7 @@ fn clicking_on_card_title_tabs_switches_tabs() {
 
 #[test]
 fn clicking_settings_modal_fields_respects_group_headers_and_layout() {
-    let _guard = crate::tui::theme::TEST_THEME_LOCK.lock().unwrap();
+    let _guard = crate::tui::theme::lock_test_theme();
     let mut app = test_app_with_configs(1);
     let root = tempfile::tempdir().expect("temp directory");
     let path = root.path().join("config.toml");

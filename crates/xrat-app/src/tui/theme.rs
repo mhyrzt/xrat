@@ -24,7 +24,34 @@ static ACTIVE_BORDER_TYPE: LazyLock<RwLock<BorderType>> =
     LazyLock::new(|| RwLock::new(BorderType::Plain));
 
 #[cfg(test)]
-pub static TEST_THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static TEST_THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+pub(crate) struct TestThemeGuard {
+    _lock: std::sync::MutexGuard<'static, ()>,
+    palette: ThemePalette,
+    border_type: BorderType,
+}
+
+#[cfg(test)]
+pub(crate) fn lock_test_theme() -> TestThemeGuard {
+    let lock = TEST_THEME_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    TestThemeGuard {
+        _lock: lock,
+        palette: palette(),
+        border_type: border_type(),
+    }
+}
+
+#[cfg(test)]
+impl Drop for TestThemeGuard {
+    fn drop(&mut self) {
+        set_palette(self.palette);
+        set_border_type(self.border_type);
+    }
+}
 
 /// Built-in color themes supported by the TUI.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

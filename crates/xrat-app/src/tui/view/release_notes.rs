@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn malformed_markdown_remains_readable_and_control_codes_are_removed() {
-        let _guard = theme::TEST_THEME_LOCK.lock().unwrap();
+        let _guard = theme::lock_test_theme();
         let text = markdown("# Heading\n\n**unfinished [link\n\n```rust\ncode\u{1b}[31m\n");
         let plain = text.to_string();
         assert!(plain.contains("Heading"));
