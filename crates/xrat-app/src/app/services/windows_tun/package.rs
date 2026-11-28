@@ -59,7 +59,7 @@ fn member(
     let mut found = None;
     for index in 0..archive.len() {
         let entry = archive.by_index(index).map_err(|error| error.to_string())?;
-        if entry.name() != wanted {
+        if entry.name().map_err(|error| error.to_string())? != wanted {
             continue;
         }
         if found.replace(index).is_some() {

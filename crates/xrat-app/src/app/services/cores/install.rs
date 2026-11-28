@@ -269,7 +269,10 @@ pub(crate) fn extract_zip_named(
             if !source.is_file() {
                 continue;
             }
-            let file_name = source.name().rsplit(['/', '\\']).next().unwrap_or_default();
+            let entry_name = source
+                .name()
+                .map_err(|error| format!("could not read archive entry name: {error}"))?;
+            let file_name = entry_name.rsplit(['/', '\\']).next().unwrap_or_default();
             if file_name == name {
                 found = Some(index);
                 break;
@@ -308,7 +311,10 @@ fn zip_binary_index(
         if !source.is_file() {
             continue;
         }
-        let file_name = source.name().rsplit(['/', '\\']).next().unwrap_or_default();
+        let entry_name = source
+            .name()
+            .map_err(|error| format!("could not read archive entry name: {error}"))?;
+        let file_name = entry_name.rsplit(['/', '\\']).next().unwrap_or_default();
         if file_name == wanted {
             exact = Some(index);
             break;

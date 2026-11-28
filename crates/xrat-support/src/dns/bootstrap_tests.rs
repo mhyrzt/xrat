@@ -26,12 +26,8 @@ fn resolver(
 }
 
 fn response(request: &Message) -> Message {
-    let mut reply = Message::new();
-    reply
-        .set_id(request.id())
-        .set_message_type(MessageType::Response)
-        .set_op_code(OpCode::Query)
-        .add_queries(request.queries().iter().cloned());
+    let mut reply = Message::response(request.metadata.id, OpCode::Query);
+    reply.queries.clone_from(&request.queries);
     reply
 }
 
@@ -41,7 +37,7 @@ fn follows_cname_answers_and_filters_unrelated_addresses_for_both_families() {
         |request| {
             let mut reply = response(&request);
             let alias = Name::from_ascii("alias.test").unwrap();
-            let record = match request.queries()[0].query_type() {
+            let record = match request.queries[0].query_type() {
                 RecordType::A => RData::A(A("192.0.2.3".parse().unwrap())),
                 RecordType::AAAA => RData::AAAA(AAAA("2001:db8::3".parse().unwrap())),
                 _ => unreachable!(),
@@ -53,7 +49,7 @@ fn follows_cname_answers_and_filters_unrelated_addresses_for_both_families() {
                 record,
             ));
             reply.add_answer(Record::from_rdata(
-                request.queries()[0].name().clone(),
+                request.queries[0].name().clone(),
                 60,
                 RData::CNAME(CNAME(alias)),
             ));
@@ -80,20 +76,20 @@ fn rejects_wrong_transaction_question_truncation_and_dns_errors() {
                 let mut reply = response(&request);
                 match change {
                     0 => {
-                        reply.set_id(request.id().wrapping_add(1));
+                        reply.metadata.id = request.metadata.id.wrapping_add(1);
                     }
                     1 => {
-                        reply.take_queries();
+                        reply.queries.clear();
                         reply.add_query(Query::query(
                             Name::from_ascii("other.test").unwrap(),
                             RecordType::A,
                         ));
                     }
                     2 => {
-                        reply.set_truncated(true);
+                        reply.metadata.truncation = true;
                     }
                     _ => {
-                        reply.set_response_code(ResponseCode::Refused);
+                        reply.metadata.response_code = ResponseCode::Refused;
                     }
                 }
                 reply
