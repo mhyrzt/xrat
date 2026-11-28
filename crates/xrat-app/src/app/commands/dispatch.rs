@@ -29,6 +29,14 @@ pub async fn run(context: &AppContext, command: &Command) -> crate::app::Result<
         Command::HashPassword(_) => serve::password_hash(),
         Command::Tui(args) => tui::run(context, args).await,
         Command::Tun(args) => tun::run(context, args).await,
+        Command::Gateway(args) => {
+            gateway::run_with_config(
+                &context.app_config,
+                args,
+                &context.runtime_paths.runtime_dir,
+            )
+            .await
+        }
         Command::Update(args) => update::run(context, args).await,
         Command::Parse(args) => parse::run(args).await,
         Command::Validate(args) => validate::run(args),

@@ -6,6 +6,7 @@ pub mod dashboard;
 pub(crate) mod desktop_proxy;
 pub mod diagnostics;
 pub mod engine_probe;
+pub mod gateway;
 mod lifecycle;
 pub mod machine_service;
 pub mod proxy_pac;

@@ -23,6 +23,13 @@ async fn run_inner(
     context: &mut AppContext,
     recover_stale_session: bool,
 ) {
+    #[cfg(target_os = "linux")]
+    if recover_stale_session
+        && let Err(error) =
+            crate::app::services::gateway::recover_boot(&context.runtime_paths.runtime_dir)
+    {
+        tracing::warn!(%error, "gateway boot recovery failed");
+    }
     let daemon_instance_id = uuid::Uuid::new_v4().to_string();
     let mut startup_restore = None;
     if recover_stale_session {

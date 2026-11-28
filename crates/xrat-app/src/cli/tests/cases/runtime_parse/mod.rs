@@ -1,6 +1,7 @@
 mod completions;
 mod daemon;
 mod db;
+mod gateway;
 mod manpage;
 mod parse;
 mod proxy;

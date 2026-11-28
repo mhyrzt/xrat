@@ -69,6 +69,7 @@ impl RuntimeService<'_> {
         }
         let ready = endpoints.socks.as_ref().or(endpoints.http.as_ref()).ok_or_else(|| AppError::InvalidArgument("complete Xray profiles need a local TCP SOCKS or HTTP inbound with a single port for startup readiness; XRAT will not inject one".into()))?;
         Ok(ResolvedLaunch {
+            gateway_installation: None,
             binary_path: self.context.runtime_paths.xray_path.clone(),
             ready_host: ready.host.clone(),
             ready_port: ready.port,

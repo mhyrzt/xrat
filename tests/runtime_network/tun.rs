@@ -62,11 +62,11 @@ fn proxy() {
     fixtures::recover_fake("203.0.113.2".parse().unwrap());
 }
 
-struct Cli {
-    root: PathBuf,
-    binary: PathBuf,
-    xray: PathBuf,
-    singbox: PathBuf,
+pub(super) struct Cli {
+    pub(super) root: PathBuf,
+    pub(super) binary: PathBuf,
+    pub(super) xray: PathBuf,
+    pub(super) singbox: PathBuf,
 }
 impl Cli {
     fn command(&self) -> Command {
@@ -85,7 +85,7 @@ impl Cli {
             .env("NO_COLOR", "1");
         command
     }
-    fn call(&self, action: &[&str], check: bool) -> Output {
+    pub(super) fn call(&self, action: &[&str], check: bool) -> Output {
         let deadline = Instant::now() + Duration::from_secs(15);
         let result = loop {
             let stdout = tempfile::tempfile().unwrap();
@@ -140,10 +140,10 @@ impl Cli {
         );
         result
     }
-    fn run(&self, action: &[&str]) -> Output {
+    pub(super) fn run(&self, action: &[&str]) -> Output {
         self.call(action, true)
     }
-    fn foreground(&self) -> ChildGuard {
+    pub(super) fn foreground(&self) -> ChildGuard {
         let log = OpenOptions::new()
             .create(true)
             .append(true)
@@ -214,7 +214,7 @@ port = 1053
         excluded = json!(excluded)
     )
 }
-fn core_pid(root: &Path) -> i64 {
+pub(super) fn core_pid(root: &Path) -> i64 {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         use sqlx::Connection;
         let options = sqlx::sqlite::SqliteConnectOptions::new()

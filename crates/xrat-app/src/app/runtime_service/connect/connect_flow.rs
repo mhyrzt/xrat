@@ -239,7 +239,12 @@ impl<'a> RuntimeService<'a> {
         };
 
         if let Err(error) = self
-            .finish_tun_startup(session_id, process.pid, &launch.allowed_endpoints)
+            .finish_tun_startup(
+                session_id,
+                process.pid,
+                &launch.allowed_endpoints,
+                launch.gateway_installation,
+            )
             .await
         {
             return Err(self

@@ -145,6 +145,48 @@ pub struct XrayTunCaptureOptions<'a> {
     pub resolved_hosts: &'a [(String, String)],
 }
 
+impl XrayConfig {
+    /// Restrict the generated gateway TUN inbound to the managed proxy.
+    pub fn constrain_gateway_tun(&mut self) -> Result<(), String> {
+        if !self.outbounds.iter().any(|outbound| {
+            outbound.tag == "proxy"
+                && !matches!(outbound.protocol.as_str(), "freedom" | "blackhole" | "dns")
+        }) {
+            return Err("Xray gateway requires a generated proxy outbound".into());
+        }
+        let tun = self
+            .inbounds
+            .iter_mut()
+            .find(|inbound| inbound.tag == "tun-in" && inbound.protocol == "tun")
+            .and_then(|inbound| inbound.settings.as_mut())
+            .and_then(serde_json::Value::as_object_mut)
+            .ok_or("Xray gateway requires a generated TUN inbound")?;
+        tun.remove("autoSystemRoutingTable");
+        tun.remove("autoOutboundsInterface");
+
+        let routing = self
+            .routing
+            .get_or_insert_with(|| crate::xray::config::RoutingConfig {
+                domain_strategy: None,
+                rules: Vec::new(),
+            });
+        routing.rules.insert(
+            0,
+            crate::xray::config::RoutingRule {
+                kind: "field".into(),
+                domain: None,
+                ip: None,
+                port: None,
+                network: None,
+                inbound_tag: Some(vec!["tun-in".into()]),
+                process: None,
+                outbound_tag: "proxy".into(),
+            },
+        );
+        Ok(())
+    }
+}
+
 /// Enable TUN capture on an already-built Xray runtime config:
 /// - adds a `tun` inbound tagged `tun-in` with routing/interface settings
 /// - adds a `dns` outbound tagged `dns-out`

@@ -236,6 +236,10 @@ runtime-dns xray_binary singbox_binary fixtures:
 runtime-tun xrat_binary xray_binary singbox_binary output:
     XRAT_RUNTIME_CLI={{ quote(xrat_binary) }} XRAT_RUNTIME_XRAY={{ quote(xray_binary) }} XRAT_RUNTIME_SINGBOX={{ quote(singbox_binary) }} XRAT_RUNTIME_OUTPUT={{ quote(output) }} cargo test --locked -p xrat --test runtime_network tun_network -- --ignored --exact --nocapture
 
+# Exercise both managed Linux gateway engines in an isolated shared-LAN topology
+runtime-gateway xrat_binary xray_binary singbox_binary output:
+    XRAT_RUNTIME_CLI={{ quote(xrat_binary) }} XRAT_RUNTIME_XRAY={{ quote(xray_binary) }} XRAT_RUNTIME_SINGBOX={{ quote(singbox_binary) }} XRAT_RUNTIME_OUTPUT={{ quote(output) }} cargo test --locked -p xrat --test runtime_network gateway_managed_engines -- --ignored --exact --nocapture
+
 # Start the local PostgreSQL verification database
 [group('database')]
 postgres-up:

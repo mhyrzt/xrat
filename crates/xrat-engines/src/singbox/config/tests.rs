@@ -908,3 +908,27 @@ fn hy2_node(extensions: Option<BTreeMap<String, serde_json::Value>>) -> Node {
         raw_config: "hy2://secret@hy2.example.com:443?sni=edge.example.com#hy2".to_string(),
     }
 }
+
+#[test]
+fn gateway_tun_uses_proxy_before_private_routes() {
+    let mut config = generate_singbox_runtime_config(
+        &hy2_node(None),
+        vec![SingboxInbound::tun(tun_options()).unwrap()],
+        None,
+        None,
+    )
+    .unwrap();
+    config.enable_tun_route();
+    config.constrain_gateway_tun().unwrap();
+
+    let value = serde_json::to_value(&config).unwrap();
+    assert_eq!(value["inbounds"][0]["auto_route"], false);
+    assert_eq!(value["inbounds"][0]["strict_route"], false);
+    assert_eq!(
+        value["route"]["rules"][0],
+        serde_json::json!({"inbound": ["tun-in"], "action": "route", "outbound": "proxy"})
+    );
+    if Command::new("sing-box").arg("version").output().is_ok() {
+        assert_valid_singbox(&config);
+    }
+}

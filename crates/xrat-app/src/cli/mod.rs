@@ -5,6 +5,7 @@ mod connect;
 mod daemon;
 mod db;
 mod disconnect;
+mod gateway;
 mod geoip;
 mod import;
 mod init;
@@ -41,6 +42,9 @@ pub use daemon::{
 };
 pub use db::{DbAction, DbArgs, DbMigrateArgs};
 pub use disconnect::DisconnectArgs;
+pub use gateway::{
+    GatewayAction, GatewayArgs, GatewayInstallArgs, GatewayReadArgs, GatewayRemoveArgs,
+};
 pub use geoip::{
     GeoIpAction, GeoIpArgs, GeoIpBackendArgs, GeoIpDownloadArgs, GeoIpLookupArgs, GeoIpPathArgs,
     GeoIpStatusArgs, GeoIpUpdateArgs,

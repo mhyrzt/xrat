@@ -8,6 +8,8 @@ mod types;
 pub use types::KillSwitchConfig;
 
 #[cfg(target_os = "linux")]
+pub mod gateway;
+#[cfg(target_os = "linux")]
 pub mod iptables;
 #[cfg(target_os = "linux")]
 pub mod nftables;

@@ -53,5 +53,6 @@ graph TB
 | [Import Pipeline](import-pipeline.md)                 | End-to-end subscription import flow                     |
 | [Daemon Architecture](daemon-architecture.md)         | Daemon process, IPC protocol, supervisor event loop     |
 | [Runtime Lifecycle](runtime-lifecycle.md)             | Session state machine, connect/replace/disconnect flows |
+| [Linux IPv4 Gateway Architecture](gateway.md)         | Proposed LAN packet flows, safety and acceptance        |
 | [Test Pipeline](test-pipeline.md)                     | Probe execution, test stages, output formatting         |
 | [Database Schema](../05-reference/database-schema.md) | Full SQL DDL and per-table column reference             |

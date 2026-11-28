@@ -1458,3 +1458,38 @@ async fn managed_singbox_tun_launch_applies_split_blacklist_and_whitelist() {
     assert_eq!(rules[3]["outbound"], "direct");
     assert_eq!(value["route"]["final"], "proxy");
 }
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn gateway_launch_requires_verified_guard_before_resolving_engine() {
+    let mut context = test_context().await;
+    context.app_config.runtime.tun.enabled = true;
+    context.app_config.runtime.tun.auto_route = false;
+    let config = imported_config(&context, test_node()).await;
+    let runtime = &context.runtime_paths.runtime_dir;
+    fs::create_dir_all(runtime).unwrap();
+    fs::write(
+        runtime.join("gateway-ownership-v1.json"),
+        r#"{
+            "installation_id": "00000000-0000-0000-0000-000000000001",
+            "lan_interface": "xrat-testnone",
+            "lan_ifindex": 42,
+            "lan_address": "192.0.2.1",
+            "lan_subnet": "192.0.2.0/24",
+            "local_subnets": [],
+            "previous_ipv4_forwarding": false
+        }"#,
+    )
+    .unwrap();
+    let error = RuntimeService::new(&context)
+        .resolve_launch(&config)
+        .await
+        .err()
+        .expect("a missing guard must prevent gateway launch");
+    assert!(
+        error
+            .to_string()
+            .contains("verified closed forwarding guard"),
+        "{error}"
+    );
+}

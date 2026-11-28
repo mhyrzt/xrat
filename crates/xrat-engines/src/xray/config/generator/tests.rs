@@ -1462,3 +1462,44 @@ fn tun_split_routing_blacklist_and_whitelist_emit_expected_xray_rules() {
     xrat_config::parsing::XrayConfig::from_json_strict(&serde_json::to_string(&wl_cfg).unwrap())
         .unwrap();
 }
+
+#[test]
+fn gateway_tun_uses_proxy_before_dns_and_direct_rules() {
+    let node =
+        parse_link("vless://00000000-0000-0000-0000-000000000001@127.0.0.1:443?security=none")
+            .unwrap()
+            .unwrap();
+    let mut config =
+        generate_runtime_config_for_inbounds(&node, Some(("127.0.0.1", 18200, true)), None)
+            .unwrap();
+    enable_tun_capture(
+        &mut config,
+        &XrayTunCaptureOptions {
+            interface_name: "xrat0",
+            mtu: 1500,
+            address: &["172.19.0.1/30".into()],
+            auto_route: true,
+            resolved_hosts: &[],
+        },
+    );
+    config.constrain_gateway_tun().unwrap();
+    let value = serde_json::to_value(&config).unwrap();
+    assert_eq!(
+        value["routing"]["rules"][0]["inboundTag"],
+        json!(["tun-in"])
+    );
+    assert_eq!(value["routing"]["rules"][0]["outboundTag"], "proxy");
+    assert!(
+        value["inbounds"][1]["settings"]
+            .get("autoSystemRoutingTable")
+            .is_none()
+    );
+    assert!(
+        value["inbounds"][1]["settings"]
+            .get("autoOutboundsInterface")
+            .is_none()
+    );
+    if Command::new("xray").arg("version").output().is_ok() {
+        assert_native_xray_config(std::path::Path::new("xray"), &config);
+    }
+}

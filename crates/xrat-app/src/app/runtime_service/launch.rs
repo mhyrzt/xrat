@@ -5,6 +5,10 @@ impl<'a> RuntimeService<'a> {
         &self,
         config: &ConfigRecord,
     ) -> crate::app::Result<ResolvedLaunch> {
+        let gateway = crate::app::services::gateway::validate_managed_launch(
+            self.context,
+            config.is_xray_profile(),
+        )?;
         if config.is_xray_profile() {
             return self.resolve_raw_launch(config).await;
         }
@@ -87,7 +91,16 @@ impl<'a> RuntimeService<'a> {
             ));
         }
         if engine == RuntimeEngine::Singbox {
-            return self.resolve_singbox_launch(&node, socks, http, shadowsocks);
+            let mut launch = self.resolve_singbox_launch(&node, socks, http, shadowsocks)?;
+            if gateway.is_some()
+                && let RuntimeLaunchConfig::Singbox(config) = &mut launch.config
+            {
+                config
+                    .constrain_gateway_tun()
+                    .map_err(AppError::InvalidArgument)?;
+            }
+            launch.gateway_installation = gateway;
+            return Ok(launch);
         }
 
         let mut resolved_hosts = Vec::new();
@@ -268,6 +281,12 @@ impl<'a> RuntimeService<'a> {
             enable_tun_split_routing(&mut xray_config, &compiled_split.to_xray_options());
         }
 
+        if gateway.is_some() {
+            xray_config
+                .constrain_gateway_tun()
+                .map_err(AppError::InvalidArgument)?;
+        }
+
         let (ready_host, ready_port) = if let Some((host, port, _)) = socks {
             (connect_host_for_bind_host(host), port)
         } else if let Some((host, port)) = http {
@@ -278,6 +297,7 @@ impl<'a> RuntimeService<'a> {
             unreachable!("validated at least one inbound")
         };
         Ok(ResolvedLaunch {
+            gateway_installation: gateway,
             binary_path,
             config: RuntimeLaunchConfig::Xray(xray_config),
             ready_host,
@@ -492,6 +512,7 @@ impl<'a> RuntimeService<'a> {
         };
 
         Ok(ResolvedLaunch {
+            gateway_installation: None,
             binary_path: self.context.runtime_paths.sing_box_path.clone(),
             config: RuntimeLaunchConfig::Singbox(config),
             ready_host,

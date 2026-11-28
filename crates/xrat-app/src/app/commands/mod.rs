@@ -7,6 +7,7 @@ mod daemon_install;
 pub(crate) use daemon_install::systemd_user_dir_with_env;
 mod db;
 mod disconnect;
+pub mod gateway;
 mod geoip;
 mod import;
 mod init;
